@@ -1,0 +1,7 @@
+
+
+sub/lib.fasl : $$tart.fasl
+ /home/sbrody/xcvb/te\$$tsbcl/sbcl --eval "(progn (compile-file "sub/lib.lisp") (sb-ext:quit))"
+
+$$tart.fasl : 
+ /home/sbrody/xcvb/te\$$tsbcl/sbcl --eval "(progn (compile-file "\$$tart.lisp") (sb-ext:quit))"

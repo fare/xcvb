@@ -1,0 +1,293 @@
+XCVB: an eXtensible Component Verifier and Builder for Lisp
+
+Objectives: have a scalable system to build large software in Lisp, featuring
+deterministic separate compilation and enforced locally-declared dependencies.
+
+
+1- Benefits and Rationale:
+
+1.1- Management of large dependencies will become manageable.
+
+  ASDF doesn't scale to large projects. It requires dependencies to be
+  gathered in a central file, and it doesn't enforce these dependencies.
+  Moreover, because of its compilation model, direct and indirect
+  dependencies are conflated. This means that a person making a change
+  to the direct dependencies of a file may break the build because
+  he removes dependencies that were indirectly required by an unrelated file.
+  What should be a local change ends up requiring global knowledge of
+  the project by each and every hacker. Of course, this doesn't scale
+  to large projects with thousands of files. Also, the attempt to simplify
+  things by dividing a project into sub-systems doesn't work because ASDF
+  doesn't track dependencies across systems (see point 4 below). In practice,
+  our large asd systems are a big unmaintained pile of file to be compiled
+  in order (with :serial t) because it's the only semi-maintainable solution.
+
+  XCVB will scale by using dependency declarations that are local to each
+  module and enforced by the build system. All changes in dependencies
+  will only require local knowledge and local changes by whichever
+  hacker is modifying the code.
+
+
+1.2- Build bugs will be much easier to track.
+
+  ASDF doesn't enforce dependencies. Often a missed dependency will not be
+  detected early on, but sometime much later when some independent change
+  causes the load order to vary and the build to break. A hacker who is
+  completely innocent of the bug in an unrelated part of the code will have
+  to dig out the culprit and fix the bug on which he completely lacks
+  contextual information.
+
+  XCVB will enforce dependencies. Each module will be compiled with its
+  dependencies loaded, and only its dependencies. Missing dependencies will
+  deterministically cause an error and be immediately detected by
+  whichever hacker is making the modification that is missing a declaration.
+  Said hacker has full knowledge of the context of his modification and can
+  add the dependency.
+
+  In XCVB, dependency enforcement may be turned off for a fast compile
+  inside a single image, but this won't be the default mode of building
+  software (except perhaps for compatibility with single-image Lisp
+  platforms that lack the ability to compile in a virtual image, aka FORK),
+  and will neither be guaranteed to detect errors reliably, nor provide a
+  result equivalent to the normal mode in presence of code that is sensitive
+  to compile-time side-effects in non-dependencies.
+
+
+1.3- Incremental builds of the system will be reliable.
+
+  The nastiest class of undeclared dependencies when compiling Lisp systems
+  are dependencies on the compile-time side-effects of compiling other files.
+  These side-effects are not captured in a FASL, and any dependency on such
+  effects means that a system that depends on them can only be built from
+  scratch, and that trying to LOAD fasl's instead of compiling the source
+  code file will lead to failure to build. ASDF has no means to track and
+  enforce or disallow such dependencies.
+
+  XCVB will allow to declare and enforce dependencies on compile-time
+  side-effects. A portable implementation of such a dependency might indeed
+  require re-compiling the dependencies each time. A faster non-portable
+  implementation will instead depend on the underlying Lisp's COMPILE-FILE
+  to dump a CFASL for the compile-time side-effects of the file as well as
+  FASL for the load-time side-effects. There exists a patch to SBCL that
+  provides such a feature, as written by Juho Snellman at the prompt of
+  James Knight:
+     http://repo.or.cz/w/sbcl/jsnell.git?a=treediff;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master
+
+
+1.4- We will be able to track dependencies across modules.
+
+  ASDF also doesn't track dependencies across systems. When you modify a
+  macro in system FOO that is used in system BAR, ASDF won't recompile BAR,
+  and the resulting build will fail. Because its dependencies are very
+  coarse-grained, if ASDF were forced to "do the right thing" and recompile
+  BAR and all the other systems depending on FOO, the least change might
+  cause a lot more work than bearable by the casual interactive user. This
+  behaviour could be amended, or at least controlled by a toggle, but the
+  bottom line is that there is one more reason why ASDF isn't reliable to
+  build a large system without restarting from scratch everytime.
+
+  XCVB will properly handle all dependencies inside and between many modules,
+  and allow to reliably build the system from object files already compiled.
+  It will also allow more fine-grained dependencies, and thus require fewer
+  recompilations when making a change, without the need to unbearably slowly
+  recompile everything. This means faster build time and hackers who can
+  quickly yet reliably test what they will commit.
+
+
+1.5- We can speed up compilation with parallelizing, distributing and caching.
+
+  The ASDF system building model depends on compiling then loading all the
+  files in the same image. Although there was a successful attempt to
+  parallelize the compilation part (POIU, written by Andreas Fuchs as
+  sponsored by ITA), the loading is still done serially in the same image,
+  which leads to the above problems of unenforced dependencies that cause
+  non-deterministic build problems, and make compilation essentially
+  non-deterministic. 
+
+  In contrast, XCVB will provide an essentially deterministic way of
+  compiling files (modulo any non-determinacy introduced by the underlying
+  Lisp implementation, if any). It will thus be possible to fully
+  parallelize compilation, distribute it within a farm of similar machines,
+  and cache the results of intermediate compilations.
+
+  The same infrastructure can be used to compile in parallel with multiple
+  different options - say, for production, for debugging, for profiling,
+  for code coverage, etc.
+
+
+1.6- We can achieve faster and more accurate incremental testing
+
+  The dependency information used but not enforced by ASDF cannot be relied
+  to rebuild the system, and even less to conduct incremental tests based
+  on the knowledge of what was modified.
+
+  The dependency information used and enforced by XCVB, combined with
+  test coverage data, can be used to drive such incremental tests,
+  barring use by such tests of clever run-time introspection that would
+  be affected by addition of code built since coverage data was last gathered.
+  Such tests can trivially be marked as having to be re-run everytime,
+  and automatically so if the coverage data signals use of such introspection
+  functions.
+
+  This will yield a faster turnaround of tested code, yet with much more
+  reliable test coverage than with the use of a hand picked subset of tests.
+
+  I think this point is the big seller for the ACRES Release team: we will
+  be able to have faster yet more reliable buildbots.
+
+
+1.7- ITA is very interested in such a technology
+
+  The two big Lisp projects at ITA, QRes and QPX, are both interested in
+  using such a technology to improve the build of their software.
+  ITA is currently hiring an intern, Spencer Brody, working under the
+  guidance of Francois-Rene Rideau, whose assignment is to realize such a
+  successor to ASDF and migrate the build of QRes to this successor.
+
+
+
+2- Plan:
+
+2.1- document a basic design for this system. (1 week)
+
+2.2- implement the system and try it with subsets of QRes
+  (e.g. the asd systems currently compiled first and last)
+  (2 weeks + time for #3.1 below)
+
+2.3- improve our design until satisfaction is reached.
+  (1 week + maybe #3.2 below)
+
+2.4- migrate the whole of QRes to use the new system, based on automatically
+  converting a trimmed ASDF file itself obtained from a modified version of
+  asdf-dependency-grovel as for the previous parallel build.
+  (time for #3.3,3.4 below)
+
+2.5- ensure overall satisfaction, and commit to trunk (1 week)
+
+
+
+3- Difficulties:
+
+3.1- To allow for dependencies on compile-time side-effects (as our code
+  base seems to necessitate it least it should undergo massive refactoring),
+  we may need CFASL support from the compiler. SBCL has this support already
+  in a branch by Juho Snellman. For CCL, ita bug 41937 was filed. Slow
+  portable support without such CFASL is possible, but negates any speed
+  advantage without a massive refactoring of the code to segregate files
+  that have compile-time effects from files without such effect. For the
+  record, Juho Snellman said it was rather easy adding CFASL support to SBCL.
+  (2 weeks)
+
+3.2- So as to avoid spending too much time loading CFASLs, we may as an
+  optimization have to dump and cache intermediate images with common
+  dependencies already loaded (loosely corresponding to the state of the
+  compilation after each of our current ASDF systems).
+  (2 weeks if needed)
+
+3.3- So as to migrate QRes from ASDF to a separate-compilation system, we
+  WILL have to refactor a few files that currently have nasty dependencies
+  between compile-time and runtime: missing declarations of LIST-OF types,
+  generated messaging files, etc.
+  (1 week)
+
+3.4- We will have to modify slightly the build to isolate and make explicit
+  any dependencies on environment variables.
+  (1 week)
+
+3.5- We'll want to automate the migration from ASDF to the new system, and
+  for that we may have to hack asdf-dependency-grovel to distinguish
+  run-time and compile-time dependencies.
+  (Hopefully not needed.)
+
+Overall time estimate: about 11 weeks of work for intern + manager.
+
+
+4- Further possible improvements (not currently planned):
+
+4.1- We can add support for forms to be compiled at the end of a Lisp module.
+  Macros and types can thus expand into a local form that also registers
+  some code to be compiled at the end of the module. A portable solution
+  consists in requiring a finalization form to be present in every module
+  in which finalization is used. The absence of a required such form
+  can be automatically detected and made to issue an error. When such a
+  form is present, it will expand into a PROGN of all the additional forms
+  registered. QRes could notably use that for its infamous LIST-OF type.
+
+4.2- Modules can be made to declare dependencies on things other than
+  Lisp files as such. These generalized dependencies could include
+  Lisp code generated as specified by a form (e.g. "the function needed
+  by the LIST-OF type", or "support for this encoding"). Such generated
+  code would then only have to be compiled and loaded once. Other obvious
+  generalized dependencies could include compilation or otherwise processing
+  of C files, python files, data files, etc., with arbitrary commands and
+  flags, yielding a variety of object files. XCVB could thus be eventually
+  turned into a generally useful build system.
+
+4.3- Arbitrary preprocessing can be done to the code in a module.
+  Lisp code could be preprocessed by arbitrary language processors, in the
+  style of MzScheme modules. Hygienic macros could be supported, etc.
+  Unhappily, such preprocessing will break debug information, unless
+  special support is available form the underlying Lisp implementation.
+
+4.4- We could take advantage of our separate compilation and dependency
+  infrastructure to automate the work currently done with maintaining
+  package declaration files. Symbol declarations could be decentralized,
+  and pkgdcl files automatically generated, and yet dependencies be detected
+  and enforced, using techniques similar to those currently used by
+  asdf-dependency-grovel.
+
+4.5- We could further speedup compilation if by using incremental images such
+  as produced by SB-HEAPDUMP. There again, we would need to port this feature
+  to CCL if we want to use it for QRes. This could help a lot with making the
+  compilation faster. Using such a feature would require either manual
+  tracking of state, or use of a modified version of asdf-dependency-grovel
+  and/or new such tools to track the state changes as files are loaded or
+  compiled.
+
+4.6- We could cache the state of forked lisp processes with various sets of
+  FASL's preloaded and waiting for a command.
+
+
+5- Elements of design:
+
+5.1- Each file will carry as its first form a (xcvb:module ...) specification
+  with all its compile-time and run-time dependencies, as well as an other
+  optional elements such name, nicknames, origin (see below), language
+  (:COMMON-LISP or any future dialect), author, maintainer, licence,
+  description, long-description, readtable, etc.
+
+5.2- When a directory is named as a module dependency, the file BUILD.lisp
+  under this directory contains the dependency data for said module, and the
+  directory is considered the origin of names for files under said directory.
+
+5.3- Naming of modules in a project are relative to the origin of the project
+  in which the module resides. E.g. if the project is checked out under path
+  #p"/ita/foo/qres/lisp/" then module "quake/macros" as named within the
+  project will refer to file #p"/ita/foo/qres/lisp/quake/macros.lisp". If said
+  file contains a reference to "quux/macros", this will be file
+  #p"/ita/foo/qres/lisp/quux/macros.lisp". The origin of a project may be
+  explicitly specified in a file, or inherited from the BUILD.lisp in the
+  current directory or one of its ancestors. (If no origin is specified and
+  no such BUILD.lisp is found, then this is an error.)
+
+5.4- Both the surface declaration syntax and the compilation semantics of XCVB
+  are significantly different from ASDF that XCVB cannot be made trivially as
+  an extension of ASDF. Reuse of the ASDF design or code base could
+  nevertheless be possible and desirable, but the topic hasn't been examined
+  in detail yet.
+
+5.5- Distributed Caching will be based on a Tiger Hash value of a
+  specification of the computation to happen to compute the cached object.
+  Said specification shall include a hash of the compiler binary used and its
+  installation, the name and hashed contents of the object files loaded and
+  other operations performed, etc.
+
+5.6- We will engineer XCVB so that various kinds of cross-compilation are
+  possible: using XCVB to generate static Makefile or SCons dependencies
+  (if dependencies are indeed static for said project), using XCVB as
+  compiled into a given Lisp implementation to drive compilation of code
+  with a different implementation (or version of same implementation), etc.
+  XCVB will not be driven by the paradigm of a "One True Lisp World".
+
+5.7- Easy ways to integrate XCVB and ASDF will be provided: XCVB will be able
+  to load ASDF systems, and ASDF will be able to load XCVB systems.

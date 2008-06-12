@@ -1,0 +1,10 @@
+(in-package :cl-user)
+
+(defun test-xcvb ()
+  (pushnew #p"/home/sbrody/xcvb/" asdf:*central-registry*)
+  (pushnew #p"/ita/devel/qres/lisp/libs/alexandria/" asdf:*central-registry*)
+  (asdf:operate 'asdf:load-op :xcvb-test))
+
+(test-xcvb)
+
+(asdf:operate 'asdf:load-op :xcvb-test)

@@ -1,0 +1,39 @@
+;;; -*- mode: lisp -*-
+(defsystem :xcvb
+    :name "xcvb"
+    :author "Spencer Brody"
+    :version "0.1"
+    :maintainer '("Spencer Brody" "Francois-Rene Rideau")
+    :licence "
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;                                                                  ;;;
+;;; Free Software available under MIT License                        ;;;
+;;;                                                                  ;;;
+;;; Copyright (c) 2008 ITA Software, Inc.                            ;;;
+;;;                                                                  ;;;
+;;; Original author: Spencer Brody                                   ;;;
+;;;                                                                  ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+"
+    :description      "XCVB"
+    :long-description "XCVB: an eXtensible Component Verifier and Builder for Lisp which provides a scalable system to build large software in Lisp, featuring deterministic separate compilation and enforced locally-declared dependencies."
+    ;;:depends-on ()
+    :serial t
+    :components
+    (
+     (:module "xcvb-all"
+              :serial t
+              :pathname #.*xcvb-path*
+              :components
+              ((:file "pkgdcl")
+               (:file "xcvb" :depends-on ("pkgdcl"))
+               ))
+
+     (:module "xcvb-test"
+	    :serial t
+	    :pathname #.*xcvb-path*
+	    :depends-on ("xcvb-all")
+	    :components
+            ((:file "xcvb-test")
+	      ))))
+(pushnew :xcvb *features*)
