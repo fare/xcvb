@@ -10,4 +10,5 @@
      #:load-dependencies
      #:compile-module
      #:load-module
-     #:run-tests))
+     #:run-tests
+     #:run-converter-tests))

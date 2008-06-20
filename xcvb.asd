@@ -22,7 +22,8 @@ featuring deterministic separate compilation and enforced locally-declared depen
     :components
     ((:file "pkgdcl")
      (:file "xcvb-compiler-options" :depends-on ("pkgdcl"))
-     (:file "xcvb" :depends-on ("pkgdcl" "xcvb-compiler-options"))))
+     (:file "xcvb" :depends-on ("pkgdcl" "xcvb-compiler-options"))
+     (:file "asdf-converter" :depends-on ("pkgdcl" "xcvb"))))
      
 
 (cl:pushnew :xcvb *features*)

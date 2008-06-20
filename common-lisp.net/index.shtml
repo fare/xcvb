@@ -60,9 +60,7 @@ deterministic separate compilation and enforced locally-declared dependencies.
 
  <h3>CVS</h3>
 
-   <p>You can <a
- href="http://common-lisp.net/cgi-bin/viewcvs.cgi/?cvsroot=xcvb">
-browse our CVS repository</a></p>
+   <p>You can access our git repository at <a href="common-lisp.net/project/xcvb/git/xcvb.git"> common-lisp.net/project/xcvb/git/xcvb.git</a></p>
 
    <div class="footer">
      <a href="mailto:fahree&#64;gmail.com">Francois-Rene Rideau</a>, 9. Jun. 2008.

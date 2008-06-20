@@ -1,1 +1,10 @@
-do stuff
+-Dump partial images for [combinations of] asdf systems required
+-Sort partial images alphabetically, then require them one by one
+-May need to load xcvb-runtime.lisp first thing in target lisp and/or dump and image with it
+-Manage auto dumping
+	a) Systematically or randomly or based on a probabilistic cost/benefit analysis dump images for intermediate states
+	b) Be able to detect that an intermediate state is usable and resume from it
+-Find a way to detect if an asdf system needs recompiling
+-Play well with asdf-system-connections (low priority)
+-Run asdf-dependency-grovel on just quux
+-Look at make-qres-dependencies and see how it is called from the Makefile.

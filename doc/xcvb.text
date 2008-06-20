@@ -1,5 +1,6 @@
 XCVB: an eXtensible Component Verifier and Builder for Lisp
 
+
 Objectives: have a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies.
 

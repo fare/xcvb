@@ -25,15 +25,15 @@
 
 
 (defun test1 ()
-  (with-open-file (out "/home/sbrody/xcvb/dependency-graph-output.txt" :direction :output :if-exists :supersede)
+  (with-open-file (out "/home/sbrody/xcvb/test/dependency-graph-output.txt" :direction :output :if-exists :supersede)
     (write-graph-to-file out (build-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") 0)))
 
 (defun test2 ()
-  (with-open-file (out "/home/sbrody/xcvb/Makefile.xcvb" :direction :output :if-exists :supersede)
-    (write-makefile out (build-dump-image-graph "/home/sbrody/xcvb/test/build.img" "/home/sbrody/xcvb/test/BUILD.lisp") (make-hash-table :test #'equal))))
+  (with-open-file (out "/home/sbrody/xcvb/test/Makefile.xcvb" :direction :output :if-exists :supersede)
+    (write-makefile out (build-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") (make-hash-table :test #'equal))))
 
 (defun test3 ()
-  (with-open-file (out "/home/sbrody/xcvb/ASDFILE.asd" :direction :output :if-exists :supersede)
+  (with-open-file (out "/home/sbrody/xcvb/test/ASDFILE.asd" :direction :output :if-exists :supersede)
     (write-asdf-file out (build-asdf-graph "/home/sbrody/xcvb/test/BUILD.lisp") (make-hash-table :test #'equal) nil)))
 
 (defun run-tests ()
@@ -70,4 +70,4 @@
 
 
 
-(run-tests)
+;(run-tests)

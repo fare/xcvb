@@ -1,10 +1,10 @@
 (xcvb:module
   :description "macros for XCVB test"
   :origin "/home/sbrody/xcvb/test/"
-  :load-depends-on ("sub/lib"))
+  :load-depends-on ("sub/lib")
+  :build-depends-on ("pkgdcl"))
 
 (in-package :xcvb-test)
 
-
-;;  :compile-depends-on ("macros.lisp")
-
+(defun start-xcvb-test ()
+   (format nil (sum 1 2)))

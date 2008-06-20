@@ -6,6 +6,7 @@
   :description "testing the XCVB framework"
   :long-description "blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah"
   :compile-depends-on ("macros")
+  :load-depends-on ("$tart")
 )
 
 (xcvb-test:start-xcvb-test)
