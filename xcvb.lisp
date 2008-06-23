@@ -23,6 +23,7 @@
    (origin :initarg :origin :reader origin :initform nil :documentation "The origin specifies the filepath that all names will be assumed to be relative to.  If the origin isn't specified in the module, it will search for a build.lisp file in the current directory and any parent directories and treat the first directory found containing one as the origin")
    (author :initarg :author :reader author :initform nil :documentation "The author of the file")
    (maintainer :initarg :maintainer :reader maintainer :initform nil :documentation "The maintainer(s) of the file")
+   (version :initarg :version :reader version :initform nil :documentation "The version number of the file")
    (licence :initarg :licence :reader licence :initform nil :documentation "The licence being used for the file")
    (description :initarg :description :reader description :initform nil :documentation "A short description of the file")
    (long-description :initarg :long-description :reader long-description :initform nil :documentation "A detailed description of the file")
