@@ -1,7 +1,7 @@
 (xcvb:module
   :description "macros for XCVB test"
   :origin "/home/sbrody/xcvb/test/"
-  :build-depends-on ("pkgdcl")
+  :build-depends-on ("pkgdcl" (:asdf "foo"))
   
   )
 ;(:asdf "foo")

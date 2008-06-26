@@ -10,8 +10,6 @@
   "Filesystem path for the nearest surrounding BUILD.lisp file")
 (defparameter *build-for-asdf-p* nil
   "Flag to specify if the dependency graph should be built for creating an asdf file")
-(defparameter *asdf-systems* nil
-  "List of asdf systems in the dependency graph - used to write an asdf file")
 
 
 (defclass module () ())
@@ -83,7 +81,7 @@
 
 (defun parse-module (module)
   "Takes a module specifier and returns a module object representing that module.  Inherits licence, author, maintainer, description, and long-description slots from the build-module, if not specifically overwritten"
-  (destructuring-bind (module-decl &key name fullname nickname origin licence author maintainer description long-description compile-depends-on load-depends-on build-depends-on) module
+  (destructuring-bind (module-decl &key name fullname nickname origin licence version author maintainer description long-description compile-depends-on load-depends-on build-depends-on) module
     (declare (ignore module-decl))
     (make-instance 'concrete-module
       :name name
@@ -93,6 +91,7 @@
       :author (or author (if *build-module* (author *build-module*)))
       :maintainer (or maintainer (if *build-module* (maintainer *build-module*)))
       :licence (or licence (if *build-module* (licence *build-module*)))
+      :version (or version (if *build-module* (version *build-module*)))
       :description (or description (if *build-module* (description *build-module*)))
       :long-description (or long-description (if *build-module* (long-description *build-module*)))
       :compile-depends-on compile-depends-on
@@ -255,272 +254,21 @@
   (subseq name 0 (position #\/ name)))
 
 
-
-(defun build-asdf-graph (sourcepath)
-  "Constructs a dependency graph with a fasl-file-node for the lisp file at sourcepath as the root of the graph"
-  (setf *node-map* (make-hash-table :test #'equal))
-  (setf *module-map* (make-hash-table :test #'equal))
-  (setf *buildpath* (make-pathname :name nil :type nil :defaults (find-origin (pathname sourcepath))))
-  (setf *build-for-asdf-p* T)
-  (build-lisp-node (list (resolve-module (pathname sourcepath) *build-module*))))
-
 (defun build-dump-image-graph (imagepath sourcepath)
   "Constructs a dependency graph to dump a lisp image at imagepath with the lisp file at sourcepath loaded"
+  (build-image-dump-node (build-dependency-graph sourcepath) imagepath))
+
+(defun build-dependency-graph (sourcepath &key build-for-asdf)
+  "Constructs a dependency graph with a fasl-file-node for the lisp file at sourcepath as the root of the graph.  If build-for-asdf is non-nil, then the graph will be build with all dependencies being treated as load dependencies"
   (setf *node-map* (make-hash-table :test #'equal))
   (setf *module-map* (make-hash-table :test #'equal))
   (setf *buildpath* (make-pathname :name nil :type nil :defaults (find-origin (pathname sourcepath))))
-  (setf *build-for-asdf-p* nil)
-  (build-image-dump-node (build-lisp-node (list (resolve-module (pathname sourcepath) *build-module*))) imagepath))
-
-
-(defun escape-string-for-Makefile (string)
-  "Takes a string and excapes all the characters that need to be to be put into a makefile.  These characters are $ \\.  Raises an error if the string contains a newline"
-  (with-output-to-string (out-string)
-    (loop for c across string do
-	 (case c 
-	   (#\newline (error "Makefile line cannot contain a newline"))
-	   (#\$ (format out-string "$$"))
-	   (#\\ (format out-string "\\"));Not currently doing anything!
-	   (otherwise (format out-string "~a" c))))))
-#|
-  (reduce (lambda (c rest) 
-            (cond 
-              ((eql c #\newline) (error "Makefile line cannot contain a newline"))
-              ((eql c #\$) (strcat "$" (string c) rest))
-              ((eql c #\\) (strcat (string c) rest));Not currently doing anything!
-              (T (strcat (string c) rest))))
-          shell-string :from-end T :initial-value ""))
-|#
-  
-(defun escape-string-for-shell (string)
-  "Takes a string and excapes all the characters that need to be to be run in the shell.  These characters are \" $ ` \\"
-  (with-output-to-string (out-string)
-    (loop for c across string do
-	 (case c
-	   ((#\" #\` #\$ #\\) (format out-string "\\~a" c))
-	   (otherwise (format out-string "~a" c))))))
-;  (reduce (lambda (c rest) (if (member c (list #\" #\$ #\` #\\)) (strcat "\\" (string c) rest) (strcat (string c) rest))) string :from-end T :initial-value ""))
-
-#|
-(defun command-list-to-shell-command (command-list)
-  "Converts the list of commands to a single string that has been escape for the shell"
-  (format nil "~{~A~^ ~}" (mapcar #'escape-string-for-shell command-list)))
-
-(defun command-list-to-Makefile-line (command-list)
-  "Converts the list of commands to a single string that can be used to execute shell commands through make"
-  (shell-command-to-Makefile-line (command-list-to-shell-command command-list)))
-|#
-
-(defgeneric load-node-form-string (node)
-  (:documentation "Returns the string corresponding to the proper lisp form to load the given node"))
-
-(defmethod load-node-form-string ((node fasl-file-node))
-  (format nil "(load \"~a\")" (namestring (merge-pathnames *buildpath* (target node)))))
-
-(defmethod load-node-form-string ((node asdf-system-node))
-  (format nil "(asdf:oos 'asdf:load-op :~a)" (namestring (name node))))
-
-
-(defgeneric lisp-forms-string-for-node (node)
-  (:documentation "Returns a string of the lisp forms that will create what the node represents.  For example, for a fasl-file-node, it will load all the node's dependencies, then compile the source file, thus creating the fasl."))
-
-(defmethod lisp-forms-string-for-node ((node fasl-file-node))
-  (format nil "~{~a ~^~}(compile-file \"~a\")" (mapcar #'load-node-form-string (rest (dependencies node))) (namestring (merge-pathnames *buildpath* (target (first (dependencies node)))))))
-
-(defmethod lisp-forms-string-for-node ((node lisp-node))
-  (format nil "~{~a~^ ~}" (mapcar #'load-node-form-string (dependencies node))))
-
-(defmethod lisp-forms-string-for-node ((node image-dump-node))
-  (lisp-forms-string-for-node (lisp-image node)))
-
-(defmethod lisp-forms-string-for-node ((node asdf-system-node))
-  (load-node-form-string node))
-  
-
-(defgeneric progn-form-string-for-node (node)
-  (:documentation "Returns the progn of lisp forms that will create the target of the node"))
-
-(defmethod progn-form-string-for-node ((node dependency-graph-node))
-  (format nil "(progn ~a (sb-ext:quit))" (lisp-forms-string-for-node node)))
-
-(defmethod progn-form-string-for-node ((node image-dump-node))
-  (format nil "(progn ~a (save-lisp-and-die \"~a\"))" (lisp-forms-string-for-node node) (merge-pathnames *buildpath* (target node))))
-
-
-(defgeneric eval-command-string (lisp-type lisp-form-string)
-  (:documentation "Returns the command string required to eval the given lisp form in the given lisp implementation, with characters properly escaped for running a shell command in a makefile"))
-
-(defmethod eval-command-string ((lisp-type (eql :sbcl)) lisp-form-string)
-  (with-output-to-string (out-string)
-    (format out-string "~a ~a ~{~a ~^~}~a" 
-	    (escape-string-for-makefile (escape-string-for-shell *lisp-executable-pathname*))
-	    (if *lisp-image-pathname* 
-		(escape-string-for-makefile (escape-string-for-shell (list "--core" *lisp-image-pathname*)))
-		"")
-	    (mapcar (lambda (string) (escape-string-for-makefile (escape-string-for-shell string))) *lisp-options*)
-	    (format nil "--eval \"~a\"" (escape-string-for-makefile (escape-string-for-shell lisp-form-string))))))
-   
-
-(defun makefile-line-for-node (node)
-  "Returns the string of the line in the Makefile that can create the target of the given node"
-  ;(command-list-to-Makefile-line (eval-command-list *lisp-implementation* (progn-form-string-for-node 
-  (eval-command-string *lisp-implementation* (progn-form-string-for-node node)))
-
-(defgeneric write-makefile (filestream node written-nodes)
-  (:documentation "Writes the dependency graph to a makefile"))
-
-(defmethod write-makefile (filestream (node fasl-file-node) written-nodes)
-  (unless (nth-value 1 (gethash (fullname node) written-nodes));If this node has already been written to the makefile, don't write it again.
-    (setf (gethash (fullname node) written-nodes) nil);Add this node to the map of nodes already written to the makefile
-    (mapcar (lambda (dependency-node) (write-makefile filestream dependency-node written-nodes)) (dependencies node));Write the information for the node's depedencies first since they have to be compiled first anyway
-    (format filestream "~%~%~a : ~{~a~^ ~}~%" (target node) (mapcar #'target (dependencies node)))
-    (format filestream "~a~a" #\tab (makefile-line-for-node node))))
-    ;(format filestream "~%~T~a ~a " (fasl-compiler) (target node))
-    ;(mapcar (lambda (dependency-node) (format filestream " ~a" (target dependency-node))) (dependencies node))))
-    
-
-(defmethod write-makefile (filestream (node lisp-node) written-nodes)
-  (mapcar (lambda (dependency-node) (write-makefile filestream dependency-node written-nodes)) (dependencies node))
-  (format filestream "~%~%~a : ~{~a~^ ~}~%" (target node) (mapcar #'target (dependencies node)))
-  (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node))
-  (format filestream ".PHONY: ~a" (target node)))
-  ;(format filestream "~T${lispbuilder} ~a" (target node))
-  ;(mapcar (lambda (dependency-node) (format filestream " ~a" (target dependency-node))) (dependencies node)))
-  
-
-(defmethod write-makefile (filestream (node image-dump-node) written-nodes)
-  (write-makefile filestream (lisp-image node) written-nodes)
-  (format filestream "~%~%~a : ~a" (target node) (target (lisp-image node)))
-  (format filestream "~%~a~a" #\tab (makefile-line-for-node node)))
-  ;(format filestream "~%~T${imagedumper} ~a ~a" (target node) (target (lisp-image node))))
-  
-
-(defmethod write-makefile (filestream (node asdf-system-node) written-nodes)
-  (unless (nth-value 1 (gethash (fullname node) written-nodes))
-    (setf (gethash (fullname node) written-nodes) nil)
-    (format filestream "~%~%~a :~%" (target node))
-    (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node))
-    (format filestream ".PHONY: ~a" (target node))))
-    
-    ;(format filestream "~%~T${asdfcompiler} ~a" (target node))))
-
-(defmethod write-makefile (filestream (node source-file-node) written-nodes)
-  (declare (ignore filestream node written-nodes)));Since source-file-nodes have no dependencies and should already exist, don't write anything about them to the makefile.
+  (setf *build-for-asdf-p* build-for-asdf)
+  (build-lisp-node (list (resolve-module (pathname sourcepath) *build-module*))))
 
 
 
 
-(defun write-asdf-system-header (filestream &optional (build-module *build-module*))
-  (format filestream "(asdf:defsystem :~a~%" (fullname build-module))
-  (unless (null (author build-module))
-    (format filestream "~T:author ~s~%" (author build-module)))
-  (unless (null (maintainer build-module))
-    (format filestream "~T:maintainer ~s~%" (maintainer build-module)))
-  (unless (null (licence build-module))
-    (format filestream "~T:licence ~s~%" (licence build-module)))
-  (unless (null (description build-module))
-    (format filestream "~T:description ~s~%" (description build-module)))
-  (unless (null (long-description build-module))
-    (format filestream "~T:long-description ~s~%" (long-description build-module))))
-
-(defgeneric write-asdf-file (filestream node written-nodes asdf-systems)
-  (:documentation "Writes the dependency graph to an asdf file that can be used to compile it in the proper order"))
-
-(defmethod write-asdf-file (filestream (node lisp-node) written-nodes asdf-systems)
-  (write-asdf-system-header filestream)
-  (format filestream "~T:components~%~T(")
-  (mapcar (lambda (dependency) (write-asdf-file filestream dependency written-nodes asdf-systems)) (dependencies node))
-  ;(format filestream "asdf-systems: ~a" *asdf-systems*)
-  (if *asdf-systems*
-    (format filestream ")~%~T:depends-on~a)" (mapcar (lambda (x) (strcat ":" x)) *asdf-systems*))
-    (format filestream "))"))
-  (format filestream "~%~%(cl:pushnew :~a *features*)" (fullname *build-module*)))
-  
-(defmethod write-asdf-file (filestream (node fasl-file-node) written-nodes asdf-systems)
-  (unless (nth-value 1 (gethash (fullname node) written-nodes));If this node has already been written to the asd file, don't write it again.
-    (setf (gethash (fullname node) written-nodes) nil);Add this node to the map of nodes already written to the asd file
-    (if (rest (dependencies node))
-      (progn 
-        (mapcar (lambda (dependency) (write-asdf-file filestream dependency written-nodes asdf-systems)) (dependencies node))
-        (format filestream "(:file ~s :depends-on ~s)~%~T~T" (name node) (reduce (lambda (dependency-node rest) (if (typep dependency-node 'fasl-file-node) (push (name dependency-node) rest) rest)) (dependencies node) :initial-value nil :from-end T))
-      )
-      (format filestream "(:file ~s)~%~T~T" (name node)))))
-
-(defmethod write-asdf-file (filestream (node asdf-system-node) written-nodes asdf-systems)
-  (unless (nth-value 1 (gethash (fullname node) written-nodes));If this asdf system has already been added to the list of asdf systems, don't add it again.
-    (setf (gethash (fullname node) written-nodes) nil);Add this node to the map of nodes so that it won't be added to the list of asdf-systems again
-    ;(format filestream "asdf-systems before: ~a" asdf-systems)
-    (push (name node) *asdf-systems*)))
-    ;(format filestream "asdf-systems after: ~a" asdf-systems)))
-
-
-(defmethod write-asdf-file (filestream (node dependency-graph-node) written-nodes asdf-systems)
-  (declare (ignore filestream node written-nodes asdf-systems)))
-
-#|
-(defun write-graph-to-file (filestream node tab) 
-  (if (dependencies node)
-    (progn
-      (format filestream "~a~a::dependencies:~%" (generate-tab tab) (fullname node))
-      (mapcar (lambda (x) (write-graph-to-file filestream x (+ tab 1))) (dependencies node)))
-    (format filestream "~a~a~%" (generate-tab tab) (fullname node))))
-
-
-(defun generate-tab (tab)
-  (let ((string ""))
-    (dotimes (x tab string)
-      (setf string (concatenate 'string string " ")))))
-
-
-(defun test1 ()
-  (print-module (resolve-module "/home/sbrody/xcvb/test/BUILD.lisp")))
-
-
-(defun test2 ()
-  (with-open-file (out "/home/sbrody/xcvb/dependency-graph-output.txt" :direction :output :if-exists :supersede)
-    (write-graph-to-file out (build-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") 0)))
-
-(defun test3 ()
-  (with-open-file (out "/home/sbrody/xcvb/Makefile.xcvb" :direction :output :if-exists :supersede)
-    (write-makefile out (build-dump-image-graph "/home/sbrody/xcvb/test/build.img" "/home/sbrody/xcvb/test/BUILD.lisp"))))
-
-(defun test4 ()
-  (format t "~s" (find-origin (make-pathname :name nil :type nil :defaults (pathname "/home/sbrody/xcvb/test/sub/lib.lisp")))))
-
-(test2)
-(test3)
-
-(defun print-module (module)
-  "Prints out a module object"
-  (format t "MODULE: ~%~Tname: ~s ~%~Tfullname: ~s ~%~Torigin: ~s ~%~Tlicence: ~s ~%~Tnickname: ~s ~%~Tdescription: ~s ~%~Tlong-description: ~s ~%~Tcompile-depends-on: ~s ~%~Tload-depends-on: ~s ~%~Tbuild-depends-on: ~s ~%~Tfilepath: ~s ~%" (name module) (fullname module) (origin module) (licence module) (nickname module) (description module) (long-description module) (compile-depends-on module) (load-depends-on module) (build-depends-on module) (filepath module)))
-
-(defun print-modules ()
-  (loop for module being the hash-values in *module-map* using (hash-key key)
-        do (format t "KEY: ~a~%" key) 
-           (print-module module)))
-
-(print-modules)
-
-
-
-
-(defgeneric print-graph (node tab)
-  (:documentation "Prints the dependency graph - for testing purposes only"))
-
-(defmethod print-graph ((node dependency-graph-node) tab)
-  (if (dependencies node)
-    (progn
-      (format t "~a~a::dependencies:~%" (generate-tab tab) (target node))
-      (format t "~a" (mapcar (lambda (x) (print-graph x (+ tab 1))) (dependencies node))))
-    (format t "~a~a~%" (generate-tab tab) (target node))))
-
-
-|#
-
-
-
-;;(defparameter *mygraph* (build-image-file-node (resolve-module "/home/sbrody/xcvb/test/BUILD.lisp")))
-;;(format t "~s" (target (first (dependencies *mygraph*))))
 
 #|
 (defun module-declaration (module)
@@ -542,17 +290,6 @@
 |#
 
 
-
-
-
-#|
-(defparameter *testgraph* (make-instance 'image-file-node :target "(:image foo)"))
-(setf (dependencies *testgraph*) (list (make-instance 'fasl-file-node :target "(:fasl foo)" :dependencies (list (make-instance 'source-file-node :target "(:source foo)") 
-                                                                                                                (make-instance 'fasl-file-node :target "(:fasl bar)" :dependencies (list (make-instance 
-                                                                                                                                                                                           'source-file-node
-                                                                                                                                                                                           :target
-|#
-
 #|(defgeneric get-filename-from-node (node))
 
 (defmethod get-filename-from-node ((node fasl-file-node))
@@ -568,19 +305,6 @@
    (file-namestring (make-pathname :type "lisp" :defaults (pathname target)))))
 |#
 
-#|
-(defgeneric print-node (node)
-  (:documentation "Prints information for one node in the dependency graph - for testing purposes only"))
-
-(defmethod print-node ((node image-file-node))
-  (concatenate 'string "Image-file-node" (target node)))
-
-(defmethod print-node ((node source-file-node))
-  (concatenate 'string "Source-file-node" ""))
-
-(defmethod print-node ((node fasl-file-node))
-  (concatenate 'string "Image-file-node" ""))
-|#
 
 #|(defun create-filepath (filename module)
   "This function takes a module and the name of a file, and returns the absolute path to the file assuming it is located relative to the path of the origin of the module"
@@ -592,7 +316,7 @@
   (destructuring-bind (system-name) (subseq (pathname-directory (fullname module)) 1 2) system-name))|#
 
 
-(defun absolute-pathname-p (pathname)
+#|(defun absolute-pathname-p (pathname)
   (declare (ignore pathname))
   T)
 
@@ -603,7 +327,7 @@
     (try pathname)
     (let ((pathname (merge-pathnames pathname)))
       (try pathname)
-      (truename pathname))))
+      (truename pathname))))|#
 
 #|
 ;;;The following 4 functions are for interacting with hashtables.  They provide an easy interface to the 4 most common operations performed on a hashtable - put, get, contains, and remove.
@@ -637,13 +361,4 @@
           (list "--eval" "(sb-ext:quit)")))
 
 
-(defun sbcl-fasl-compiler-command (dependencies)
-  (append (list *sbcl-core*)
-          (loop for i in dependencies
-                nconc (cond
-                        (...
-                         (list "--eval" (format nil "(load ~S)" fasl)))
-                        (...
-                         (list "--eval" (format nil "(asdf:oos 'asdf:load-op :~A)" system)))))
-          (list "--eval" "(sb-ext:quit)")))
 |#

@@ -34,13 +34,19 @@
 
 (defun test3 ()
   (with-open-file (out "/home/sbrody/xcvb/test/ASDFILE.asd" :direction :output :if-exists :supersede)
-    (write-asdf-file out (build-asdf-graph "/home/sbrody/xcvb/test/BUILD.lisp") (make-hash-table :test #'equal) nil)))
+    (write-asdf-file out (build-dependency-graph "/home/sbrody/xcvb/test/BUILD.lisp" :build-for-asdf T) (make-hash-table :test #'equal))))
 
 (defun run-tests ()
   (test1)
   (test2)
   (test3)
   (print-modules))
+
+(defun compile-quux ()
+  (with-open-file (out "/home/sbrody/xcvb/test/quux/Makefile.xcvb" :direction :output :if-exists :supersede)
+    (write-makefile out (build-dependency-graph "/home/sbrody/xcvb/test/quux/IMAGE.img" "/ita/devel/qres/lisp/quux/BUILD.lisp") (make-hash-table :test #'equal)))
+  (with-open-file (out "/home/sbrody/xcvb/test/quux/quux.asd" :direction :output :if-exists :supersede)
+    (write-asdf-file out (build-dependency-graph "/ita/devel/qres/lisp/quux/BUILD.lisp" :build-for-asfd T) (make-hash-table :test #'equal))))
 
 (defun print-module (module)
   "Prints out a module object"
@@ -71,3 +77,4 @@
 
 
 ;(run-tests)
+;(compile-quux)

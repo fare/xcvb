@@ -70,7 +70,7 @@
     (if (long-description module)
       (format out "~%~T:long-description ~s" (long-description module)))
     (if (licence module)
-      (format out "~%~T:license ~s" (licence module)))
+      (format out "~%~T:licence ~s" (licence module)))
     (if (compile-depends-on module)
       (format out "~%~T:compile-depends-on (~%~{       ~s~^~%~})" (compile-depends-on module)))
     (if (load-depends-on module)

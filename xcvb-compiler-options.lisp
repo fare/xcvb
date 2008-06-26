@@ -2,7 +2,7 @@
 
 (defvar *lisp-implementation* :sbcl)
 ;(defvar *lisp-executable-pathname* "/usr/local/sbcl/1.0.14.36.ita.1/sbcl")
-(defparameter *lisp-executable-pathname* "/home/sbrody/xcvb/te$tsbcl/sbcl")
+(defparameter *lisp-executable-pathname* "/home/sbrody/test/sbcl-with-setup.core")
 (defvar *lisp-image-pathname* nil)
 ;(defvar *lisp-image-pathname* "/usr/local/sbcl/1.0.14.36.ita.1/sbcl")
 (defvar *lisp-options* nil)
