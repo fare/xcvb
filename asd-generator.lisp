@@ -1,5 +1,6 @@
 (in-package :xcvb)
 
+(defvar *visited-nodes*)
 
 (defun write-asdf-system-header (filestream &optional (build-module *build-module*))
   (format filestream "(asdf:defsystem :~a~%" (subseq (fullname build-module) 1))
@@ -21,7 +22,10 @@
 
 (defmethod write-asdf-file (filestream (node lisp-node) written-nodes)
   (write-asdf-system-header filestream)
-  (let ((asdf-systems (find-asdf-systems node)))
+  (format T "finding asdf systems...")
+  (let* ((*visited-nodes* (make-hash-table :test #'equal))
+         (asdf-systems (find-asdf-systems node)))
+    (format T "done")
     (if asdf-systems
       (format filestream "~T:depends-on~a~%" asdf-systems)))
   (format filestream "~T:components~%~T(")
@@ -37,7 +41,6 @@
         (format filestream "(:file ~s :depends-on ~s)~%~T~T" (name node) (reduce (lambda (dependency-node rest) (if (typep dependency-node 'fasl-file-node) (push (name dependency-node) rest) rest)) (dependencies node) :initial-value nil :from-end T)))
       (format filestream "(:file ~s)~%~T~T" (name node)))))
 
-
 (defmethod write-asdf-file (filestream (node dependency-graph-node) written-nodes)
   (declare (ignore filestream node written-nodes)))
 
@@ -47,10 +50,17 @@
 
 
 (defmethod find-asdf-systems ((node asdf-system-node))
+  (format T "found system \"~a\"~%" (name node))
   (list (strcat ":" (name node))))
 
 (defmethod find-asdf-systems ((node dependency-graph-node-with-dependencies))
-  (reduce (lambda (dependency-node rest) (nconc (find-asdf-systems dependency-node) rest)) (dependencies node) :initial-value nil :from-end T))
+  (format T "Finding dependencies for node \"~a\"~%" (fullname node))
+  (reduce (lambda (dependency-node rest) (nunion (find-asdf-systems dependency-node) rest :test #'equal)) (dependencies node) :initial-value nil :from-end T))
+
+(defmethod find-asdf-systems :around (node)
+  (unless (nth-value 1 (gethash (fullname node) *visited-nodes*));If this node has already been looked at, don't look at it again.
+    (setf (gethash (fullname node) *visited-nodes*) nil);Add this node to the map of nodes already visited while looking for the asdf dependencies
+    (call-next-method)))
 
 (defmethod find-asdf-systems ((node dependency-graph-node))
   nil)

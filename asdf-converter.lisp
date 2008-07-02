@@ -14,7 +14,7 @@
             (do ((line (read-line in nil) (read-line in nil)))
                 ((null line))
               (write-line line out))))
-        (delete-file in)))
+        (delete-file in))) 
     (with-open-file (out filename :direction :output :if-does-not-exist :create :if-exists :supersede)
       (format out "~a~%" (module-string module)))))
 

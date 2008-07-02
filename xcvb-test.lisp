@@ -28,13 +28,18 @@
   (with-open-file (out "/home/sbrody/xcvb/test/dependency-graph-output.txt" :direction :output :if-exists :supersede)
     (write-graph-to-file out (build-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") 0)))
 
-(defun test2 ()
+#|(defun test2 ()
   (with-open-file (out "/home/sbrody/xcvb/test/Makefile.xcvb" :direction :output :if-exists :supersede)
-    (write-makefile out (build-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") (make-hash-table :test #'equal))))
+    (write-node-to-makefile out (build-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") (make-hash-table :test #'equal))))
+|#
+
+(defun test2 ()
+  (write-makefile "/home/sbrody/xcvb/test/BUILD.lisp" "/home/sbrody/xcvb/test/Makefile.xcvb" :image-dump))
 
 (defun test3 ()
   (with-open-file (out "/home/sbrody/xcvb/test/ASDFILE.asd" :direction :output :if-exists :supersede)
     (write-asdf-file out (build-dependency-graph "/home/sbrody/xcvb/test/BUILD.lisp" :build-for-asdf T) (make-hash-table :test #'equal))))
+
 
 (defun run-tests ()
   (test1)
@@ -43,10 +48,12 @@
   (print-modules))
 
 (defun compile-quux ()
-  (with-open-file (out "/home/sbrody/xcvb/test/quux/Makefile.xcvb" :direction :output :if-exists :supersede)
-    (write-makefile out (build-dependency-graph "/home/sbrody/xcvb/test/quux/IMAGE.img" "/ita/devel/qres/lisp/quux/BUILD.lisp") (make-hash-table :test #'equal)))
+  (format T "Writing quux Makefile...")
+  (write-makefile "/ita/devel/qres/lisp/quux/BUILD.lisp" "/ita/devel/qres/lisp/quux/Makefile.xcvb" :image-dump)
+  (format T "done.~%Writing quux asd file...")
   (with-open-file (out "/home/sbrody/xcvb/test/quux/quux.asd" :direction :output :if-exists :supersede)
-    (write-asdf-file out (build-dependency-graph "/ita/devel/qres/lisp/quux/BUILD.lisp" :build-for-asfd T) (make-hash-table :test #'equal))))
+    (write-asdf-file out (build-dependency-graph "/ita/devel/qres/lisp/quux/BUILD.lisp" :build-for-asdf T) (make-hash-table :test #'equal)))
+  (format T "done~%"))
 
 (defun print-module (module)
   "Prints out a module object"

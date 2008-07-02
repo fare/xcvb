@@ -11,6 +11,7 @@
 (defparameter *build-for-asdf-p* nil
   "Flag to specify if the dependency graph should be built for creating an asdf file")
 
+(format T "Welcome to XCVB")
 
 (defclass module () ())
 
@@ -35,6 +36,9 @@
 (defun strcat (&rest strings)
   "String concatenation function"
   (apply 'concatenate 'string strings))
+
+;(defun appendnew (&rest lists &key key (test #'eql testp) (test-not nil notp))
+  
 
 ;This condition is signaled by the find-origin function if no BUILD.lisp file can be found
 (define-condition no-origin-found (simple-error)
@@ -161,14 +165,14 @@
   (:documentation "Adds a dependency to a node in the dependency graph.  This is equivalent to adding a node (the dependency) as a child of another node. TODO: this should also add the node to the hashmap of current nodes and check that the node doesn't already exist, if it does,throw an error"))
 
 (defmethod add-dependency ((node dependency-graph-node-with-dependencies) (dependency dependency-graph-node))
-  (push dependency (dependencies node)))
+  (pushnew dependency (dependencies node)))
 
 (defgeneric add-dependencies (node dependency-list)
   (:documentation "Adds a list of dependencies to a node in the dependency graph.  This is equivalent to adding a the nodes children of the parent node. TODO: this should also add the node to the hashmap of current nodes and check that the node doesn't already exist, if it does,throw an error"))
 
 (defmethod add-dependencies ((node dependency-graph-node-with-dependencies) (dependency-list list))
   (assert (every #'(lambda (x) (typep x 'dependency-graph-node)) dependency-list) ())
-  (setf (dependencies node) (nconc (dependencies node) dependency-list)))
+  (setf (dependencies node) (remove-duplicates (nconc (dependencies node) dependency-list))))
 
 
 (defun build-lisp-node (module-list)

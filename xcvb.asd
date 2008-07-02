@@ -23,7 +23,8 @@ featuring deterministic separate compilation and enforced locally-declared depen
     ((:file "pkgdcl")
      (:file "xcvb" :depends-on ("pkgdcl"))
      (:file "xcvb-compiler-options" :depends-on ("pkgdcl"))
-     (:file "makefile-generator" :depends-on ("pkgdcl" "xcvb" "xcvb-compiler-options"))
+     (:file "asdf-extensions")
+     (:file "makefile-generator" :depends-on ("pkgdcl" "xcvb" "xcvb-compiler-options" "asdf-extensions"))
      (:file "asd-generator" :depends-on ("pkgdcl" "xcvb"))
      (:file "asdf-converter" :depends-on ("pkgdcl" "xcvb"))))
      

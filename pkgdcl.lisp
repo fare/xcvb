@@ -2,13 +2,15 @@
   :description "package for XCVB")|#
 
 (cl:defpackage :xcvb
-  (:use :cl)
+  (:use :cl) 
   (:export
      #:module
-     #:module-declaration
-     #:compile-dependencies
-     #:load-dependencies
-     #:compile-module
-     #:load-module
+     #:module-declaration;
+     #:compile-dependencies;
+     #:load-dependencies;
+     #:compile-module;
+     #:load-module;
      #:run-tests
-     #:run-converter-tests))
+     #:run-converter-tests
+     #:asdf-systems-are-up-to-date-p))
+ 
