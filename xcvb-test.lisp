@@ -51,8 +51,8 @@
   (format T "Writing quux Makefile...")
   (write-makefile "/ita/devel/qres/lisp/quux/BUILD.lisp" "/ita/devel/qres/lisp/quux/Makefile.xcvb" :image-dump)
   (format T "done.~%Writing quux asd file...")
-  (with-open-file (out "/home/sbrody/xcvb/test/quux/quux.asd" :direction :output :if-exists :supersede)
-    (write-asdf-file out (build-dependency-graph "/ita/devel/qres/lisp/quux/BUILD.lisp" :build-for-asdf T) (make-hash-table :test #'equal)))
+  ;(with-open-file (out "/home/sbrody/xcvb/test/quux/quux.asd" :direction :output :if-exists :supersede)
+  ;  (write-asdf-file out (build-dependency-graph "/ita/devel/qres/lisp/quux/BUILD.lisp" :build-for-asdf T) (make-hash-table :test #'equal)))
   (format T "done~%"))
 
 (defun print-module (module)

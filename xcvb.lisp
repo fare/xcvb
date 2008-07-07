@@ -11,7 +11,6 @@
 (defparameter *build-for-asdf-p* nil
   "Flag to specify if the dependency graph should be built for creating an asdf file")
 
-(format T "Welcome to XCVB")
 
 (defclass module () ())
 
@@ -30,7 +29,8 @@
    (load-depends-on :initarg :load-depends-on :initform nil :reader load-depends-on :documentation "A list of dependencies that must be loaded before this file can be loaded - in the order in which they should be loaded")
    (build-depends-on :initarg :build-depends-on :initform nil :reader build-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled or loaded - in the order in which they should be loaded")
    (filepath :initarg :filepath :accessor filepath :documentation "The absolute path to the file that the module was declared in")
-   (filename :initarg :filename :accessor filename :documentation "The filename of the file that the module was declared in")))
+   (filename :initarg :filename :accessor filename :documentation "The filename of the file that the module was declared in")
+   (special-forms :initarg :special-forms :initform nil :accessor special-forms :documentation "Special forms that change information about the module.  These do not get overwritten during any auto-generation of xcvb modules (as when converting from an asdf system)")))
 
 
 (defun strcat (&rest strings)
@@ -85,8 +85,39 @@
 
 (defun parse-module (module)
   "Takes a module specifier and returns a module object representing that module.  Inherits licence, author, maintainer, description, and long-description slots from the build-module, if not specifically overwritten"
-  (destructuring-bind (module-decl &key name fullname nickname origin licence version author maintainer description long-description compile-depends-on load-depends-on build-depends-on) module
+  (destructuring-bind (module-decl (&key name fullname nickname origin licence version author maintainer description long-description compile-depends-on load-depends-on build-depends-on) &rest special-forms) module
     (declare (ignore module-decl))
+    (dolist (form special-forms)
+      (destructuring-bind (operation property value) form
+        (case operation
+          (:add 
+             (case property
+               (:compile-depends-on (pushnew value compile-depends-on :test #'equal))
+               (:load-depends-on (pushnew value load-depends-on :test #'equal))
+               (:build-depends-on (pushnew value build-depends-on :test #'equal))
+               (otherwise (error "Invalid property for :add operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
+          (:remove 
+             (case property
+               (:compile-depends-on (remove value compile-depends-on :test #'equal))
+               (:load-depends-on (remove value load-depends-on :test #'equal))
+               (:build-depends-on (remove value build-depends-on :test #'equal))
+               (otherwise (error "Invalid property for :remove operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
+          (:set 
+             (case property
+               (:name (setf name value))
+               (:fullname (setf fullname value))
+               (:nickname (setf nickname value))
+               (:origin (setf origin value))
+               (:author (setf author value))
+               (:maintainer (setf maintainer value))
+               (:licence (setf licence value))
+               (:version (setf version value))
+               (:description (setf description value))
+               (:long-description (setf long-description value))
+               (:compile-depends-on (setf compile-depends-on value))
+               (:load-depends-on (setf load-depends-on value))
+               (:build-depends-on (setf build-depends-on value))
+               (otherwise (error "Invalid module property")))))))
     (make-instance 'concrete-module
       :name name
       :fullname fullname
@@ -100,7 +131,8 @@
       :long-description (or long-description (if *build-module* (long-description *build-module*)))
       :compile-depends-on compile-depends-on
       :load-depends-on load-depends-on
-      :build-depends-on build-depends-on)))
+      :build-depends-on build-depends-on
+      :special-forms special-forms)))
 
 (defun resolve-module (module-path &optional (parent-module nil parent-module-supplied-p) #|&optional (context *module-context*)|#)
   "Takes a filepath to a lisp file, and returns the module object represented by the module specifer at the top of that lisp file.  If the argument parent-module is supplied, then the new module will be given a fullname relative to the fullname of parent-module"
@@ -111,6 +143,22 @@
       (setf (fullname module) (strcat (fullname parent-module) "/" (enough-namestring (filepath module) (filepath parent-module)))))
     (add-to-module-map module)))
 
+      
+(defun create-module (name parent-module)
+  "Takes a name of a new module, and the module whose fullname this new module will be under, and gets the filepath of the parent module and tries to find a file for the new module under that filepath.  If it finds one, then it creates that module out of the module declaration at the top of that file, if not, it returns nil"
+  (let ((source-file-pathname (make-pathname :type "lisp" :defaults (merge-pathnames name (filepath parent-module)))))
+    (if (probe-file source-file-pathname)
+      (resolve-module source-file-pathname parent-module)
+      nil)))
+
+(defun get-module (name &optional (build-module *build-module*))
+  "This function takes the name of module, and the current build module, and returns the correct module with that given name.  It starts by checking if there already is a module with the fullname of <(fullname build-module)/name>.  If not, then it gets the filepath of the build module, and looks for a file for the module under the filepath of the build module.  If there is no such file, then it assumes that the top-level-name of the given name must be global, and so looks up that global name, and if found, looks for a file for the module under the filepath of the module of top-level-name.  Finally, if that doesn't exist, it tries to find the module in the registry (currently just throws an error)"
+  (or (gethash (strcat (fullname build-module) "/" name) *module-map*)
+      (create-module name build-module)
+      (let ((parent-module (gethash (top-level-name name) *module-map*)))
+        (if parent-module
+          (or (create-module name parent-module)
+              (lookup-in-registry name build-module))))))
 
 
 (defun find-origin (source-filepath)
@@ -172,7 +220,8 @@
 
 (defmethod add-dependencies ((node dependency-graph-node-with-dependencies) (dependency-list list))
   (assert (every #'(lambda (x) (typep x 'dependency-graph-node)) dependency-list) ())
-  (setf (dependencies node) (remove-duplicates (nconc (dependencies node) dependency-list))))
+  ;(setf (dependencies node) (nconc (dependencies node) dependency-list)))
+  (setf (dependencies node) (remove-duplicates (nconc (dependencies node) dependency-list) :from-end T)));put the :from-end T back in later!
 
 
 (defun build-lisp-node (module-list)
@@ -191,26 +240,48 @@
 (defun build-fasl-file-node (module parent-node previous-nodes-map previous-nodes-list)
   "This function constructs a fasl-file-node in the dependency graph.  It also builds fasl-file-nodes for any of its dependencies, setting each one to be its child if it is a compile dependency, and setting it to be its parent's child if it is a load dependency"
   (let ((fullname (namestring (make-pathname :type "fasl" :defaults (pathname (fullname module))))))
+    (format T "building fasl file node with name: ~a.  Parent is ~a~%" fullname (fullname parent-node))
     (if (nth-value 1 (gethash fullname previous-nodes-map))
       (error 'dependency-cycle :format-control "Dependency cycle found: ~s" :format-arguments (list (cons fullname previous-nodes-list)))
-      (or (gethash fullname *node-map*);If this node already exists, don't re-create it.
-          (let* ((target (pathname (enough-namestring (make-pathname :type "fasl" :defaults (filepath module)) *buildpath*)));Target is the filepath of the fasl relative to the BUILD.lisp file
-                 (fasl-node (make-instance 'fasl-file-node :name (namestring (make-pathname :type nil :defaults target)) :fullname fullname :target target)))
-            (setf (gethash fullname previous-nodes-map) nil);Add node to map of previous nodes to detect dependency cycles
-            (push fullname previous-nodes-list);Add node to list of previous nodes so that if dependency cycle is found, the cycle can be printed
-            (unless *build-for-asdf-p* (add-dependencies parent-node (mapcar 
-                                                                     (lambda (name) (build-dependency-node name parent-node previous-nodes-map previous-nodes-list)) 
-                                                                     (append (load-depends-on module) (build-depends-on module)))))
-            (add-dependencies fasl-node (mapcar 
-                                         (lambda (name) (build-dependency-node name fasl-node previous-nodes-map previous-nodes-list)) 
-                                         (append 
-                                          (compile-depends-on module) 
-                                          (build-depends-on module)
-                                          (if *build-for-asdf-p* (load-depends-on module))))); handle load-dependencies only if building graph to create an asdf file
+      (let ((existing-node (gethash fullname *node-map*)))
+        (if existing-node
+          (progn
+            ;(format T "FASL-NODE ~a already exists! Parent-node is:~a~%" fullname (fullname parent-node))
+            (unless *build-for-asdf-p* 
+              (add-dependencies parent-node (mapcar 
+                                             (lambda (name) (build-dependency-node 
+                                                             name 
+                                                             parent-node 
+                                                             previous-nodes-map 
+                                                             previous-nodes-list)) 
+                                             (append (load-depends-on module) (build-depends-on module)))))
+            existing-node);If this node already exists, don't re-create it.
+          (progn
+            (let* ((target (pathname (enough-namestring (make-pathname :type "fasl" :defaults (filepath module)) *buildpath*)));Target is the filepath of the fasl relative to the BUILD.lisp file
+                   (fasl-node (make-instance 'fasl-file-node :name (namestring (make-pathname :type nil :defaults target)) :fullname fullname :target target)))
+              (setf (gethash fullname previous-nodes-map) nil);Add node to map of previous nodes to detect dependency cycles
+              (push fullname previous-nodes-list);Add node to list of previous nodes so that if dependency cycle is found, the cycle can be printed
+              (unless *build-for-asdf-p* 
+                (add-dependencies parent-node (mapcar 
+                                               (lambda (name) (build-dependency-node 
+                                                               name 
+                                                               parent-node 
+                                                               previous-nodes-map 
+                                                               previous-nodes-list)) 
+                                               (append (load-depends-on module) (build-depends-on module)))))
+              (add-dependencies fasl-node (mapcar 
+                                         (lambda (name) (build-dependency-node 
+                                                         name 
+                                                         fasl-node 
+                                                         previous-nodes-map 
+                                                         previous-nodes-list)) 
+                                         (append (compile-depends-on module) 
+                                                 (build-depends-on module) 
+                                                 (if *build-for-asdf-p* (load-depends-on module))))); handle load-dependencies only if building graph to create an asdf file
             (add-dependency fasl-node (build-source-file-node module));Add dependency on the lisp source file
             (remhash fullname previous-nodes-map);remove this node from the map of previous nodes
             (pop previous-nodes-list);remove this node from the list of previous nodes
-            (setf (gethash fullname *node-map*) fasl-node))))));Add this node to *node-map*
+            (setf (gethash fullname *node-map*) fasl-node))))))));Add this node to *node-map*
 
 (defun build-dependency-node (dependency parent-node previous-nodes-map previous-nodes-list)
   "Takes the name of a dependency, and builds either a fasl-file-node or an asdf-system-node"
@@ -232,22 +303,6 @@
     (or (gethash fullname *node-map*);If this node already exists, don't recreate it
         (setf (gethash fullname *node-map*) (make-instance 'asdf-system-node :name system-name :target fullname :fullname fullname)))))
 
-
-(defun get-module (name &optional (build-module *build-module*))
-  "This function takes the name of module, and the current build module, and returns the correct module with that given name.  It starts by checking if there already is a module with the fullname of <(fullname build-module)/name>.  If not, then it gets the filepath of the build module, and looks for a file for the module under the filepath of the build module.  If there is no such file, then it assumes that the top-level-name of the given name must be global, and so looks up that global name, and if found, looks for a file for the module under the filepath of the module of top-level-name.  Finally, if that doesn't exist, it tries to find the module in the registry (currently just throws an error)"
-  (or (gethash (strcat (fullname build-module) "/" name) *module-map*)
-      (create-module name build-module)
-      (let ((parent-module (gethash (top-level-name name) *module-map*)))
-        (if parent-module
-          (or (create-module name parent-module)
-              (lookup-in-registry name build-module))))))
-      
-(defun create-module (name parent-module)
-  "Takes a name of a new module, and the module whose fullname this new module will be under, and gets the filepath of the parent module and tries to find a file for the new module under that filepath.  If it finds one, then it creates that module out of the module declaration at the top of that file, if not, it returns nil"
-  (let ((source-file-pathname (make-pathname :type "lisp" :defaults (merge-pathnames name (filepath parent-module)))))
-    (if (probe-file source-file-pathname)
-      (resolve-module source-file-pathname parent-module)
-      nil)))
 
 (defun lookup-in-registry (filename build-module)
   (declare (ignore filename build-module))

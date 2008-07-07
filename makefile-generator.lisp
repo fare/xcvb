@@ -169,17 +169,11 @@
                   (push dep rest)
                   rest))
               rest))
-          (nconc (compile-depends-on *build-module*) (build-depends-on *build-module*) (load-depends-on *build-module*)) 
+          (nconc 
+           (compile-depends-on *build-module*) 
+           (build-depends-on *build-module*) 
+           (load-depends-on *build-module*)) 
           :from-end T :initial-value nil))
-
-(defun asdf-systems-are-up-to-date-p (&rest systems)
-  (if (every (lambda (x) x) (mapcar (lambda (system) (asdf::up-to-date-p 'asdf:load-op system)) systems))
-    (progn
-      (format T "up to date")  
-      #+sbcl (sb-ext:quit :unix-status 0))
-    (progn 
-      (format T "out of date")
-      #+sbcl (sb-ext:quit :unix-status 1))))
 
 
 (defun makefile-setup (output-path)
