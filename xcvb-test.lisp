@@ -6,12 +6,16 @@
 (defmethod write-graph-to-file (filestream (node dependency-graph-node) tab)
   (format filestream "~a~a~%" (generate-tab tab) (fullname node)))
 
-(defmethod write-graph-to-file (filestream (node dependency-graph-node-with-dependencies) tab) 
-  (if (dependencies node)
-    (progn
-      (format filestream "~a~a::dependencies:~%" (generate-tab tab) (fullname node))
-      (mapcar (lambda (x) (write-graph-to-file filestream x (+ tab 1))) (dependencies node)))
+(defmethod write-graph-to-file (filestream (node dependency-graph-node-with-dependencies) tab)
+  (when (compile-dependencies node)
+    (format filestream "~a~a::compile-dependencies:~%" (generate-tab tab) (fullname node))
+    (mapcar (lambda (x) (write-graph-to-file filestream x (+ tab 1))) (compile-dependencies node)))
+  (when (load-dependencies node)
+    (format filestream "~a~a::load-dependencies:~%" (generate-tab tab) (fullname node))
+    (mapcar (lambda (x) (write-graph-to-file filestream x (+ tab 1))) (load-dependencies node)))
+  (unless (or (load-dependencies node) (compile-dependencies node))
     (format filestream "~a~a~%" (generate-tab tab) (fullname node))))
+  
 
 (defmethod write-graph-to-file (filestream (node image-dump-node) tab)
   (format filestream "~a~a~%" (generate-tab tab) (target node))
@@ -38,8 +42,10 @@
 
 (defun test3 ()
   (with-open-file (out "/home/sbrody/xcvb/test/ASDFILE.asd" :direction :output :if-exists :supersede)
-    (write-asdf-file out (build-dependency-graph "/home/sbrody/xcvb/test/BUILD.lisp" :build-for-asdf T) (make-hash-table :test #'equal))))
+    (write-asdf-file out (build-dependency-graph "/home/sbrody/xcvb/test/BUILD.lisp") (make-hash-table :test #'equal))))
 
+(defun test4 ()
+  (format t "~%~{~a~%~}" (mapcar #'fullname (traverse (build-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp")))))
 
 (defun run-tests ()
   (test1)
