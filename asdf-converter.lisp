@@ -22,7 +22,7 @@
     (with-open-file (out filename :direction :output :if-does-not-exist :create :if-exists :supersede)
       (format out "~a~%" (module-string module)))))
 
-(defun build-module-from-asdf-system (asdf-system)
+(defun build-module-for-asdf-system (asdf-system)
   (let ((fullname (if (slot-boundp asdf-system 'asdf::name)
                     (slot-value asdf-system 'asdf::name)))
         (author (if (slot-boundp asdf-system 'asdf::author)
@@ -109,7 +109,7 @@
 
 (defun convert-asdf-system-to-xcvb (system-name)
   (let* ((asdf-system (asdf:find-system system-name))
-         (build-module (build-module-from-asdf-system asdf-system)))
+         (build-module (build-module-for-asdf-system asdf-system)))
     (add-module-to-file build-module (make-pathname :name "BUILD" :type "lisp" :defaults (asdf:component-pathname asdf-system)))
     (mapcar (lambda (component) (add-module-to-component component build-module)) (asdf:module-components asdf-system))))
 

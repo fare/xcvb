@@ -6,8 +6,12 @@
   "Map of all the nodes created thus far to prevent redundand nodes in the dependency graph")
 (defparameter *build-module* nil
   "Module object for the nearest surrounding BUILD.lisp file")
+(defparameter *build-node* nil
+  "Dependency-graph-node object for the nearest surrounding BUILD.lisp file")
 (defparameter *buildpath* nil
   "Filesystem path for the nearest surrounding BUILD.lisp file")
+(defparameter *special-functions-map* (make-hash-table)
+  "Map of keywords that may appear in the special-forms part of a module declaration to functions")
 ;(defparameter *build-for-asdf-p* nil
 ;  "Flag to specify if the dependency graph should be built for creating an asdf file")
 
@@ -25,12 +29,14 @@
    (licence :initarg :licence :reader licence :initform nil :documentation "The licence being used for the file")
    (description :initarg :description :reader description :initform nil :documentation "A short description of the file")
    (long-description :initarg :long-description :reader long-description :initform nil :documentation "A detailed description of the file")
-   (compile-depends-on :initarg :compile-depends-on :initform nil :reader compile-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled - in the order in which they should be loaded")
-   (load-depends-on :initarg :load-depends-on :initform nil :reader load-depends-on :documentation "A list of dependencies that must be loaded before this file can be loaded - in the order in which they should be loaded")
+   (compile-depends-on :initarg :compile-depends-on :initform nil :reader compile-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled")
+   (load-depends-on :initarg :load-depends-on :initform nil :reader load-depends-on :documentation "A list of dependencies that must be loaded before this file can be loaded")
    (build-depends-on :initarg :build-depends-on :initform nil :reader build-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled or loaded - in the order in which they should be loaded")
    (filepath :initarg :filepath :accessor filepath :documentation "The absolute path to the file that the module was declared in")
-   (filename :initarg :filename :accessor filename :documentation "The filename of the file that the module was declared in")
-   (special-forms :initarg :special-forms :initform nil :accessor special-forms :documentation "Special forms that change information about the module.  These do not get overwritten during any auto-generation of xcvb modules (as when converting from an asdf system)")))
+   (filename :initarg :filename :accessor filename :documentation "The filename of the file that the module was declared in")))
+
+(defclass build-module (concrete-module)
+  ((build-requires :initarg :build-requires :accessor build-requires :initform nil :documentation "A list of dependencies that apply to all files in the system specified by this BUILD.lisp file.  These dependencies will be loaded first thing into an image that will be used for all future compile/load operations")))
 
 
 (defun strcat (&rest strings)
@@ -87,52 +93,119 @@
   "Takes a module specifier and returns a module object representing that module.  Inherits licence, author, maintainer, description, and long-description slots from the build-module, if not specifically overwritten"
   (destructuring-bind (module-decl (&key name fullname nickname origin licence version author maintainer description long-description compile-depends-on load-depends-on build-depends-on) &rest special-forms) module
     (declare (ignore module-decl))
-    (dolist (form special-forms)
-      (destructuring-bind (operation property value) form
-        (case operation
-          (:add 
-             (case property
-               (:compile-depends-on (pushnew value compile-depends-on :test #'equal))
-               (:load-depends-on (pushnew value load-depends-on :test #'equal))
-               (:build-depends-on (pushnew value build-depends-on :test #'equal))
-               (otherwise (error "Invalid property for :add operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
-          (:remove 
-             (case property
-               (:compile-depends-on (remove value compile-depends-on :test #'equal))
-               (:load-depends-on (remove value load-depends-on :test #'equal))
-               (:build-depends-on (remove value build-depends-on :test #'equal))
-               (otherwise (error "Invalid property for :remove operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
-          (:set 
-             (case property
-               (:name (setf name value))
-               (:fullname (setf fullname value))
-               (:nickname (setf nickname value))
-               (:origin (setf origin value))
-               (:author (setf author value))
-               (:maintainer (setf maintainer value))
-               (:licence (setf licence value))
-               (:version (setf version value))
-               (:description (setf description value))
-               (:long-description (setf long-description value))
-               (:compile-depends-on (setf compile-depends-on value))
-               (:load-depends-on (setf load-depends-on value))
-               (:build-depends-on (setf build-depends-on value))
-               (otherwise (error "Invalid module property")))))))
-    (make-instance 'concrete-module
-      :name name
-      :fullname fullname
-      :nickname nickname
-      :origin origin
-      :author (or author (if *build-module* (author *build-module*)))
-      :maintainer (or maintainer (if *build-module* (maintainer *build-module*)))
-      :licence (or licence (if *build-module* (licence *build-module*)))
-      :version (or version (if *build-module* (version *build-module*)))
-      :description (or description (if *build-module* (description *build-module*)))
-      :long-description (or long-description (if *build-module* (long-description *build-module*)))
-      :compile-depends-on compile-depends-on
-      :load-depends-on load-depends-on
-      :build-depends-on build-depends-on
-      :special-forms special-forms)))
+    (let ((module 
+           (make-instance 'concrete-module
+             :name name
+             :fullname fullname
+             :nickname nickname
+             :origin origin
+             :author (or author (if *build-module* (author *build-module*)))
+             :maintainer (or maintainer (if *build-module* (maintainer *build-module*)))
+             :licence (or licence (if *build-module* (licence *build-module*)))
+             :version (or version (if *build-module* (version *build-module*)))
+             :description (or description (if *build-module* (description *build-module*)))
+             :long-description (or long-description (if *build-module* (long-description *build-module*)))
+             :compile-depends-on compile-depends-on
+             :load-depends-on load-depends-on
+             :build-depends-on build-depends-on)))
+      (handle-special-forms module special-forms)
+      module)))
+
+(defmacro defspecial (name keyword args &body body)
+  `(setf (gethash ,keyword *special-functions-map*)
+         (defun ,name (,@args) ,@body)))
+
+(defspecial add-dependency-to-module :add (module dep-type value)
+  (case dep-type
+      (:compile-depends-on (pushnew value (slot-value module 'compile-depends-on) :test #'equal))
+      (:load-depends-on (pushnew value (slot-value module 'load-depends-on) :test #'equal))
+      (:build-depends-on (pushnew value (slot-value module 'build-depends-on) :test #'equal))
+      (otherwise (error "Invalid property for :add operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
+
+
+
+#|(defun add-dependency-to-module (module &rest args)
+  (destructuring-bind ((dep-type value)) args
+    (case dep-type
+      (:compile-depends-on (pushnew value (slot-value module 'compile-depends-on) :test #'equal))
+      (:load-depends-on (pushnew value (slot-value module 'load-depends-on) :test #'equal))
+      (:build-depends-on (pushnew value (slot-value module 'build-depends-on) :test #'equal))
+      (otherwise (error "Invalid property for :add operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on")))))|#
+
+(defspecial remove-dependency-from-module :remove (module dep-type value)
+  (case dep-type
+    (:compile-depends-on (setf (slot-value module 'compile-depends-on) (remove value (slot-value module 'compile-depends-on) :test #'equal)))
+    (:load-depends-on (setf (slot-value module 'load-depends-on) (remove value (slot-value module 'load-depends-on) :test #'equal)))
+    (:build-depends-on (setf (slot-value module 'build-depends-on) (remove value (slot-value module 'build-depends-on) :test #'equal)))
+    (otherwise (error "Invalid property for :remove operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
+
+(defspecial set-module-slot :set (module slot-name value)
+  (case slot
+    (:name (setf (slot-value module 'name) value))
+    (:fullname (setf (slot-value module 'fullname) value))
+    (:nickname (setf (slot-value module 'nickname) value))
+    (:origin (setf (slot-value module 'origin) value))
+    (:author (setf (slot-value module 'author) value))
+    (:maintainer (setf (slot-value module 'maintainer) value))
+    (:licence (setf (slot-value module 'licence) value))
+    (:version (setf (slot-value module 'version) value))
+    (:description (setf (slot-value module 'description) value))
+    (:long-description (setf (slot-value module 'long-description) value))
+    (:compile-depends-on (setf (slot-value module 'compile-depends-on) value))
+    (:load-depends-on (setf (slot-value module 'load-depends-on) value))
+    (:build-depends-on (setf (slot-value module 'build-depends-on) value))
+    (otherwise (error "Invalid module property"))))
+
+ 
+
+#|(defun setup-special-functions-map ()
+  (setf (gethash :add *special-functions-map*) #'add-dependency-to-module)
+  (setf (gethash :remove *special-functions-map*) #'remove-dependency-from-module)
+  (setf (gethash :set *special-functions-map*) #'set-module-slot))
+
+(setup-special-functions-map)|#
+
+(defun handle-special-forms (module special-forms)
+  "This handles the special forms from the module declaration.  These forms can do things such as (but not limited to) change slots in the module, specify system-wide dependencies, or extend xcvb itself."
+  (dolist (form special-forms)
+    (destructuring-bind (operation &rest args) form
+      (apply 
+       (gethash operation *special-functions-map*) 
+       (mapcar (lambda (arg) (if (eql arg :this-module) module arg)) args)))))
+#|
+(defun handle-special-forms (module special-forms)
+  "This handles the special forms from the module declaration.  These forms can do things such as (but not limited to) change slots in the module, specify system-wide dependencies, or extend xcvb itself."
+  (dolist (form special-forms)
+    (destructuring-bind (operation &rest args) form
+      (case operation
+        (:add 
+           (case property
+             (:compile-depends-on (pushnew value (slot-value module 'compile-depends-on) :test #'equal))
+             (:load-depends-on (pushnew value (slot-value module 'load-depends-on) :test #'equal))
+             (:build-depends-on (pushnew value (slot-value module 'build-depends-on) :test #'equal))
+             (otherwise (error "Invalid property for :add operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
+        (:remove 
+           (case property
+             (:compile-depends-on (remove value (slot-value module 'compile-depends-on) :test #'equal))
+             (:load-depends-on (remove value (slot-value module 'load-depends-on) :test #'equal))
+             (:build-depends-on (remove value (slot-value module 'build-depends-on) :test #'equal))
+             (otherwise (error "Invalid property for :remove operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
+        (:set 
+           (case property
+             (:name (setf (slot-value module 'name) value))
+             (:fullname (setf (slot-value module 'fullname) value))
+             (:nickname (setf (slot-value module 'nickname) value))
+             (:origin (setf (slot-value module 'origin) value))
+             (:author (setf (slot-value module 'author) value))
+             (:maintainer (setf (slot-value module 'maintainer) value))
+             (:licence (setf (slot-value module 'licence) value))
+             (:version (setf (slot-value module 'version) value))
+             (:description (setf (slot-value module 'description) value))
+             (:long-description (setf (slot-value module 'long-description) value))
+             (:compile-depends-on (setf (slot-value module 'compile-depends-on) value))
+             (:load-depends-on (setf (slot-value module 'load-depends-on) value))
+             (:build-depends-on (setf (slot-value module 'build-depends-on) value))
+             (otherwise (error "Invalid module property"))))))))|#
 
 (defun resolve-module (module-path &optional (parent-module nil parent-module-supplied-p) #|&optional (context *module-context*)|#)
   "Takes a filepath to a lisp file, and returns the module object represented by the module specifer at the top of that lisp file.  If the argument parent-module is supplied, then the new module will be given a fullname relative to the fullname of parent-module"
@@ -201,7 +274,7 @@
 
 (defclass source-file-node (dependency-graph-node) ())
 
-(defclass fasl-file-node (dependency-graph-node-with-dependencies) ())
+(defclass fasl-node (dependency-graph-node-with-dependencies) ())
 
 (defclass image-dump-node (dependency-graph-node) 
   ((lisp-image :initarg :lisp-image :initform nil :reader lisp-image)))
@@ -230,60 +303,16 @@
     (:compile (setf (compile-dependencies node) (remove-duplicates (nconc (compile-dependencies node) dependency-list) :from-end T)))
     (otherwise (error "Invalid type of dependency.  Must be either :compile or :load"))))
 
-
-(defun build-lisp-node (module-list)
+(defun create-lisp-node (module-list)
   "This function constructs a lisp-node in the dependency graph, and builds [a] node(s) for the fasl(s) it depends on"
   (let ((lisp-node (make-instance 'lisp-node :target "lisp" :fullname "lisp"))
         (previous-nodes-map (make-hash-table :test #'equal))
         (previous-nodes-list nil))
-    (add-dependencies lisp-node (mapcar (lambda (module) (build-fasl-file-node module previous-nodes-map previous-nodes-list)) module-list) :type :compile)
+    (add-dependencies lisp-node (mapcar (lambda (module) (create-fasl-node module previous-nodes-map previous-nodes-list)) module-list) :type :compile)
     lisp-node))
 
-(defun build-image-dump-node (lisp-node dump-path)
-  "This function constructs an image-dump-node in the dependency graph, which is designed to dump an image of the lisp state described by lisp-node"
-  (make-instance 'image-dump-node :target (pathname (enough-namestring dump-path *buildpath*)) :lisp-image lisp-node :fullname (format nil "image-dump:~a" dump-path)))
-    
-    
-(defun build-fasl-file-node (module previous-nodes-map previous-nodes-list)
-  "This function constructs a fasl-file-node in the dependency graph.  It also builds fasl-file-nodes for any of its dependencies, setting each one to be its child if it is a compile dependency, and setting it to be its parent's child if it is a load dependency"
-  (let ((fullname (namestring (make-pathname :type "fasl" :defaults (pathname (fullname module))))))
-    (format T "building fasl file node with name: ~a.~%" fullname)
-    (if (nth-value 1 (gethash fullname previous-nodes-map))
-      (error 'dependency-cycle :format-control "Dependency cycle found: ~s" :format-arguments (list (cons fullname previous-nodes-list)))
-      (let ((existing-node (gethash fullname *node-map*)))
-        (or existing-node ;If this node already exists, don't re-create it.
-            (progn
-              (let* ((target (pathname (enough-namestring (make-pathname :type "fasl" :defaults (filepath module)) *buildpath*)));Target is the filepath of the fasl relative to the BUILD.lisp file
-                     (fasl-node (make-instance 'fasl-file-node :name (namestring (make-pathname :type nil :defaults target)) :fullname fullname :target target)))
-                (setf (gethash fullname previous-nodes-map) nil);Add node to map of previous nodes to detect dependency cycles
-                (push fullname previous-nodes-list);Add node to list of previous nodes so that if dependency cycle is found, the cycle can be printed
 
-;;;;;;;;;;TODO;;;;;;;Make macro to handle detecting dependency-cycles
-                (add-dependencies fasl-node (mapcar 
-                                             (lambda (name) (build-dependency-node 
-                                                             name 
-                                                             previous-nodes-map 
-                                                             previous-nodes-list)) 
-                                             (append (load-depends-on module) (build-depends-on module))) :type :load)
-                (add-dependencies fasl-node (mapcar 
-                                             (lambda (name) (build-dependency-node 
-                                                             name 
-                                                             previous-nodes-map 
-                                                             previous-nodes-list)) 
-                                             (append (compile-depends-on module) 
-                                                     (build-depends-on module))) :type :compile); handle load-dependencies only if building graph to create an asdf file
-                (add-dependency fasl-node (build-source-file-node module) :type :compile);Add dependency on the lisp source file
-                (remhash fullname previous-nodes-map);remove this node from the map of previous nodes
-                (pop previous-nodes-list);remove this node from the list of previous nodes
-                (setf (gethash fullname *node-map*) fasl-node))))))));Add this node to *node-map*
-
-(defun build-dependency-node (dependency previous-nodes-map previous-nodes-list)
-  "Takes the name of a dependency, and builds either a fasl-file-node or an asdf-system-node"
-  (if (typep dependency 'list)
-    (destructuring-bind (&key asdf) dependency (build-asdf-system-node asdf))
-    (build-fasl-file-node (get-module dependency) previous-nodes-map previous-nodes-list)))
-
-(defun build-source-file-node (module)
+(defun create-source-file-node (module)
   "This function constructs a source-file-node in the dependency graph"
   (let ((fullname (namestring (make-pathname :type "lisp" :defaults (pathname (fullname module))))))
     (or (gethash fullname *node-map*);If this node already exists, don't recreate it
@@ -291,11 +320,94 @@
                (source-node (make-instance 'source-file-node :name (namestring (make-pathname :type nil :defaults target)) :fullname fullname :target target)))
           (setf (gethash fullname *node-map*) source-node)))))
 
-(defun build-asdf-system-node (system-name)
+(defun create-asdf-system-node (system-name)
   "This function constructs a asdf-system-node in the dependency graph"
   (let ((fullname (strcat "//asdf/" system-name)))
     (or (gethash fullname *node-map*);If this node already exists, don't recreate it
         (setf (gethash fullname *node-map*) (make-instance 'asdf-system-node :name system-name :target fullname :fullname fullname)))))
+
+
+(defun create-image-dump-node (lisp-node dump-path)
+  "This function constructs an image-dump-node in the dependency graph, which is designed to dump an image of the lisp state described by lisp-node"
+  (make-instance 'image-dump-node :target (pathname (enough-namestring dump-path *buildpath*)) :lisp-image lisp-node :fullname (format nil "image-dump:~a" dump-path)))
+    
+
+(defun create-dependency-node (dependency previous-nodes-map previous-nodes-list)
+  "Takes the name of a dependency, and builds either a fasl-node or an asdf-system-node"
+  (if (typep dependency 'list)
+    (destructuring-bind (&key asdf) dependency (create-asdf-system-node asdf))
+    (create-fasl-node (get-module dependency) previous-nodes-map previous-nodes-list)))  
+
+(defun call-while-catching-dependency-cycle (fullname previous-nodes-map previous-nodes-list thunk)
+  "This macro wraps a body of code with code to detect and handle a dependency cycle"
+  (when (nth-value 1 (gethash fullname previous-nodes-map))
+    (error 'dependency-cycle
+           :format-control "Dependency cycle found: ~s"
+           :format-arguments (list (cons fullname previous-nodes-list))))
+  (setf (gethash fullname previous-nodes-map) nil) ;Add node to map of previous nodes to detect dependency cycles
+  (prog1
+      (funcall thunk (cons fullname previous-nodes-list)) ;Add node to list of previous nodes so that if dependency cycle is found, the cycle can be printed
+    (remhash fullname previous-nodes-map)));remove this node from the map of previous nodes
+
+(defmacro catch-dependency-cycle ((fullname previous-nodes-map previous-nodes-list) &body body)
+  "This macro wraps a body of code with code to detect and handle a dependency cycle"
+  `(call-while-catching-dependency-cycle ,fullname ,previous-nodes-map ,previous-nodes-list
+                                         (lambda (,previous-nodes-list) ,@body)))
+  
+(defun set-fasl-node-dependencies (fasl-node module previous-nodes-map previous-nodes-list)
+  "This function takes a fasl-node and its module and builds nodes for all of that module's dependencies, and adds them as dependencies of the fasl-node"
+  #|(dolist (dep-name (build-depends-on module));handle build-dependencies
+    (let ((dep-node (create-dependency-node dep-name previous-nodes-map previous-nodes-list)))
+      (if (and (eql module *build-module*) (typep dep-node 'asdf-system-node))
+        (progn
+          (format T "****************************************")
+          (pushnew dep-node (asdf-dependencies fasl-node)))
+        (progn
+          (pushnew dep-node (compile-dependencies fasl-node))
+          (pushnew dep-node (load-dependencies fasl-node))))))
+  (dolist (dep-name (compile-depends-on module));handle compile-dependencies
+    (let ((dep-node (create-dependency-node dep-name previous-nodes-map previous-nodes-list)))
+      (if (and (eql module *build-module*) (typep dep-node 'asdf-system-node))
+        (pushnew dep-node (asdf-dependencies fasl-node))
+        (pushnew dep-node (compile-dependencies fasl-node)))))
+  (dolist (dep-name (load-depends-on module));handle load-dependencies
+    (let ((dep-node (create-dependency-node dep-name previous-nodes-map previous-nodes-list)))
+      (if (and (eql module *build-module*) (typep dep-node 'asdf-system-node))
+        (pushnew dep-node (asdf-dependencies fasl-node))
+        (pushnew dep-node (load-dependencies fasl-node)))))
+  (pushnew (create-source-file-node module) (compile-dependencies fasl-node)));Add dependency on the lisp source file|#
+  (let ((build-deps (mapcar (lambda (name) (create-dependency-node name previous-nodes-map previous-nodes-list)) 
+                            (build-depends-on module))))
+    (add-dependencies fasl-node (append (mapcar 
+                                         (lambda (name) (create-dependency-node 
+                                                         name 
+                                                         previous-nodes-map 
+                                                         previous-nodes-list))
+                                         (load-depends-on module)) build-deps) :type :load)
+    (add-dependencies fasl-node (append (mapcar 
+                                         (lambda (name) (create-dependency-node 
+                                                         name 
+                                                         previous-nodes-map 
+                                                         previous-nodes-list)) 
+                                         (compile-depends-on module)) build-deps) :type :compile)
+    (add-dependency fasl-node (create-source-file-node module) :type :compile)));Add dependency on the lisp source file
+
+(defun create-fasl-node (module previous-nodes-map previous-nodes-list)
+  "This function constructs a fasl-node in the dependency graph.  It also builds fasl-nodes for any of its dependencies."
+  (let ((fullname (namestring (make-pathname :type "fasl" :defaults (pathname (fullname module))))))
+    (format T "building fasl file node with name: ~a.~%" fullname)
+    (catch-dependency-cycle (fullname previous-nodes-map previous-nodes-list)
+      (let ((existing-node (gethash fullname *node-map*)))
+        (or existing-node ;If this node already exists, don't re-create it.
+            (let* ((target (pathname (enough-namestring 
+                                      (make-pathname :type "fasl" :defaults (filepath module)) 
+                                      *buildpath*)))
+                   (fasl-node (make-instance 'fasl-node
+                                :name (namestring (make-pathname :type nil :defaults target)) 
+                                :fullname fullname 
+                                :target target)))
+              (set-fasl-node-dependencies fasl-node module previous-nodes-map previous-nodes-list)
+              (setf (gethash fullname *node-map*) fasl-node)))))));Add this node to *node-map*
 
 
 (defun lookup-in-registry (filename build-module)
@@ -307,53 +419,67 @@
   (subseq name 0 (position #\/ name)))
 
 
-(defun build-dump-image-graph (imagepath sourcepath)
+(defun create-dump-image-graph (imagepath sourcepath)
   "Constructs a dependency graph to dump a lisp image at imagepath with the lisp file at sourcepath loaded"
-  (build-image-dump-node (build-dependency-graph sourcepath) imagepath))
+  (create-image-dump-node (create-dependency-graph sourcepath) imagepath))
 
-(defun build-dependency-graph (sourcepath #|&key build-for-asdf|#)
-  "Constructs a dependency graph with a fasl-file-node for the lisp file at sourcepath as the root of the graph.  If build-for-asdf is non-nil, then the graph will be build with all dependencies being treated as load dependencies"
+(defun create-dependency-graph (sourcepath #|&key build-for-asdf|#)
+  "Constructs a dependency graph with a fasl-node for the lisp file at sourcepath as the root of the graph.  If build-for-asdf is non-nil, then the graph will be build with all dependencies being treated as load dependencies"
   (setf *node-map* (make-hash-table :test #'equal))
   (setf *module-map* (make-hash-table :test #'equal))
   (setf *buildpath* (make-pathname :name nil :type nil :defaults (find-origin (pathname sourcepath))))
   ;(setf *build-for-asdf-p* build-for-asdf)
-  (build-lisp-node (list (resolve-module (pathname sourcepath) *build-module*))))
+  (create-lisp-node (list (resolve-module (pathname sourcepath) *build-module*))))
 
 
-(defgeneric traverse-internal (node visited-nodes-map)
-  (:documentation "Takes a node and returns a list of all nodes in order that must be processed in order to create the target of the node"))
+(defgeneric traverse-internal (node operation visited-nodes-map)
+  (:documentation "Takes a node and returns a list of all nodes in order that must be processed in order to create the target of the node. For fasl-nodes, the operation argument specifies whether to return a list of what is needed to create the fasl (by compiling the source file) or what is needed to load the fasl if it already exists.  For other kinds of nodes, the operation argument mearly changes whether or not the node the method is being called on is included in the resulting list."))
 
-(defmethod traverse-internal ((node lisp-node) visited-nodes-map)
-  (cons node (reduce (lambda (dep rest) (nconc (traverse-internal dep visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil)))
+(defmethod traverse-internal ((node lisp-node) (operation (eql :create)) visited-nodes-map)
+  (reduce (lambda (dep rest) (nconc (traverse-internal dep :load visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil))
 
-(defmethod traverse-internal ((node asdf-system-node) visited-nodes-map)
+(defmethod traverse-internal ((node lisp-node) (operation (eql :load)) visited-nodes-map)
+  (cons node (reduce (lambda (dep rest) (nconc (traverse-internal dep :load visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil)))
+
+(defmethod traverse-internal ((node asdf-system-node) operation visited-nodes-map)
   (unless (nth-value 1 (gethash (fullname node) visited-nodes-map));If this node has already been put in the traversal, don't include it again.
     (setf (gethash (fullname node) visited-nodes-map) T);Add the node to the map of nodes that have already been traversed
     (list node)))
 
-(defmethod traverse-internal ((node image-dump-node) visited-nodes-map)
-  (cons node (traverse-internal (lisp-image node) visited-nodes-map)))
+(defmethod traverse-internal ((node image-dump-node) (operation (eql :create)) visited-nodes-map)
+  (traverse-internal (lisp-image node) :create visited-nodes-map))
 
-(defmethod traverse-internal ((node source-file-node) visited-nodes-map)
+(defmethod traverse-internal ((node image-dump-node) (operation (eql :load)) visited-nodes-map)
+  (cons node (traverse-internal (lisp-image node) :load visited-nodes-map)))
+
+(defmethod traverse-internal ((node source-file-node) operation visited-nodes-map)
   (list node))
 
-(defmethod traverse-internal ((node fasl-file-node) visited-nodes-map)
+(defmethod traverse-internal ((node fasl-node) (operation (eql :load)) visited-nodes-map)
   (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
     (setf (gethash (fullname node) visited-nodes-map) T)
-    (cons node (reduce (lambda (dep rest) (nconc (traverse-internal dep visited-nodes-map) rest)) (load-dependencies node) :from-end T :initial-value nil))))
+    (cons node (reduce (lambda (dep rest) (nconc (traverse-internal dep :load visited-nodes-map) rest)) (load-dependencies node) :from-end T :initial-value nil))))
 
-(defgeneric traverse (node)
-  (:documentation "stuff"))
+(defmethod traverse-internal ((node fasl-node) (operation (eql :create)) visited-nodes-map)
+  (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
+    (setf (gethash (fullname node) visited-nodes-map) T)
+    (reduce (lambda (dep rest) (nconc (traverse-internal dep :load visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil)))
 
-(defmethod traverse ((node dependency-graph-node))
-  ;(remove-duplicates (traverse-internal (make-hash-table)) :from-end T))
-  (reverse (traverse-internal node (make-hash-table :test 'equal))))
 
-(defmethod traverse ((node fasl-file-node))
+(defun traverse (node operation)
+  "Wrapper around traverse-internal generic function"
+  (reverse (traverse-internal node operation (make-hash-table :test 'equal))))
+  
+
+#|
+(defmethod traverse ((node fasl-node))
   (let ((visited-nodes-map (make-hash-table :test 'equal)))
     (setf (gethash (fullname node) visited-nodes-map) T)
-    (reverse (reduce (lambda (dep rest) (nconc (traverse-internal dep visited-nodes-map) rest)) (nconc (compile-dependencies node)) :from-end T :initial-value nil))))
-  
+    (reduce (lambda (dep rest) (nconc (traverse-internal dep visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil)))|#
+
+#|(defmethod traverse ((node lisp-node))
+  (let ((visited-nodes-map (make-hash-table :test 'equal)))
+    (reduce (lambda (dep rest) (nconc (traverse-internal dep visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil)))|#
 
 
 #|
