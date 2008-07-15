@@ -10,7 +10,8 @@
           (let ((first-form (read in nil)))
             (if (module-form-p first-form)
               (progn 
-                (setf (special-forms module) (special-forms (parse-module first-form)))
+                (setf (extension-forms module) 
+                      (extension-forms (parse-module first-form :build-module-p (typep module 'build-module))))
                 (format out "~a~%" (module-string module)))
               (progn
                 (format out "~a~%" (module-string module))
@@ -46,7 +47,7 @@
         (build-file-deps (mapcar 
                           (lambda (component) (enough-namestring (make-pathname :type nil :defaults (asdf:component-pathname component)) (asdf:component-pathname asdf-system)))
                           (asdf:module-components asdf-system))))
-    (make-instance 'concrete-module 
+    (make-instance 'build-module 
       :name fullname 
       :fullname fullname 
       :author author 
@@ -54,8 +55,10 @@
       :version version 
       :description description 
       :long-description long-description 
-      :licence licence 
-      :build-depends-on (nconc (mapcar (lambda (dep) (list :asdf (symbol-name dep))) build-asdf-deps) build-file-deps)
+      :licence licence
+      :build-requires (mapcar (lambda (dep) (list :asdf (symbol-name dep))) build-asdf-deps)
+      :compile-depends-on build-file-deps
+      :load-depends-on build-file-deps
       :filepath (asdf:component-pathname asdf-system))))
 
 (defun module-string (module)
@@ -79,11 +82,13 @@
       (format out "~%~7,0T:compile-depends-on (~%~{~15,0T~(~s~)~^~%~})" (compile-depends-on module)))
     (if (load-depends-on module)
       (format out "~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~(~s~)~^~%~})" (load-depends-on module)))
-    (if (build-depends-on module)
-      (format out "~%~7,0T:build-depends-on ~%~14,7T(~{~15,0T~(~s~)~^~%~})" (build-depends-on module)))
+    ;(if (build-depends-on module)
+    ;  (format out "~%~7,0T:build-depends-on ~%~14,7T(~{~15,0T~(~s~)~^~%~})" (build-depends-on module)))
     (format out ")")
-    (if (special-forms module)
-      (format out "~%~{~7,0T~(~s~)~^~%~}" (special-forms module)))
+    (if (and (typep module 'build-module) (build-requires module))
+      (format out "~%~7,0T(:set :this-module :build-requires ~(~s~))" (build-requires module)))
+    (if (extension-forms module)
+      (format out "~%~{~7,0T~(~s~)~^~%~}" (extension-forms module)))
     (format out ")")))
             
 (defun get-dependencies-from-component (asdf-component)
@@ -103,7 +108,8 @@
                           :name (asdf:component-name asdf-component)
                           :fullname fullname
                           :filepath filepath
-                          :build-depends-on dependencies)
+                          :compile-depends-on dependencies
+                          :load-depends-on dependencies)
                         filepath)))
     
 
