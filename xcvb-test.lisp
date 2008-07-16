@@ -64,7 +64,7 @@
 
 (defun print-module (module)
   "Prints out a module object"
-  (format t "MODULE: ~%~Tname: ~s ~%~Tfullname: ~s ~%~Torigin: ~s ~%~Tlicence: ~s ~%~Tnickname: ~s ~%~Tdescription: ~s ~%~Tlong-description: ~s ~%~Tcompile-depends-on: ~s ~%~Tload-depends-on: ~s ~%~Tbuild-depends-on: ~s ~%~Tfilepath: ~s ~%" (name module) (fullname module) (origin module) (licence module) (nickname module) (description module) (long-description module) (compile-depends-on module) (load-depends-on module) (build-depends-on module) (filepath module)))
+  (format t "MODULE: ~%~Tname: ~s ~%~Tfullname: ~s ~%~Tlicence: ~s ~%~Tnickname: ~s ~%~Tdescription: ~s ~%~Tlong-description: ~s ~%~Tcompile-depends-on: ~s ~%~Tload-depends-on: ~s ~%~Tfilepath: ~s ~%" (name module) (fullname module) (licence module) (nickname module) (description module) (long-description module) (compile-depends-on module) (load-depends-on module) #|(build-depends-on module)|# (filepath module)))
 
 (defun print-modules ()
   (loop for module being the hash-values in *module-map* using (hash-key key)
@@ -76,7 +76,7 @@
 
 
 
-(defgeneric print-graph (node tab)
+#|(defgeneric print-graph (node tab)
   (:documentation "Prints the dependency graph - for testing purposes only"))
 
 (defmethod print-graph ((node dependency-graph-node) tab)
@@ -85,7 +85,7 @@
       (format t "~a~a::dependencies:~%" (generate-tab tab) (fullname node))
       (format t "~a" (mapcar (lambda (x) (print-graph x (+ tab 1))) (dependencies node))))
     (format t "~a~a~%" (generate-tab tab) (fullname node))))
-
+|#
 
 
 

@@ -22,7 +22,7 @@
   ((name :initarg :name :reader name :initform nil :documentation "The name of the module. Will usually be the same as the name of the file")
    (fullname :initarg :fullname :accessor fullname :initform nil :documentation "The full name of the module.  This is found from the fullname of his module's build.lisp file")
    (nickname :initarg :nickname :reader nickname :initform nil :documentation "A short name to be used to refer to the module")
-   (origin :initarg :origin :reader origin :initform nil :documentation "The origin specifies the filepath that all names will be assumed to be relative to.  If the origin isn't specified in the module, it will search for a build.lisp file in the current directory and any parent directories and treat the first directory found containing one as the origin")
+   ;(origin :initarg :origin :reader origin :initform nil :documentation "The origin specifies the filepath that all names will be assumed to be relative to.  If the origin isn't specified in the module, it will search for a build.lisp file in the current directory and any parent directories and treat the first directory found containing one as the origin")
    (author :initarg :author :reader author :initform nil :documentation "The author of the file")
    (maintainer :initarg :maintainer :reader maintainer :initform nil :documentation "The maintainer(s) of the file")
    (version :initarg :version :reader version :initform nil :documentation "The version number of the file")
@@ -31,7 +31,7 @@
    (long-description :initarg :long-description :reader long-description :initform nil :documentation "A detailed description of the file")
    (compile-depends-on :initarg :compile-depends-on :initform nil :reader compile-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled")
    (load-depends-on :initarg :load-depends-on :initform nil :reader load-depends-on :documentation "A list of dependencies that must be loaded before this file can be loaded")
-   (build-depends-on :initarg :build-depends-on :initform nil :reader build-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled or loaded - in the order in which they should be loaded")
+   ;(build-depends-on :initarg :build-depends-on :initform nil :reader build-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled or loaded - in the order in which they should be loaded")
    (filepath :initarg :filepath :accessor filepath :documentation "The absolute path to the file that the module was declared in")
    (filename :initarg :filename :accessor filename :documentation "The filename of the file that the module was declared in")
    (extension-forms :initarg :extension-forms :initform nil :accessor extension-forms :documentation "extension forms!")))
@@ -47,8 +47,8 @@
 ;(defun appendnew (&rest lists &key key (test #'eql testp) (test-not nil notp))
   
 
-;This condition is signaled by the find-origin function if no BUILD.lisp file can be found
-(define-condition no-origin-found (simple-error)
+;This condition is signaled by the find-build-file function if no BUILD.lisp file can be found
+(define-condition no-build-file-found (simple-error)
   ())
 
 ;This condition is signaled if the dependency graph has any cycles in it.
@@ -92,14 +92,13 @@
 
 (defun parse-module (module &key build-module-p)
   "Takes a module specifier and returns a module object representing that module.  Inherits licence, author, maintainer, description, and long-description slots from the build-module, if not specifically overwritten"
-  (destructuring-bind (module-decl (&key name fullname nickname origin licence version author maintainer description long-description compile-depends-on load-depends-on build-depends-on) &rest extension-forms) module
+  (destructuring-bind (module-decl (&key name fullname nickname licence version author maintainer description long-description compile-depends-on load-depends-on #|build-depends-on|#) &rest extension-forms) module
     (declare (ignore module-decl))
     (let ((module 
            (make-instance (if build-module-p 'build-module 'concrete-module)
              :name name
              :fullname fullname
              :nickname nickname
-             :origin origin
              :author (or author (if *build-module* (author *build-module*)))
              :maintainer (or maintainer (if *build-module* (maintainer *build-module*)))
              :licence (or licence (if *build-module* (licence *build-module*)))
@@ -108,7 +107,7 @@
              :long-description (or long-description (if *build-module* (long-description *build-module*)))
              :compile-depends-on compile-depends-on
              :load-depends-on load-depends-on
-             :build-depends-on build-depends-on
+             ;:build-depends-on build-depends-on
              :extension-forms extension-forms)))
       (handle-extension-forms module extension-forms)
       module)))
@@ -120,11 +119,13 @@
 (defextension add-dependencies-to-module :add (module dep-type deps)
   (with-slots (compile-depends-on load-depends-on) module
     (case dep-type
-      (:compile-depends-on (setf compile-depends-on (nunion compile-depends-on deps :test #'equal)))
-      (:load-depends-on (setf load-depends-on (nunion load-depends-on deps :test #'equal)))
+      (:compile-depends-on 
+         (setf compile-depends-on (remove-duplicates (append compile-depends-on deps) :test #'equal :from-end T)))
+      (:load-depends-on 
+         (setf load-depends-on (remove-duplicates (append load-depends-on deps) :test #'equal :from-end T)))
       (:compile-and-load-depends-on 
-         (setf compile-depends-on (nunion compile-depends-on deps :test #'equal))
-         (setf load-depends-on (nunion load-depends-on deps :test #'equal)))
+         (setf compile-depends-on (remove-duplicates (append compile-depends-on deps) :test #'equal :from-end T))
+         (setf load-depends-on (remove-duplicates (append load-depends-on deps) :test #'equal :from-end T)))
       (otherwise (error "Invalid property for :add operation, must be one of (:compile-depends-on :load-depends-on :compile-and-load-depends-on)")))))
 
 ;(defextension 
@@ -141,10 +142,15 @@
 
 (defextension remove-dependency-from-module :remove (module dep-type value)
   (case dep-type
-    (:compile-depends-on (setf (slot-value module 'compile-depends-on) (remove value (slot-value module 'compile-depends-on) :test #'equal)))
-    (:load-depends-on (setf (slot-value module 'load-depends-on) (remove value (slot-value module 'load-depends-on) :test #'equal)))
-    (:build-depends-on (setf (slot-value module 'build-depends-on) (remove value (slot-value module 'build-depends-on) :test #'equal)))
-    (otherwise (error "Invalid property for :remove operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
+    (:compile-depends-on 
+       (setf (slot-value module 'compile-depends-on) (remove value (slot-value module 'compile-depends-on) :test #'equal)))
+    (:load-depends-on 
+       (setf (slot-value module 'load-depends-on) (remove value (slot-value module 'load-depends-on) :test #'equal)))
+    (:compile-and-load-depends-on 
+       (setf (slot-value module 'compile-depends-on) (remove value (slot-value module 'compile-depends-on) :test #'equal))
+       (setf (slot-value module 'load-depends-on) (remove value (slot-value module 'load-depends-on) :test #'equal)))
+    ;(:build-depends-on (setf (slot-value module 'build-depends-on) (remove value (slot-value module 'build-depends-on) :test #'equal)))
+    (otherwise (error "Invalid property for :remove operation, must be one of (:compile-depends-on :load-depends-on :compile-and-load-depends-on"))))
 
 (defextension set-module-slot :set (module slot-name value)
   (let ((slot-symbol (find-symbol (string slot-name) :xcvb)))
@@ -258,10 +264,12 @@
               (lookup-in-registry name build-module))))))
 
 
-(defun find-origin (source-filepath)
-  "Looks for the first BUILD.lisp file in the given directory or any of its parent directories that contains a fullname and returns its filepath.  It also sets the module corresponding to that file to the special variable *build-module*.   Throws an error if no BUILD.lisp file with a fullname is found"
+(defun find-build-file (source-filepath)
+  "Looks for the first BUILD.lisp file in the given directory or any of its parent directories that contains a fullname and returns its filepath.  It also sets the special variable *build-module* to the module corresponding to build file that was found.   Throws an error if no BUILD.lisp file with a fullname is found"
   (if (eql source-filepath nil) 
-    (error 'no-origin-found :format-control "no origin found for ~S" :format-arguments (list source-filepath)))
+    (error 'no-build-file-found 
+           :format-control "no BUILD.lisp file found for ~S" 
+           :format-arguments (list source-filepath)))
   (let ((build-filepath (make-pathname :name "BUILD" :type "lisp" :defaults source-filepath)))
     (if (probe-file build-filepath)
       (let ((build-module (resolve-module build-filepath :build-module-p T)))
@@ -269,8 +277,8 @@
           (make-fullname-absolute build-module)
           (setf *build-module* build-module)
           (add-to-module-map build-module)
-          (return-from find-origin build-filepath))))
-    (find-origin (pathname-parent source-filepath))))
+          (return-from find-build-file build-filepath))))
+    (find-build-file (pathname-parent source-filepath))))
   
 
 (defun make-fullname-absolute (module)
@@ -322,10 +330,12 @@
 (defmethod add-dependencies ((node dependency-graph-node-with-dependencies) (dependency-list list) &key type)
   ;(assert (every #'(lambda (x) (typep x 'dependency-graph-node)) dependency-list) ())
   ;(setf (dependencies node) (nconc (dependencies node) dependency-list)))
-  (case type
+  (dolist (dep dependency-list)
+    (add-dependency node dep :type type)))
+  #|(case type
     (:load (setf (load-dependencies node) (remove-duplicates (nconc (load-dependencies node) dependency-list) :from-end T)))
     (:compile (setf (compile-dependencies node) (remove-duplicates (nconc (compile-dependencies node) dependency-list) :from-end T)))
-    (otherwise (error "Invalid type of dependency.  Must be either :compile or :load"))))
+    (otherwise (error "Invalid type of dependency.  Must be either :compile or :load"))))|#
 
 (defun create-lisp-node (dependencies)
   "This function constructs a lisp-node in the dependency graph for a lisp with the given dependencies loaded"
@@ -407,21 +417,21 @@
         (pushnew dep-node (asdf-dependencies fasl-node))
         (pushnew dep-node (load-dependencies fasl-node)))))
   (pushnew (create-source-file-node module) (compile-dependencies fasl-node)));Add dependency on the lisp source file|#
-  (let ((build-deps (mapcar (lambda (name) (create-dependency-node name previous-nodes-map previous-nodes-list)) 
-                            (build-depends-on module))))
-    (add-dependencies fasl-node (append (mapcar 
-                                         (lambda (name) (create-dependency-node 
-                                                         name 
-                                                         previous-nodes-map 
-                                                         previous-nodes-list))
-                                         (load-depends-on module)) build-deps) :type :load)
-    (add-dependencies fasl-node (append (mapcar 
-                                         (lambda (name) (create-dependency-node 
-                                                         name 
-                                                         previous-nodes-map 
-                                                         previous-nodes-list)) 
-                                         (compile-depends-on module)) build-deps) :type :compile)
-    (add-dependency fasl-node (create-source-file-node module) :type :compile)));Add dependency on the lisp source file
+  #|(let ((build-deps (mapcar (lambda (name) (create-dependency-node name previous-nodes-map previous-nodes-list)) 
+                            (build-depends-on module))))|#
+  (add-dependencies fasl-node (mapcar 
+                               (lambda (name) (create-dependency-node 
+                                               name 
+                                               previous-nodes-map 
+                                               previous-nodes-list))
+                               (load-depends-on module)) :type :load)
+  (add-dependencies fasl-node (mapcar 
+                               (lambda (name) (create-dependency-node 
+                                               name 
+                                               previous-nodes-map 
+                                               previous-nodes-list)) 
+                               (compile-depends-on module)) :type :compile)
+  (add-dependency fasl-node (create-source-file-node module) :type :compile));Add dependency on the lisp source file
 
 (defun create-fasl-node (module previous-nodes-map previous-nodes-list)
   "This function constructs a fasl-node in the dependency graph.  It also builds fasl-nodes for any of its dependencies."
@@ -458,7 +468,8 @@
   "Constructs a dependency graph with a fasl-node for the lisp file at sourcepath as the root of the graph.  If build-for-asdf is non-nil, then the graph will be build with all dependencies being treated as load dependencies"
   (setf *node-map* (make-hash-table :test #'equal))
   (setf *module-map* (make-hash-table :test #'equal))
-  (setf *buildpath* (make-pathname :name nil :type nil :defaults (find-origin (pathname sourcepath))))
+  (setf *build-module* nil)
+  (setf *buildpath* (make-pathname :name nil :type nil :defaults (find-build-file (pathname sourcepath))))
   ;(setf *build-for-asdf-p* build-for-asdf)
   (create-lisp-node (list (resolve-module (pathname sourcepath) :parent-module *build-module*))))
 

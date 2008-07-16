@@ -63,14 +63,14 @@
 
 
 
-(defgeneric eval-command-string (lisp-type &key lisp-executable lisp-image lisp-options cwasl-as-core)
+(defgeneric eval-command-string (lisp-type &key lisp-executable lisp-image lisp-options cwbrl-as-core)
   (:documentation "Returns the command string required to eval the given lisp form in the given lisp implementation, with characters properly escaped for running a shell command in a makefile"))
 
-(defmethod eval-command-string ((lisp-type (eql :sbcl)) &key (lisp-executable *lisp-executable-pathname*) (lisp-image *lisp-image-pathname*) (lisp-options *lisp-options*) cwasl-as-core)
+(defmethod eval-command-string ((lisp-type (eql :sbcl)) &key (lisp-executable *lisp-executable-pathname*) (lisp-image *lisp-image-pathname*) (lisp-options *lisp-options*) cwbrl-as-core)
   (format nil "~a~a ~{~a ~^~}~a" 
           (escape-string (namestring lisp-executable))
           (cond
-            (cwasl-as-core " --core ${CWASL}")
+            (cwbrl-as-core " --core ${CWBRL}")
             (lisp-image (escape-string (strcat " --core " (namestring lisp-image))))
             (T ""))
           (mapcar #'escape-string lisp-options)
@@ -100,7 +100,7 @@
 (defun makefile-line-for-node (node operation)
   "Returns the string of the line in the Makefile that can create the target of the given node"
   ;(command-list-to-Makefile-line (eval-command-list *lisp-implementation* (progn-form-string-for-node 
-  (format nil "${~:[LISPRUN~;CWASLRUN~]} \"~a\"" 
+  (format nil "${~:[LISPRUN~;CWBRLRUN~]} \"~a\"" 
           *build-depends-on-asdf-systems-p* 
           (escape-string
            (format nil "(progn ~{~@[~a~^ ~]~} ~a)" (mapcar #'form-string-for-node (traverse node operation)) (quit-form)))))
@@ -114,24 +114,24 @@
   (unless (nth-value 1 (gethash (fullname node) *written-nodes*));If this node has already been written to the makefile, don't write it again.
     (setf (gethash (fullname node) *written-nodes*) nil);Add this node to the map of nodes already written to the makefile
 ;  (format filestream "~a : ~{~a~^ ~}~%" (target node) (mapcar #'target (compile-dependencies node)))
-    (format filestream "~a : ~:[~;core-with-asdf-systems-loaded ~]~{~a~^ ~}~%" (target node) *build-depends-on-asdf-systems-p* (mapcar #'target (traverse node :create)))
+    (format filestream "~a : ~:[~;core-with-build-requires-loaded ~]~{~a~^ ~}~%" (target node) *build-depends-on-asdf-systems-p* (mapcar #'target (traverse node :create)))
     (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create))))
 
 (defmethod write-node-to-makefile (filestream (node lisp-node))
   ;(format filestream "~a : ~{~a~^ ~}~%" (target node) (mapcar #'target (compile-dependencies node)))
-  (format filestream "~a : ~:[~;core-with-asdf-systems-loaded ~]~{~a~^ ~}~%" (target node) *build-depends-on-asdf-systems-p* (mapcar #'target (traverse node :create)))
+  (format filestream "~a : ~:[~;core-with-build-requires-loaded ~]~{~a~^ ~}~%" (target node) *build-depends-on-asdf-systems-p* (mapcar #'target (traverse node :create)))
   (format filestream "~a~a~%" #\tab (makefile-line-for-node node :create))
   (format filestream ".PHONY: ~a~%~%" (target node)))
 
 (defmethod write-node-to-makefile (filestream (node image-dump-node))
   ;(format filestream "~a : ~{~a~^ ~}~%" (target node) (mapcar #'target (compile-dependencies (lisp-image node))))
-  (format filestream "~a : ~:[~;core-with-asdf-systems-loaded ~]~{~a~^ ~}~%" (target node) *build-depends-on-asdf-systems-p* (mapcar #'target (traverse node :create)))
+  (format filestream "~a : ~:[~;core-with-build-requires-loaded ~]~{~a~^ ~}~%" (target node) *build-depends-on-asdf-systems-p* (mapcar #'target (traverse node :create)))
   (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :load)))
 
 (defmethod write-node-to-makefile (filestream (node asdf-system-node))
   (unless (nth-value 1 (gethash (fullname node) *written-nodes*));If this node has already been written to the makefile, don't write it again.
     (setf (gethash (fullname node) *written-nodes*) nil);Add this node to the map of nodes already written to the makefile
-    (format filestream "~a : ~:[~;core-with-asdf-systems-loaded ~]~%" (target node) *build-depends-on-asdf-systems-p*)
+    (format filestream "~a : ~:[~;core-with-build-requires-loaded ~]~%" (target node) *build-depends-on-asdf-systems-p*)
     (format filestream "~a~a~%" #\tab (makefile-line-for-node node :load))
     (format filestream ".PHONY: ~a~%~%" (target node))))
 
@@ -168,17 +168,17 @@
 (defun makefile-setup (output-path filestream)
   (format filestream "LISPRUN = ~a~%~%" (eval-command-string *lisp-implementation*))
   (when (build-requires *build-module*)
-    (let* ((cwaslpath (escape-string (namestring (make-pathname :name "core-with-asdf-systems" :type "core-xcvb" :defaults output-path))))
+    (let* ((cwbrlpath (escape-string (namestring (make-pathname :name "core-with-build-requires" :type "core-xcvb" :defaults output-path))))
            (core-with-build-requires-graph 
-            (create-image-dump-node (create-lisp-node (build-requires *build-module*)) cwaslpath))
+            (create-image-dump-node (create-lisp-node (build-requires *build-module*)) cwbrlpath))
            (core-deps (traverse core-with-build-requires-graph :create)))
-      (format filestream "CWASL = ~a~%~%" cwaslpath)
-      (format filestream "CWASLRUN = ~a~%~%" (eval-command-string *lisp-implementation* :cwasl-as-core T))
+      (format filestream "CWBRL = ~a~%~%" cwbrlpath)
+      (format filestream "CWBRLRUN = ~a~%~%" (eval-command-string *lisp-implementation* :cwbrl-as-core T))
       ;(format filestream ".PHONY: core-with-asdf-systems-loaded~%~%core-with-asdf-systems-loaded : ~{~a~^ ~}~%~a" (mapcar #'escape-string asdf-dependencies) #\tab)
-      (format filestream "CHECK_ASDFS = $(shell if ! ( [ -f ${CWASL} ] && (${CWASLRUN} \"(xcvb:asdf-systems-are-up-to-date-p ~{:~a~^ ~})\")) ; then echo force ; fi )~%~%force : ~%~%" (mapcar (lambda (dep) (escape-string (namestring (name dep)))) (remove-if-not (lambda (dep) (typep dep 'asdf-system-node)) core-deps)))
+      (format filestream "CHECK_ASDFS = $(shell if ! ( [ -f ${CWBRL} ] && (${CWBRLRUN} \"(xcvb:asdf-systems-are-up-to-date-p ~{:~a~^ ~})\")) ; then echo force ; fi )~%~%force : ~%~%" (mapcar (lambda (dep) (escape-string (namestring (name dep)))) (remove-if-not (lambda (dep) (typep dep 'asdf-system-node)) core-deps)))
       (mapcar (lambda (node) (write-node-to-makefile filestream node)) core-deps)
-      (format filestream ".PHONY: core-with-asdf-systems-loaded~%~%")
-      (format filestream "core-with-asdf-systems-loaded : $(CHECK_ASDFS) ~{~a~^ ~}~%" (mapcar (lambda (dep) (escape-string (target dep))) (remove-if (lambda (dep) (typep dep 'asdf-system-node)) core-deps)))
+      (format filestream ".PHONY: core-with-build-requires-loaded~%~%")
+      (format filestream "core-with-build-requires-loaded : $(CHECK_ASDFS) ~{~a~^ ~}~%" (mapcar (lambda (dep) (escape-string (target dep))) (remove-if (lambda (dep) (typep dep 'asdf-system-node)) core-deps)))
       ;(format filestream "if ! ( [ -f ${CWASL} ] && (${CWASLRUN} \"(xcvb:asdf-systems-are-up-to-date-p ~{:~a~^ ~})\")) ; then \\~%" (mapcar #'escape-string asdf-dependencies))
       ;(format filestream "if ! ( [ -f ${CWASL} ] && (${CWASLRUN} \"(xcvb:asdf-systems-are-up-to-date-p ~{:~a~^ ~})\")) ; then \\~%" (mapcar (lambda (dep) (escape-string (namestring (target dep)))) core-deps))
       (format filestream "~a~a~%~%" #\tab (makefile-line-for-node core-with-build-requires-graph :load))

@@ -90,7 +90,7 @@
     (if (extension-forms module)
       (format out "~%~{~7,0T~(~s~)~^~%~}" (extension-forms module)))
     (format out ")")))
-            
+
 (defun get-dependencies-from-component (asdf-component)
   (let ((in-order-to (slot-value asdf-component 'asdf::in-order-to)))
     (if in-order-to
