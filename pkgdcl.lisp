@@ -12,5 +12,6 @@
      #:load-module;
      #:run-tests
      #:run-converter-tests
-     #:asdf-systems-are-up-to-date-p))
+     #:asdf-systems-are-up-to-date-p
+     #:quit-form))
  

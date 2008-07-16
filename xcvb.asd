@@ -21,10 +21,11 @@ featuring deterministic separate compilation and enforced locally-declared depen
     ;;:depends-on (:alexandria)
     :components
     ((:file "pkgdcl")
-     (:file "xcvb" :depends-on ("pkgdcl"))
      (:file "xcvb-compiler-options" :depends-on ("pkgdcl"))
-     (:file "asdf-extensions")
-     (:file "makefile-generator" :depends-on ("pkgdcl" "xcvb" "xcvb-compiler-options" "asdf-extensions"))
+     (:file "utilities" :depends-on ("pkgdcl" "xcvb-compiler-options"))
+     (:file "xcvb" :depends-on ("pkgdcl" "utilities"))
+     (:file "asdf-extensions" :depends-on ("utilities"))
+     (:file "makefile-generator" :depends-on ("pkgdcl" "xcvb-compiler-options" "utilities" "xcvb" "asdf-extensions"))
      (:file "asd-generator" :depends-on ("pkgdcl" "xcvb"))
      (:file "asdf-converter" :depends-on ("pkgdcl" "xcvb"))))
      
