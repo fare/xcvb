@@ -15,11 +15,9 @@
 
 
 (defmethod find-asdf-systems-helper ((node asdf-system-node))
-  ;(format T "found system \"~a\"~%" (name node))
   (list (strcat ":" (name node))))
 
 (defmethod find-asdf-systems-helper ((node dependency-graph-node-with-dependencies))
-  ;(format T "Finding dependencies for node \"~a\"~%" (fullname node))
   (reduce (lambda (dependency-node rest) (nunion (find-asdf-systems-helper dependency-node) rest :test #'equal)) (nconc (compile-dependencies node) (load-dependencies node)) :initial-value nil :from-end T))
 
 (defmethod find-asdf-systems-helper :around ((node dependency-graph-node))
@@ -64,12 +62,11 @@
   (let ((written-nodes (if *writing-build-requires-module* *build-requires-written-nodes* *main-files-written-nodes*)))
     (unless (nth-value 1 (gethash (fullname node) written-nodes));If this node has already been written to the asd file, don't write it again.
       (setf (gethash (fullname node) written-nodes) nil);Add this node to the map of nodes already written to the asd file
-    ;(format T "Writing asd file line for node: ~a~%" (fullname node))
       (let ((dependencies (if *writing-build-requires-module*
-                             (nunion (rest (compile-dependencies node)) (load-dependencies node))
-                             (remove-if 
-                              (lambda (dep) (nth-value 1 (gethash (fullname dep) *build-requires-written-nodes*))) 
-                              (nunion (rest (compile-dependencies node)) (load-dependencies node))))))
+                            (nunion (rest (compile-dependencies node)) (load-dependencies node))
+                            (remove-if 
+                             (lambda (dep) (nth-value 1 (gethash (fullname dep) *build-requires-written-nodes*))) 
+                             (nunion (rest (compile-dependencies node)) (load-dependencies node))))))
         (if dependencies
           (progn 
             (dolist (dependency dependencies)
@@ -79,12 +76,10 @@
                     (mapcar #'name (remove-if-not (lambda (dep) (typep dep 'fasl-node)) dependencies))))
           (progn
             (format filestream "~13,0T(:file ~s)~%" (name node))))))))
-          ;(format T "Finished writing asd file line for: ~a~%" (fullname node)))))))
+
 
 (defmethod write-node-to-asd-file (filestream (node dependency-graph-node))
   (declare (ignore filestream node)))
-
-
 
 
 (defun write-asd-file (source-path output-path)

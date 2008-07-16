@@ -12,8 +12,6 @@
   "Filesystem path for the nearest surrounding BUILD.lisp file")
 (defparameter *extension-functions-map* (make-hash-table)
   "Map of keywords that may appear in the extension-forms part of a module declaration to functions")
-;(defparameter *build-for-asdf-p* nil
-;  "Flag to specify if the dependency graph should be built for creating an asdf file")
 
 
 (defclass module () ())
@@ -22,7 +20,6 @@
   ((name :initarg :name :reader name :initform nil :documentation "The name of the module. Will usually be the same as the name of the file")
    (fullname :initarg :fullname :accessor fullname :initform nil :documentation "The full name of the module.  This is found from the fullname of his module's build.lisp file")
    (nickname :initarg :nickname :reader nickname :initform nil :documentation "A short name to be used to refer to the module")
-   ;(origin :initarg :origin :reader origin :initform nil :documentation "The origin specifies the filepath that all names will be assumed to be relative to.  If the origin isn't specified in the module, it will search for a build.lisp file in the current directory and any parent directories and treat the first directory found containing one as the origin")
    (author :initarg :author :reader author :initform nil :documentation "The author of the file")
    (maintainer :initarg :maintainer :reader maintainer :initform nil :documentation "The maintainer(s) of the file")
    (version :initarg :version :reader version :initform nil :documentation "The version number of the file")
@@ -31,7 +28,6 @@
    (long-description :initarg :long-description :reader long-description :initform nil :documentation "A detailed description of the file")
    (compile-depends-on :initarg :compile-depends-on :initform nil :reader compile-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled")
    (load-depends-on :initarg :load-depends-on :initform nil :reader load-depends-on :documentation "A list of dependencies that must be loaded before this file can be loaded")
-   ;(build-depends-on :initarg :build-depends-on :initform nil :reader build-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled or loaded - in the order in which they should be loaded")
    (filepath :initarg :filepath :accessor filepath :documentation "The absolute path to the file that the module was declared in")
    (filename :initarg :filename :accessor filename :documentation "The filename of the file that the module was declared in")
    (extension-forms :initarg :extension-forms :initform nil :accessor extension-forms :documentation "extension forms!")))
@@ -44,8 +40,6 @@
   "String concatenation function"
   (apply 'concatenate 'string strings))
 
-;(defun appendnew (&rest lists &key key (test #'eql testp) (test-not nil notp))
-  
 
 ;This condition is signaled by the find-build-file function if no BUILD.lisp file can be found
 (define-condition no-build-file-found (simple-error)
@@ -107,7 +101,6 @@
              :long-description (or long-description (if *build-module* (long-description *build-module*)))
              :compile-depends-on compile-depends-on
              :load-depends-on load-depends-on
-             ;:build-depends-on build-depends-on
              :extension-forms extension-forms)))
       (handle-extension-forms module extension-forms)
       module)))
@@ -128,17 +121,6 @@
          (setf load-depends-on (remove-duplicates (append load-depends-on deps) :test #'equal :from-end T)))
       (otherwise (error "Invalid property for :add operation, must be one of (:compile-depends-on :load-depends-on :compile-and-load-depends-on)")))))
 
-;(defextension 
-
-
-
-#|(defun add-dependency-to-module (module &rest args)
-  (destructuring-bind ((dep-type value)) args
-    (case dep-type
-      (:compile-depends-on (pushnew value (slot-value module 'compile-depends-on) :test #'equal))
-      (:load-depends-on (pushnew value (slot-value module 'load-depends-on) :test #'equal))
-      (:build-depends-on (pushnew value (slot-value module 'build-depends-on) :test #'equal))
-      (otherwise (error "Invalid property for :add operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on")))))|#
 
 (defextension remove-dependency-from-module :remove (module dep-type value)
   (case dep-type
@@ -149,7 +131,6 @@
     (:compile-and-load-depends-on 
        (setf (slot-value module 'compile-depends-on) (remove value (slot-value module 'compile-depends-on) :test #'equal))
        (setf (slot-value module 'load-depends-on) (remove value (slot-value module 'load-depends-on) :test #'equal)))
-    ;(:build-depends-on (setf (slot-value module 'build-depends-on) (remove value (slot-value module 'build-depends-on) :test #'equal)))
     (otherwise (error "Invalid property for :remove operation, must be one of (:compile-depends-on :load-depends-on :compile-and-load-depends-on"))))
 
 (defextension set-module-slot :set (module slot-name value)
@@ -165,30 +146,6 @@
   (declare (ignore systems))
   (error "not yet implemented"))
 
-  #|(case slot-name
-    (:name (setf (slot-value module 'name) value))
-    (:fullname (setf (slot-value module 'fullname) value))
-    (:nickname (setf (slot-value module 'nickname) value))
-    (:origin (setf (slot-value module 'origin) value))
-    (:author (setf (slot-value module 'author) value))
-    (:maintainer (setf (slot-value module 'maintainer) value))
-    (:licence (setf (slot-value module 'licence) value))
-    (:version (setf (slot-value module 'version) value))
-    (:description (setf (slot-value module 'description) value))
-    (:long-description (setf (slot-value module 'long-description) value))
-    (:compile-depends-on (setf (slot-value module 'compile-depends-on) value))
-    (:load-depends-on (setf (slot-value module 'load-depends-on) value))
-    (:build-depends-on (setf (slot-value module 'build-depends-on) value))
-    (otherwise (error "Invalid module property"))))|#
-
- 
-
-#|(defun setup-extension-functions-map ()
-  (setf (gethash :add *extension-functions-map*) #'add-dependency-to-module)
-  (setf (gethash :remove *extension-functions-map*) #'remove-dependency-from-module)
-  (setf (gethash :set *extension-functions-map*) #'set-module-slot))
-
-(setup-extension-functions-map)|#
 
 (defun handle-extension-forms (module extension-forms)
   "This handles the extension forms from the module declaration.  These forms can do things such as (but not limited to) change slots in the module, specify system-wide dependencies, or extend xcvb itself."
@@ -197,42 +154,9 @@
       (apply 
        (gethash operation *extension-functions-map*) 
        (mapcar (lambda (arg) (if (eql arg :this-module) module arg)) args)))))
-#|
-(defun handle-extension-forms (module extension-forms)
-  "This handles the extension forms from the module declaration.  These forms can do things such as (but not limited to) change slots in the module, specify system-wide dependencies, or extend xcvb itself."
-  (dolist (form extension-forms)
-    (destructuring-bind (operation &rest args) form
-      (case operation
-        (:add 
-           (case property
-             (:compile-depends-on (pushnew value (slot-value module 'compile-depends-on) :test #'equal))
-             (:load-depends-on (pushnew value (slot-value module 'load-depends-on) :test #'equal))
-             (:build-depends-on (pushnew value (slot-value module 'build-depends-on) :test #'equal))
-             (otherwise (error "Invalid property for :add operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
-        (:remove 
-           (case property
-             (:compile-depends-on (remove value (slot-value module 'compile-depends-on) :test #'equal))
-             (:load-depends-on (remove value (slot-value module 'load-depends-on) :test #'equal))
-             (:build-depends-on (remove value (slot-value module 'build-depends-on) :test #'equal))
-             (otherwise (error "Invalid property for :remove operation, must be one of :compile-depends-on, :load-depends-on, or :build-depends-on"))))
-        (:set 
-           (case property
-             (:name (setf (slot-value module 'name) value))
-             (:fullname (setf (slot-value module 'fullname) value))
-             (:nickname (setf (slot-value module 'nickname) value))
-             (:origin (setf (slot-value module 'origin) value))
-             (:author (setf (slot-value module 'author) value))
-             (:maintainer (setf (slot-value module 'maintainer) value))
-             (:licence (setf (slot-value module 'licence) value))
-             (:version (setf (slot-value module 'version) value))
-             (:description (setf (slot-value module 'description) value))
-             (:long-description (setf (slot-value module 'long-description) value))
-             (:compile-depends-on (setf (slot-value module 'compile-depends-on) value))
-             (:load-depends-on (setf (slot-value module 'load-depends-on) value))
-             (:build-depends-on (setf (slot-value module 'build-depends-on) value))
-             (otherwise (error "Invalid module property"))))))))|#
 
-(defun resolve-module (module-path &key (parent-module nil parent-module-supplied-p) build-module-p #|&optional (context *module-context*)|#)
+
+(defun resolve-module (module-path &key (parent-module nil parent-module-supplied-p) build-module-p)
   "Takes a filepath to a lisp file, and returns the module object represented by the module specifer at the top of that lisp file.  If the argument parent-module is supplied, then the new module will be given a fullname relative to the fullname of parent-module"
   (format T "resolving ~:[module~;build-module~]: ~a~%" build-module-p module-path)
   (if (and *build-module* (equal (pathname (filepath *build-module*)) (pathname module-path)))
@@ -311,8 +235,7 @@
 (defclass image-dump-node (dependency-graph-node) 
   ((lisp-image :initarg :lisp-image :initform nil :reader lisp-image)))
 
-(defclass asdf-system-node (dependency-graph-node) 
-  (#|(name :initarg :name :reader name)|#))
+(defclass asdf-system-node (dependency-graph-node) ())
 
 
 (defgeneric add-dependency (node dependency &key type)
@@ -328,14 +251,9 @@
   (:documentation "Adds a list of dependencies to a node in the dependency graph.  TODO: this should also add the node to the hashmap of current nodes and check that the node doesn't already exist, if it does,throw an error"))
 
 (defmethod add-dependencies ((node dependency-graph-node-with-dependencies) (dependency-list list) &key type)
-  ;(assert (every #'(lambda (x) (typep x 'dependency-graph-node)) dependency-list) ())
-  ;(setf (dependencies node) (nconc (dependencies node) dependency-list)))
   (dolist (dep dependency-list)
     (add-dependency node dep :type type)))
-  #|(case type
-    (:load (setf (load-dependencies node) (remove-duplicates (nconc (load-dependencies node) dependency-list) :from-end T)))
-    (:compile (setf (compile-dependencies node) (remove-duplicates (nconc (compile-dependencies node) dependency-list) :from-end T)))
-    (otherwise (error "Invalid type of dependency.  Must be either :compile or :load"))))|#
+
 
 (defun create-lisp-node (dependencies)
   "This function constructs a lisp-node in the dependency graph for a lisp with the given dependencies loaded"
@@ -397,28 +315,6 @@
   
 (defun set-fasl-node-dependencies (fasl-node module previous-nodes-map previous-nodes-list)
   "This function takes a fasl-node and its module and builds nodes for all of that module's dependencies, and adds them as dependencies of the fasl-node"
-  #|(dolist (dep-name (build-depends-on module));handle build-dependencies
-    (let ((dep-node (create-dependency-node dep-name previous-nodes-map previous-nodes-list)))
-      (if (and (eql module *build-module*) (typep dep-node 'asdf-system-node))
-        (progn
-          (format T "****************************************")
-          (pushnew dep-node (asdf-dependencies fasl-node)))
-        (progn
-          (pushnew dep-node (compile-dependencies fasl-node))
-          (pushnew dep-node (load-dependencies fasl-node))))))
-  (dolist (dep-name (compile-depends-on module));handle compile-dependencies
-    (let ((dep-node (create-dependency-node dep-name previous-nodes-map previous-nodes-list)))
-      (if (and (eql module *build-module*) (typep dep-node 'asdf-system-node))
-        (pushnew dep-node (asdf-dependencies fasl-node))
-        (pushnew dep-node (compile-dependencies fasl-node)))))
-  (dolist (dep-name (load-depends-on module));handle load-dependencies
-    (let ((dep-node (create-dependency-node dep-name previous-nodes-map previous-nodes-list)))
-      (if (and (eql module *build-module*) (typep dep-node 'asdf-system-node))
-        (pushnew dep-node (asdf-dependencies fasl-node))
-        (pushnew dep-node (load-dependencies fasl-node)))))
-  (pushnew (create-source-file-node module) (compile-dependencies fasl-node)));Add dependency on the lisp source file|#
-  #|(let ((build-deps (mapcar (lambda (name) (create-dependency-node name previous-nodes-map previous-nodes-list)) 
-                            (build-depends-on module))))|#
   (add-dependencies fasl-node (mapcar 
                                (lambda (name) (create-dependency-node 
                                                name 
@@ -470,7 +366,6 @@
   (setf *module-map* (make-hash-table :test #'equal))
   (setf *build-module* nil)
   (setf *buildpath* (make-pathname :name nil :type nil :defaults (find-build-file (pathname sourcepath))))
-  ;(setf *build-for-asdf-p* build-for-asdf)
   (create-lisp-node (list (resolve-module (pathname sourcepath) :parent-module *build-module*))))
 
 
@@ -513,107 +408,3 @@
   "Wrapper around traverse-internal generic function"
   (reverse (traverse-internal node operation (make-hash-table :test 'equal))))
   
-
-#|
-(defmethod traverse ((node fasl-node))
-  (let ((visited-nodes-map (make-hash-table :test 'equal)))
-    (setf (gethash (fullname node) visited-nodes-map) T)
-    (reduce (lambda (dep rest) (nconc (traverse-internal dep visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil)))|#
-
-#|(defmethod traverse ((node lisp-node))
-  (let ((visited-nodes-map (make-hash-table :test 'equal)))
-    (reduce (lambda (dep rest) (nconc (traverse-internal dep visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil)))|#
-
-
-#|
-(defun module-declaration (module)
-  ...)
-
-(defun compile-dependencies (module)
-  (append ...)
-  ...)
-
-(defun load-dependencies (module)
-  ...)
-
-(defun compile-module (module)
-  ...)
-
-(defun load-module (module)
-  ...)
-
-|#
-
-
-#|(defgeneric get-filename-from-node (node))
-
-(defmethod get-filename-from-node ((node fasl-file-node))
-  (destructuring-bind (&key ((:fasl target))) (read-from-string (target node))
-   (file-namestring (make-pathname :type "fasl" :defaults (pathname target)))))
-
-(defmethod get-filename-from-node ((node image-file-node))
-  (destructuring-bind (&key ((:image target))) (read-from-string (target node))
-   (file-namestring (make-pathname :type "img" :defaults (pathname target)))))
-
-(defmethod get-filename-from-node ((node source-file-node))
-  (destructuring-bind (&key ((:source target))) (read-from-string (target node))
-   (file-namestring (make-pathname :type "lisp" :defaults (pathname target)))))
-|#
-
-
-#|(defun create-filepath (filename module)
-  "This function takes a module and the name of a file, and returns the absolute path to the file assuming it is located relative to the path of the origin of the module"
-;  (make-pathname :type "lisp" :defaults (merge-pathnames filename (filepath (lookup-build-module (system-name module))))))
-;  (make-pathname :type "lisp" :defaults (merge-pathnames filename (origin module))))
-  (make-pathname :type "lisp" :defaults (merge-pathnames filename (filepath module)))) ;module is the build module!  Maybe should change name to reflect that...|#
-
-#|(defun system-name (module)
-  (destructuring-bind (system-name) (subseq (pathname-directory (fullname module)) 1 2) system-name))|#
-
-
-#|(defun absolute-pathname-p (pathname)
-  (declare (ignore pathname))
-  T)
-
-(defun absolutify-pathname (pathname)
-  (flet ((try (x)
-           (if (absolute-pathname-p x)
-             (return-from absolutify-pathname x))))
-    (try pathname)
-    (let ((pathname (merge-pathnames pathname)))
-      (try pathname)
-      (truename pathname))))|#
-
-#|
-;;;The following 4 functions are for interacting with hashtables.  They provide an easy interface to the 4 most common operations performed on a hashtable - put, get, contains, and remove.
-(defun ht-put (table key value)
-  "Puts the given key into the given hashtable, associated with the given value"
-  (setf (gethash key table) value))
-
-(defun ht-get (table key)
-  "Gets the value assosiated with the given key from the given hashtable"
-  (gethash key table))
-
-(defun ht-contains (table key)
-  "Returns whether or not the given hashtable has a binding for the given key"
-  (nth-value 1 (gethash key table)))
-
-(defun ht-remove (table key)
-  "Removes the key-value pair assosiated with the given key from the given hashtable"
-  (remhash key table))
-|#
-
-
-#|
-(defun sbcl-fasl-compiler-command (dependencies)
-  (append (list *sbcl-core*)
-          (loop for i in dependencies
-                nconc (cond
-                        (...
-                         (list "--eval" (format nil "(load ~S)" fasl)))
-                        (...
-                         (list "--eval" (format nil "(asdf:oos 'asdf:load-op :~A)" system)))))
-          (list "--eval" "(sb-ext:quit)")))
-
-
-|#

@@ -32,18 +32,11 @@
   (with-open-file (out "/home/sbrody/xcvb/test/dependency-graph-output.txt" :direction :output :if-exists :supersede)
     (write-graph-to-file out (create-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") 0)))
 
-#|(defun test2 ()
-  (with-open-file (out "/home/sbrody/xcvb/test/Makefile.xcvb" :direction :output :if-exists :supersede)
-    (write-node-to-makefile out (build-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") (make-hash-table :test #'equal))))
-|#
-
 (defun test2 ()
   (write-makefile "/home/sbrody/xcvb/test/BUILD.lisp" "/home/sbrody/xcvb/test/Makefile.xcvb" :image-dump))
 
 (defun test3 ()
   (write-asd-file "/home/sbrody/xcvb/test/BUILD.lisp" "/home/sbrody/xcvb/test/ASDFILE.asd"))
-  ;(with-open-file (out "/home/sbrody/xcvb/test/ASDFILE.asd" :direction :output :if-exists :supersede)
-  ;  (write-asdf-file out (build-dependency-graph "/home/sbrody/xcvb/test/BUILD.lisp") (make-hash-table :test #'equal))))
 
 (defun test4 ()
   (format t "~%~{~a~%~}" (mapcar #'fullname (traverse (create-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp")))))
@@ -57,38 +50,17 @@
 (defun compile-quux ()
   (format T "Writing quux Makefile...")
   (write-makefile "/ita/devel/qres/lisp/quux/BUILD.lisp" "/ita/devel/qres/lisp/quux/Makefile.xcvb" :image-dump)
-  (format T "done.~%Writing quux asd file...")
+  ;(format T "done.~%Writing quux asd file...")
   ;(with-open-file (out "/home/sbrody/xcvb/test/quux/quux.asd" :direction :output :if-exists :supersede)
   ;  (write-asdf-file out (build-dependency-graph "/ita/devel/qres/lisp/quux/BUILD.lisp" :build-for-asdf T) (make-hash-table :test #'equal)))
-  (format T "done~%"))
+  ;(format T "done~%")
+  )
 
 (defun print-module (module)
   "Prints out a module object"
-  (format t "MODULE: ~%~Tname: ~s ~%~Tfullname: ~s ~%~Tlicence: ~s ~%~Tnickname: ~s ~%~Tdescription: ~s ~%~Tlong-description: ~s ~%~Tcompile-depends-on: ~s ~%~Tload-depends-on: ~s ~%~Tfilepath: ~s ~%" (name module) (fullname module) (licence module) (nickname module) (description module) (long-description module) (compile-depends-on module) (load-depends-on module) #|(build-depends-on module)|# (filepath module)))
+  (format t "MODULE: ~%~Tname: ~s ~%~Tfullname: ~s ~%~Tlicence: ~s ~%~Tnickname: ~s ~%~Tdescription: ~s ~%~Tlong-description: ~s ~%~Tcompile-depends-on: ~s ~%~Tload-depends-on: ~s ~%~Tfilepath: ~s ~%" (name module) (fullname module) (licence module) (nickname module) (description module) (long-description module) (compile-depends-on module) (load-depends-on module) (filepath module)))
 
 (defun print-modules ()
   (loop for module being the hash-values in *module-map* using (hash-key key)
         do (format t "KEY: ~a~%" key) 
            (print-module module)))
-
-;;(print-modules)
-
-
-
-
-#|(defgeneric print-graph (node tab)
-  (:documentation "Prints the dependency graph - for testing purposes only"))
-
-(defmethod print-graph ((node dependency-graph-node) tab)
-  (if (dependencies node)
-    (progn
-      (format t "~a~a::dependencies:~%" (generate-tab tab) (fullname node))
-      (format t "~a" (mapcar (lambda (x) (print-graph x (+ tab 1))) (dependencies node))))
-    (format t "~a~a~%" (generate-tab tab) (fullname node))))
-|#
-
-
-
-
-;(run-tests)
-;(compile-quux)

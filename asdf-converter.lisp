@@ -82,8 +82,6 @@
       (format out "~%~7,0T:compile-depends-on (~%~{~15,0T~(~s~)~^~%~})" (compile-depends-on module)))
     (if (load-depends-on module)
       (format out "~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~(~s~)~^~%~})" (load-depends-on module)))
-    ;(if (build-depends-on module)
-    ;  (format out "~%~7,0T:build-depends-on ~%~14,7T(~{~15,0T~(~s~)~^~%~})" (build-depends-on module)))
     (format out ")")
     (if (and (typep module 'build-module) (build-requires module))
       (format out "~%~7,0T(:set :this-module :build-requires ~(~s~))" (build-requires module)))
@@ -118,66 +116,3 @@
          (build-module (build-module-for-asdf-system asdf-system)))
     (add-module-to-file build-module (make-pathname :name "BUILD" :type "lisp" :defaults (asdf:component-pathname asdf-system)))
     (mapcar (lambda (component) (add-module-to-component component build-module)) (asdf:module-components asdf-system))))
-
-
-;(defun replace-first-form (newform filename)
-;  (with-open-file (out filename :direction output :if-exists :supersede
-
-
-#|(defun convert-asdf-system-to-xcvb (asdf-system-name)
-  (let ((asdf-system (asdf:find-system asdf-system-name)))
-    (with-open-file (out (make-pathname :name "BUILD" :type "lisp" :defaults (asdf:component-pathname asdf-system)) :direction :output :if-exists :superscede)
-      (write-module asdf-system out))))
-
-(defun write-module (asdf-system filestream)
-)|#
-  
-
-#|
-(defclass asdf-system () 
-  ((name :initarg :name :reader name :initform nil :documentation "The name of the asdf system.")
-   (author :initarg :author :reader author :initform nil :documentation "The author of the system")
-   (maintainer :initarg :maintainer :reader maintainer :initform nil :documentation "The maintainer(s) of the file")
-   (licence :initarg :licence :reader licence :initform nil :documentation "The licence being used for the file")
-   (description :initarg :description :reader description :initform nil :documentation "A short description of the file")
-   (long-description :initarg :long-description :reader long-description :initform nil :documentation "A detailed description of the file")
-   (depends-on :initarg :build-depends-on :initform nil :reader depends-on :documentation "A list of asdf systems that this system depends on")
-   (components :initarg :components :initform nil :reader components :documentation "A list of files that make up this system")))
-
-
-(defun get-asdf-system-from-file (filename)
-  "Returns the first asdf:defsystem form out of the given file.  Throws an error if there is no asdf:defsystem form"
-  (with-open-file (in filename :direction :input :if-does-not-exist :error)
-    (do ((form (read in nil) (read in nil)))
-        ((or (null form) (asdf-system-def-p form))
-           (if (null form)
-             (error "There is no asdf:defsystem form in the file")
-             form)))))
-
-(defun asdf-system-def-p (form)
-  (destructuring-bind (system-decl &rest rest) form
-    (declare (ignore rest))
-    (if (eql system-decl 'asdf:defsystem)
-      form
-      nil)))
-|#
-#|
-(defun parse-module (module)
-  "Takes a module specifier and returns a module object representing that module.  Inherits licence, author, maintainer, description, and long-description slots from the build-module, if not specifically overwritten"
-  (destructuring-bind (module-decl &key name fullname nickname origin licence author maintainer description long-description compile-depends-on load-depends-on build-depends-on) module
-    (declare (ignore module-decl))
-    (make-instance 'concrete-module
-      :name name
-      :fullname fullname
-      :nickname nickname
-      :origin origin
-      :author (or author (if *build-module* (author *build-module*)))
-      :maintainer (or maintainer (if *build-module* (maintainer *build-module*)))
-      :licence (or licence (if *build-module* (licence *build-module*)))
-      :description (or description (if *build-module* (description *build-module*)))
-      :long-description (or long-description (if *build-module* (long-description *build-module*)))
-      :compile-depends-on compile-depends-on
-      :load-depends-on load-depends-on
-      :build-depends-on build-depends-on)))
-
-|#
