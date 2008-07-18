@@ -58,7 +58,13 @@
   (save-image-form (merge-pathnames *buildpath* (target node))))
 
 (defmethod form-string-for-node ((node source-file-node))
-  (format nil "(cl:compile-file \"~a\")" (namestring (merge-pathnames (target node) *buildpath*))))
+  (format nil "#+cfasls (cl:compile-file \"~a\" :emit-cfasl T)#-cfasls (cl:compile-file \"~:*~a\")" (namestring (merge-pathnames (target node) *buildpath*))))
+
+(defmethod form-string-for-node ((node cfasl-node))
+  (format nil "#+cfasls (cl:load \"~a\")#-cfasls (progn ~{~@[~a~^ ~]~})"
+          (namestring (merge-pathnames (target node) *buildpath*)) 
+          (mapcar #'form-string-for-node (traverse node :create))))
+          ;(namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*))))
 
 (defmethod form-string-for-node ((node dependency-graph-node))
   (declare (ignore node)))
@@ -91,10 +97,16 @@
     (call-next-method)
     (format filestream "~%")))
 
-(defmethod write-node-to-makefile :after(filestream (node lisp-node))
+(defmethod write-node-to-makefile :around (filestream (node cfasl-node))
+  (unless (nth-value 1 (gethash (fullname node) *written-nodes*));If this node has already been written to the makefile, don't write it again.
+    (setf (gethash (fullname node) *written-nodes*) nil);Add this node to the map of nodes already written to the makefile
+    (call-next-method)
+    (format filestream "~%")))
+
+(defmethod write-node-to-makefile :after (filestream (node lisp-node))
   (format filestream ".PHONY: ~a~%~%" (target node)))
 
-(defmethod write-node-to-makefile :after(filestream (node image-dump-node))
+(defmethod write-node-to-makefile :after (filestream (node image-dump-node))
   (format filestream "~%"))
 
 (defmethod write-node-to-makefile (filestream (node asdf-system-node))
@@ -114,7 +126,8 @@
   (when (build-requires *build-module*)
     (let* ((cwbrlpath (escape-string (namestring (make-pathname :name "core-with-build-requires" :type "core-xcvb" :defaults output-path))))
            (core-with-build-requires-graph 
-            (create-image-dump-node (create-lisp-node (build-requires *build-module*)) cwbrlpath))
+            (create-image-dump-node (create-lisp-node (pushnew (list :asdf "xcvb") (build-requires *build-module*)))
+                                    cwbrlpath))
            (core-deps (traverse core-with-build-requires-graph :create)))
       (format filestream "CWBRL = ~a~%~%" cwbrlpath)
       (format filestream "CWBRLRUN = ~a~%~%" (eval-command-string *lisp-implementation* :cwbrl-as-core T))
@@ -141,4 +154,4 @@
       (let ((*written-nodes* (make-hash-table :test #'equal)))
         (setf *build-requires-p* nil)
         (makefile-setup output-path out)
-        (dolist (node (traverse dependency-graph :load)) (write-node-to-makefile out node))))))
+        (dolist (node (traverse dependency-graph :all)) (write-node-to-makefile out node))))))

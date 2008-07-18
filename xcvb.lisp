@@ -10,8 +10,6 @@
   "Dependency-graph-node object for the nearest surrounding BUILD.lisp file")
 (defparameter *buildpath* nil
   "Filesystem path for the nearest surrounding BUILD.lisp file")
-(defparameter *extension-functions-map* (make-hash-table)
-  "Map of keywords that may appear in the extension-forms part of a module declaration to functions")
 
 (defmacro module (&rest options)
   (declare (ignore options))
@@ -29,8 +27,8 @@
    (licence :initarg :licence :reader licence :initform nil :documentation "The licence being used for the file")
    (description :initarg :description :reader description :initform nil :documentation "A short description of the file")
    (long-description :initarg :long-description :reader long-description :initform nil :documentation "A detailed description of the file")
-   (compile-depends-on :initarg :compile-depends-on :initform nil :reader compile-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled")
-   (load-depends-on :initarg :load-depends-on :initform nil :reader load-depends-on :documentation "A list of dependencies that must be loaded before this file can be loaded")
+   (compile-depends-on :initarg :compile-depends-on :initform nil :accessor compile-depends-on :documentation "A list of dependencies that must be loaded before this file can be compiled")
+   (load-depends-on :initarg :load-depends-on :initform nil :accessor load-depends-on :documentation "A list of dependencies that must be loaded before this file can be loaded")
    (filepath :initarg :filepath :accessor filepath :documentation "The absolute path to the file that the module was declared in")
    (filename :initarg :filename :accessor filename :documentation "The filename of the file that the module was declared in")
    (extension-forms :initarg :extension-forms :initform nil :accessor extension-forms :documentation "extension forms!")))
@@ -39,24 +37,13 @@
   ((build-requires :initarg :build-requires :accessor build-requires :initform nil :documentation "A list of dependencies that apply to all files in the system specified by this BUILD.lisp file.  These dependencies will be loaded first thing into an image that will be used for all future compile/load operations")))
 
 
-(defmacro defextension (name keyword args &body body)
-  `(setf (gethash ,keyword *extension-functions-map*)
-         (defun ,name (,@args) ,@body)))
-
-(defun handle-extension-forms (module extension-forms)
-  "This handles the extension forms from the module declaration.  These forms can do things such as (but not limited to) change slots in the module, specify system-wide dependencies, or extend xcvb itself."
-  (dolist (form extension-forms)
-    (destructuring-bind (operation &rest args) form
-      (apply 
-       (gethash operation *extension-functions-map*) 
-       (mapcar (lambda (arg) (if (eql arg :this-module) module arg)) args)))))
-
 
 (defun add-to-module-map (module)
   "Adds the given module object to the hashtable containing all the modules thus far"
   (unless (null (nickname module))
     (setf (gethash (nickname module) *module-map*) module))
   (setf (gethash (make-fullname-absolute module) *module-map*) module))
+
 
 
 (defun get-module-form-from-file (filename)
@@ -163,11 +150,12 @@
 
 (defclass fasl-node (dependency-graph-node-with-dependencies) ())
 
+(defclass cfasl-node (dependency-graph-node-with-dependencies) ())
+
 (defclass image-dump-node (dependency-graph-node) 
   ((lisp-image :initarg :lisp-image :initform nil :reader lisp-image)))
 
 (defclass asdf-system-node (dependency-graph-node) ())
-
 
 (defgeneric add-dependency (node dependency &key type)
   (:documentation "Adds a dependency to a node in the dependency graph."))
@@ -178,10 +166,9 @@
     (:compile (pushnew dependency (compile-dependencies node)))
     (otherwise (error "Invalid type of dependency.  Must be either :compile or :load"))))
 
-(defgeneric add-dependencies (node dependency-list &key type)
-  (:documentation "Adds a list of dependencies to a node in the dependency graph."))
 
-(defmethod add-dependencies ((node dependency-graph-node-with-dependencies) (dependency-list list) &key type)
+(defun add-dependencies (node dependency-list &key type)
+  "Adds a list of dependencies to a node in the dependency graph."
   (dolist (dep dependency-list)
     (add-dependency node dep :type type)))
 
@@ -194,8 +181,8 @@
     (add-dependencies lisp-node 
                       (mapcar (lambda (dep) 
                                 (typecase dep 
-                                  (module (create-fasl-node dep previous-nodes-map previous-nodes-list))
                                   (dependency-graph-node dep)
+                                  (module (create-fasl-node dep previous-nodes-map previous-nodes-list))
                                   (otherwise (create-dependency-node dep previous-nodes-map previous-nodes-list))))
                               dependencies)
                       :type :compile)
@@ -232,8 +219,11 @@
 (defun create-dependency-node (dependency previous-nodes-map previous-nodes-list)
   "Takes the name of a dependency, and builds either a fasl-node or an asdf-system-node"
   (if (typep dependency 'list)
-    (destructuring-bind (&key asdf) dependency (create-asdf-system-node asdf))
-    (create-fasl-node (get-module dependency) previous-nodes-map previous-nodes-list)))  
+    (destructuring-bind (dep-type dep) dependency 
+      (case dep-type
+        (:asdf (create-asdf-system-node dep))
+        (:compile (create-cfasl-node (get-module dep) previous-nodes-map previous-nodes-list))))
+    (create-fasl-node (get-module dependency) previous-nodes-map previous-nodes-list)))
 
 (defun call-while-catching-dependency-cycle (fullname previous-nodes-map previous-nodes-list thunk)
   "This macro wraps a body of code with code to detect and handle a dependency cycle"
@@ -241,6 +231,11 @@
     (error 'dependency-cycle
            :format-control "Dependency cycle found: ~s"
            :format-arguments (list (cons fullname previous-nodes-list))))
+  (when (and (string-equal (pathname-type fullname) "fasl")
+             (nth-value 1 (gethash (make-pathname :type "cfasl" :defaults fullname) previous-nodes-map)))
+    (error 'dependency-cycle
+            :format-control "Dependency cycle found, compiling a file cannot depend on loading it. ~s"
+            :format-arguments (list (cons fullname previous-nodes-list))))
   (setf (gethash fullname previous-nodes-map) nil) ;Add node to map of previous nodes to detect dependency cycles
   (prog1
       (funcall thunk (cons fullname previous-nodes-list)) ;Add node to list of previous nodes so that if dependency cycle is found, the cycle can be printed
@@ -250,9 +245,10 @@
   "This macro wraps a body of code with code to detect and handle a dependency cycle"
   `(call-while-catching-dependency-cycle ,fullname ,previous-nodes-map ,previous-nodes-list
                                          (lambda (,previous-nodes-list) ,@body)))
-  
+
+
 (defun set-fasl-node-dependencies (fasl-node module previous-nodes-map previous-nodes-list)
-  "This function takes a fasl-node and its module and builds nodes for all of that module's dependencies, and adds them as dependencies of the fasl-node"
+   "This function takes a fasl-node and its module and builds nodes for all of that module's dependencies, and adds them as dependencies of the fasl-node"
   (add-dependencies fasl-node (mapcar 
                                (lambda (name) (create-dependency-node 
                                                name 
@@ -267,10 +263,20 @@
                                (compile-depends-on module)) :type :compile)
   (add-dependency fasl-node (create-source-file-node module) :type :compile));Add dependency on the lisp source file
 
+(defun set-cfasl-node-dependencies (cfasl-node module previous-nodes-map previous-nodes-list)
+   "This function takes a cfasl-node and its module and builds nodes for all of that module's dependencies, and adds them as dependencies of the cfasl-node"
+  (add-dependencies cfasl-node (mapcar 
+                               (lambda (name) (create-dependency-node 
+                                               name 
+                                               previous-nodes-map 
+                                               previous-nodes-list)) 
+                               (compile-depends-on module)) :type :compile)
+  (add-dependency cfasl-node (create-source-file-node module) :type :compile));Add dependency on the lisp source file
+
 (defun create-fasl-node (module previous-nodes-map previous-nodes-list)
-  "This function constructs a fasl-node in the dependency graph.  It also builds fasl-nodes for any of its dependencies."
+  "This function constructs a fasl-node in the dependency graph.  It also builds dependency-graph-nodes for any of its dependencies."
   (let ((fullname (namestring (make-pathname :type "fasl" :defaults (pathname (fullname module))))))
-    (format T "building fasl file node with name: ~a.~%" fullname)
+    ;(format T "building fasl file node with name: ~a.~%" fullname)
     (with-catching-dependency-cycle (fullname previous-nodes-map previous-nodes-list)
       (let ((existing-node (gethash fullname *node-map*)))
         (or existing-node ;If this node already exists, don't re-create it.
@@ -283,6 +289,24 @@
                                 :target target)))
               (set-fasl-node-dependencies fasl-node module previous-nodes-map previous-nodes-list)
               (setf (gethash fullname *node-map*) fasl-node)))))));Add this node to *node-map*
+
+
+(defun create-cfasl-node (module previous-nodes-map previous-nodes-list)
+  "This function constructs a cfasl-node in the dependency graph.  It also builds dependency-graph-nodes for any of its dependencies."
+  (let ((fullname (namestring (make-pathname :type "cfasl" :defaults (pathname (fullname module))))))
+    ;(format T "building cfasl file node with name: ~a.~%" fullname)
+    (with-catching-dependency-cycle (fullname previous-nodes-map previous-nodes-list)
+      (let ((existing-node (gethash fullname *node-map*)))
+        (or existing-node ;If this node already exists, don't re-create it.
+            (let* ((target (enough-namestring 
+                            (make-pathname :type "cfasl" :defaults (filepath module)) 
+                            *buildpath*))
+                   (cfasl-node (make-instance 'cfasl-node
+                                :name (namestring (make-pathname :type nil :defaults target)) 
+                                :fullname fullname 
+                                :target target)))
+              (set-cfasl-node-dependencies cfasl-node module previous-nodes-map previous-nodes-list)
+              (setf (gethash fullname *node-map*) cfasl-node)))))));Add this node to *node-map*
 
 
 
@@ -327,13 +351,50 @@
 (defmethod traverse-internal ((node fasl-node) (operation (eql :load)) visited-nodes-map)
   (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
     (setf (gethash (fullname node) visited-nodes-map) T)
-    (cons node (reduce (lambda (dep rest) (nconc (traverse-internal dep :load visited-nodes-map) rest)) (load-dependencies node) :from-end T :initial-value nil))))
+    (cons node (reduce (lambda (dep rest) 
+                         (nconc (traverse-internal dep :load visited-nodes-map) rest)) 
+                       (load-dependencies node) 
+                       :from-end T 
+                       :initial-value nil))))
 
 (defmethod traverse-internal ((node fasl-node) (operation (eql :create)) visited-nodes-map)
   (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
     (setf (gethash (fullname node) visited-nodes-map) T)
-    (reduce (lambda (dep rest) (nconc (traverse-internal dep :load visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil)))
+    (reduce (lambda (dep rest) 
+              (nconc (traverse-internal dep :load visited-nodes-map) rest)) 
+            (compile-dependencies node) 
+            :from-end T 
+            :initial-value nil)))
 
+(defmethod traverse-internal ((node cfasl-node) (operation (eql :create)) visited-nodes-map)
+  (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
+    (setf (gethash (fullname node) visited-nodes-map) T)
+    (reduce (lambda (dep rest) 
+              (nconc (traverse-internal dep :load visited-nodes-map) rest)) 
+            (compile-dependencies node) 
+            :from-end T 
+            :initial-value nil)))
+
+(defmethod traverse-internal ((node cfasl-node) (operation (eql :load)) visited-nodes-map)
+  (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
+    (setf (gethash (fullname node) visited-nodes-map) T)
+    (list node)))
+
+
+(defmethod traverse-internal ((node dependency-graph-node-with-dependencies) (operation (eql :all)) visited-nodes-map)
+  (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
+    (setf (gethash (fullname node) visited-nodes-map) T)
+    (cons node (reduce (lambda (dep rest) 
+                         (nconc (traverse-internal dep :all visited-nodes-map) rest)) 
+                       (append (load-dependencies node) (compile-dependencies node))
+                       :from-end T 
+                       :initial-value nil))))
+
+(defmethod traverse-internal ((node image-dump-node) (operation (eql :all)) visited-nodes-map)
+  (cons node (traverse-internal (lisp-image node) :all visited-nodes-map)))
+
+(defmethod traverse-internal ((node source-file-node) (operation (eql :all)) visited-nodes-map)
+  nil)
 
 (defun traverse (node operation)
   "Wrapper around traverse-internal generic function"

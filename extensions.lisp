@@ -1,5 +1,24 @@
 (in-package :xcvb)
 
+(defparameter *extension-functions-map* (make-hash-table)
+  "Map of keywords that may appear in the extension-forms part of a module declaration to functions")
+
+
+(defmacro defextension (name keyword args &body body)
+  `(setf (gethash ,keyword *extension-functions-map*)
+         (defun ,name (,@args) ,@body)))
+
+(defun handle-extension-forms (module extension-forms)
+  "This handles the extension forms from the module declaration.  These forms can do things such as (but not limited to) change slots in the module, specify system-wide dependencies, or extend xcvb itself."
+  (dolist (form extension-forms)
+    (destructuring-bind (operation &rest args) form
+      (format T "getting function with keyword ~s..." operation)
+      (apply 
+       (gethash operation *extension-functions-map*)
+       (mapcar (lambda (arg) (if (eql arg :this-module) module arg)) args))
+      (format T "done"))))
+
+
 (defextension add-dependencies-to-module :add (module dep-type deps)
   "Extension form that can be put in a module declaration to add additional dependencies to that module"
   (with-slots (compile-depends-on load-depends-on) module

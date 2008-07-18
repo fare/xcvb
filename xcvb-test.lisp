@@ -39,12 +39,12 @@
   (write-asd-file "/home/sbrody/xcvb/test/BUILD.lisp" "/home/sbrody/xcvb/test/ASDFILE.asd"))
 
 (defun test4 ()
-  (format t "~%~{~a~%~}" (mapcar #'fullname (traverse (create-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp")))))
+  (format t "~%~{~a~%~}" (mapcar #'fullname (traverse (create-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") :all))))
 
 (defun run-tests ()
-  (test1)
+  ;(test1)
   (test2)
-  (test3)
+  ;(test3)
   (print-modules))
 
 (defun compile-quux ()
