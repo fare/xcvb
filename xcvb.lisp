@@ -87,7 +87,12 @@
     (setf (filename module) (file-namestring module-path))
     (if (and parent-module-supplied-p (not (fullname module)))
       (setf (fullname module) 
-            (strcat (fullname parent-module) "/" (enough-namestring (filepath module) (filepath parent-module)))))
+            (namestring (merge-pathnames (enough-namestring (filepath module) (filepath parent-module)) 
+                                         (fullname parent-module))))
+            ;(strcat (fullname parent-module) "/" (enough-namestring (filepath module) (filepath parent-module))))
+      (setf (fullname module)
+            ;(namestring (make-pathname :name (pathname-name (filepath module)) :type (pathname-type (filepath module)) :defaults (fullname module)))))
+            (strcat (fullname module) "/" (file-namestring (filepath module)))))
     (add-to-module-map module)))
 
       
@@ -148,9 +153,11 @@
 
 (defclass source-file-node (dependency-graph-node) ())
 
-(defclass fasl-node (dependency-graph-node-with-dependencies) ())
+(defclass fasl-or-cfasl-node (dependency-graph-node-with-dependencies) ())
 
-(defclass cfasl-node (dependency-graph-node-with-dependencies) ())
+(defclass fasl-node (fasl-or-cfasl-node) ())
+
+(defclass cfasl-node (fasl-or-cfasl-node) ())
 
 (defclass image-dump-node (dependency-graph-node) 
   ((lisp-image :initarg :lisp-image :initform nil :reader lisp-image)))
@@ -265,13 +272,15 @@
 
 (defun set-cfasl-node-dependencies (cfasl-node module previous-nodes-map previous-nodes-list)
    "This function takes a cfasl-node and its module and builds nodes for all of that module's dependencies, and adds them as dependencies of the cfasl-node"
-  (add-dependencies cfasl-node (mapcar 
-                               (lambda (name) (create-dependency-node 
-                                               name 
-                                               previous-nodes-map 
-                                               previous-nodes-list)) 
-                               (compile-depends-on module)) :type :compile)
-  (add-dependency cfasl-node (create-source-file-node module) :type :compile));Add dependency on the lisp source file
+  (let ((dependencies (mapcar 
+                       (lambda (name) (create-dependency-node 
+                                       name 
+                                       previous-nodes-map 
+                                       previous-nodes-list)) 
+                       (compile-depends-on module))))
+  (add-dependencies cfasl-node dependencies :type :compile)
+  (add-dependencies cfasl-node dependencies :type :load)
+  (add-dependency cfasl-node (create-source-file-node module) :type :compile)));Add dependency on the lisp source file
 
 (defun create-fasl-node (module previous-nodes-map previous-nodes-list)
   "This function constructs a fasl-node in the dependency graph.  It also builds dependency-graph-nodes for any of its dependencies."
@@ -321,82 +330,3 @@
   (setf *build-module* nil)
   (setf *buildpath* (make-pathname :name nil :type nil :defaults (find-build-file (pathname sourcepath))))
   (create-lisp-node (list (resolve-module (pathname sourcepath) :parent-module *build-module*))))
-
-
-;;TODO: this code is really ugly.  Clean it up!
-(defgeneric traverse-internal (node operation visited-nodes-map)
-  (:documentation "Takes a node and returns a list of all nodes in order that must be processed in order to create the target of the node. For fasl-nodes, the operation argument specifies whether to return a list of what is needed to create the fasl (by compiling the source file) or what is needed to load the fasl if it already exists.  For other kinds of nodes, the operation argument mearly changes whether or not the node the method is being called on is included in the resulting list."))
-
-
-(defmethod traverse-internal ((node lisp-node) (operation (eql :create)) visited-nodes-map)
-  (reduce (lambda (dep rest) (nconc (traverse-internal dep :load visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil))
-
-(defmethod traverse-internal ((node lisp-node) (operation (eql :load)) visited-nodes-map)
-  (cons node (reduce (lambda (dep rest) (nconc (traverse-internal dep :load visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil)))
-
-(defmethod traverse-internal ((node asdf-system-node) operation visited-nodes-map)
-  (unless (nth-value 1 (gethash (fullname node) visited-nodes-map));If this node has already been put in the traversal, don't include it again.
-    (setf (gethash (fullname node) visited-nodes-map) T);Add the node to the map of nodes that have already been traversed
-    (list node)))
-
-(defmethod traverse-internal ((node image-dump-node) (operation (eql :create)) visited-nodes-map)
-  (traverse-internal (lisp-image node) :create visited-nodes-map))
-
-(defmethod traverse-internal ((node image-dump-node) (operation (eql :load)) visited-nodes-map)
-  (cons node (traverse-internal (lisp-image node) :load visited-nodes-map)))
-
-(defmethod traverse-internal ((node source-file-node) operation visited-nodes-map)
-  (list node))
-
-(defmethod traverse-internal ((node fasl-node) (operation (eql :load)) visited-nodes-map)
-  (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
-    (setf (gethash (fullname node) visited-nodes-map) T)
-    (cons node (reduce (lambda (dep rest) 
-                         (nconc (traverse-internal dep :load visited-nodes-map) rest)) 
-                       (load-dependencies node) 
-                       :from-end T 
-                       :initial-value nil))))
-
-(defmethod traverse-internal ((node fasl-node) (operation (eql :create)) visited-nodes-map)
-  (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
-    (setf (gethash (fullname node) visited-nodes-map) T)
-    (reduce (lambda (dep rest) 
-              (nconc (traverse-internal dep :load visited-nodes-map) rest)) 
-            (compile-dependencies node) 
-            :from-end T 
-            :initial-value nil)))
-
-(defmethod traverse-internal ((node cfasl-node) (operation (eql :create)) visited-nodes-map)
-  (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
-    (setf (gethash (fullname node) visited-nodes-map) T)
-    (reduce (lambda (dep rest) 
-              (nconc (traverse-internal dep :load visited-nodes-map) rest)) 
-            (compile-dependencies node) 
-            :from-end T 
-            :initial-value nil)))
-
-(defmethod traverse-internal ((node cfasl-node) (operation (eql :load)) visited-nodes-map)
-  (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
-    (setf (gethash (fullname node) visited-nodes-map) T)
-    (list node)))
-
-
-(defmethod traverse-internal ((node dependency-graph-node-with-dependencies) (operation (eql :all)) visited-nodes-map)
-  (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
-    (setf (gethash (fullname node) visited-nodes-map) T)
-    (cons node (reduce (lambda (dep rest) 
-                         (nconc (traverse-internal dep :all visited-nodes-map) rest)) 
-                       (append (load-dependencies node) (compile-dependencies node))
-                       :from-end T 
-                       :initial-value nil))))
-
-(defmethod traverse-internal ((node image-dump-node) (operation (eql :all)) visited-nodes-map)
-  (cons node (traverse-internal (lisp-image node) :all visited-nodes-map)))
-
-(defmethod traverse-internal ((node source-file-node) (operation (eql :all)) visited-nodes-map)
-  nil)
-
-(defun traverse (node operation)
-  "Wrapper around traverse-internal generic function"
-  (reverse (traverse-internal node operation (make-hash-table :test 'equal))))
-  

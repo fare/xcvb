@@ -42,9 +42,9 @@
   (format t "~%~{~a~%~}" (mapcar #'fullname (traverse (create-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") :all))))
 
 (defun run-tests ()
-  ;(test1)
+  (test1)
   (test2)
-  ;(test3)
+  (test3)
   (print-modules))
 
 (defun compile-quux ()

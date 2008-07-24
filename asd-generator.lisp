@@ -36,7 +36,9 @@
 
 (defun write-asdf-system-header (filestream dependency-graph &optional (build-module *build-module*))
   "Writes the information from the build module to the asdf file"
-  (format filestream "(asdf:defsystem :~a~%" (subseq (fullname build-module) 1))
+  (let* ((system-name (namestring (make-pathname :name nil :type nil :defaults (fullname build-module))))
+         (system-name (subseq system-name 1 (- (length system-name) 1))))
+    (format filestream "(asdf:defsystem :~a~%" system-name))
   (if (author build-module)
     (format filestream "~2,0T:author ~s~%" (author build-module)))
   (if (maintainer build-module)
@@ -66,10 +68,11 @@
   (dolist (dependency (nconc (compile-dependencies node) (load-dependencies node))) 
     (write-node-to-asd-file filestream dependency)))
 
-(defmethod write-node-to-asd-file (filestream (node fasl-node))
+(defmethod write-node-to-asd-file (filestream (node fasl-or-cfasl-node))
   (let ((written-nodes (if *writing-build-requires-module* *build-requires-written-nodes* *main-files-written-nodes*)))
-    (unless (nth-value 1 (gethash (fullname node) written-nodes));If this node has already been written to the asd file, don't write it again.
-      (setf (gethash (fullname node) written-nodes) nil);Add this node to the map of nodes already written to the asd file
+    (unless (or (nth-value 1 (gethash (namestring (make-pathname :type "fasl" :defaults (fullname node))) written-nodes))
+                (nth-value 1 (gethash (namestring (make-pathname :type "cfasl" :defaults (fullname node))) written-nodes)));If this node has already been written to the makefile, don't write it again.
+      (setf (gethash (fullname node) written-nodes) nil);Add this node to the map of nodes already written to the makefile
       (let ((dependencies (if *writing-build-requires-module*
                             (nunion (rest (compile-dependencies node)) (load-dependencies node))
                             (remove-if 
@@ -80,7 +83,7 @@
             (write-node-to-asd-file filestream dep)))
         (format filestream "~13,0T(:file ~s~@[ :depends-on ~s~])~%"
                 (name node)
-                (mapcar #'name (remove-if-not (lambda (dep) (typep dep 'fasl-node)) dependencies)))))))
+                (mapcar #'name (remove-if-not (lambda (dep) (typep dep 'fasl-or-cfasl-node)) dependencies)))))))
 
 
 (defmethod write-node-to-asd-file (filestream (node dependency-graph-node))
@@ -101,4 +104,6 @@
       (let ((*writing-build-requires-module* nil))
         (format out "~12,0T))~%~3,0T(:module \"main-files\"~%~12,0T:depends-on(\"build-requires-files\")~%~12,0T:components~%~12,0T(")
         (write-node-to-asd-file out dependency-graph))
-      (format out "~12,0T)))~%~%(cl:pushnew :~a *features*)" (subseq (fullname *build-module*) 1)))))
+      (let* ((system-name (namestring (make-pathname :name nil :type nil :defaults (fullname *build-module*))))
+         (system-name (subseq system-name 1 (- (length system-name) 1))))
+        (format out "~12,0T)))~%~%(cl:pushnew :~a *features*)" system-name)))))

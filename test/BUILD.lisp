@@ -8,7 +8,7 @@
    ;:load-depends-on ((:asdf "foo"))
    )
 
-   (:set :this-module :build-requires ((:asdf "foo")))
+   (:set :this-module :build-requires ((:asdf "foo") "pkgdcl"))
 
    (:add :this-module :compile-depends-on ("start" "macros"))
    ;(:set :this-module :load-depends-on ("start" "macros"))

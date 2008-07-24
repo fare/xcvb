@@ -5,29 +5,29 @@
   "Returns a string representation of a module object that can be put at the top of a source file"
   (with-output-to-string (out)
     (format out "(xcvb:module (")
-    (if (fullname module)
-      (format out "~%~7,0T:fullname ~s" (fullname module)))
-    (if (author module)
-      (format out "~%~7,0T:author ~s" (author module)))
-    (if (maintainer module)
-      (format out "~%~7,0T:maintainer ~s" (maintainer module)))
-    (if (version module)
-      (format out "~%~7,0T:version ~s" (version module)))
-    (if (description module)
-      (format out "~%~7,0T:description ~s" (description module)))
-    (if (long-description module)
-      (format out "~%~7,0T:long-description ~s" (long-description module)))
-    (if (licence module)
-      (format out "~%~7,0T:licence ~s" (licence module)))
-    (if (compile-depends-on module)
-      (format out "~%~7,0T:compile-depends-on (~%~{~15,0T~(~s~)~^~%~})" (compile-depends-on module)))
-    (if (load-depends-on module)
-      (format out "~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~(~s~)~^~%~})" (load-depends-on module)))
+    ;(if (fullname module)
+      (format out "~@[~%~7,0T:fullname ~s~]" (fullname module));)
+    ;(if (author module)
+      (format out "~@[~%~7,0T:author ~s~]" (author module));)
+    ;(if (maintainer module)
+      (format out "~@[~%~7,0T:maintainer ~s~]" (maintainer module));)
+    ;(if (version module)
+      (format out "~@[~%~7,0T:version ~s~]" (version module));)
+    ;(if (description module)
+      (format out "~@[~%~7,0T:description ~s~]" (description module));)
+    ;(if (long-description module)
+      (format out "~@[~%~7,0T:long-description ~s~]" (long-description module));)
+    ;(if (licence module)
+      (format out "~@[~%~7,0T:licence ~s~]" (licence module));)
+    ;(if (compile-depends-on module)
+      (format out "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~(~s~)~^~%~})~]" (compile-depends-on module));)
+    ;(if (load-depends-on module)
+      (format out "~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~(~s~)~^~%~})~]" (load-depends-on module));)
     (format out ")")
-    (if (and (typep module 'build-module) (build-requires module))
-      (format out "~%~7,0T(:set :this-module :build-requires ~(~s~))" (build-requires module)))
-    (if (extension-forms module)
-      (format out "~%~{~7,0T~(~s~)~^~%~}" (extension-forms module)))
+    (if (typep module 'build-module); (build-requires module))
+      (format out "~@[~%~7,0T(:set :this-module :build-requires ~(~s~))~]" (build-requires module)))
+    ;(if (extension-forms module)
+      (format out "~@[~%~{~7,0T~(~s~)~^~%~}~]" (extension-forms module))
     (format out ")")))
 
 
@@ -99,7 +99,7 @@
       :long-description long-description 
       :licence licence
       :build-requires (mapcar (lambda (dep) (list :asdf (symbol-name dep))) asdf-deps)
-      :compile-depends-on file-deps
+      :compile-depends-on (mapcar (lambda (dep) (list :compile dep)) file-deps)
       :load-depends-on file-deps
       :filepath (make-pathname :name "BUILD" :type "lisp" :defaults (asdf:component-pathname asdf-system)))))
 
@@ -116,7 +116,7 @@
       :name (asdf:component-name asdf-component)
       :fullname fullname
       :filepath filepath
-      :compile-depends-on dependencies
+      :compile-depends-on (mapcar (lambda (dep) (list :compile dep)) dependencies)
       :load-depends-on dependencies)))
     
 

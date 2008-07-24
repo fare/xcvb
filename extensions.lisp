@@ -12,11 +12,11 @@
   "This handles the extension forms from the module declaration.  These forms can do things such as (but not limited to) change slots in the module, specify system-wide dependencies, or extend xcvb itself."
   (dolist (form extension-forms)
     (destructuring-bind (operation &rest args) form
-      (format T "getting function with keyword ~s..." operation)
+      ;(format T "getting function with keyword ~s..." operation)
       (apply 
        (gethash operation *extension-functions-map*)
-       (mapcar (lambda (arg) (if (eql arg :this-module) module arg)) args))
-      (format T "done"))))
+       (mapcar (lambda (arg) (if (eql arg :this-module) module arg)) args)))))
+      ;(format T "done~%"))))
 
 
 (defextension add-dependencies-to-module :add (module dep-type deps)
