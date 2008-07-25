@@ -57,13 +57,19 @@
 
 (defun get-dependencies-from-component (asdf-component)
   "Parses information out of the in-order-to slot in the given asdf component, and returns a list of the actual files or systems that the component depends on"
-  (if (slot-boundp asdf-component 'asdf::in-order-to)
+  (let ((component-depends-on (asdf:component-depends-on 'asdf:compile-op asdf-component)))
+    (unless (null component-depends-on)
+      (destructuring-bind ((compile-op &rest deps)) component-depends-on
+        (declare (ignore compile-op))
+        deps))))
+
+  #|(if (slot-boundp asdf-component 'asdf::in-order-to)
     (let ((in-order-to (slot-value asdf-component 'asdf::in-order-to)))
       (if in-order-to
         (destructuring-bind ((load-op1 (load-op2 &rest deps)) &rest rest)
             in-order-to
           (declare (ignore load-op1 load-op2 rest))
-          deps)))))
+          deps)))))|#
         ;(remove-duplicates deps :test #'equal))))))
 
 
@@ -103,10 +109,16 @@
       :load-depends-on file-deps
       :filepath (make-pathname :name "BUILD" :type "lisp" :defaults (asdf:component-pathname asdf-system)))))
 
-    
-(defun get-module-for-component (asdf-component build-module)
+(defun dependency-sort (components system)
+  (stable-sort components 
+               (lambda (comp1 comp2) 
+                 (member comp1 
+                         (rest (first (asdf:component-depends-on 'asdf:compile-op (asdf:find-component system comp2))))
+                         :test #'string-equal))))
+                      
+(defun get-module-for-component (asdf-component build-module asdf-system)
   "Adds a module declaration to the top of the file represented by the given asdf-component, with the information taken from the asdf-component"
-  (let* ((dependencies (get-dependencies-from-component asdf-component))
+  (let* ((dependencies (dependency-sort (reverse (get-dependencies-from-component asdf-component)) asdf-system))
          (filepath (asdf:component-pathname asdf-component))
          (fullname (strcat 
                     (fullname build-module) 
@@ -126,5 +138,5 @@
          (build-module (get-build-module-for-asdf-system asdf-system)))
     (add-module-to-file build-module)
     (dolist (component (asdf:module-components asdf-system))
-      (let ((module (get-module-for-component component build-module)))
+      (let ((module (get-module-for-component component build-module asdf-system)))
         (add-module-to-file module)))))
