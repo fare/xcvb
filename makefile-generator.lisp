@@ -67,15 +67,15 @@
           (mapcar #'form-string-for-node (traverse node :create))))
           ;(namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*))))|#
 
-#|(defmethod form-string-for-node ((node cfasl-node))
+(defmethod form-string-for-node ((node cfasl-node))
   (format nil "#+cfasls (cl:load \"~a\")#-cfasls (cl:compile-file \"~a\")"
           (namestring (merge-pathnames (target node) *buildpath*)) 
-          (namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*))))|#
+          (namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*))))
 
-(defmethod form-string-for-node ((node cfasl-node))
+#|(defmethod form-string-for-node ((node cfasl-node))
   (format nil "(cl:load \"~a\")"
           (namestring (merge-pathnames (target node) *buildpath*))))
-          ;(namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*))))
+          ;(namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*))))|#
 
 (defmethod form-string-for-node ((node dependency-graph-node))
   (declare (ignore node)))
@@ -96,10 +96,10 @@
     (format nil "${~:[LISPRUN~;CWBRLRUN~]} \"~a\"" 
             *build-requires-p* 
             (escape-string
-             #|(format nil "(progn ~{~@[~a~^ ~]~} ~a)"
-                     (mapcar #'form-string-for-node (traverse node operation)) 
-                     (quit-form))))|#
-             (if (some (lambda (x) (typep x 'cfasl-node)) traversal)
+             (format nil "(progn ~{~@[~a~^ ~]~} ~a)"
+                     (mapcar #'form-string-for-node traversal) 
+                     (quit-form))))))
+             #|(if (some (lambda (x) (typep x 'cfasl-node)) traversal)
                (format nil "#+cfasls (progn ~{~@[~a~^ ~]~} ~a) #-cfasls (progn ~{~@[~a~^ ~]~} ~a)" 
                        (mapcar #'form-string-for-node traversal) 
                        (quit-form)
@@ -107,7 +107,7 @@
                        (quit-form))
                (format nil "(progn ~{~@[~a~^ ~]~} ~a)"
                        (mapcar #'form-string-for-node traversal) 
-                       (quit-form)))))))
+                       (quit-form)))))))|#
 
 
 

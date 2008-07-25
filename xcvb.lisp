@@ -279,7 +279,7 @@
                                        previous-nodes-list)) 
                        (compile-depends-on module))))
   (add-dependencies cfasl-node dependencies :type :compile)
-  ;(add-dependencies cfasl-node dependencies :type :load)
+  (add-dependencies cfasl-node dependencies :type :load)
   (add-dependency cfasl-node (create-source-file-node module) :type :compile)));Add dependency on the lisp source file
 
 (defun create-fasl-node (module previous-nodes-map previous-nodes-list)
