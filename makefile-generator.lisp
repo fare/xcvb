@@ -88,15 +88,6 @@
 
 (defun makefile-line-for-node (node operation)
   "Returns the string of the line in the Makefile that can create the target of the given node"
-#|  (let ((traversal (traverse node operation))
-        (cfasl-deps nil))
-    (while 
-    (dolist (dep traversal)
-      (if (typep dep 'cfasl-node)
-        (dolist (cfasl-dep (traverse dep :create))
-          (pushnew cfasl-dep cfasl-deps))))
-    (dolist (cfasl-dep cfasl-deps)
-      (setf traversal (remove cfasl-dep traversal :from-end T)))|#
   (let* ((traversal (traverse node operation)))
     (format nil "${~:[LISPRUN~;CWBRLRUN~]} \"~a\"" 
             *build-requires-p* 
@@ -104,26 +95,10 @@
              (format nil "(progn ~{~@[~a~^ ~]~} ~a)"
                      (mapcar #'form-string-for-node traversal) 
                      (quit-form))))))
-             #|(if (some (lambda (x) (typep x 'cfasl-node)) traversal)
-               (format nil "#+cfasls (progn ~{~@[~a~^ ~]~} ~a) #-cfasls (progn ~{~@[~a~^ ~]~} ~a)" 
-                       (mapcar #'form-string-for-node traversal) 
-                       (quit-form)
-                       (mapcar #'form-string-for-node (traverse node :create-with-cfasls))
-                       (quit-form))
-               (format nil "(progn ~{~@[~a~^ ~]~} ~a)"
-                       (mapcar #'form-string-for-node traversal) 
-                       (quit-form)))))))|#
-
 
 
 (defgeneric write-node-to-makefile (filestream node)
   (:documentation "Writes a makefile target to the filestream for building the given node"))
-
-#|(defmethod write-node-to-makefile (filestream (node dependency-graph-node))
-  (format filestream "~a : ~{~a~^ ~}~%" 
-          (target node) 
-          (mapcar #'target (traverse node :create)))
-  (format filestream "~a~a~%" #\tab (makefile-line-for-node node :create)))|#
   
 
 (defmethod write-node-to-makefile (filestream (node fasl-or-cfasl-node))
@@ -164,12 +139,6 @@
           ;(mapcar #'target (traverse node :create)))
   (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create)))
 
-#|(defmethod write-node-to-makefile :after (filestream (node lisp-node))
-  (format filestream ".PHONY: ~a~%~%" (target node)))
-
-(defmethod write-node-to-makefile :after (filestream (node image-dump-node))
-  (format filestream "~%"))|#
-
 (defmethod write-node-to-makefile (filestream (node asdf-system-node))
   (unless (nth-value 1 (gethash (fullname node) *written-nodes*));If this node has already been written to the makefile, don't write it again.
     (setf (gethash (fullname node) *written-nodes*) nil);Add this node to the map of nodes already written to the makefile
@@ -196,7 +165,6 @@
               (mapcar (lambda (dep) (escape-string (namestring (name dep)))) 
                       (remove-if-not (lambda (dep) (typep dep 'asdf-system-node)) core-deps)))
       (dolist (node (traverse (lisp-image core-with-build-requires-graph) :create)) (write-node-to-makefile filestream node))
-      ;(format filestream ".PHONY: core-with-build-requires-loaded~%~%")
       (format filestream "core-with-build-requires.core-xcvb : $(CHECK_ASDFS) ~{~a~^ ~}~%" 
               (mapcar (lambda (dep) (escape-string (target dep))) 
                       (remove-if (lambda (dep) (typep dep 'asdf-system-node)) (traverse core-with-build-requires-graph :load))))
@@ -219,5 +187,3 @@
         (makefile-setup output-path out)
         (dolist (node all-nodes) (write-node-to-makefile out node))
         (format out "~@[~{~a~^ ~} : core-with-build-requires.core-xcvb~%~]" *targets-dependent-on-cwbrl*)))))
-        ;(if *build-requires-p*
-        ;  (format out "~{~a~^ ~} : core-with-build-requires-loaded~%" (mapcar #'target all-nodes)))))))

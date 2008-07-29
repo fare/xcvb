@@ -5,29 +5,19 @@
   "Returns a string representation of a module object that can be put at the top of a source file"
   (with-output-to-string (out)
     (format out "(xcvb:module (")
-    ;(if (fullname module)
-      (format out "~@[~%~7,0T:fullname ~s~]" (fullname module));)
-    ;(if (author module)
-      (format out "~@[~%~7,0T:author ~s~]" (author module));)
-    ;(if (maintainer module)
-      (format out "~@[~%~7,0T:maintainer ~s~]" (maintainer module));)
-    ;(if (version module)
-      (format out "~@[~%~7,0T:version ~s~]" (version module));)
-    ;(if (description module)
-      (format out "~@[~%~7,0T:description ~s~]" (description module));)
-    ;(if (long-description module)
-      (format out "~@[~%~7,0T:long-description ~s~]" (long-description module));)
-    ;(if (licence module)
-      (format out "~@[~%~7,0T:licence ~s~]" (licence module));)
-    ;(if (compile-depends-on module)
-      (format out "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~(~s~)~^~%~})~]" (compile-depends-on module));)
-    ;(if (load-depends-on module)
-      (format out "~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~(~s~)~^~%~})~]" (load-depends-on module));)
+    (format out "~@[~%~7,0T:fullname ~s~]" (fullname module));)
+    (format out "~@[~%~7,0T:author ~s~]" (author module));)
+    (format out "~@[~%~7,0T:maintainer ~s~]" (maintainer module));)
+    (format out "~@[~%~7,0T:version ~s~]" (version module));)
+    (format out "~@[~%~7,0T:description ~s~]" (description module));)
+    (format out "~@[~%~7,0T:long-description ~s~]" (long-description module));)
+    (format out "~@[~%~7,0T:licence ~s~]" (licence module));)
+    (format out "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~(~s~)~^~%~})~]" (compile-depends-on module));)
+    (format out "~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~(~s~)~^~%~})~]" (load-depends-on module));)
     (format out ")")
-    (if (typep module 'build-module); (build-requires module))
+    (if (typep module 'build-module)
       (format out "~@[~%~7,0T(:set :this-module :build-requires ~(~s~))~]" (build-requires module)))
-    ;(if (extension-forms module)
-      (format out "~@[~%~{~7,0T~(~s~)~^~%~}~]" (extension-forms module))
+    (format out "~@[~%~{~7,0T~(~s~)~^~%~}~]" (extension-forms module))
     (format out ")")))
 
 
@@ -62,15 +52,6 @@
       (destructuring-bind ((compile-op &rest deps)) component-depends-on
         (declare (ignore compile-op))
         deps))))
-
-  #|(if (slot-boundp asdf-component 'asdf::in-order-to)
-    (let ((in-order-to (slot-value asdf-component 'asdf::in-order-to)))
-      (if in-order-to
-        (destructuring-bind ((load-op1 (load-op2 &rest deps)) &rest rest)
-            in-order-to
-          (declare (ignore load-op1 load-op2 rest))
-          deps)))))|#
-        ;(remove-duplicates deps :test #'equal))))))
 
 
 (defun get-build-module-for-asdf-system (asdf-system)
