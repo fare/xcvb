@@ -6,6 +6,7 @@
 (defvar *lisp-image-pathname* nil)
 ;(defvar *lisp-image-pathname* "/usr/local/sbcl/1.0.14.36.ita.1/sbcl")
 (defvar *lisp-options* nil)
+(defvar *use-cfasls* T)
 
 
 #|

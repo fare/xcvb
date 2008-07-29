@@ -9,5 +9,4 @@
     :long-description "Tests for XCVB: an eXtensible Component Verifier and Builder for Lisp"
     :depends-on (:xcvb)
     :serial t
-    :components ((:file "xcvb-test")
-                 (:file "asdf-converter-test")))
+    :components ((:file "xcvb-test")))

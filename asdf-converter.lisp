@@ -105,7 +105,7 @@
       :long-description long-description 
       :licence licence
       :build-requires (mapcar (lambda (dep) (list :asdf (symbol-name dep))) asdf-deps)
-      :compile-depends-on (mapcar (lambda (dep) (list :compile dep)) file-deps)
+      :compile-depends-on (if *use-cfasls* (mapcar (lambda (dep) (list :compile dep)) file-deps) file-deps)
       :load-depends-on file-deps
       :filepath (make-pathname :name "BUILD" :type "lisp" :defaults (asdf:component-pathname asdf-system)))))
 
@@ -128,7 +128,7 @@
       :name (asdf:component-name asdf-component)
       :fullname fullname
       :filepath filepath
-      :compile-depends-on (mapcar (lambda (dep) (list :compile dep)) dependencies)
+      :compile-depends-on (if *use-cfasls* (mapcar (lambda (dep) (list :compile dep)) dependencies) dependencies)
       :load-depends-on dependencies)))
     
 

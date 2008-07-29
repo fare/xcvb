@@ -41,6 +41,9 @@
 (defun test4 ()
   (format t "~%~{~a~%~}" (mapcar #'fullname (traverse (create-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") :all))))
 
+(defun convert-quux ()
+  (convert-asdf-system-to-xcvb :quux))
+
 (defun run-tests ()
   (test1)
   (test2)
@@ -49,7 +52,7 @@
 
 (defun compile-quux ()
   (format T "Writing quux Makefile...")
-  (write-makefile "/ita/devel/qres/lisp/quux/BUILD.lisp" "/ita/devel/qres/lisp/quux/Makefile.xcvb" :image-dump)
+  (write-makefile "/ita2/cfasls/qres/lisp/quux/BUILD.lisp" "/ita2/cfasls/qres/lisp/quux/Makefile.xcvb" :image-dump)
   ;(format T "done.~%Writing quux asd file...")
   ;(with-open-file (out "/home/sbrody/xcvb/test/quux/quux.asd" :direction :output :if-exists :supersede)
   ;  (write-asdf-file out (build-dependency-graph "/ita/devel/qres/lisp/quux/BUILD.lisp" :build-for-asdf T) (make-hash-table :test #'equal)))
