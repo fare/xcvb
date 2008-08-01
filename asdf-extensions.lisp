@@ -17,6 +17,6 @@
   "Takes a list of names of asdf systems, and exists lisp with a status code indicating whether or not all of those systems were up-to-date or not."
   (if (every (lambda (x) x) (mapcar (lambda (system) (asdf-system-is-up-to-date-p 'asdf:load-op system)) systems))
     #+sbcl (sb-ext:quit :unix-status 0)
-    #+ccl (ccl:quit :exit-status 0)
+    #+ccl (ccl:quit 0)
     #+sbcl (sb-ext:quit :unix-status 1)
-    #+ccl (ccl:quit :exit-status 1)))
+    #+ccl (ccl:quit 1)))

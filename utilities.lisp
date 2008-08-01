@@ -1,5 +1,24 @@
 (in-package :xcvb)
 
+(defun read-first-file-form (filename)
+  "Reads the first form from the top of a file"
+  (with-open-file (in filename) (read in)))
+
+(defun strcat (&rest strings)
+  "String concatenation function"
+  (apply 'concatenate 'string strings))
+
+(defun pathname-parent (pathname)
+  "Takes a pathname and returns the pathname of the parent directory of the directory of the given pathname"
+  (cond 
+    ((null pathname) nil)
+    ((equal (pathname-directory pathname) '(:absolute)) (make-pathname :directory '(:absolute)))
+    (t (merge-pathnames (make-pathname :directory '(:relative :up)) (make-pathname :name nil :type nil :defaults pathname) nil))))
+
+  #|(if (null pathname) 
+    nil
+    (let ((dir (pathname-directory pathname)))
+      (make-pathname :directory (subseq dir 0 (- (length dir) 1)) :name nil :type nil :defaults pathname))))|#
 
 
 (defun make-fullname-absolute (module)
@@ -14,15 +33,6 @@
     (declare (ignore rest))
     (eql module-decl 'xcvb:module)))
 
-(defun read-first-file-form (filename)
-  "Reads the first form from the top of a file"
-  (with-open-file (in filename) (read in)))
-
-(defun strcat (&rest strings)
-  "String concatenation function"
-  (apply 'concatenate 'string strings))
-
-
 ;This condition is signaled by the find-build-file function if no BUILD.lisp file can be found
 (define-condition no-build-file-found (simple-error)
   ())
@@ -31,17 +41,37 @@
 (define-condition dependency-cycle (simple-error)
   ())
 
-
-(defun pathname-parent (pathname)
-  "Takes a pathname and returns the pathname of the parent directory of the directory of the given pathname"
-  (if (null pathname)
-    nil
-    (let ((dir (pathname-directory pathname)))
-      (make-pathname :directory (subseq dir 0 (- (length dir) 1)) :name nil :type nil :defaults pathname))))
-
 (defun top-level-name (name)
   "This function takes a name, and returns everything up to the first \"/\" in the name"
-  (subseq name 0 (position #\/ name)))
+  (subseq name 0 (position #\/ (namestring name))))
+
+(defun fasl-extension (&optional (lisp-implementation *lisp-implementation*))
+  "Returns the correct file extension for a fasl based on the given lisp implementation"
+  (fasl-extension-helper lisp-implementation))
+
+(defgeneric fasl-extension-helper (lisp-impl)
+  (:documentation "Helper generic function for fasl-extension function"))
+
+(defmethod fasl-extension-helper ((lisp-impl (eql :sbcl)))
+  "fasl")
+
+(defmethod fasl-extension-helper ((lisp-impl (eql :ccl)))
+  "lx64fsl")
+
+(defun cfasl-extension (&optional (lisp-implementation *lisp-implementation*))
+  "Returns the correct file extension for a cfasl based on the given lisp implementation"
+  (cfasl-extension-helper lisp-implementation))
+
+(defgeneric cfasl-extension-helper (lisp-impl)
+  (:documentation "Helper generic function for cfasl-extension function"))
+
+(defmethod cfasl-extension-helper ((lisp-impl (eql :sbcl)))
+  "cfasl")
+
+(defmethod cfasl-extension-helper ((lisp-impl (eql :ccl)))
+  "cfasl");This is basically a placeholder for now so that cfasl nodes can still have a target in ccl.  In reality, ccl does not yet support cfasls.  If/when it does, this might have to be changed to return the correct extension used by ccl
+
+
 
 (defun quit-form (&key exit-status (lisp-implementation *lisp-implementation*))
   "Returns the correct form to quit lisp, based on the value of lisp-implementation.  Can optionally be given a unix status code to exit with"
@@ -73,3 +103,7 @@
 (defmethod save-image-form-helper (filepath (lisp-impl (eql :ccl)))
   (declare (ignore lisp-impl))
   (format nil "(ccl:save-application \"~a\")" (namestring filepath)))
+
+(defun simply-error (simple-error control &rest args)
+  (error (or simple-error 'simple-error)
+         :format-control control :format-arguments args))

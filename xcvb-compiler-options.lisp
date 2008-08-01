@@ -1,8 +1,8 @@
 (in-package :xcvb)
 
-(defvar *lisp-implementation* :sbcl)
+(defvar *lisp-implementation* :ccl)
 ;(defvar *lisp-executable-pathname* "/usr/local/sbcl/1.0.14.36.ita.1/sbcl")
-(defvar *lisp-executable-pathname* "/home/sbrody/xcvb/test/sbcl-with-setup.core")
+(defvar *lisp-executable-pathname* "/home/sbrody/xcvb/test/ccl-with-setup.core")
 (defvar *lisp-image-pathname* nil)
 ;(defvar *lisp-image-pathname* "/usr/local/sbcl/1.0.14.36.ita.1/sbcl")
 (defvar *lisp-options* nil)

@@ -35,15 +35,24 @@
   (:documentation "Returns the command string required to eval the given lisp form in the given lisp implementation, with characters properly escaped for running a shell command in a makefile"))
 
 (defmethod eval-command-string ((lisp-type (eql :sbcl)) &key (lisp-executable *lisp-executable-pathname*) (lisp-image *lisp-image-pathname*) (lisp-options *lisp-options*) cwbrl-as-core)
-  (format nil "~a~a ~{~a ~}~a" 
+  (format nil "~a~@[~a~] ~{~a ~}~a" 
           (escape-string (namestring lisp-executable))
           (cond
             (cwbrl-as-core " --core ${CWBRL}")
             (lisp-image (escape-string (strcat " --core " (namestring lisp-image))))
-            (T ""))
+            (T nil))
           (mapcar #'escape-string lisp-options)
           "--eval"))
 
+(defmethod eval-command-string ((lisp-type (eql :ccl)) &key (lisp-executable *lisp-executable-pathname*) (lisp-image *lisp-image-pathname*) (lisp-options *lisp-options*) cwbrl-as-core)
+  (format nil "~a~@[~a~] ~{~a ~}~a" 
+          (escape-string (namestring lisp-executable))
+          (cond
+            (cwbrl-as-core " --image-name ${CWBRL}")
+            (lisp-image (escape-string (strcat " --image-name " (namestring lisp-image))))
+            (T nil))
+          (mapcar #'escape-string lisp-options)
+          "--eval"))
 
 
 (defgeneric form-string-for-node (node)
@@ -77,10 +86,6 @@
     (format nil "(cl:compile-file \"~a\")"
             (namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*)))))
 
-#|(defmethod form-string-for-node ((node cfasl-node))
-  (format nil "(cl:load \"~a\")"
-          (namestring (merge-pathnames (target node) *buildpath*))))
-          ;(namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*))))|#
 
 (defmethod form-string-for-node ((node dependency-graph-node))
   (declare (ignore node)))
@@ -103,17 +108,19 @@
 
 (defmethod write-node-to-makefile (filestream (node fasl-or-cfasl-node))
   (format T "writing (c)fasl node: ~a~%" (fullname node))
-  (unless (or (nth-value 1 (gethash (namestring (make-pathname :type "fasl" :defaults (fullname node))) *written-nodes*))
-              (nth-value 1 (gethash (namestring (make-pathname :type "cfasl" :defaults (fullname node))) *written-nodes*)));If this node has already been written to the makefile, don't write it again.
+  (unless (or (nth-value 1 (gethash (namestring (make-pathname :type (fasl-extension) :defaults (fullname node))) 
+                                    *written-nodes*))
+              (nth-value 1 (gethash (namestring (make-pathname :type (cfasl-extension) :defaults (fullname node))) 
+                                    *written-nodes*)));If this node has already been written to the makefile, don't write it again.
     (setf (gethash (fullname node) *written-nodes*) nil);Add this node to the map of nodes already written to the makefile
     (when *build-requires-p*
-      (push (namestring (make-pathname :type "fasl" :defaults (target node))) *targets-dependent-on-cwbrl*))
-      ;(push (namestring (make-pathname :type "cfasl" :defaults (target node))) *targets-dependent-on-cwbrl*))
+      (push (namestring (make-pathname :type (fasl-extension) :defaults (target node))) *targets-dependent-on-cwbrl*))
+      ;(push (namestring (make-pathname :type (cfasl-extension) :defaults (target node))) *targets-dependent-on-cwbrl*))
     (format filestream "~a : ~{~a~^ ~}~%" 
-            (make-pathname :type "fasl" :defaults (target node))
-            ;(make-pathname :type "cfasl" :defaults (target node))
+            (make-pathname :type (fasl-extension) :defaults (target node))
+            ;(make-pathname :type (cfasl-extension) :defaults (target node))
             (mapcar (lambda (x) (if (typep x 'cfasl-node) 
-                                  (make-pathname :type "fasl" :defaults (target x)) 
+                                  (make-pathname :type (fasl-extension) :defaults (target x)) 
                                   (target x)))
                     (traverse node :create)))
             ;(mapcar #'target (traverse node :create)))
@@ -123,7 +130,7 @@
   (format filestream "~a : ~{~a~^ ~}~%" 
           (target node) 
           (mapcar (lambda (x) (if (typep x 'cfasl-node) 
-                                (make-pathname :type "fasl" :defaults (target x)) 
+                                (make-pathname :type (fasl-extension) :defaults (target x)) 
                                 (target x)))
                   (traverse node :load)))
           ;(mapcar #'target (traverse node :load)))
@@ -133,7 +140,7 @@
   (format filestream "~a : ~{~a~^ ~}~%" 
           (target node) 
           (mapcar (lambda (x) (if (typep x 'cfasl-node) 
-                                (make-pathname :type "fasl" :defaults (target x))
+                                (make-pathname :type (fasl-extension) :defaults (target x))
                                 (target x)))
                   (traverse node :create)))
           ;(mapcar #'target (traverse node :create)))

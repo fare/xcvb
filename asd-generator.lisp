@@ -70,8 +70,10 @@
 
 (defmethod write-node-to-asd-file (filestream (node fasl-or-cfasl-node))
   (let ((written-nodes (if *writing-build-requires-module* *build-requires-written-nodes* *main-files-written-nodes*)))
-    (unless (or (nth-value 1 (gethash (namestring (make-pathname :type "fasl" :defaults (fullname node))) written-nodes))
-                (nth-value 1 (gethash (namestring (make-pathname :type "cfasl" :defaults (fullname node))) written-nodes)));If this node has already been written to the makefile, don't write it again.
+    (unless (or (nth-value 1 (gethash (namestring (make-pathname :type (fasl-extension) :defaults (fullname node))) 
+                                      written-nodes))
+                (nth-value 1 (gethash (namestring (make-pathname :type (cfasl-extension) :defaults (fullname node))) 
+                                      written-nodes)));If this node has already been written to the makefile, don't write it again.
       (setf (gethash (fullname node) written-nodes) nil);Add this node to the map of nodes already written to the makefile
       (let ((dependencies (if *writing-build-requires-module*
                             (nunion (rest (compile-dependencies node)) (load-dependencies node))
