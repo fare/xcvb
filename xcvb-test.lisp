@@ -61,7 +61,7 @@
 
 (defun print-module (module)
   "Prints out a module object"
-  (format t "MODULE: ~%~Tname: ~s ~%~Tfullname: ~s ~%~Tlicence: ~s ~%~Tnickname: ~s ~%~Tdescription: ~s ~%~Tlong-description: ~s ~%~Tcompile-depends-on: ~s ~%~Tload-depends-on: ~s ~%~Tfilepath: ~s ~%" (name module) (fullname module) (licence module) (nickname module) (description module) (long-description module) (compile-depends-on module) (load-depends-on module) (filepath module)))
+  (format t "MODULE: ~%~Tfullname: ~s ~%~Tlicence: ~s ~%~Tnickname: ~s ~%~Tdescription: ~s ~%~Tlong-description: ~s ~%~Tcompile-depends-on: ~s ~%~Tload-depends-on: ~s ~%~Tfilepath: ~s ~%" #|(name module)|# (fullname module) (licence module) (nickname module) (description module) (long-description module) (compile-depends-on module) (load-depends-on module) (filepath module)))
 
 (defun print-modules ()
   (loop for module being the hash-values in *module-map* using (hash-key key)

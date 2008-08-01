@@ -1,8 +1,8 @@
 (in-package :xcvb)
 
-(defun read-first-file-form (filename)
+(defun read-first-file-form (filepath)
   "Reads the first form from the top of a file"
-  (with-open-file (in filename) (read in)))
+  (with-open-file (in filepath) (read in)))
 
 (defun strcat (&rest strings)
   "String concatenation function"
@@ -27,11 +27,11 @@
     (fullname module)
     (setf (fullname module) (strcat "/" (fullname module)))))
 
-(defun module-form-p (form)
+#|(defun module-form-p (form)
   "Returns whether or not the given form is an xcvb:module form"
   (destructuring-bind (module-decl &rest rest) form
     (declare (ignore rest))
-    (eql module-decl 'xcvb:module)))
+    (eql module-decl 'xcvb:module)))|#
 
 ;This condition is signaled by the find-build-file function if no BUILD.lisp file can be found
 (define-condition no-build-file-found (simple-error)
@@ -45,7 +45,7 @@
   "This function takes a name, and returns everything up to the first \"/\" in the name"
   (subseq name 0 (position #\/ (namestring name))))
 
-(defun fasl-extension (&optional (lisp-implementation *lisp-implementation*))
+#|(defun fasl-extension (&optional (lisp-implementation *lisp-implementation*))
   "Returns the correct file extension for a fasl based on the given lisp implementation"
   (fasl-extension-helper lisp-implementation))
 
@@ -70,7 +70,7 @@
 
 (defmethod cfasl-extension-helper ((lisp-impl (eql :ccl)))
   "cfasl");This is basically a placeholder for now so that cfasl nodes can still have a target in ccl.  In reality, ccl does not yet support cfasls.  If/when it does, this might have to be changed to return the correct extension used by ccl
-
+|#
 
 
 (defun quit-form (&key exit-status (lisp-implementation *lisp-implementation*))

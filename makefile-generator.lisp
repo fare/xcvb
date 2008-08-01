@@ -68,9 +68,14 @@
   (save-image-form (merge-pathnames *buildpath* (target node))))
 
 (defmethod form-string-for-node ((node source-file-node))
-  (if *use-cfasls*
-    (format nil "#+cfasls (cl:compile-file \"~a\" :emit-cfasl T)#-cfasls (cl:compile-file \"~:*~a\")" (namestring (merge-pathnames (target node) *buildpath*)))
-    (format nil "(cl:compile-file \"~:*~a\")" (namestring (merge-pathnames (target node) *buildpath*)))))
+  (let ((source-file-path (namestring (merge-pathnames (target node) *buildpath*))))
+    (if *use-cfasls*
+      (format nil "#+cfasls (cl:compile-file \"~a\" :output-file \"~a\" :emit-cfasl T)#-cfasls (cl:compile-file \"~0@*~a\" :output-file \"~a\")" 
+              source-file-path
+              (make-pathname :type "fasl" :defaults source-file-path))
+      (format nil "(cl:compile-file \"~a\" :output-file \"~a\")"
+              source-file-path
+              (make-pathname :type "fasl" :defaults source-file-path)))))
 
 #|(defmethod form-string-for-node ((node cfasl-node))
   (format nil "#+cfasls (cl:load \"~a\")#-cfasls (progn ~{~@[~a~^ ~]~})"
@@ -79,12 +84,15 @@
           ;(namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*))))|#
 
 (defmethod form-string-for-node ((node cfasl-node))
-  (if *use-cfasls*
-    (format nil "#+cfasls (cl:load \"~a\")#-cfasls (cl:compile-file \"~a\")"
-            (namestring (merge-pathnames (target node) *buildpath*)) 
-            (namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*)))
-    (format nil "(cl:compile-file \"~a\")"
-            (namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*)))))
+  (let ((source-file-path (namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*))))
+    (if *use-cfasls*
+      (format nil "#+cfasls (cl:load \"~a\")#-cfasls (cl:compile-file \"~a\" :output-file \"~a\")"
+              (namestring (merge-pathnames (target node) *buildpath*)) 
+              source-file-path
+              (make-pathname :type "fasl" :defaults source-file-path))
+      (format nil "(cl:compile-file \"~a\" :output-file \"~a\")"
+              source-file-path
+              (make-pathname :type "fasl" :defaults source-file-path)))))
 
 
 (defmethod form-string-for-node ((node dependency-graph-node))
@@ -108,19 +116,19 @@
 
 (defmethod write-node-to-makefile (filestream (node fasl-or-cfasl-node))
   (format T "writing (c)fasl node: ~a~%" (fullname node))
-  (unless (or (nth-value 1 (gethash (namestring (make-pathname :type (fasl-extension) :defaults (fullname node))) 
+  (unless (or (nth-value 1 (gethash (namestring (make-pathname :type "fasl" :defaults (fullname node))) 
                                     *written-nodes*))
-              (nth-value 1 (gethash (namestring (make-pathname :type (cfasl-extension) :defaults (fullname node))) 
+              (nth-value 1 (gethash (namestring (make-pathname :type "cfasl" :defaults (fullname node))) 
                                     *written-nodes*)));If this node has already been written to the makefile, don't write it again.
     (setf (gethash (fullname node) *written-nodes*) nil);Add this node to the map of nodes already written to the makefile
     (when *build-requires-p*
-      (push (namestring (make-pathname :type (fasl-extension) :defaults (target node))) *targets-dependent-on-cwbrl*))
-      ;(push (namestring (make-pathname :type (cfasl-extension) :defaults (target node))) *targets-dependent-on-cwbrl*))
+      (push (namestring (make-pathname :type "fasl" :defaults (target node))) *targets-dependent-on-cwbrl*))
+      ;(push (namestring (make-pathname :type "cfasl" :defaults (target node))) *targets-dependent-on-cwbrl*))
     (format filestream "~a : ~{~a~^ ~}~%" 
-            (make-pathname :type (fasl-extension) :defaults (target node))
-            ;(make-pathname :type (cfasl-extension) :defaults (target node))
+            (make-pathname :type "fasl" :defaults (target node))
+            ;(make-pathname :type "cfasl" :defaults (target node))
             (mapcar (lambda (x) (if (typep x 'cfasl-node) 
-                                  (make-pathname :type (fasl-extension) :defaults (target x)) 
+                                  (make-pathname :type "fasl" :defaults (target x)) 
                                   (target x)))
                     (traverse node :create)))
             ;(mapcar #'target (traverse node :create)))
@@ -130,7 +138,7 @@
   (format filestream "~a : ~{~a~^ ~}~%" 
           (target node) 
           (mapcar (lambda (x) (if (typep x 'cfasl-node) 
-                                (make-pathname :type (fasl-extension) :defaults (target x)) 
+                                (make-pathname :type "fasl" :defaults (target x)) 
                                 (target x)))
                   (traverse node :load)))
           ;(mapcar #'target (traverse node :load)))
@@ -140,7 +148,7 @@
   (format filestream "~a : ~{~a~^ ~}~%" 
           (target node) 
           (mapcar (lambda (x) (if (typep x 'cfasl-node) 
-                                (make-pathname :type (fasl-extension) :defaults (target x))
+                                (make-pathname :type "fasl" :defaults (target x))
                                 (target x)))
                   (traverse node :create)))
           ;(mapcar #'target (traverse node :create)))
@@ -150,8 +158,8 @@
   (unless (nth-value 1 (gethash (fullname node) *written-nodes*));If this node has already been written to the makefile, don't write it again.
     (setf (gethash (fullname node) *written-nodes*) nil);Add this node to the map of nodes already written to the makefile
     (format filestream "~a : ~%" (target node))
-    (format filestream "~a~a~%" #\tab (makefile-line-for-node node :load))
-    (format filestream ".PHONY: ~a~%~%" (target node))))
+    (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :load))))
+    ;(format filestream ".PHONY: ~a~%~%" (target node))))
   
 (defmethod write-node-to-makefile (filestream node)
   (declare (ignore filestream node)))
@@ -168,7 +176,7 @@
            (core-deps (traverse core-with-build-requires-graph :create)))
       (format filestream "CWBRL = ~a~%~%" cwbrlpath)
       (format filestream "CWBRLRUN = ~a~%~%" (eval-command-string *lisp-implementation* :cwbrl-as-core T))
-      (format filestream "CHECK_ASDFS = $(shell if ! ( [ -f ${CWBRL} ] && [(${CWBRLRUN} \"(asdf::asdf-systems-are-up-to-date-p ~{:~a~^ ~})\")]) ; then echo force ; fi )~%~%force : ~%.PHONY: force~%~%" 
+      (format filestream "CHECK_ASDFS = $(shell if ! ( [ -f ${CWBRL} ] && [(${CWBRLRUN} \"(asdf::asdf-systems-are-up-to-date-p ~{:~a~^ ~})\")]) ; then echo force ; fi )~%~%$(phony force) : ~%~%"
               (mapcar (lambda (dep) (escape-string (namestring (name dep)))) 
                       (remove-if-not (lambda (dep) (typep dep 'asdf-system-node)) core-deps)))
       (dolist (node (traverse (lisp-image core-with-build-requires-graph) :create)) (write-node-to-makefile filestream node))

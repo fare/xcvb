@@ -18,7 +18,7 @@
   (list (strcat ":" (name node))))
 
 (defmethod find-asdf-systems-helper ((node dependency-graph-node-with-dependencies))
-  (reduce 
+  (reduce
    (lambda (dependency-node rest) (nunion (find-asdf-systems-helper dependency-node) rest :test #'equal)) 
    (nconc (compile-dependencies node) (load-dependencies node)) :initial-value nil :from-end T))
 
@@ -70,9 +70,9 @@
 
 (defmethod write-node-to-asd-file (filestream (node fasl-or-cfasl-node))
   (let ((written-nodes (if *writing-build-requires-module* *build-requires-written-nodes* *main-files-written-nodes*)))
-    (unless (or (nth-value 1 (gethash (namestring (make-pathname :type (fasl-extension) :defaults (fullname node))) 
+    (unless (or (nth-value 1 (gethash (namestring (make-pathname :type "fasl" :defaults (fullname node))) 
                                       written-nodes))
-                (nth-value 1 (gethash (namestring (make-pathname :type (cfasl-extension) :defaults (fullname node))) 
+                (nth-value 1 (gethash (namestring (make-pathname :type "cfasl" :defaults (fullname node))) 
                                       written-nodes)));If this node has already been written to the makefile, don't write it again.
       (setf (gethash (fullname node) written-nodes) nil);Add this node to the map of nodes already written to the makefile
       (let ((dependencies (if *writing-build-requires-module*
@@ -84,8 +84,10 @@
           (dolist (dep dependencies)
             (write-node-to-asd-file filestream dep)))
         (format filestream "~13,0T(:file ~s~@[ :depends-on ~s~])~%"
-                (name node)
-                (mapcar #'name (remove-if-not (lambda (dep) (typep dep 'fasl-or-cfasl-node)) dependencies)))))))
+                (namestring (make-pathname :type nil :defaults (target node))) ;NUN
+                ;(name node)
+                (mapcar (lambda (node) (namestring (make-pathname :type nil :defaults (target node)))) ;NUN 
+                        (remove-if-not (lambda (dep) (typep dep 'fasl-or-cfasl-node)) dependencies)))))))
 
 
 (defmethod write-node-to-asd-file (filestream (node dependency-graph-node))
