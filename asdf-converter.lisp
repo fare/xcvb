@@ -77,7 +77,6 @@
                                          (asdf:component-pathname asdf-system)))
                     (asdf:module-components asdf-system))))
     (make-instance 'build-module 
-      :name fullname 
       :fullname fullname 
       :author author 
       :maintainer maintainer 
@@ -106,7 +105,7 @@
                     "/" 
                     (enough-namestring (make-pathname :type nil :defaults filepath) (filepath build-module)))))
     (make-instance 'concrete-module 
-      :name (asdf:component-name asdf-component)
+      ;:name (asdf:component-name asdf-component)
       :fullname fullname
       :filepath filepath
       :compile-depends-on (if *use-cfasls* (mapcar (lambda (dep) (list :compile dep)) dependencies) dependencies)

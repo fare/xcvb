@@ -27,9 +27,10 @@
     (fullname module)
     (setf (fullname module) (strcat "/" (fullname module)))))
 
-#|(defun module-form-p (form)
+(defun module-form-p (form)
   "Returns whether or not the given form is an xcvb:module form"
-  (destructuring-bind (module-decl &rest rest) form
+  (eql (first form) 'xcvb:module))
+#|  (destructuring-bind (module-decl &rest rest) form
     (declare (ignore rest))
     (eql module-decl 'xcvb:module)))|#
 
@@ -98,11 +99,11 @@
 
 (defmethod save-image-form-helper (filepath (lisp-impl (eql :sbcl)))
   (declare (ignore lisp-impl))
-  (format nil "(sb-ext:save-lisp-and-die \"~a\")" (namestring filepath)))
+  (format nil "(sb-ext:save-lisp-and-die \\\"~a\\\")" (namestring filepath)))
 
 (defmethod save-image-form-helper (filepath (lisp-impl (eql :ccl)))
   (declare (ignore lisp-impl))
-  (format nil "(ccl:save-application \"~a\")" (namestring filepath)))
+  (format nil "(ccl:save-application \\\"~a\\\")" (namestring filepath)))
 
 (defun simply-error (simple-error control &rest args)
   (error (or simple-error 'simple-error)
