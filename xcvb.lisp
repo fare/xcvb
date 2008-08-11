@@ -268,10 +268,14 @@ leading to this node from other nodes with crypto hash values, e.g.
 
 (defclass lisp-node (dependency-graph-node-with-dependencies) ())
 
-(defclass source-file-node (dependency-graph-node) ())
+(defclass file-node (dependency-graph-node) 
+  ((source-filepath 
+    :initarg :source-filepath :initform nil :reader source-filepath)))
+
+(defclass source-file-node (file-node) ())
 
 ;; TODO: rename to object-file-node ?
-(defclass fasl-or-cfasl-node (dependency-graph-node-with-dependencies) ())
+(defclass fasl-or-cfasl-node (dependency-graph-node-with-dependencies file-node) ())
 
 (defclass fasl-node (fasl-or-cfasl-node) ())
 
@@ -375,7 +379,8 @@ root as the dependency graph unless there is a dump-image node above it."
                (source-node (make-instance 'source-file-node
                               ;;:name (namestring (make-pathname :type nil :defaults (pathname target)))
                               :fullname fullname
-                              :target target)))
+                              :target target
+                              :source-filepath (filepath module))))
           (setf (gethash fullname *node-map*) source-node)))))
 
 (defun create-asdf-system-node (system-name)
@@ -403,9 +408,9 @@ root as the dependency graph unless there is a dump-image node above it."
     (error 'dependency-cycle
            :format-control "Dependency cycle found: ~s"
            :format-arguments (list (cons fullname previous-nodes-list))))
-  (when (and (string-equal (pathname-type fullname) "fasl")
+  (when (and (string-equal (pathname-type fullname) "${FASL}")
              (nth-value 1 (gethash 
-                           (make-pathname :type "cfasl" :defaults fullname)
+                           (make-pathname :type "${CFASL}" :defaults fullname)
                            previous-nodes-map)))
     (error 'dependency-cycle
             :format-control "Dependency cycle found, compiling a file cannot 
@@ -469,20 +474,21 @@ that module's dependencies, and adds them as dependencies of the cfasl-node"
   "This function constructs a fasl-node in the dependency graph.  It also 
 builds dependency-graph-nodes for any of its dependencies."
   (let ((fullname (namestring ;NUN
-                   (make-pathname :type "fasl" :defaults (fullname module))))) 
+                   (make-pathname :type "${FASL}" :defaults (fullname module))))) 
     ;(format T "building fasl file node with name: ~a.~%" fullname)
     (with-catching-dependency-cycle 
         (fullname previous-nodes-map previous-nodes-list)
       (let ((existing-node (gethash fullname *node-map*)))
         (or existing-node ;If this node already exists, don't re-create it.
             (let* ((target (enough-namestring
-                            (make-pathname :type "fasl" 
+                            (make-pathname :type "${FASL}" 
                                            :defaults (filepath module))
                             *buildpath*))
                    (fasl-node (make-instance 'fasl-node
                                 ;:name (namestring (make-pathname :type nil :defaults target))
                                 :fullname fullname
-                                :target target)))
+                                :target target
+                                :source-filepath (filepath module))))
               (set-fasl-node-dependencies fasl-node 
                                           module 
                                           previous-nodes-map
@@ -493,20 +499,21 @@ builds dependency-graph-nodes for any of its dependencies."
 (defun create-cfasl-node (module previous-nodes-map previous-nodes-list)
   "This function constructs a cfasl-node in the dependency graph.  It also builds dependency-graph-nodes for any of its dependencies."
   (let ((fullname (namestring ;NUN
-                   (make-pathname :type "cfasl" :defaults (fullname module)))))
+                   (make-pathname :type "${CFASL}" :defaults (fullname module)))))
     ;(format T "building cfasl file node with name: ~a.~%" fullname)
     (with-catching-dependency-cycle 
         (fullname previous-nodes-map previous-nodes-list)
       (let ((existing-node (gethash fullname *node-map*)))
         (or existing-node ;If this node already exists, don't re-create it.
             (let* ((target (enough-namestring
-                            (make-pathname :type "cfasl" 
+                            (make-pathname :type "${CFASL}" 
                                            :defaults (filepath module))
                             *buildpath*))
                    (cfasl-node (make-instance 'cfasl-node
                                 ;:name (namestring (make-pathname :type nil :defaults target))
-                                :fullname fullname
-                                :target target)))
+                                 :fullname fullname
+                                 :target target
+                                 :source-filepath (filepath module))))
               (set-cfasl-node-dependencies cfasl-node 
                                            module 
                                            previous-nodes-map 

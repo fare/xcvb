@@ -109,15 +109,11 @@ action that the node represents"))
          (escape-string (namestring (merge-pathnames (target node) *buildpath*)))))
     (if *use-cfasls*
       (format nil 
-              "#+cfasls (cl:compile-file \\\"~a\\\" :output-file \\\"~a\\\" ~
-:emit-cfasl T)#-cfasls (cl:compile-file \\\"~0@*~a\\\" :output-file \\\"~a\\\")" 
-              source-file-path
-              (make-pathname :type "fasl" :defaults source-file-path))
-      (format nil "(cl:compile-file \\\"~a\\\" :output-file \\\"~a\\\")"
-              source-file-path
-              (make-pathname
-               :type "fasl"
-               :defaults source-file-path)))))
+              "#+cfasls (cl:compile-file \\\"~a\\\" ~
+:emit-cfasl T)#-cfasls (cl:compile-file \\\"~:*~a\\\")" 
+              source-file-path)
+      (format nil "(cl:compile-file \\\"~a\\\")"
+              source-file-path))))
 
 #|(defmethod form-string-for-node ((node cfasl-node))
   (format nil "#+cfasls (cl:load \"~a\")#-cfasls (progn ~{~@[~a~^ ~]~})"
@@ -128,7 +124,10 @@ action that the node represents"))
 (defmethod form-string-for-node ((node fasl-node))
   (format nil 
           "(cl:load \\\"~a\\\")" 
-          (escape-string (namestring (merge-pathnames (target node) *buildpath*)))))
+          (make-pathname :type "${FASL}"
+                         :defaults (escape-string (namestring (merge-pathnames 
+                                                               (target node) 
+                                                               *buildpath*))))))
 
 (defmethod form-string-for-node ((node cfasl-node))
   (let ((source-file-path 
@@ -139,16 +138,15 @@ action that the node represents"))
             *buildpath*)))))
     (if *use-cfasls*
       (format nil 
-              "#+cfasls (cl:load \\\"~a\\\")#-cfasls (cl:compile-file \\\"~a\\\" ~
-:output-file \\\"~a\\\")"
-              (escape-string (namestring (merge-pathnames 
-                                          (target node) 
-                                          *buildpath*)))
-              source-file-path
-              (make-pathname :type "fasl" :defaults source-file-path))
-      (format nil "(cl:compile-file \"~a\" :output-file \"~a\")"
-              source-file-path
-              (make-pathname :type "fasl" :defaults source-file-path)))))
+              "#+cfasls (cl:load \\\"~a\\\")#-cfasls (cl:compile-file \\\"~a\\\")"
+              (make-pathname :type "${CFASL}" 
+                             :defaults (escape-string (namestring 
+                                                       (merge-pathnames 
+                                                        (target node) 
+                                                        *buildpath*))))
+              source-file-path)              
+      (format nil "(cl:compile-file \"~a\")"
+              source-file-path))))
 
 
 (defmethod form-string-for-node ((node dependency-graph-node))
@@ -177,26 +175,26 @@ given node"))
   ;;If this node has already been written to the makefile, don't write it again.
   (unless (or (nth-value 1 (gethash 
                             (namestring (make-pathname 
-                                         :type "fasl" 
+                                         :type "${FASL}" 
                                          :defaults (fullname node))) 
                             *written-nodes*))
               (nth-value 1 (gethash 
                             (namestring (make-pathname 
-                                         :type "cfasl" 
+                                         :type "${CFASL}" 
                                          :defaults (fullname node))) 
                             *written-nodes*)))
     ;;Add this node to the map of nodes already written to the makefile
     (setf (gethash (fullname node) *written-nodes*) nil)
     (when *build-requires-p*
-      (push (namestring (make-pathname :type "fasl" :defaults (target node))) 
+      (push (namestring (make-pathname :type "${FASL}" :defaults (target node))) 
             *targets-dependent-on-cwbrl*))
       ;;(push (namestring (make-pathname :type "cfasl" :defaults (target node))) *targets-dependent-on-cwbrl*))
     (format filestream "~a : ~{~a~^ ~}~%" 
-            (make-pathname :type "fasl" :defaults (target node))
+            (make-pathname :type "${FASL}" :defaults (target node))
             ;(make-pathname :type "cfasl" :defaults (target node))
             (mapcar (lambda (x) (if (typep x 'cfasl-node) 
                                   (make-pathname 
-                                   :type "fasl" 
+                                   :type "${FASL}" 
                                    :defaults (target x)) 
                                   (target x)))
                     (traverse node :create)))
@@ -208,7 +206,7 @@ given node"))
           (target node) 
           (mapcar (lambda (x) (if (typep x 'cfasl-node) 
                                 (make-pathname 
-                                 :type "fasl" 
+                                 :type "${FASL}" 
                                  :defaults (target x)) 
                                 (target x)))
                   (traverse node :load)))
@@ -220,7 +218,7 @@ given node"))
           (target node) 
           (mapcar (lambda (x) (if (typep x 'cfasl-node) 
                                 (make-pathname 
-                                 :type "fasl" 
+                                 :type "${FASL}" 
                                  :defaults (target x))
                                 (target x)))
                   (traverse node :create)))
@@ -259,6 +257,8 @@ dependencies from the build-requires slot of the build module loaded"
       (format filestream "CWBRL = ~a~%~%" cwbrlpath)
       (format filestream "CWBRLRUN = ~a~%~%" 
               (eval-command-string :cwbrl-as-core-p T))
+      (format filestream "FASL := $(shell ${LISPRUN} \"(progn (format t \\\"~~a\\\" (pathname-type (compile-file-pathname \\\"test.lisp\\\"))) (sb-ext:quit))\")~%~%")
+      (format filestream "CFASL := cfasl~%~%")
       (format filestream 
               "CHECK_ASDFS = $(shell if ! ( [ -f ${CWBRL} ] && [(${CWBRLRUN} ~
 \"(asdf::asdf-systems-are-up-to-date-p ~{:~a~^ ~})\")]) ; ~

@@ -84,9 +84,10 @@
           (dolist (dep dependencies)
             (write-node-to-asd-file filestream dep)))
         (format filestream "~13,0T(:file ~s~@[ :depends-on ~s~])~%"
-                (namestring (make-pathname :type nil :defaults (target node))) ;NUN
+                
+                (namestring (make-pathname :type nil :defaults (enough-namestring (source-filepath node) *buildpath*))) ;NUN
                 ;(name node)
-                (mapcar (lambda (node) (namestring (make-pathname :type nil :defaults (target node)))) ;NUN 
+                (mapcar (lambda (node) (namestring (make-pathname :type nil :defaults (enough-namestring (source-filepath node) *buildpath*)))) ;NUN 
                         (remove-if-not (lambda (dep) (typep dep 'fasl-or-cfasl-node)) dependencies)))))))
 
 
