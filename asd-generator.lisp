@@ -12,7 +12,9 @@
 
 
 (defgeneric find-asdf-systems-helper (node)
-  (:documentation "Helper generic function for find-asdf-systems.  Returns a list of the names of all the asdf-systems that this node depends on (or any of its dependencies depend on)"))
+  (:documentation "Helper generic function for find-asdf-systems.  Returns a 
+list of the names of all the asdf-systems that this node depends on (or any of 
+its dependencies depend on)"))
 
 (defmethod find-asdf-systems-helper ((node asdf-system-node))
   (list (strcat ":" (name node))))

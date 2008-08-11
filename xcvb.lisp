@@ -238,10 +238,10 @@ Throws an error if no BUILD.lisp file with a fullname is found"
     :initarg :fullname :initform nil :accessor fullname
     :documentation "abstract name for the intention in the node,
 e.g. //xcvb-test/foo/bar/quux.fasl") ;TODO
-   (target
+   #|(target
     :initarg :target :reader target
     :documentation "name of the target in the Makefile,
-e.g. foo/bar/quux.fasl")
+e.g. foo/bar/quux.fasl")|#
    ;(name ;;TODO: move it out, not used (except for subclass asdf-node)
    ; :initarg :name :reader name)
    (long-name
@@ -282,7 +282,8 @@ leading to this node from other nodes with crypto hash values, e.g.
 (defclass cfasl-node (fasl-or-cfasl-node) ())
 
 (defclass image-dump-node (dependency-graph-node)
-  ((lisp-image :initarg :lisp-image :initform nil :reader lisp-image)))
+  ((lisp-image :initarg :lisp-image :initform nil :reader lisp-image)
+   (dump-path :initarg :dump-path :initform nil :reader dump-path)))
 
 (defclass asdf-system-node (dependency-graph-node) 
   ((name
@@ -350,7 +351,7 @@ so that they can detect and handle dependency cycles properly."))
   "This function constructs a lisp-node in the dependency graph
 for a lisp with the given dependencies loaded.  This is used as the
 root as the dependency graph unless there is a dump-image node above it."
-  (let ((lisp-node (make-instance 'lisp-node :target "all" :fullname "lisp"))
+  (let ((lisp-node (make-instance 'lisp-node #|:target "all"|# :fullname "lisp"))
         (previous-nodes-map (make-hash-table :test #'equal))
         (previous-nodes-list nil))
     (flet ((f (dep)
@@ -371,15 +372,15 @@ root as the dependency graph unless there is a dump-image node above it."
          (namestring (fullname module))))
     ;;If this node already exists, don't recreate it
     (or (gethash fullname *node-map*)
-        ;;The target is the filepath of the source file relative to the 
-        ;;BUILD.lisp file
-        (let* ((target (enough-namestring 
+        #|;;The target is the filepath of the source file relative to the 
+        ;;BUILD.lisp file|#
+        (let* (#|(target (enough-namestring 
                         (make-pathname :type "lisp" :defaults (filepath module))
-                        *buildpath*))
+                        *buildpath*))|#
                (source-node (make-instance 'source-file-node
                               ;;:name (namestring (make-pathname :type nil :defaults (pathname target)))
                               :fullname fullname
-                              :target target
+                              #|:target target|#
                               :source-filepath (filepath module))))
           (setf (gethash fullname *node-map*) source-node)))))
 
@@ -390,14 +391,15 @@ root as the dependency graph unless there is a dump-image node above it."
         (setf (gethash fullname *node-map*)
               (make-instance 'asdf-system-node 
                 :name system-name 
-                :target fullname
+                ;;:target fullname
                 :fullname fullname)))))
 
 
 (defun create-image-dump-node (lisp-node dump-path)
   "This function constructs an image-dump-node in the dependency graph, which is designed to dump an image of the lisp state described by lisp-node"
   (make-instance 'image-dump-node
-    :target (enough-namestring dump-path *buildpath*)
+    ;;:target (enough-namestring dump-path *buildpath*)
+    :dump-path dump-path
     :lisp-image lisp-node
     :fullname (format nil "//image-dump:~a" dump-path)))
 
@@ -480,14 +482,14 @@ builds dependency-graph-nodes for any of its dependencies."
         (fullname previous-nodes-map previous-nodes-list)
       (let ((existing-node (gethash fullname *node-map*)))
         (or existing-node ;If this node already exists, don't re-create it.
-            (let* ((target (enough-namestring
+            (let* (#|(target (enough-namestring
                             (make-pathname :type "${FASL}" 
                                            :defaults (filepath module))
-                            *buildpath*))
+                            *buildpath*))|#
                    (fasl-node (make-instance 'fasl-node
                                 ;:name (namestring (make-pathname :type nil :defaults target))
                                 :fullname fullname
-                                :target target
+                                ;;:target target
                                 :source-filepath (filepath module))))
               (set-fasl-node-dependencies fasl-node 
                                           module 
@@ -505,14 +507,14 @@ builds dependency-graph-nodes for any of its dependencies."
         (fullname previous-nodes-map previous-nodes-list)
       (let ((existing-node (gethash fullname *node-map*)))
         (or existing-node ;If this node already exists, don't re-create it.
-            (let* ((target (enough-namestring
+            (let* (#|(target (enough-namestring
                             (make-pathname :type "${CFASL}" 
                                            :defaults (filepath module))
-                            *buildpath*))
+                            *buildpath*))|#
                    (cfasl-node (make-instance 'cfasl-node
                                 ;:name (namestring (make-pathname :type nil :defaults target))
                                  :fullname fullname
-                                 :target target
+                                 ;;:target target
                                  :source-filepath (filepath module))))
               (set-cfasl-node-dependencies cfasl-node 
                                            module 

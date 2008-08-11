@@ -7,7 +7,35 @@
 to the makefile, to avoid writing any node twice")
 (defvar *targets-dependent-on-cwbrl* nil "A list of the makefile targets that 
 have a dependency on the core-with-build-requires.core-xcvb target")
+(defvar *escaped-output-path* nil "The path that the Makefile is being written 
+to. The Makefile targets will be relative to this path.  It has already been 
+escaped for the shell and for a Makefile")
 
+(defgeneric target-for-node (node)
+  (:documentation "stuff"))
+
+(defmethod target-for-node ((node fasl-or-cfasl-node))
+  (enough-namestring
+   (make-pathname 
+    :type "${FASL}" 
+    :defaults (escape-string (namestring 
+                              (source-filepath node))))
+   *escaped-output-path*))
+
+(defmethod target-for-node ((node source-file-node))
+  (enough-namestring
+   (escape-string (namestring (source-filepath node)))
+   *escaped-output-path*))
+
+(defmethod target-for-node ((node image-dump-node))
+  (enough-namestring (escape-string (namestring (dump-path node))) 
+                     *escaped-output-path*))
+
+(defmethod target-for-node ((node asdf-system-node))
+  (fullname node))
+
+(defmethod target-for-node ((node lisp-node))
+  "all")
 
 (defun escape-string-for-Makefile (string)
   "Takes a string and excapes all the characters that need to be to be put into 
@@ -102,11 +130,14 @@ action that the node represents"))
 
 (defmethod form-string-for-node ((node image-dump-node))
   (save-image-form 
-   (escape-string (namestring (merge-pathnames *buildpath* (target node))))))
+   ;;(escape-string (namestring (merge-pathnames *buildpath* (target node))))))
+   (escape-string (namestring (dump-path node)))))
 
 (defmethod form-string-for-node ((node source-file-node))
-  (let ((source-file-path 
-         (escape-string (namestring (merge-pathnames (target node) *buildpath*)))))
+  (let ((source-file-path (escape-string (namestring (source-filepath node)))))
+                                                     #|(merge-pathnames 
+                                                      (target node) 
+                                                      *buildpath*)))))|#
     (if *use-cfasls*
       (format nil 
               "#+cfasls (cl:compile-file \\\"~a\\\" ~
@@ -124,26 +155,27 @@ action that the node represents"))
 (defmethod form-string-for-node ((node fasl-node))
   (format nil 
           "(cl:load \\\"~a\\\")" 
-          (make-pathname :type "${FASL}"
-                         :defaults (escape-string (namestring (merge-pathnames 
-                                                               (target node) 
-                                                               *buildpath*))))))
+          (make-pathname 
+           :type "${FASL}"                         
+           :defaults (escape-string (namestring (source-filepath node))))))
+                                                   #|(merge-pathnames 
+                                                    (target node) 
+                                                    *buildpath*))))))|#
 
 (defmethod form-string-for-node ((node cfasl-node))
-  (let ((source-file-path 
-         (escape-string 
-          (namestring 
-           (merge-pathnames 
+  (let ((source-file-path (escape-string (namestring (source-filepath node)))))
+           #|(merge-pathnames 
             (target (first (compile-dependencies node))) 
-            *buildpath*)))))
+            *buildpath*)))))|#
     (if *use-cfasls*
       (format nil 
               "#+cfasls (cl:load \\\"~a\\\")#-cfasls (cl:compile-file \\\"~a\\\")"
               (make-pathname :type "${CFASL}" 
                              :defaults (escape-string (namestring 
-                                                       (merge-pathnames 
+                                                       (source-filepath node))))
+                                                       #|(merge-pathnames 
                                                         (target node) 
-                                                        *buildpath*))))
+                                                        *buildpath*))))|#
               source-file-path)              
       (format nil "(cl:compile-file \"~a\")"
               source-file-path))))
@@ -185,43 +217,26 @@ given node"))
                             *written-nodes*)))
     ;;Add this node to the map of nodes already written to the makefile
     (setf (gethash (fullname node) *written-nodes*) nil)
-    (when *build-requires-p*
-      (push (namestring (make-pathname :type "${FASL}" :defaults (target node))) 
-            *targets-dependent-on-cwbrl*))
-      ;;(push (namestring (make-pathname :type "cfasl" :defaults (target node))) *targets-dependent-on-cwbrl*))
-    (format filestream "~a : ~{~a~^ ~}~%" 
-            (make-pathname :type "${FASL}" :defaults (target node))
-            ;(make-pathname :type "cfasl" :defaults (target node))
-            (mapcar (lambda (x) (if (typep x 'cfasl-node) 
-                                  (make-pathname 
-                                   :type "${FASL}" 
-                                   :defaults (target x)) 
-                                  (target x)))
-                    (traverse node :create)))
-            ;(mapcar #'target (traverse node :create)))
-    (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create))))
+    (let ((target (target-for-node node)))
+      (when *build-requires-p*
+        (push target *targets-dependent-on-cwbrl*))
+      (format filestream "~a : ~{~a~^ ~}~%" 
+              target
+              (mapcar #'target-for-node (traverse node :create)))
+      ;;(mapcar #'target (traverse node :create)))
+      (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create)))))
 
 (defmethod write-node-to-makefile (filestream (node image-dump-node))
   (format filestream "~a : ~{~a~^ ~}~%" 
-          (target node) 
-          (mapcar (lambda (x) (if (typep x 'cfasl-node) 
-                                (make-pathname 
-                                 :type "${FASL}" 
-                                 :defaults (target x)) 
-                                (target x)))
-                  (traverse node :load)))
+          (target-for-node node) 
+          (mapcar #'target-for-node (traverse node :load)))
           ;(mapcar #'target (traverse node :load)))
   (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create)))
 
 (defmethod write-node-to-makefile (filestream (node lisp-node))
   (format filestream ".PHONY: ~a~%~:*~a : ~{~a~^ ~}~%" 
-          (target node) 
-          (mapcar (lambda (x) (if (typep x 'cfasl-node) 
-                                (make-pathname 
-                                 :type "${FASL}" 
-                                 :defaults (target x))
-                                (target x)))
-                  (traverse node :create)))
+          (target-for-node node)
+          (mapcar #'target-for-node (traverse node :create)))
           ;(mapcar #'target (traverse node :create)))
   (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create)))
 
@@ -230,7 +245,7 @@ given node"))
   (unless (nth-value 1 (gethash (fullname node) *written-nodes*))
     ;;Add this node to the map of nodes already written to the makefile
     (setf (gethash (fullname node) *written-nodes*) nil)
-    (format filestream ".PHONY: ~a~%~:*~a : ~%" (target node))
+    (format filestream ".PHONY: ~a~%~:*~a : ~%" (target-for-node node))
     (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :load))))
 ;    (format filestream ".PHONY: ~a~%~%" (target node))))
   
@@ -272,7 +287,7 @@ then echo force ; fi )~%~%force : ~%.PHONY: force~%~%"
         (write-node-to-makefile filestream node))
       (format filestream 
               "core-with-build-requires.core-xcvb : $(CHECK_ASDFS) ~{~a~^ ~}~%" 
-              (mapcar (lambda (dep) (escape-string (target dep))) 
+              (mapcar #'target-for-node
                       (remove-if 
                        (lambda (dep) (typep dep 'asdf-system-node)) 
                        (traverse core-with-build-requires-graph :load))))
@@ -288,22 +303,23 @@ then echo force ; fi )~%~%force : ~%.PHONY: force~%~%"
                        (makefile-name "Makefile.xcvb") 
                        (image-name "lisp-image.core"))
   "Writes a makefile to output-path with information about how to compile the file at source-path.  What the makefile is designed to do can be specified by graph-type" 
-  (with-open-file (out (merge-pathnames output-path makefile-name) 
-                       :direction :output 
-                       :if-exists :supersede)
-    (let ((dependency-graph
-           (create-dump-image-graph 
-            (merge-pathnames output-path image-name)
-            source-path)))
-      (let ((*written-nodes* (make-hash-table :test #'equal))
-            (all-nodes (traverse dependency-graph :all))
-            (*targets-dependent-on-cwbrl* nil)
-            (*build-requires-p* nil))
-        ;(setf *build-requires-p* nil)
-        (makefile-setup output-path out)
-        (dolist (node all-nodes) (write-node-to-makefile out node))
-        (format out "~@[~{~a~^ ~} : core-with-build-requires.core-xcvb~%~]" 
-                *targets-dependent-on-cwbrl*)))))
+  (let* ((dependency-graph
+         (create-dump-image-graph 
+          (merge-pathnames image-name output-path)
+          source-path))
+        (all-nodes (traverse dependency-graph :all))
+        (*written-nodes* (make-hash-table :test #'equal))        
+        (*targets-dependent-on-cwbrl* nil)
+        (*build-requires-p* nil)
+        (*escaped-output-path* (escape-string (namestring output-path))))
+    (with-open-file (out (merge-pathnames makefile-name output-path) 
+                         :direction :output 
+                         :if-exists :supersede)
+      ;;(setf *build-requires-p* nil)
+      (makefile-setup output-path out)
+      (dolist (node all-nodes) (write-node-to-makefile out node))
+      (format out "~@[~{~a~^ ~} : core-with-build-requires.core-xcvb~%~]" 
+              *targets-dependent-on-cwbrl*))))
 
 
 
