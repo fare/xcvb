@@ -28,11 +28,7 @@
 (defclass module () ())
 
 (defclass concrete-module (module)
-  (#|(name
-    :initarg :name :reader name :initform nil
-    :documentation "The name of the module.
-Will usually be the same as the name of the file")|#
-   (fullname
+  ((fullname
     :initarg :fullname :accessor fullname :initform nil
     :documentation "The full name of the module.
 This is found from the fullname of his module's build.lisp file")
@@ -69,9 +65,6 @@ file can be loaded")
     :initarg :filepath :accessor filepath
     :documentation "The absolute path to the file that the module was 
 declared in")
-   #|(filename
-    :initarg :filename :accessor filename
-    :documentation "The filename of the file that the module was declared in")|#
    (extension-forms
     :initarg :extension-forms :initform nil :accessor extension-forms
     :documentation "extension forms!")))
@@ -115,7 +108,6 @@ thus far"
       (error "Build module must have a fullname"))
     (let ((module
            (make-instance (if build-module-p 'build-module 'concrete-module)
-             ;:name name
              :fullname fullname
              :nickname nickname
              :author (or author (if *build-module* (author *build-module*)))
@@ -145,7 +137,6 @@ thus far"
   (let ((module (parse-module (read-first-file-form module-path) 
                               :build-module-p build-module-p)))
     (setf (filepath module) module-path)
-    ;(setf (filename module) (file-namestring module-path))
     (if (and parent-module (not (fullname module)))
       (setf (fullname module)
             (namestring (merge-pathnames ;NUN
@@ -158,20 +149,6 @@ thus far"
             (strcat (fullname module) "/" (file-namestring (filepath module)))))
     (handle-extension-forms module)
     (register-module module)))
-
-#|;; TODO: rename to LOOKUP-MODULE-IN-FILESYSTEM ? (gah)
-(defun module-from-parent-module (name parent-module)
-  "Takes a name of a new module, and the module whose fullname this new module
-   will be under, and gets the filepath of the parent module and tries to find
-   a file for the new module under that filepath.  If it finds one, then it
-   creates that module out of the module declaration at the top of that file,
-   if not, it returns nil"
-  (let ((source-file-pathname
-         (make-pathname
-          :type "lisp"
-          :defaults (merge-pathnames name (filepath parent-module)))))
-    (when (probe-file source-file-pathname)
-      (create-module source-file-pathname :parent-module parent-module))))|#
 
 (defun module-from-name (name &optional (build-module *build-module*))
   "This function takes the name of module, and the current build module,
@@ -238,12 +215,6 @@ Throws an error if no BUILD.lisp file with a fullname is found"
     :initarg :fullname :initform nil :accessor fullname
     :documentation "abstract name for the intention in the node,
 e.g. //xcvb-test/foo/bar/quux.fasl") ;TODO
-   #|(target
-    :initarg :target :reader target
-    :documentation "name of the target in the Makefile,
-e.g. foo/bar/quux.fasl")|#
-   ;(name ;;TODO: move it out, not used (except for subclass asdf-node)
-   ; :initarg :name :reader name)
    (long-name
     :initarg :long-name :reader long-name
     :documentation "(NOT USED YET) A description of the whole computation
@@ -372,15 +343,8 @@ root as the dependency graph unless there is a dump-image node above it."
          (namestring (fullname module))))
     ;;If this node already exists, don't recreate it
     (or (gethash fullname *node-map*)
-        #|;;The target is the filepath of the source file relative to the 
-        ;;BUILD.lisp file|#
-        (let* (#|(target (enough-namestring 
-                        (make-pathname :type "lisp" :defaults (filepath module))
-                        *buildpath*))|#
-               (source-node (make-instance 'source-file-node
-                              ;;:name (namestring (make-pathname :type nil :defaults (pathname target)))
+        (let* ((source-node (make-instance 'source-file-node
                               :fullname fullname
-                              #|:target target|#
                               :source-filepath (filepath module))))
           (setf (gethash fullname *node-map*) source-node)))))
 
@@ -391,14 +355,12 @@ root as the dependency graph unless there is a dump-image node above it."
         (setf (gethash fullname *node-map*)
               (make-instance 'asdf-system-node 
                 :name system-name 
-                ;;:target fullname
                 :fullname fullname)))))
 
 
 (defun create-image-dump-node (lisp-node dump-path)
   "This function constructs an image-dump-node in the dependency graph, which is designed to dump an image of the lisp state described by lisp-node"
   (make-instance 'image-dump-node
-    ;;:target (enough-namestring dump-path *buildpath*)
     :dump-path dump-path
     :lisp-image lisp-node
     :fullname (format nil "//image-dump:~a" dump-path)))
@@ -482,14 +444,8 @@ builds dependency-graph-nodes for any of its dependencies."
         (fullname previous-nodes-map previous-nodes-list)
       (let ((existing-node (gethash fullname *node-map*)))
         (or existing-node ;If this node already exists, don't re-create it.
-            (let* (#|(target (enough-namestring
-                            (make-pathname :type "${FASL}" 
-                                           :defaults (filepath module))
-                            *buildpath*))|#
-                   (fasl-node (make-instance 'fasl-node
-                                ;:name (namestring (make-pathname :type nil :defaults target))
+            (let* ((fasl-node (make-instance 'fasl-node
                                 :fullname fullname
-                                ;;:target target
                                 :source-filepath (filepath module))))
               (set-fasl-node-dependencies fasl-node 
                                           module 
@@ -507,14 +463,8 @@ builds dependency-graph-nodes for any of its dependencies."
         (fullname previous-nodes-map previous-nodes-list)
       (let ((existing-node (gethash fullname *node-map*)))
         (or existing-node ;If this node already exists, don't re-create it.
-            (let* (#|(target (enough-namestring
-                            (make-pathname :type "${CFASL}" 
-                                           :defaults (filepath module))
-                            *buildpath*))|#
-                   (cfasl-node (make-instance 'cfasl-node
-                                ;:name (namestring (make-pathname :type nil :defaults target))
+            (let* ((cfasl-node (make-instance 'cfasl-node
                                  :fullname fullname
-                                 ;;:target target
                                  :source-filepath (filepath module))))
               (set-cfasl-node-dependencies cfasl-node 
                                            module 

@@ -130,14 +130,10 @@ action that the node represents"))
 
 (defmethod form-string-for-node ((node image-dump-node))
   (save-image-form 
-   ;;(escape-string (namestring (merge-pathnames *buildpath* (target node))))))
    (escape-string (namestring (dump-path node)))))
 
 (defmethod form-string-for-node ((node source-file-node))
   (let ((source-file-path (escape-string (namestring (source-filepath node)))))
-                                                     #|(merge-pathnames 
-                                                      (target node) 
-                                                      *buildpath*)))))|#
     (if *use-cfasls*
       (format nil 
               "#+cfasls (cl:compile-file \\\"~a\\\" ~
@@ -146,36 +142,21 @@ action that the node represents"))
       (format nil "(cl:compile-file \\\"~a\\\")"
               source-file-path))))
 
-#|(defmethod form-string-for-node ((node cfasl-node))
-  (format nil "#+cfasls (cl:load \"~a\")#-cfasls (progn ~{~@[~a~^ ~]~})"
-          (namestring (merge-pathnames (target node) *buildpath*)) 
-          (mapcar #'form-string-for-node (traverse node :create))))
-          ;(namestring (merge-pathnames (target (first (compile-dependencies node))) *buildpath*))))|#
-
 (defmethod form-string-for-node ((node fasl-node))
   (format nil 
           "(cl:load \\\"~a\\\")" 
           (make-pathname 
            :type "${FASL}"                         
            :defaults (escape-string (namestring (source-filepath node))))))
-                                                   #|(merge-pathnames 
-                                                    (target node) 
-                                                    *buildpath*))))))|#
 
 (defmethod form-string-for-node ((node cfasl-node))
   (let ((source-file-path (escape-string (namestring (source-filepath node)))))
-           #|(merge-pathnames 
-            (target (first (compile-dependencies node))) 
-            *buildpath*)))))|#
     (if *use-cfasls*
       (format nil 
               "#+cfasls (cl:load \\\"~a\\\")#-cfasls (cl:compile-file \\\"~a\\\")"
               (make-pathname :type "${CFASL}" 
                              :defaults (escape-string (namestring 
                                                        (source-filepath node))))
-                                                       #|(merge-pathnames 
-                                                        (target node) 
-                                                        *buildpath*))))|#
               source-file-path)              
       (format nil "(cl:compile-file \"~a\")"
               source-file-path))))
@@ -191,10 +172,9 @@ action that the node represents"))
   (let* ((traversal (traverse node operation)))
     (format nil "${~:[LISPRUN~;CWBRLRUN~]} \"~a\"" 
             *build-requires-p* 
-            ;(escape-string
             (format nil "(progn ~{~@[~a~^ ~]~} ~a)"
                     (mapcar #'form-string-for-node traversal) 
-                    (quit-form)))));)
+                    (quit-form)))))
 
 
 (defgeneric write-node-to-makefile (filestream node)
@@ -223,21 +203,18 @@ given node"))
       (format filestream "~a : ~{~a~^ ~}~%" 
               target
               (mapcar #'target-for-node (traverse node :create)))
-      ;;(mapcar #'target (traverse node :create)))
       (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create)))))
 
 (defmethod write-node-to-makefile (filestream (node image-dump-node))
   (format filestream "~a : ~{~a~^ ~}~%" 
           (target-for-node node) 
           (mapcar #'target-for-node (traverse node :load)))
-          ;(mapcar #'target (traverse node :load)))
   (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create)))
 
 (defmethod write-node-to-makefile (filestream (node lisp-node))
   (format filestream ".PHONY: ~a~%~:*~a : ~{~a~^ ~}~%" 
           (target-for-node node)
           (mapcar #'target-for-node (traverse node :create)))
-          ;(mapcar #'target (traverse node :create)))
   (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create)))
 
 (defmethod write-node-to-makefile (filestream (node asdf-system-node))
@@ -247,7 +224,6 @@ given node"))
     (setf (gethash (fullname node) *written-nodes*) nil)
     (format filestream ".PHONY: ~a~%~:*~a : ~%" (target-for-node node))
     (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :load))))
-;    (format filestream ".PHONY: ~a~%~%" (target node))))
   
 (defmethod write-node-to-makefile (filestream node)
   (declare (ignore filestream node)))
@@ -315,27 +291,7 @@ then echo force ; fi )~%~%force : ~%.PHONY: force~%~%"
     (with-open-file (out (merge-pathnames makefile-name output-path) 
                          :direction :output 
                          :if-exists :supersede)
-      ;;(setf *build-requires-p* nil)
       (makefile-setup output-path out)
       (dolist (node all-nodes) (write-node-to-makefile out node))
       (format out "~@[~{~a~^ ~} : core-with-build-requires.core-xcvb~%~]" 
               *targets-dependent-on-cwbrl*))))
-
-
-
-
-#|(defun write-makefile (source-path output-path &optional (graph-type :image-dump))
-  "Writes a makefile to output-path with information about how to compile the file at source-path.  What the makefile is designed to do can be specified by graph-type" 
-  (with-open-file (out output-path :direction :output :if-exists :supersede)
-    (let ((dependency-graph
-           (case graph-type
-             (:image-dump (create-dump-image-graph 
-                           (make-pathname :name "lisp-image" :type "core" :defaults output-path) source-path))
-             (otherwise (error "Unknown graph-type")))))
-      (let ((*written-nodes* (make-hash-table :test #'equal))
-            (all-nodes (traverse dependency-graph :all))
-            (*targets-dependent-on-cwbrl* nil))
-        (setf *build-requires-p* nil)
-        (makefile-setup output-path out)
-        (dolist (node all-nodes) (write-node-to-makefile out node))
-        (format out "~@[~{~a~^ ~} : core-with-build-requires.core-xcvb~%~]" *targets-dependent-on-cwbrl*)))))|#
