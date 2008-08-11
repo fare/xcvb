@@ -1,8 +1,8 @@
 (in-package :xcvb)
 
 (defparameter *build-requires-p* nil
-  "Flag to specify if the build module's build-requires slot has been set - and
- therefore whether or not to have a core-with-build-requires.core-xcvb target")
+  "Flag to specify if the build module's build-requires slot has been set - and 
+therefore whether or not to have a core-with-build-requires.core-xcvb target")
 (defvar *written-nodes* nil "A map of the nodes that have already been written 
 to the makefile, to avoid writing any node twice")
 (defvar *targets-dependent-on-cwbrl* nil "A list of the makefile targets that 
@@ -11,30 +11,6 @@ have a dependency on the core-with-build-requires.core-xcvb target")
 to. The Makefile targets will be relative to this path.  It has already been 
 escaped for the shell and for a Makefile")
 
-(defgeneric target-for-node (node)
-  (:documentation "stuff"))
-
-(defmethod target-for-node ((node fasl-or-cfasl-node))
-  (enough-namestring
-   (make-pathname 
-    :type "${FASL}" 
-    :defaults (escaped-source-filepath node))
-   *escaped-output-path*))
-
-(defmethod target-for-node ((node source-file-node))
-  (enough-namestring
-   (escaped-source-filepath node)
-   *escaped-output-path*))
-
-(defmethod target-for-node ((node image-dump-node))
-  (enough-namestring (escape-string (namestring (dump-path node))) 
-                     *escaped-output-path*))
-
-(defmethod target-for-node ((node asdf-system-node))
-  (fullname node))
-
-(defmethod target-for-node ((node lisp-node))
-  "all")
 
 (defun escape-string-for-Makefile (string)
   "Takes a string and excapes all the characters that need to be to be put into 
@@ -116,6 +92,31 @@ running a shell command in a makefile"
             (T nil))
           (mapcar #'escape-string lisp-options)
           "--eval"))
+
+(defgeneric target-for-node (node)
+  (:documentation "Returns the name of the makefile target for the given node"))
+
+(defmethod target-for-node ((node fasl-or-cfasl-node))
+  (enough-namestring
+   (make-pathname 
+    :type "${FASL}" 
+    :defaults (escaped-source-filepath node))
+   *escaped-output-path*))
+
+(defmethod target-for-node ((node source-file-node))
+  (enough-namestring
+   (escaped-source-filepath node)
+   *escaped-output-path*))
+
+(defmethod target-for-node ((node image-dump-node))
+  (enough-namestring (escape-string (namestring (dump-path node))) 
+                     *escaped-output-path*))
+
+(defmethod target-for-node ((node asdf-system-node))
+  (fullname node))
+
+(defmethod target-for-node ((node lisp-node))
+  "all")
 
 
 (defgeneric form-string-for-node (node)
