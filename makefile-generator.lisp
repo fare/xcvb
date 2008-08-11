@@ -18,13 +18,12 @@ escaped for the shell and for a Makefile")
   (enough-namestring
    (make-pathname 
     :type "${FASL}" 
-    :defaults (escape-string (namestring 
-                              (source-filepath node))))
+    :defaults (escaped-source-filepath node))
    *escaped-output-path*))
 
 (defmethod target-for-node ((node source-file-node))
   (enough-namestring
-   (escape-string (namestring (source-filepath node)))
+   (escaped-source-filepath node)
    *escaped-output-path*))
 
 (defmethod target-for-node ((node image-dump-node))
@@ -133,33 +132,30 @@ action that the node represents"))
    (escape-string (namestring (dump-path node)))))
 
 (defmethod form-string-for-node ((node source-file-node))
-  (let ((source-file-path (escape-string (namestring (source-filepath node)))))
-    (if *use-cfasls*
-      (format nil 
-              "#+cfasls (cl:compile-file \\\"~a\\\" ~
+  (if *use-cfasls*
+    (format nil 
+            "#+cfasls (cl:compile-file \\\"~a\\\" ~
 :emit-cfasl T)#-cfasls (cl:compile-file \\\"~:*~a\\\")" 
-              source-file-path)
-      (format nil "(cl:compile-file \\\"~a\\\")"
-              source-file-path))))
+            (escaped-source-filepath node))
+    (format nil "(cl:compile-file \\\"~a\\\")"
+            (escaped-source-filepath node))))
 
 (defmethod form-string-for-node ((node fasl-node))
   (format nil 
           "(cl:load \\\"~a\\\")" 
           (make-pathname 
            :type "${FASL}"                         
-           :defaults (escape-string (namestring (source-filepath node))))))
+           :defaults (escaped-source-filepath node))))
 
 (defmethod form-string-for-node ((node cfasl-node))
-  (let ((source-file-path (escape-string (namestring (source-filepath node)))))
-    (if *use-cfasls*
-      (format nil 
-              "#+cfasls (cl:load \\\"~a\\\")#-cfasls (cl:compile-file \\\"~a\\\")"
-              (make-pathname :type "${CFASL}" 
-                             :defaults (escape-string (namestring 
-                                                       (source-filepath node))))
-              source-file-path)              
-      (format nil "(cl:compile-file \"~a\")"
-              source-file-path))))
+  (if *use-cfasls*
+    (format nil 
+            "#+cfasls (cl:load \\\"~a\\\")#-cfasls (cl:compile-file \\\"~a\\\")"
+            (make-pathname :type "${CFASL}" 
+                           :defaults (escaped-source-filepath node))
+            (escaped-source-filepath node))
+    (format nil "(cl:compile-file \"~a\")"
+            (escaped-source-filepath node))))
 
 
 (defmethod form-string-for-node ((node dependency-graph-node))

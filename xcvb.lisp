@@ -241,7 +241,15 @@ leading to this node from other nodes with crypto hash values, e.g.
 
 (defclass file-node (dependency-graph-node) 
   ((source-filepath 
-    :initarg :source-filepath :initform nil :reader source-filepath)))
+    :initarg :source-filepath 
+    :initform (error "Must supply source-filepath") 
+    :reader source-filepath)
+   (escaped-source-filepath
+    :reader escaped-source-filepath)))
+
+(defmethod initialize-instance :after ((node file-node) &key)
+  (setf (slot-value node 'escaped-source-filepath)
+        (escape-string (namestring (source-filepath node)))))
 
 (defclass source-file-node (file-node) ())
 
