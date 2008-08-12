@@ -69,6 +69,15 @@ declared in")
     :initarg :extension-forms :initform nil :accessor extension-forms
     :documentation "extension forms!")))
 
+(defmethod initialize-instance :after ((module concrete-module) &key depends-on)
+  (if depends-on
+    (with-slots (compile-depends-on load-depends-on) module
+      (setf compile-depends-on 
+            (append compile-depends-on 
+                    (mapcar (lambda (dep) (list :compile dep)) 
+                            depends-on)))
+      (setf load-depends-on (append load-depends-on depends-on)))))
+
 (defclass build-module (concrete-module)
   ((build-requires
     :initarg :build-requires :accessor build-requires :initform nil
@@ -100,6 +109,7 @@ thus far"
                              description
                              long-description
                              compile-depends-on
+                             depends-on
                              load-depends-on) 
                        &rest extension-forms) form
     (unless (eql module-decl 'xcvb:module)
@@ -119,6 +129,7 @@ thus far"
              :long-description long-description
              :compile-depends-on compile-depends-on
              :load-depends-on load-depends-on
+             :depends-on depends-on
              :extension-forms extension-forms)))
       module)))
 
@@ -253,12 +264,11 @@ leading to this node from other nodes with crypto hash values, e.g.
 
 (defclass source-file-node (file-node) ())
 
-;; TODO: rename to object-file-node ?
-(defclass fasl-or-cfasl-node (dependency-graph-node-with-dependencies file-node) ())
+(defclass object-file-node (dependency-graph-node-with-dependencies file-node) ())
 
-(defclass fasl-node (fasl-or-cfasl-node) ())
+(defclass fasl-node (object-file-node) ())
 
-(defclass cfasl-node (fasl-or-cfasl-node) ())
+(defclass cfasl-node (object-file-node) ())
 
 (defclass image-dump-node (dependency-graph-node)
   ((lisp-image :initarg :lisp-image :initform nil :reader lisp-image)
@@ -298,7 +308,8 @@ the right type, so that they can detect and handle dependency cycles properly."
        dep 
        previous-nodes-map 
        previous-nodes-list))
-    (create-fasl-node (module-from-name dependency) previous-nodes-map previous-nodes-list)))
+    (create-dependency-node-from-type :load dependency previous-nodes-map previous-nodes-list)))
+    ;;(create-fasl-node (module-from-name dependency) previous-nodes-map previous-nodes-list)))
 
 (defgeneric create-dependency-node-from-type (dependency-type dependency-name previous-nodes-map previous-nodes-list)
   (:documentation "Takes a symbol specifying the type of the dependency and a 
@@ -306,6 +317,14 @@ string specifying its name, and creates the dependency-graph-node of the proper
 type.  It also needs the map of previous nodes and the list of previous nodes 
 to pass on to the functions that actually create the nodes of the right type, 
 so that they can detect and handle dependency cycles properly."))
+
+(defmethod create-dependency-node-from-type ((dependency-type (eql :load)) 
+                                             dependency-name 
+                                             previous-nodes-map 
+                                             previous-nodes-list)
+  (create-fasl-node (module-from-name dependency-name)
+                     previous-nodes-map
+                     previous-nodes-list))
 
 (defmethod create-dependency-node-from-type ((dependency-type (eql :compile)) 
                                              dependency-name 
@@ -410,7 +429,10 @@ cycle"
     (lambda (,previous-nodes-list) ,@body)))
 
 
-(defun set-fasl-node-dependencies (fasl-node module previous-nodes-map previous-nodes-list)
+(defun set-fasl-node-dependencies (fasl-node 
+                                   module 
+                                   previous-nodes-map 
+                                   previous-nodes-list)
    "This function takes a fasl-node and its module and builds nodes for all of 
 that module's dependencies, and adds them as dependencies of the fasl-node"
   (add-dependencies fasl-node (mapcar
@@ -428,7 +450,10 @@ that module's dependencies, and adds them as dependencies of the fasl-node"
   ;;Add dependency on the lisp source file
   (add-dependency fasl-node (create-source-file-node module) :type :compile))
 
-(defun set-cfasl-node-dependencies (cfasl-node module previous-nodes-map previous-nodes-list)
+(defun set-cfasl-node-dependencies (cfasl-node 
+                                    module 
+                                    previous-nodes-map 
+                                    previous-nodes-list)
   "This function takes a cfasl-node and its module and builds nodes for all of 
 that module's dependencies, and adds them as dependencies of the cfasl-node"
   (let ((dependencies (mapcar
@@ -483,11 +508,13 @@ builds dependency-graph-nodes for any of its dependencies."
 
 ;TODO switch the order of these parameters
 (defun create-dump-image-graph (imagepath sourcepath) 
-  "Constructs a dependency graph to dump a lisp image at imagepath with the lisp file at sourcepath loaded"
+  "Constructs a dependency graph to dump a lisp image at imagepath with the 
+lisp file at sourcepath loaded"
   (create-image-dump-node (create-dependency-graph sourcepath) imagepath))
 
 (defun create-dependency-graph (sourcepath)
-  "Constructs a dependency graph with a fasl-node for the lisp file at sourcepath as the root of the graph.  If build-for-asdf is non-nil, then the graph will be build with all dependencies being treated as load dependencies"
+  "Constructs a dependency graph with a fasl-node for the lisp file at 
+sourcepath as the root of the graph."
   (setf *node-map* (make-hash-table :test #'equal))
   (setf *module-map* (make-hash-table :test #'equal))
   (let ((build-file-path (find-build-file (pathname sourcepath))))

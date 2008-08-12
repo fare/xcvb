@@ -96,7 +96,7 @@ running a shell command in a makefile"
 (defgeneric target-for-node (node)
   (:documentation "Returns the name of the makefile target for the given node"))
 
-(defmethod target-for-node ((node fasl-or-cfasl-node))
+(defmethod target-for-node ((node object-file-node))
   (enough-namestring
    (make-pathname 
     :type "${FASL}" 
@@ -179,7 +179,7 @@ action that the node represents"))
 given node"))
   
 
-(defmethod write-node-to-makefile (filestream (node fasl-or-cfasl-node))
+(defmethod write-node-to-makefile (filestream (node object-file-node))
   (format T "writing (c)fasl node: ~a~%" (fullname node))
   ;;If this node has already been written to the makefile, don't write it again.
   (unless (or (nth-value 1 (gethash 

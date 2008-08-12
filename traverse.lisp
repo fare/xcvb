@@ -23,7 +23,7 @@
 
 
 
-(defmethod traverse-internal ((node fasl-or-cfasl-node) (operation (eql :create)) visited-nodes-map)
+(defmethod traverse-internal ((node object-file-node) (operation (eql :create)) visited-nodes-map)
   (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
     (setf (gethash (fullname node) visited-nodes-map) T)
     (reduce (lambda (dep rest) 
@@ -48,7 +48,7 @@
 (defmethod traverse-internal ((node image-dump-node) (operation (eql :load)) visited-nodes-map)
   (traverse-internal (lisp-image node) :load visited-nodes-map))
 
-(defmethod traverse-internal ((node fasl-or-cfasl-node) (operation (eql :load)) visited-nodes-map)
+(defmethod traverse-internal ((node object-file-node) (operation (eql :load)) visited-nodes-map)
   (unless (nth-value 1 (gethash (fullname node) visited-nodes-map))
     (setf (gethash (fullname node) visited-nodes-map) T)
     (cons node (reduce (lambda (dep rest) 
@@ -87,7 +87,7 @@
 
 
 
-(defmethod traverse-internal ((node lisp-node) (operation (eql :create-with-cfasls)) visited-nodes-map)
+#|(defmethod traverse-internal ((node lisp-node) (operation (eql :create-with-cfasls)) visited-nodes-map)
   (reduce (lambda (dep rest) (nconc (traverse-internal dep :load-with-cfasls visited-nodes-map) rest)) (compile-dependencies node) :from-end T :initial-value nil))
 
 
@@ -140,3 +140,4 @@
             (compile-dependencies node) 
             :from-end T 
             :initial-value nil)))
+|#

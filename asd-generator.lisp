@@ -70,7 +70,7 @@ its dependencies depend on)"))
   (dolist (dependency (nconc (compile-dependencies node) (load-dependencies node))) 
     (write-node-to-asd-file filestream dependency)))
 
-(defmethod write-node-to-asd-file (filestream (node fasl-or-cfasl-node))
+(defmethod write-node-to-asd-file (filestream (node object-file-node))
   (let ((written-nodes (if *writing-build-requires-module* *build-requires-written-nodes* *main-files-written-nodes*)))
     (unless (or (nth-value 1 (gethash (namestring (make-pathname :type "fasl" :defaults (fullname node))) 
                                       written-nodes))
@@ -90,7 +90,7 @@ its dependencies depend on)"))
                 (namestring (make-pathname :type nil :defaults (enough-namestring (source-filepath node) *buildpath*))) ;NUN
                 ;(name node)
                 (mapcar (lambda (node) (namestring (make-pathname :type nil :defaults (enough-namestring (source-filepath node) *buildpath*)))) ;NUN 
-                        (remove-if-not (lambda (dep) (typep dep 'fasl-or-cfasl-node)) dependencies)))))))
+                        (remove-if-not (lambda (dep) (typep dep 'object-file-node)) dependencies)))))))
 
 
 (defmethod write-node-to-asd-file (filestream (node dependency-graph-node))

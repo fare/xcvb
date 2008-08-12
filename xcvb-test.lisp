@@ -18,7 +18,7 @@
   
 
 (defmethod write-graph-to-file (filestream (node image-dump-node) tab)
-  (format filestream "~a~a~%" (generate-tab tab) (target node))
+  (format filestream "~a~a~%" (generate-tab tab) (target-for-node node))
   (write-graph-to-file filestream (lisp-image node) (+ tab 1)))
 
 
@@ -45,7 +45,7 @@
   (convert-asdf-system-to-xcvb :quux))
 
 (defun run-tests ()
-  (test1)
+  ;(test1)
   (test2)
   (test3)
   (print-modules))
