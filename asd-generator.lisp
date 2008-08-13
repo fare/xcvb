@@ -9,11 +9,7 @@
 ;;TODO: have an around method for fullnames and visiting stuff.
 
 (defvar *visited-nodes*)
-(defvar *build-requires-written-nodes*)
-(defvar *main-files-written-nodes*)
-(defvar *writing-build-requires-module* nil ;TODO: **-p
-  "")
-(defvar *build-requires-graph*)
+(defvar *written-nodes*)
 
 
 (defun find-asdf-systems (dependency-graph)
@@ -51,7 +47,7 @@ its dependencies depend on)"))
   nil)
 
 
-(defun write-asdf-system-header (filestream dependency-graph &optional (build-module *build-module*))
+(defun write-asdf-system-header (filestream asdf-systems &optional (build-module *build-module*))
   "Writes the information from the build module to the asdf file"
   (let* ((system-name (namestring 
                        (make-pathname :name nil 
@@ -72,12 +68,9 @@ its dependencies depend on)"))
     (format filestream "~2,0T:description ~s~%" (description build-module)))
   (if (long-description build-module)
     (format filestream "~2,0T:long-description ~s~%" (long-description build-module)))
-  (let* ((*visited-nodes* (make-hash-table :test #'equal))
-         (asdf-systems (append
-                        (find-asdf-systems-helper *build-requires-graph*)
-                        (find-asdf-systems dependency-graph))))
-    (if asdf-systems
-      (format filestream "~2,0T:depends-on~a~%" asdf-systems))))
+  (if asdf-systems
+      (format filestream "~2,0T:depends-on~a~%" asdf-systems)))
+    
 
 
 (defgeneric write-node-to-asd-file (filestream node)
@@ -91,42 +84,30 @@ to the filestream that can be put in the components section of an asd file"))
     (write-node-to-asd-file filestream dep)))
 
 (defmethod write-node-to-asd-file (filestream (node object-file-node))
-  (let ((written-nodes
-         (if *writing-build-requires-module*
-           *build-requires-written-nodes*
-           *main-files-written-nodes*)))
-    (unless (or (gethash (namestring (make-pathname :type "fasl" 
-                                                    :defaults (fullname node)))
-                         written-nodes) ;NUN
-                (gethash (namestring (make-pathname :type "cfasl" 
-                                                    :defaults (fullname node)))
-                         written-nodes));If this node has already been written to the makefile, don't write it again. ;NUN
-      (setf (gethash (fullname node) written-nodes) t);Add this node to the map of nodes already written to the makefile
-      (let ((dependencies 
-             (if *writing-build-requires-module*
-               (nunion (rest (compile-dependencies node)) 
-                       (load-dependencies node))
-               (remove-if
-                (lambda (dep) 
-                  (gethash (fullname dep) *build-requires-written-nodes*))
-                (nunion (rest (compile-dependencies node)) 
-                        (load-dependencies node))))))
-        (when dependencies
-          (dolist (dep dependencies)
-            (write-node-to-asd-file filestream dep)))
-        (format filestream "~13,0T(:file ~s~@[ :depends-on ~s~])~%"
-                (namestring (make-pathname 
-                             :type nil 
-                             :defaults (enough-namestring (source-filepath node)
-                                                          *buildpath*))) ;NUN
-                (mapcar 
-                 (lambda (node) (namestring (make-pathname 
-                                             :type nil 
-                                             :defaults (enough-namestring 
-                                                        (source-filepath node) 
-                                                        *buildpath*)))) ;NUN
-                 (remove-if-not (lambda (dep) (typep dep 'object-file-node)) 
-                                dependencies)))))))
+  (unless (or (gethash (namestring (make-pathname :type "fasl" 
+                                                  :defaults (fullname node)))
+                       *written-nodes*) ;NUN
+              (gethash (namestring (make-pathname :type "cfasl" 
+                                                  :defaults (fullname node)))
+                       *written-nodes*));If this node has already been written to the makefile, don't write it again. ;NUN
+    (setf (gethash (fullname node) *written-nodes*) t);Add this node to the map of nodes already written to the makefile
+    (let ((dependencies (union (rest (compile-dependencies node))
+                               (load-dependencies node))))
+      (dolist (dep dependencies)
+        (write-node-to-asd-file filestream dep))
+      (format filestream "~13,0T(:file ~s~@[ :depends-on ~s~])~%"
+              (namestring (make-pathname 
+                           :type nil 
+                           :defaults (enough-namestring (source-filepath node)
+                                                        *buildpath*))) ;NUN
+              (mapcar 
+               (lambda (node) (namestring (make-pathname 
+                                           :type nil 
+                                           :defaults (enough-namestring 
+                                                      (source-filepath node) 
+                                                      *buildpath*)))) ;NUN
+               (remove-if-not (lambda (dep) (typep dep 'object-file-node)) 
+                              dependencies))))))
 
 
 (defmethod write-node-to-asd-file (filestream (node dependency-graph-node))
@@ -136,22 +117,24 @@ to the filestream that can be put in the components section of an asd file"))
 (defun write-asd-file (source-path output-path)
   "Writes an asd file to output-path that can be used to compile the file at source-path with asdf"
   (with-open-file (out output-path :direction :output :if-exists :supersede)
-    (let ((*build-requires-written-nodes* (make-hash-table :test #'equal))
-          (*main-files-written-nodes* (make-hash-table :test #'equal))
-          (dependency-graph (create-dependency-graph source-path))
-          (*build-requires-graph* (create-lisp-node 
-                                   (build-requires *build-module*))))
-      (write-asdf-system-header out dependency-graph)
-      (let ((*writing-build-requires-module* T))
-        (format out 
-                "~2,0T:components~%~2,0T((:module \"build-requires-files\"~%~
+    (let* ((dependency-graph (create-dependency-graph source-path))
+          (build-requires-graph (create-lisp-node 
+                                   (build-requires *build-module*)))
+          (*visited-nodes* (make-hash-table :test #'equal))
+          (asdf-systems (append
+                         (find-asdf-systems-helper build-requires-graph)
+                         (find-asdf-systems dependency-graph))))
+      (write-asdf-system-header out asdf-systems)
+      (format out 
+              "~2,0T:components~%~2,0T((:module \"build-requires-files\"~%~
 ~12,0T:pathname #p\".\"~%~12,0T:components~%~12,0T(")
-        (write-node-to-asd-file out *build-requires-graph*))
-      (let ((*writing-build-requires-module* nil))
-        (format out 
-                "~12,0T))~%~3,0T(:module \"main-files\"~%~
+      (let ((*written-nodes* (make-hash-table :test #'equal)))
+        (write-node-to-asd-file out build-requires-graph))
+      (format out 
+              "~12,0T))~%~3,0T(:module \"main-files\"~%~
 ~12,0T:pathname #p\".\"~%~12,0T:depends-on(\"build-requires-files\")~%~
 ~12,0T:components~%~12,0T(")
+      (let ((*written-nodes* (make-hash-table :test #'equal)))
         (write-node-to-asd-file out dependency-graph))
       (let* ((system-name (namestring ;NUN
                            (make-pathname :name nil 

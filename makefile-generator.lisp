@@ -184,12 +184,12 @@ given node"))
   ;;If this node has already been written to the makefile, don't write it again.
   (unless (or (nth-value 1 (gethash 
                             (namestring (make-pathname 
-                                         :type "${FASL}" 
+                                         :type "fasl" 
                                          :defaults (fullname node))) 
                             *written-nodes*))
               (nth-value 1 (gethash 
                             (namestring (make-pathname 
-                                         :type "${CFASL}" 
+                                         :type "cfasl" 
                                          :defaults (fullname node))) 
                             *written-nodes*)))
     ;;Add this node to the map of nodes already written to the makefile

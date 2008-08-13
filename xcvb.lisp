@@ -436,9 +436,9 @@ root as the dependency graph unless there is a dump-image node above it."
     (error 'dependency-cycle
            :format-control "Dependency cycle found: ~s"
            :format-arguments (list (cons fullname previous-nodes-list))))
-  (when (and (string-equal (pathname-type fullname) "${FASL}")
+  (when (and (string-equal (pathname-type fullname) "fasl")
              (nth-value 1 (gethash
-                           (make-pathname :type "${CFASL}" :defaults fullname)
+                           (make-pathname :type "cfasl" :defaults fullname)
                            previous-nodes-map)))
     (error 'dependency-cycle
             :format-control "Dependency cycle found, compiling a file cannot
@@ -508,7 +508,7 @@ that module's dependencies, and adds them as dependencies of the cfasl-node"
   "This function constructs a fasl-node in the dependency graph.  It also
 builds dependency-graph-nodes for any of its dependencies."
   (let ((fullname (namestring ;NUN
-                   (make-pathname :type "${FASL}" :defaults (fullname module)))))
+                   (make-pathname :type "fasl" :defaults (fullname module)))))
     ;(format T "building fasl file node with name: ~a.~%" fullname)
     (with-catching-dependency-cycle
         (fullname previous-nodes-map previous-nodes-list)
@@ -527,7 +527,7 @@ builds dependency-graph-nodes for any of its dependencies."
 (defun create-cfasl-node (module previous-nodes-map previous-nodes-list)
   "This function constructs a cfasl-node in the dependency graph.  It also builds dependency-graph-nodes for any of its dependencies."
   (let ((fullname (namestring ;NUN
-                   (make-pathname :type "${CFASL}" :defaults (fullname module)))))
+                   (make-pathname :type "cfasl" :defaults (fullname module)))))
     ;(format T "building cfasl file node with name: ~a.~%" fullname)
     (with-catching-dependency-cycle
         (fullname previous-nodes-map previous-nodes-list)
