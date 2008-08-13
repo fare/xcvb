@@ -10,12 +10,12 @@
 
 (defun pathname-parent (pathname)
   "Takes a pathname and returns the pathname of the parent directory of the directory of the given pathname"
-  (cond 
+  (cond
     ((null pathname) nil)
     ((equal (pathname-directory pathname) '(:absolute)) (make-pathname :directory '(:absolute)))
     (t (merge-pathnames (make-pathname :directory '(:relative :up)) (make-pathname :name nil :type nil :defaults pathname) nil))))
 
-  #|(if (null pathname) 
+  #|(if (null pathname)
     nil
     (let ((dir (pathname-directory pathname)))
       (make-pathname :directory (subseq dir 0 (- (length dir) 1)) :name nil :type nil :defaults pathname))))|#

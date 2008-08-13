@@ -2,7 +2,7 @@
   :description "package for XCVB")|#
 
 (cl:defpackage :xcvb
-  (:use :cl) 
+  (:use :cl)
   (:export
      #:module
      #:module-declaration;
@@ -14,4 +14,3 @@
      #:run-converter-tests
      #:asdf-systems-are-up-to-date-p
      #:quit-form))
- 
