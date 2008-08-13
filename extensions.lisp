@@ -31,23 +31,15 @@ to that module"
     (ecase dep-type
       (:compile-depends-on
          (setf compile-depends-on
-               (remove-duplicates (append compile-depends-on deps)
-                                  :test #'equal
-                                  :from-end T)))
+               (append compile-depends-on deps)))               
       (:load-depends-on
          (setf load-depends-on
-               (remove-duplicates (append load-depends-on deps)
-                                  :test #'equal
-                                  :from-end T)))
+               (append load-depends-on deps)))               
       (:compile-and-load-depends-on
          (setf compile-depends-on
-               (remove-duplicates (append compile-depends-on deps)
-                                  :test #'equal
-                                  :from-end T))
+               (append compile-depends-on deps))
          (setf load-depends-on
-               (remove-duplicates (append load-depends-on deps)
-                                  :test #'equal
-                                  :from-end T))))))
+               (append load-depends-on deps))))))
 
 
 

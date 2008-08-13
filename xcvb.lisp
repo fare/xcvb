@@ -296,8 +296,8 @@ leading to this node from other nodes with crypto hash values, e.g.
                            (dependency dependency-graph-node)
                            &key type)
   (case type
-    (:load (pushnew dependency (load-dependencies node)))
-    (:compile (pushnew dependency (compile-dependencies node)))
+    (:load (push dependency (load-dependencies node)))
+    (:compile (push dependency (compile-dependencies node)))
     (otherwise (error "Invalid type of dependency.
 Must be either :compile or :load"))))
 
