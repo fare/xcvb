@@ -9,8 +9,6 @@
 
 ;; TODO: make it 80-column friendly
 
-;; TODO: rename lisp-node in lisp-image-node
-
 (defparameter *module-map* nil
   "Map of all module objects made thus far to
    prevent recreating the same module twice")
@@ -225,7 +223,7 @@ Throws an error if no BUILD.lisp file with a fullname is found"
 (defclass dependency-graph-node ()
   ((fullname
     :initarg :fullname :initform nil :accessor fullname
-    :documentation "abstract name for the intention in the node,
+    :documentation "abstract name for the intention of the node,
 e.g. //xcvb-test/foo/bar/quux.fasl") ;TODO
    (long-name
     :initarg :long-name :reader long-name
@@ -249,7 +247,7 @@ leading to this node from other nodes with crypto hash values, e.g.
    (load-dependencies
     :initarg :load-dependencies :initform nil :accessor load-dependencies)))
 
-(defclass lisp-node (dependency-graph-node-with-dependencies) ())
+(defclass lisp-image-node (dependency-graph-node-with-dependencies) ())
 
 (defclass file-node (dependency-graph-node)
   ((source-filepath
@@ -267,6 +265,15 @@ leading to this node from other nodes with crypto hash values, e.g.
 
 (defclass object-file-node (dependency-graph-node-with-dependencies file-node) ())
 
+;;;NOTE:
+;;; Currently this is non-functional, because
+;;; -1- we don't have access to the target lisp's configuration at this point,
+;;; so we don't know whether or not it will have CFASLs
+;;; -2- we haven't implemented a facility to duplicate the work in the Makefile
+;;; based on a conditional, either.
+;;; But ultimately, we'd like to be able to declare that a component may depend
+;;; on either the cfasl or the fasl for the specified dependency,
+;;; whichever is available and more practical.
 (defclass cfasl-or-fasl-node ();;TODO figure out inheritance
   ((fasl-node
     :initarg :fasl-node
@@ -320,8 +327,7 @@ the right type, so that they can detect and handle dependency cycles properly."
        previous-nodes-map
        previous-nodes-list))
     (create-dependency-node-from-type :load dependency previous-nodes-map previous-nodes-list)))
-    ;;(create-fasl-node (module-from-name dependency) previous-nodes-map previous-nodes-list)))
-
+   
 (defgeneric create-dependency-node-from-type (dependency-type dependency-name previous-nodes-map previous-nodes-list)
   (:documentation "Takes a symbol specifying the type of the dependency and a
 string specifying its name, and creates the dependency-graph-node of the proper
@@ -345,14 +351,8 @@ so that they can detect and handle dependency cycles properly."))
                      previous-nodes-map
                      previous-nodes-list))
 
-;;; Currently this is non-functional, because
-;;; -1- we don't have access to the target lisp's configuration at this point,
-;;; so we don't know whether or not it will have CFASLs
-;;; -2- we haven't implemented a facility to duplicate the work in the Makefile
-;;; based on a conditional, either.
-;;; But ultimately, we'd like to be able to declare that a component may depend
-;;; on either the cfasl or the fasl for the specified dependency,
-;;; whichever is available and more practical.
+;;NOTE - This should currently never be used.  cfasl-or-fasl node functionality 
+;;has not yet been implemented
 (defmethod create-dependency-node-from-type ((dependency-type
                                               (eql :cfasl-or-fasl))
                                              dependency-name
@@ -376,8 +376,8 @@ so that they can detect and handle dependency cycles properly."))
 ;; = have a root node for the dependency DAG
 ;; maybe get rid of it? or rename it as root node of the whole graph
 ;; (why need a root instead of say iterating on the DAG?)
-(defun create-lisp-node (dependencies &optional name)
-  "This function constructs a lisp-node in the dependency graph
+(defun create-lisp-image-node (dependencies &optional name)
+  "This function constructs a lisp-image-node in the dependency graph
 for a lisp with the given dependencies loaded.  This is used as the
 root as the dependency graph unless there is a dump-image node above it."
   (let ((previous-nodes-map (make-hash-table :test #'equal))
@@ -395,10 +395,10 @@ root as the dependency graph unless there is a dump-image node above it."
              (fullname (or name
                            (format nil "//lisp-image/~{~A~^//~}"
                                    (mapcar #'fullname dependencies))))
-             (lisp-node (make-instance 'lisp-node
+             (lisp-image-node (make-instance 'lisp-image-node
                           :fullname fullname
                           :compile-dependencies (reverse dependencies))))
-        lisp-node))))
+        lisp-image-node))))
 
 
 (defun create-source-file-node (module)
@@ -418,15 +418,15 @@ root as the dependency graph unless there is a dump-image node above it."
     (or (gethash fullname *node-map*)
         (setf (gethash fullname *node-map*)
               (make-instance 'asdf-system-node
-                :name system-name
+                :name (coerce-asdf-system-name system-name)
                 :fullname fullname)))))
 
 
-(defun create-image-dump-node (lisp-node dump-path)
-  "This function constructs an image-dump-node in the dependency graph, which is designed to dump an image of the lisp state described by lisp-node"
+(defun create-image-dump-node (lisp-image-node dump-path)
+  "This function constructs an image-dump-node in the dependency graph, which is designed to dump an image of the lisp state described by lisp-image-node"
   (make-instance 'image-dump-node
     :dump-path dump-path
-    :lisp-image lisp-node
+    :lisp-image lisp-image-node
     :fullname (format nil "//image-dump/~a" dump-path)))
 
 
@@ -543,14 +543,13 @@ builds dependency-graph-nodes for any of its dependencies."
               (setf (gethash fullname *node-map*) cfasl-node)))))))
 
 
-;TODO switch the order of these parameters
 (defun create-dump-image-graph (imagepath sourcepath)
   "Constructs a dependency graph to dump a lisp image at imagepath with the
 lisp file at sourcepath loaded"
   (create-image-dump-node (create-dependency-graph sourcepath) imagepath))
 
 (defun create-dependency-graph (sourcepath)
-  "Constructs a dependency graph with a lisp-node for a lisp image
+  "Constructs a dependency graph with a lisp-image-node for a lisp image
 with the given lisp file loaded as the root of the graph."
   (setf *node-map* (make-hash-table :test #'equal))
   (setf *module-map* (make-hash-table :test #'equal))
@@ -558,5 +557,5 @@ with the given lisp file loaded as the root of the graph."
     (setf *buildpath*
           (make-pathname :name nil :type nil :defaults build-file-path))
     (set-build-module build-file-path))
-  (create-lisp-node
+  (create-lisp-image-node
    (list (create-module (pathname sourcepath) :parent-module *build-module*))))
