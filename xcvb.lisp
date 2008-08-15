@@ -92,7 +92,7 @@ operations")))
 
 (defun register-module (module)
   "Adds the given module object to the hashtable containing all the modules
-thus far"
+thus far.  It is keyed both by its fullname and its nickname."
   (unless (null (nickname module))
     (setf (gethash (nickname module) *module-map*) module))
   (setf (gethash (make-fullname-absolute module) *module-map*) module))
@@ -386,13 +386,15 @@ so that they can detect and handle dependency cycles properly."))
                                              previous-nodes-map
                                              previous-nodes-list
                                              &optional old-build-module)
+  (declare (ignore old-build-module))
   (destructuring-bind (dep &optional build-file-path) dependency
     (if (typep dep 'list)
       (destructuring-bind (dep-type dep-name &rest rest) dep
         (let ((build-file-path 
-               (or (merge-pathnames build-file-path (filepath build-module))
-                   (find-build-file 
-                    (merge-pathnames dep-name (filepath build-module))))))
+               (if build-file-path
+                 (merge-pathnames build-file-path (filepath build-module))
+                 (find-build-file  (merge-pathnames dep-name 
+                                                    (filepath build-module))))))
           (create-dependency-node-from-type
            dep-type
            (cons dep-name rest)
@@ -451,6 +453,7 @@ so that they can detect and handle dependency cycles properly."))
                                              previous-nodes-map
                                              previous-nodes-list
                                              &optional old-build-module)
+  (declare (ignore old-build-module))
   (destructuring-bind (dep-name) dependency
     (create-asdf-system-node dep-name)))
 

@@ -5,12 +5,22 @@
   (:use :cl)
   (:export
      #:module
-     #:module-declaration;
-     #:compile-dependencies;
-     #:load-dependencies;
-     #:compile-module;
-     #:load-module;
-     #:run-tests
-     #:run-converter-tests
+     #:create-dependency-graph
+     #:create-dump-image-graph
+     #:defextension
      #:asdf-systems-are-up-to-date-p
-     #:quit-form))
+     #:quit-form
+     #:quit-lisp
+     ;;Main functions for using xcvb
+     #:write-makefile
+     #:write-asd-file
+     #:convert-asdf-system-to-xcvb
+     ;;compiler options
+     #:*lisp-implementation*
+     #:*lisp-executable-pathname*
+     #:*lisp-image-pathname*
+     #:*lisp-options*
+     #:*use-cfasls*
+     ;;Conditions
+     #:no-build-file-found
+     #:dependency-cycle))

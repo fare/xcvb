@@ -84,6 +84,14 @@ after the asdf function coerce-name"
   "cfasl");This is basically a placeholder for now so that cfasl nodes can still have a target in ccl.  In reality, ccl does not yet support cfasls.  If/when it does, this might have to be changed to return the correct extension used by ccl
 |#
 
+(defun quit-lisp (&key exit-status)
+  "Quits from lisp, with the given exit status if provided.  This is designed to
+abstract away the implementation specific quit forms."
+  (when exit-status
+    #+sbcl (sb-ext:quit :unix-status exit-status)
+    #+ccl (ccl:quit exit-status))
+  #+sbcl (sb-ext:quit)
+  #+ccl (ccl:quit))
 
 (defun quit-form (&key exit-status (lisp-implementation *lisp-implementation*))
   "Returns the correct form to quit lisp, based on the value of lisp-implementation.  Can optionally be given a unix status code to exit with"

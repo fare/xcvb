@@ -222,16 +222,16 @@ given node"))
   (declare (ignore filestream node)))
 
 
-(defun makefile-setup (output-path filestream)
+(defun makefile-setup (filestream)
   "Writes information to the top of the makefile about how to actually run lisp
 to compile files, and also how to create an image to use that contains all the
 dependencies from the build-requires slot of the build module loaded"
   (format filestream "LISPRUN := ~a~%~%" (eval-command-string))
-  (let* ((cwbrlpath (escape-string (namestring
-                                    (make-pathname
-                                     :name "core-with-build-requires"
-                                     :type "core-xcvb"
-                                     :defaults output-path))))
+  (let* ((cwbrlpath (namestring
+                     (make-pathname
+                      :name "core-with-build-requires"
+                      :type "core-xcvb"
+                      :defaults *escaped-output-path*)))
          (core-with-build-requires-graph
           (create-image-dump-node (create-lisp-image-node
                                    (pushnew (list :asdf "xcvb")
@@ -283,7 +283,7 @@ then echo force ; fi )~%~%force : ~%.PHONY: force~%~%"
     (with-open-file (out (merge-pathnames makefile-name output-path)
                          :direction :output
                          :if-exists :supersede)
-      (makefile-setup output-path out)
+      (makefile-setup out)
       (dolist (node all-nodes) (write-node-to-makefile out node))
       (format out "~@[~{~a~^ ~} : core-with-build-requires.core-xcvb~%~]"
               *targets-dependent-on-cwbrl*))))

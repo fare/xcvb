@@ -44,7 +44,7 @@ its dependencies depend on)"))
                        (make-pathname :name nil
                                       :type nil
                                       :defaults (fullname build-module)))) ;NUN
-         ;;TODO: document, for it is fragile
+         ;;This is fragile!
          (system-name (subseq system-name 1 (1- (length system-name)))))
     (format filestream "~&(asdf:defsystem :~a~%" system-name))
   (if (author build-module)
@@ -135,6 +135,6 @@ that can be used to compile the file at source-path with asdf"
                            (make-pathname :name nil
                                           :type nil
                                           :defaults (fullname *build-module*))))
-             ;;Document, for it is fragile
+             ;;This is fragile!
              (system-name (subseq system-name 1 (- (length system-name) 1))))
         (format out "~12,0T)))~%~%(cl:pushnew :~a *features*)" system-name)))))
