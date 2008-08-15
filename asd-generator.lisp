@@ -4,6 +4,8 @@
 looking for asdf-systems in the depenency graph")
 (defvar *written-nodes* nil "A map of nodes that have already been written to 
 the asd file.")
+(defvar *output-path* nil "The path that the asd file is being written
+to. All filepaths that show up in the asd file will be relative to this path.")
 
 
 (defgeneric find-asdf-systems (node)
@@ -35,7 +37,8 @@ its dependencies depend on)"))
   nil)
 
 
-(defun write-asdf-system-header (filestream asdf-systems &optional (build-module *build-module*))
+(defun write-asdf-system-header (filestream asdf-systems 
+                                 &optional (build-module *build-module*))
   "Writes the information from the build module to the asdf file"
   (let* ((system-name (namestring
                        (make-pathname :name nil
@@ -55,7 +58,8 @@ its dependencies depend on)"))
   (if (description build-module)
     (format filestream "~2,0T:description ~s~%" (description build-module)))
   (if (long-description build-module)
-    (format filestream "~2,0T:long-description ~s~%" (long-description build-module)))
+    (format filestream "~2,0T:long-description ~s~%" 
+            (long-description build-module)))
   (if asdf-systems
       (format filestream "~2,0T:depends-on (~{:~a~^ ~})~%" asdf-systems)))
 
@@ -87,13 +91,13 @@ to the filestream that can be put in the components section of an asd file"))
               (namestring (make-pathname
                            :type nil
                            :defaults (enough-namestring (source-filepath node)
-                                                        *buildpath*))) ;NUN
+                                                        *output-path*))) ;NUN?
               (mapcar
                (lambda (node) (namestring (make-pathname
                                            :type nil
                                            :defaults (enough-namestring
                                                       (source-filepath node)
-                                                      *buildpath*)))) ;NUN
+                                                      *output-path*)))) ;NUN?
                (remove-if-not (lambda (dep) (typep dep 'object-file-node))
                               dependencies))))))
 
@@ -112,7 +116,8 @@ that can be used to compile the file at source-path with asdf"
            (*visited-nodes* (make-hash-table :test #'equal))
            (asdf-systems (append
                           (find-asdf-systems build-requires-graph)
-                          (find-asdf-systems dependency-graph))))
+                          (find-asdf-systems dependency-graph)))
+           (*output-path* output-path))
       (write-asdf-system-header out asdf-systems)
       (format out
               "~2,0T:components~%~2,0T((:module \"build-requires-files\"~%~
