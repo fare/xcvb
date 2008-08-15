@@ -39,7 +39,7 @@
   (write-asd-file "/home/sbrody/xcvb/test/BUILD.lisp" "/home/sbrody/xcvb/test/ASDFILE.asd"))
 
 (defun test4 ()
-  (format t "~%~{~a~%~}" (mapcar #'fullname (traverse (create-dump-image-graph "/home/sbrody/xcvb/test/IMAGE.img" "/home/sbrody/xcvb/test/BUILD.lisp") :all))))
+  (write-makefile "/home/sbrody/xcvb/test/sub/BUILD.lisp" "/home/sbrody/xcvb/test/sub/"))
 
 (defun convert-quux ()
   (convert-asdf-system-to-xcvb :quux))
@@ -47,7 +47,8 @@
 (defun run-tests ()
   ;(test1)
   (test2)
-  (test3)
+  ;(test3)
+  (test4)
   (print-modules))
 
 (defun compile-quux ()

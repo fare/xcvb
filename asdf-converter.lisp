@@ -170,9 +170,10 @@ form if there is one (but leaving the extension forms)."
                     (enough-namestring
                      (make-pathname :type nil :defaults filepath)
                      (filepath build-module)))))
-    (make-instance 'concrete-module
+    (make-instance 'standard-module
       :fullname fullname
       :filepath filepath
+      :build-module build-module
       :compile-depends-on (if *use-cfasls*
                             (mapcar (lambda (dep) (list :compile dep)) 
                                     dependencies)
