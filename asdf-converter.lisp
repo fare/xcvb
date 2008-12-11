@@ -145,17 +145,22 @@ form if there is one (but leaving the extension forms)."
                    :type "lisp"
                    :defaults (asdf:component-pathname asdf-system))))))
 
+;; Function taken from afuchs' asdf-dependencies-grovel
+(defun components-in-traverse-order (system compspecs
+                                     &optional (traverse-type 'asdf:load-op))
+  (let* ((op (make-instance traverse-type))
+         (opspecs (asdf::traverse op system))
+         (order-table (make-hash-table)))
+    (loop for (op . component) in opspecs
+          for component-index from 0
+          do (setf (gethash component order-table) component-index))
+    (sort compspecs #'<
+          :key (lambda (c) (gethash (first c) order-table -1)))))
+
+
 (defun dependency-sort (components system)
   "Sorts a list of asdf components according to their dependencies."
-  ;;TODO: is this guaranteed to work considering the comparison function
-  ;;is a partial function? Or do we need a more elaborate topological sort?
-  (stable-sort components
-               (lambda (comp1 comp2)
-                 (member comp1
-                         (rest (first (asdf:component-depends-on
-                                       'asdf:compile-op
-                                       (asdf:find-component system comp2))))
-                         :test #'equal))))
+  (components-in-traverse-order system components))
 
 (defun get-module-for-component (asdf-component build-module asdf-system)
   "Returns a module object for the file represented by the given asdf-component"

@@ -11,14 +11,13 @@
 
 
 (asdf:defsystem :xcvb
-    :author "Spencer Brody"
-    :maintainer '("Spencer Brody" "Francois-Rene Rideau")
+    :author ("Spencer Brody" "Francois-Rene Rideau")
+    :maintainer "Francois-Rene Rideau"
     :licence "MIT"
-    :description      "XCVB"
-    :long-description "XCVB: an eXtensible Component Verifier and Builder for 
-Lisp.  XCVB provides a scalable system to build large software in Lisp,
-featuring deterministic separate compilation and enforced locally-declared 
-dependencies."
+    :description "XCVB"
+    :long-description "an eXtensible Component Verifier and Builder for Lisp.
+XCVB provides a scalable system to build large software in Lisp, featuring
+deterministic separate compilation and enforced locally-declared dependencies."
     :components
     ((:file "pkgdcl")
      (:file "extensions" :depends-on ("pkgdcl"))
@@ -27,14 +26,10 @@ dependencies."
      (:file "xcvb" :depends-on ("pkgdcl" "utilities" "extensions"))
      (:file "traverse" :depends-on ("pkgdcl" "xcvb"))
      (:file "asdf-extensions" :depends-on ("utilities"))
-     (:file "makefile-generator" :depends-on ("pkgdcl" 
-                                              "compiler-options"
-                                              "utilities"
-                                              "xcvb"
-                                              "traverse"
-                                              "asdf-extensions"))
+     (:file "makefile-generator" :depends-on
+	    ("pkgdcl" "compiler-options" "utilities"
+	     "xcvb" "traverse" "asdf-extensions"))
      (:file "asd-generator" :depends-on ("pkgdcl" "xcvb" "traverse"))
      (:file "asdf-converter" :depends-on ("pkgdcl" "xcvb"))))
-     
 
 (cl:pushnew :xcvb *features*)
