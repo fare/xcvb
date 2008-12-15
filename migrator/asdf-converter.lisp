@@ -1,4 +1,4 @@
-(in-package :xcvb)
+(in-package :asdf-to-xcvb)
 
 (defun equivalent-deps-p (module)
   "This function takes a module and returns whether or not

@@ -1,14 +1,5 @@
 (in-package :xcvb)
 
-;; TODO: document the non-portable uses of namestrings
-;; as being unix namestrings. Choose a three-letter acronym, eg
-;; NUN (non-portable unix namestring) to tuck as a comment like this
-;;   (enough-namestring fullname1 fullname2) ;NUN
-;; Document that in a documentation file for developers
-;; Have two main documents: one for users, one for developers
-
-;; TODO: make it 80-column friendly
-
 ;; TODO: currently, a referenced file always keeps the build-module
 ;; of the referencing file, unless specified as (:external "foo/bar")
 ;; or as (:external "foo/bar" "path/to/BUILD.lisp")
@@ -28,8 +19,8 @@
   "Map of all the nodes created thus far to
    prevent redundand nodes in the dependency graph")
 (defparameter *build-module* nil
-  "Module object for the nearest surrounding BUILD.lisp file to the initial
-file that is being operated on.")
+  "Module object for the nearest surrounding BUILD.lisp file
+to the initial file that is being operated on.")
 
 (defmacro module (&rest options)
   (declare (ignore options))
@@ -677,3 +668,7 @@ with the given lisp file loaded as the root of the graph."
                                       :build-module-p T))
   (create-lisp-image-node
    (list (create-module (pathname sourcepath) :parent-module *build-module*))))
+
+
+
+(pushnew :xcvb *features*)

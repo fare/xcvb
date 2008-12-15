@@ -21,16 +21,13 @@ deterministic separate compilation and enforced locally-declared dependencies."
     :components
     ((:file "driver")
      (:file "pkgdcl" :depends-on ("driver"))
-     (:file "extensions" :depends-on ("pkgdcl"))
      (:file "compiler-options" :depends-on ("pkgdcl"))
+     (:file "macros" :depends-on ("pkgdcl"))
      (:file "utilities" :depends-on ("pkgdcl" "compiler-options"))
      (:file "xcvb" :depends-on ("pkgdcl" "utilities" "extensions"))
-     (:file "traverse" :depends-on ("pkgdcl" "xcvb"))
-     (:file "asdf-extensions" :depends-on ("utilities"))
+     (:file "traverse" :depends-on ("pkgdcl" "xcvb" "macros"))
+     (:file "extensions" :depends-on ("pkgdcl"))
      (:file "makefile-generator" :depends-on
 	    ("pkgdcl" "compiler-options" "utilities"
-	     "xcvb" "traverse" "asdf-extensions"))
-     (:file "asd-generator" :depends-on ("pkgdcl" "xcvb" "traverse"))
-     (:file "asdf-converter" :depends-on ("pkgdcl" "xcvb"))))
-
-(cl:pushnew :xcvb *features*)
+	     "xcvb" "traverse"))
+     (:file "asd-generator" :depends-on ("pkgdcl" "xcvb" "traverse")))

@@ -33,6 +33,10 @@ Migration from ASDF
 Automate and document in an example how to use asdf-dependency-grovel
 and XCVB together to migrate an existing system from ASDF to XCVB.
 
+Be sure to make it work with the latest version at::
+
+	http://git.boinkor.net/git/asdf-dependency-grovel.git/
+
 
 In-image loading
 ----------------
