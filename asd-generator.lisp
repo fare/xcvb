@@ -1,17 +1,21 @@
 (in-package :xcvb)
 
-(defvar *visited-nodes* nil "A map of nodes that have already been visited when 
-looking for asdf-systems in the depenency graph")
-(defvar *written-nodes* nil "A map of nodes that have already been written to 
-the asd file.")
-(defvar *output-path* nil "The path that the asd file is being written
-to. All filepaths that show up in the asd file will be relative to this path.")
+(defvar *visited-nodes* nil
+  "A map of nodes that have already been visited
+when looking for asdf-systems in the dependency graph")
+
+(defvar *written-nodes* nil
+  "A map of nodes that have already been written to the asd file.")
+
+(defvar *output-path* nil
+  "The path that the asd file is being written to.
+All filepaths that show up in the asd file will be relative to this path.")
 
 
 (defgeneric find-asdf-systems (node)
-  (:documentation "Helper generic function for find-asdf-systems.  Returns a
-list of the names of all the asdf-systems that this node depends on (or any of
-its dependencies depend on)"))
+  (:documentation "Helper generic function for find-asdf-systems.
+Returns a list of the names of all the asdf-systems that this node depends on
+(or that any of its dependencies transitively depends on)"))
 
 (defmethod find-asdf-systems :around ((node dependency-graph-node))
   ;; If this node has already been looked at, don't look at it again.

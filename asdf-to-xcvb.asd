@@ -5,22 +5,21 @@
 ;;;                                                                  ;;;
 ;;; Copyright (c) 2008 ITA Software, Inc.  All rights reserved.      ;;;
 ;;;                                                                  ;;;
-;;; Original author: Spencer Brody                                   ;;;
+;;; Original author: Francois-Rene Rideau                            ;;;
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(asdf:defsystem :xcvb
+(asdf:defsystem :asdf-to-xcvb
     :author ("Spencer Brody" "Francois-Rene Rideau")
     :maintainer "Francois-Rene Rideau"
     :licence "MIT"
-    :description "XCVB"
-    :long-description "an eXtensible Component Verifier and Builder for Lisp.
-XCVB provides a scalable system to build large software in Lisp, featuring
-deterministic separate compilation and enforced locally-declared dependencies."
+    :description "a tool to migrate systems from ASDF to XCVB"
+    :long-description "A tool to migrate existing Lisp software
+from the legacy ASDF defsystem to the new XCVB builder."
+    :depends-on (:asdf-dependency-grovel :xcvb)
     :components
-    ((:file "driver")
-     (:file "pkgdcl" :depends-on ("driver"))
+    ((:file "pkgdcl")
      (:file "extensions" :depends-on ("pkgdcl"))
      (:file "compiler-options" :depends-on ("pkgdcl"))
      (:file "utilities" :depends-on ("pkgdcl" "compiler-options"))

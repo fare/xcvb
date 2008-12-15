@@ -2,15 +2,16 @@
   :description "package for XCVB")|#
 
 (cl:defpackage :xcvb
-  (:use :cl)
+  (:use :cl :xcvb-driver)
+  (:import-from :xcvb-driver #:quit)
   (:export
      #:module
      #:create-dependency-graph
      #:create-dump-image-graph
      #:defextension
      #:asdf-systems-are-up-to-date-p
+     #:quit
      #:quit-form
-     #:quit-lisp
      ;;Main functions for using xcvb
      #:write-makefile
      #:write-asd-file

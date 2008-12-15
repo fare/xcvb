@@ -1,13 +1,14 @@
 (in-package :xcvb)
 
 (defun equivalent-deps-p (module)
-  "This function takes a module and returns whether or not its compile and load 
-dependencies are in such a form that :depends-on can be used to describe all of 
-its compile and load dependencies, instead of having to list the compile 
-depenencies and load dependencies separately.  This happens when the compile and
-load dependencies depend on all the same files, in the same order, with the 
-compile dependencies depending on compile-time effects of the files, and the 
-load dependencies depending on load-time effects of the files."
+  "This function takes a module and returns whether or not
+its compile and load dependencies are in such a form that
+:depends-on can be used to describe all of its compile and load dependencies,
+instead of having to list the compile and load dependencies separately.
+This happens when the compile and load dependencies
+are all the same files, in the same order,
+with the compile dependencies depending on compile-time effects of the files,
+and the load dependencies depending on load-time effects of the files."
   (and (= (length (compile-depends-on module))
           (length (load-depends-on module)))
        (loop
@@ -34,7 +35,7 @@ top of a source file"
     (format out "~@[~%~7,0T:description ~s~]" (description module))
     (format out "~@[~%~7,0T:long-description ~s~]" (long-description module))
     (format out "~@[~%~7,0T:licence ~s~]" (licence module))
-    (cond 
+    (cond
       ((equivalent-deps-p module)
        (format out "~@[~%~7,0T:depends-on (~%~14,7T~{~15,0T~s~^~%~})~]"
                (load-depends-on module)))
@@ -52,6 +53,15 @@ top of a source file"
     (format out "~@[~%~{~7,0T~s~^~%~}~]" (extension-forms module))
     (format out ")")))
 
+(defun read-comment-header (in)
+  "From Lisp file IN, read any header made of blanks and ;-comments
+until something else is found, then return that header as a string"
+  (with-output-to-string (out)
+     (loop
+	 (case (peek-char nil in nil)
+	   ((#\space #\tab #\newline #\linefeed) (princ (read-char in) out))
+	   ((#\;) (format out "~A~%" (read-line in) out))
+	   (t (return))))))
 
 (defun add-module-to-file (module &optional (filename (filepath module)))
   "Adds a module form to the beginning of a file, replacing the existing module
@@ -60,20 +70,19 @@ form if there is one (but leaving the extension forms)."
     (let ((tmppath (make-pathname
                     :type (strcat (pathname-type filename) ".xcvbtmp")
                     :defaults filename)))
-      ;;TODO: maybe learn to skip over blank lines and comments,
-      ;; so as to preserve any header information in the file
       (with-open-file (in filename :direction :input :if-does-not-exist nil)
         (with-open-file (out tmppath
                              :direction :output
                              :if-does-not-exist :create
                              :if-exists :supersede)
-          (let ((first-form (read in nil)))
+	  (format out "~a" (read-comment-header in))
+          (let* ((first-form (read in nil)))
             (if (module-form-p first-form)
               (progn
                 (setf (extension-forms module)
                       (extension-forms
                        (parse-module first-form
-                                     :build-module-p (typep module 
+                                     :build-module-p (typep module
                                                             'build-module))))
                 (format out "~a~%" (module-string module)))
               (progn
@@ -82,7 +91,7 @@ form if there is one (but leaving the extension forms)."
           (do ((line (read-line in nil) (read-line in nil)))
               ((null line))
             (write-line line out))))
-        (rename-file tmppath filename 
+        (rename-file tmppath filename
                      #+clozure :if-exists #+clozure :rename-and-delete))
     (with-open-file
         (out filename
@@ -112,14 +121,14 @@ form if there is one (but leaving the extension forms)."
           (maintainer (maybe-slot-value asdf-system 'asdf::maintainer))
           (version (maybe-slot-value asdf-system 'asdf::version))
           (description (maybe-slot-value asdf-system 'asdf::description))
-          (long-description (maybe-slot-value asdf-system 
+          (long-description (maybe-slot-value asdf-system
                                               'asdf::long-description))
           (licence (maybe-slot-value asdf-system 'asdf::licence))
           (asdf-deps (get-dependencies-from-component asdf-system))
           (file-deps (mapcar
                       (lambda (component)
                         (enough-namestring
-                         (make-pathname 
+                         (make-pathname
                           :type nil
                           :defaults (asdf:component-pathname component))
                          (asdf:component-pathname asdf-system)))
@@ -132,11 +141,11 @@ form if there is one (but leaving the extension forms)."
         :description description
         :long-description long-description
         :licence licence
-        :build-requires (mapcar (lambda (dep) 
+        :build-requires (mapcar (lambda (dep)
                                   (list :asdf (coerce-asdf-system-name dep)))
                                 asdf-deps)
         :compile-depends-on (if *use-cfasls*
-                              (mapcar (lambda (dep) (list :compile dep)) 
+                              (mapcar (lambda (dep) (list :compile dep))
                                       file-deps)
                               file-deps)
         :load-depends-on file-deps
@@ -165,7 +174,7 @@ form if there is one (but leaving the extension forms)."
 (defun get-module-for-component (asdf-component build-module asdf-system)
   "Returns a module object for the file represented by the given asdf-component"
   (let* ((dependencies
-          (dependency-sort (reverse 
+          (dependency-sort (reverse
                             (get-dependencies-from-component asdf-component))
                            asdf-system))
          (filepath (asdf:component-pathname asdf-component))
@@ -180,7 +189,7 @@ form if there is one (but leaving the extension forms)."
       :filepath filepath
       :build-module build-module
       :compile-depends-on (if *use-cfasls*
-                            (mapcar (lambda (dep) (list :compile dep)) 
+                            (mapcar (lambda (dep) (list :compile dep))
                                     dependencies)
                             dependencies)
       :load-depends-on dependencies)))
@@ -194,6 +203,6 @@ file for that system, so that the system can now be compiled with xcvb."
          (build-module (get-build-module-for-asdf-system asdf-system)))
     (add-module-to-file build-module)
     (dolist (component (asdf:module-components asdf-system))
-      (add-module-to-file (get-module-for-component component 
-                                                    build-module 
+      (add-module-to-file (get-module-for-component component
+                                                    build-module
                                                     asdf-system)))))

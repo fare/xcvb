@@ -103,11 +103,11 @@ operations")))
 
 
 (defun register-module (module)
-  "Adds the given module object to the hashtable containing all the modules
-thus far.  It is keyed both by its fullname and its nickname."
+  "Adds the given module object to the hashtable containing all the modules thus far.
+It is keyed both by its fullname and its nickname."
   (unless (null (nickname module))
     (setf (gethash (nickname module) *module-map*) module))
-  (setf (gethash (make-fullname-absolute module) *module-map*) module))
+  (setf (gethash (make-fullname-absolute module) *module-map*) module)) ;;TODO: why?
 
 
 (defun parse-module (form &key build-module-p)
@@ -179,7 +179,7 @@ thus far.  It is keyed both by its fullname and its nickname."
                     "/"
                     (file-namestring (filepath module)))))
     (when (typep module 'build-module)
-      (make-fullname-absolute module))
+      (make-fullname-absolute module)) ;;TODO: why this???
     (handle-extension-forms module)
     (register-module module)))
 

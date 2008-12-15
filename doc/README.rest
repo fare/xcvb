@@ -1,3 +1,5 @@
+.. ; -*- mode:rst; -*-
+
 ===================================================================
 XCVB - an eXtensible Component Verifier and Builder for Common Lisp
 ===================================================================
@@ -25,7 +27,6 @@ see the xcvb.text document.
       1.10  asdf-converter.lisp
     2  Good places to extend xcvb
     3  Notes
-    4  TODO
 
 FILES
 =====
@@ -176,53 +177,10 @@ called via a keyword in the appropriate place in a module declaration.
 Notes
 =====
 
-(1) Throughout the source code there are comments that say ";NUN".
-These are intended to document the use of non-portable unix namestrings.
-In other words, we rely on certain functionality
-of how pathnames and namestrings work, which may not work on all systems.
-The most notable of these is relying on the namestring of a pathname
-to use "/" rather than "\" or ">" to separate directories.
-Most of the use of NUN's is with regards to fullnames.
-
-(2) A fullname is used as a unique name
+(1) A fullname is used as a unique name
 to specify a component in the system.
 Both modules and nodes have fullnames
 - usually a node will have the same fullname as the module it was generated from
 modulo a different file extension.
 
-
-TODO
-====
-
-(1) Replace all error throwing with a call to simply-error,
-using a condition defined specifically for that error.
-
-(2) Allow a module to depend on the cfasl of a file if it is available,
-or the fasl of the file if there are no cfasls.
-There is already a cfasl-or-fasl-node for this purpose
--- but the actual functionality hasn't been implemented yet.
-
-(3) Allow a module to depend on a data-file.
-That file will not be compiled or loaded into the lisp image,
-but will just be used for tracking
-when the file that depends on it needs to be recompiled.
-
-(4) Allow the build-requires slot to work with multiple BUILD.lisp files.
-Right now, only the top-most BUILD.lisp file's build-requires slot
-is properly handled, the rest are ignored.
-To add this functionality, the makefile-generator will need to write a makefile
-that dumps multiple intermediate cores
--- one for each BUILD.lisp's build-requires slot (if present) --
-and also has multiple ${CWBRLRUN} macros
-so that compilation will happen with the correct core at each step of the way.
-The asd-generator will similarly need to be changed
-to have one asdf module for each BUILD.lisp's build-requires slot (if present).
-
-(5) Provide support for xcvb to be able to handle
-compiling and loading a system into the given lisp image
-(instead of relying on generated Makefiles or asd file).
-Once this is done, don't forget to make the load-into-xcvb extension work
-so that users can easily extend xcvb itself.
-
-(6) Document in an example how to use asdf-dependency-grovel and XCVB together
-to migrate an existing system from ASDF to XCVB.
+(2) For issues and TODO items, see TODO.rest

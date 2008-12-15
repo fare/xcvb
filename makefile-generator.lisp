@@ -1,7 +1,7 @@
 (in-package :xcvb)
 
 (defparameter *build-requires-p* nil
-  "Flag to specify if the build module's build-requires slot has been set -
+  "Flag to specify if the build module's build-requires slot has been set --
 and therefore whether or not to have a core-with-build-requires.core-xcvb
 target")
 
@@ -9,31 +9,30 @@ target")
   "A map of the nodes that have already been written
 to the makefile, to avoid writing any node twice")
 
-(defvar *targets-dependent-on-cwbrl* nil "A list of the makefile targets that
-have a dependency on the core-with-build-requires.core-xcvb target")
+(defvar *targets-dependent-on-cwbrl* nil
+  "A list of the makefile targets that have a dependency on
+the core-with-build-requires.core-xcvb target")
 
-(defvar *escaped-output-path* nil "The path that the Makefile is being written
-to. The Makefile targets will be relative to this path.  It has already been
-escaped for the shell and for a Makefile")
-
+(defvar *escaped-output-path* nil
+  "The path that the Makefile is being written to.
+The Makefile targets will be relative to this path.
+It has already been escaped for the shell and for a Makefile")
 
 (defun escape-string-for-Makefile (string)
-  "Takes a string and excapes all the characters that need to be to be put into
-a makefile.  The only such character right now is $.  Raises an error if the
-string contains a newline."
+  "Takes a string and excapes all the characters that need to be put into a makefile.
+The only such character right now is $.  Raises an error if the string contains a newline."
   (with-output-to-string (out-string)
     (loop for c across string do
       (case c
         ;;TODO - instead of erroring, should this insert a "\" to escape the newline?
         (#\newline (error "Makefile line cannot contain a newline"))
         (#\$ (format out-string "$$"))
-        (#\\ (format out-string "\\"));Not currently doing anything!
+        (#\\ (format out-string "\\")) ;Not currently doing anything!
         (otherwise (format out-string "~a" c))))))
 
-
-(defun escape-string-for-shell (string)
-  "Takes a string and excapes all the characters that need to be to be run in
-the shell.  These characters are \" $ ` \\"
+(defun escape-string-for-shell-double-quote (string)
+  "Takes a string and escapes all the characters that need to be to be run in the shell.
+These characters are \" $ ` \\"
   (with-output-to-string (out-string)
     (loop for c across string do
 	 (case c
@@ -43,7 +42,7 @@ the shell.  These characters are \" $ ` \\"
 
 (defun escape-string (string)
   "Takes a string and escapes it first for the shell, then for a makefile"
-  (escape-string-for-makefile (escape-string-for-shell string)))
+  (escape-string-for-makefile (escape-string-for-shell-double-quote string)))
 
 
 (defun eval-command-string (&key

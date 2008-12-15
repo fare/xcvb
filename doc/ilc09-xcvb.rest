@@ -6,8 +6,17 @@ XCVB: Improving Modularity for Common Lisp
 
 :Description: Submission for a Demonstration and/or a Lightning Talk at ILC'09.
 :Authors: Francois-Rene Rideau <fare@tunes.org> and Spencer Brody <sbrody88@gmail.com>
-:Date: 2008-12-11
+:Date: 2008-12-13
 
+.. contents::
+..
+    1  Introduction
+    2  Key Insight
+    3  XCVB yesterday
+    4  XCVB today
+    5  XCVB tomorrow
+    6  Need for extensions to the CL standard
+    7  Conclusion
 
 Introduction
 ------------
@@ -49,46 +58,50 @@ XCVB yesterday
 
 What the XCVB prototype already brings as opposed to ASDF:
 
-  * dependencies are locally declared
-     + just like the module import statement of any modern language
-     + the meaning of a file doesn't depend on off-file metadata
-     + makes separate compilation deterministic
-     + avoids non-local dependency bugs
+  * Goal: separate compilation
+     + deterministic file-based separate compilation
+     + compute objects from source, just as in any modern language
+     + semantics of a file fully encapsulated in its contents (+ those of dependencies)
+     + incremental change-driven building and testing
 
-  * separate compilation
-     + the semantics of a file is fully encapsulated in the contents of the file
+  * Therefore: dependencies must be declared locally
+     + move dependencies away from centralized off-file meta-data
+     + module import statement, just as in any modern language
+     + no more global recompilation (or subtle failure) at least change in module connection
      + no more subtle bugs to non-local change in ordering of compile-time side-effects
-     + compilation is deterministic
-     + change-driven building and testing becomes possible
      + unlike ASDF, can incrementally track dependencies across systems
 
   * eager enforcement of dependencies
      + each file is built with none but the declared dependencies loaded
-     + requires the same discipline as in any other language
+     + requires import discipline, just as in any modern language
      + dependency bugs are detected early
      + no more unmaintainable large manual dependency graphs
+     + allows eager incremental unit tests based on what has changed (beware: reflection)
 
-  * current build backends:
-     + Makefile: integrate seamlessly in your larger-than-Lisp build
-     + ASDF: make your software available to projects still using ASDF
+  * current build backends
+     + xcvb computes the build graph, currently lets other software do the build
+     + ASDF: your software can be integrated as part of Lisp builds using legacy ASDF
+     + Makefile: your software can be integrated as part of larger-than-Lisp builds.
      + more backends possible in the future (SCons? take over your build?)
 
   * decoupling builder and buildee
      + allows for integration with make as mentionned above
      + allows for cross-compilation from one compiler/architecture to a different one
-     + allows for a feature-rich build system that needn't fit in one file, yet
-     + allows build and test of new versions of the libraries used by builder
+     + allows for a feature-rich build system that needn't fit in one small file, yet
+     + allows builder to rebuild and test its dependencies and self
+     + protection from uncontrolled side-effects from buildee to builder
 
   * can use CFASLs to capture compile-time side-effects
-     + think C++ precompiled headers, except automatically deduced from the code
+     + like C++ precompiled headers, except automatically deduced from the code
      + vast speed improvement, fewer rebuilds (the FASL may have changed but not the CFASL)
      + was easily added to SBCL by Juho Snellman, could be as easily added to other compilers
      + as with defsystem, careful EVAL-WHEN discipline needed (but now it is enforced)
 
   * semi-automated migration path from ASDF
-     + migrate using Andreas Fuchs's asdf-dependency-grovel
-     + can cope with dependencies on unmigrated ASDF systems
-     + you may have to extend the migration tool to deal with ASDF extensions
+     + XCVB accepts dependencies from XCVB systems to ASDF systems and vice-versa
+     + migrate your systems using Andreas Fuchs's asdf-dependency-grovel
+     + Lisp extensions require extending the dependency-detection tool
+     + ASDF extensions require extending the migration tool
 
 
 XCVB today
@@ -97,10 +110,9 @@ XCVB today
 Urgently needed:
 
   * make it user-friendly
-     + make the use of it a short one-liner
      + fully automate migration from ASDF
+     + make the use of XCVB a short one-liner (from REPL or command line)
      + add documentation and examples
-     + fix known issues
 
   * actually migrate a critical mass of existing ASDF systems
      + refine automatic tool to deal with harder cases
@@ -108,6 +120,11 @@ Urgently needed:
      + maintain until upstream adopts XCVB (if ever)
      + have a distribution system (as in asdf-install or mudballs, etc.)
      + fully bootstrap xcvb (make asdf optional)
+
+  * Refactor internals
+     + current implementation was a good first attempt, but needs to be reworked
+     + recognize hand-coded patterns, formalize a domain, grow a language
+     + allow staged planning to accomodate for dynamically computed modules
 
 
 XCVB tomorrow
@@ -137,10 +154,9 @@ The following improvements are enabled by XCVB's deterministic separate compilat
      + everyone can use whatever fits his purposes, with well-defined semantics
      + requires compiler support to preserve source locations for debugging
 
-  * layer actual module system(s) on top of it:
-     + automatic defpackage extraction
-     + possibly support SB-HEAPDUMP and other alternatives to FASL
-     + better namespace management (lexicons? PLT-like modules?)
+  * layer namespace management on top of it:
+     + automatic package management
+     + more sensible replacement for packages (lexicons? PLT-like modules?)
      + higher-order parametric components (PLT units)
      + many levels of static typing with interface that enforces implicit contracts, etc.
      + generally, make CL competitive again wrt access to latest improvements from research
@@ -156,7 +172,7 @@ Need for extensions to the CL standard
 --------------------------------------
 
 Short of reimplementing all of CL in a translation layer,
-some of the above features cannot be implemented on top of CL:
+some of the above features cannot be implemented on top of standard CL:
 they require access to functionality
 below the standardized abstraction barrier of a CL implementation.
 
@@ -165,12 +181,12 @@ below the standardized abstraction barrier of a CL implementation.
       + Nothing specific to XCVB here, but still (sadly) deserves mentionning.
 
    * Encapsulation of COMPILE-TIME side effects
-      + CFASL in SBCL only for now
+      + CFASL only in SBCL for now
       + can make do if you can cope with slow "FAS"L loading
 
    * Encapsulation of LOAD-TIME partial state, not side-effects
       + FASL is still too slow to load, cannot be shared between binaries.
-      + SB-HEAPDUMP can be mmap()ed -- but not even standard feature of SBCL.
+      + SB-HEAPDUMP can be mmap()ed -- but isn't even standard feature of SBCL.
 
    * Programmable access to debugging meta-information
       + syntax extension requires support for recording source locations
@@ -186,7 +202,7 @@ below the standardized abstraction barrier of a CL implementation.
 Conclusion
 ----------
 
-It's nothing fancy - just elaborate plumbing.
+It's nothing fancy -- just elaborate plumbing.
 Mostly well-known ideas, yet the bulk of the work is still ahead.
 That's how far behind CL is wrt modularity.
 
@@ -198,6 +214,9 @@ under the guidance of Francois-Rene Rideau.
 Many thanks to James Knight for his many insights
 and to Juho Snellman for the SBCL CFASL.
 
-PS: We hope that by the time the conference happens,
+PS: Our hope is that by the time the conference happens,
 we will have already deployed XCVB on a large system,
-and moved some points from "XCVB today" into "XCVB yesterday".
+and moved some points from "XCVB today" into "XCVB yesterday";
+for the purpose of this submission, no such thing should be assumed though.
+
+.. ; Note: slides to include examples for each discussed case.
