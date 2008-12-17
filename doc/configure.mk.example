@@ -1,0 +1,79 @@
+##### Example configuration file for the XCVB Makefile #####
+##
+## Copy this file to ../configure.mk and edit it,
+## uncommenting and/or editing the lines that fit your configuration,
+## commenting out or deleting those that don't.
+##
+
+
+#### Where to find cl-launch?
+##
+## DEFAULT: look for it in your $PATH
+CL_LAUNCH := cl-launch
+##
+## You may want a specific version stashed somewhere else
+# CL_LAUNCH := /usr/bin/cl-launch
+# CL_LAUNCH := /usr/local/bin/cl-launch
+# CL_LAUNCH := /home/USER/bin/cl-launch
+
+
+#### What options to pass to cl-launch?
+##
+## DEFAULT: nothing
+## This assumes that the default will work because you have already configured
+## cl-launch and/or the underlying Lisp implementation, so it will find all
+## the required .asd's.
+CL_LAUNCH_FLAGS :=
+##
+## If you want to specify a search order for Lisp implementations,
+## you may do it as follows (see cl-launch documentation for details)
+#CL_LAUNCH_FLAGS += --lisp 'sbcl clisp ccl'
+##
+##
+## If you need to specify one or several paths where .asd files reside
+## that are needed by xcvb, use one or several --path flags
+## DEFAULT: nothing
+#CL_LAUNCH_FLAGS += --path /usr/share/common-lisp/systems/
+#CL_LAUNCH_FLAGS += --path /usr/local/common-lisp/systems/
+#CL_LAUNCH_FLAGS += --path /home/USER/lib/lisp-systems/
+##
+##
+## If you want to make sure that cl-launch uses installed include files
+## (respectively, doesn't), use --include /a/b/c (respectively, --no-include)
+## This matters in image and fasls modes, not in standalone mode (see below).
+#CL_LAUNCH_FLAGS += --no-include
+#CL_LAUNCH_FLAGS += --include /usr/share/common-lisp/cl-launch
+#CL_LAUNCH_FLAGS += --include /usr/local/common-lisp/cl-launch
+#CL_LAUNCH_FLAGS += --include /home/USER/lib/cl-launch
+##
+## Verbose output to debug XCVB compilation
+#CL_LAUNCH_FLAGS += --verbose
+
+
+#### What kind of executable to create?
+##
+## DEFAULT: This will create a script wrapping a dumped image.
+## However, in this mode you *HAVE TO* define a IMAGE_DIR directory below.
+#CL_LAUNCH_OUTPUT_MODE := image
+##
+## This will create a script that will reload xcvb from fasl and
+## recompile the source whenever it changes. For xcvb developers only.
+#CL_LAUNCH_OUTPUT_MODE := fasls
+##
+## This will create a standalone executable. The catch is that it requires
+## cl-launch >=2.10 and sbcl >=1.0.22 or clisp >=2.48.
+#CL_LAUNCH_OUTPUT_MODE := standalone
+##
+##
+## Image directory for lisp images.
+## Make sure the directory exists and you can write to it:
+## mkdir -p ${IMAGE_DIR} ; chown ${USER}.${GROUP} ${IMAGE_DIR}
+#IMAGE_DIR := /usr/share/common-lisp/images
+#IMAGE_DIR := /home/fare/lib/images
+
+
+#### Where to install executables?
+##
+#INSTALL_BIN := /usr/local/bin
+#INSTALL_BIN := /home/fare/bin
+

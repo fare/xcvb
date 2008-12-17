@@ -670,5 +670,5 @@ with the given lisp file loaded as the root of the graph."
    (list (create-module (pathname sourcepath) :parent-module *build-module*))))
 
 
-
-(pushnew :xcvb *features*)
+;;;TODO: do this at runtime, in the proper function, in a dynamic scope.
+;;;(pushnew :xcvb *features*)

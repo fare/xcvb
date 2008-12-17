@@ -92,7 +92,7 @@ for the compile-time side-effects of the file
 as well as FASL for the load-time side-effects.
 There exists a patch to SBCL that provides such a feature,
 as written by Juho Snellman at the prompt of James Knight:
-     http://repo.or.cz/w/sbcl/jsnell.git?a=treediff;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master
+http://repo.or.cz/w/sbcl/jsnell.git?a=treediff;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master
 
 
 We will be able to track dependencies across modules

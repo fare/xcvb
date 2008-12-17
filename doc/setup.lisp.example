@@ -1,0 +1,49 @@
+;;;;; Example file on the kind of stuff you'll need to run XCVB on your Lisp system.
+
+(in-package :cl-user)
+
+;;;; LOAD any project-specific file that loads ASDF, sets up paths,
+;;;; initializes optimization settings, etc.
+;; (load "/my/project/setup.lisp")
+
+;;;; Alternatively, do it yourself
+;; Initial optimization settings
+(proclaim '(optimize (speed 3) (space 2) (compilation-speed 0) (safety 1) (debug 1)))
+
+;; Muffle compiler-notes globally
+#+sbcl (declaim (sb-ext:muffle-conditions sb-ext:compiler-note))
+
+;; Fixups
+(setf *print-readably* nil) ; needed by Allegro 5
+
+;; be quiet until told otherwise
+#+sbcl (proclaim '(optimize (sb-ext:inhibit-warnings 3)))
+#+cmu  (setf extensions::*print-compiler-notes-p* nil)
+(defparameter *show-compiler-notes* nil)
+(setf *compile-print* nil)
+
+;; Load ASDF if not loaded yet...
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (unless (and (find-package :asdf)
+               (find-symbol "SYSTEM" :asdf))
+    (block asdf-load
+      (handler-bind
+          ((error #'(lambda (c)
+                      (declare (ignore c))
+                      (load (merge-pathnames "libs/asdf/asdf.lisp" *l*))
+                      (return-from asdf-load nil))))
+        (require :asdf)))))
+
+;;Setup your own ASDF paths
+;(pushnew #p"/home/USER/xcvb/" asdf:*central-registry*)
+
+;;;; Load any ASDF system that you depend on but are NOT going to migrate to XCVB,
+;;;; and instead will remain an ASDF dependency.
+;(asdf:oos 'asdf:load-op :cl-pprce)
+;(asdf:oos 'asdf:load-op :foo-compat)
+
+;; Include the XCVB-DRIVER at the end
+;(load "/home/USER/xcvb/driver.lisp")
+
+;; And now, dump an image with that all (and quit)
+(xcvb-driver::dump-image "/home/USER/lib/images/sbcl-with-setup.core")

@@ -33,10 +33,6 @@ Migration from ASDF
 Automate and document in an example how to use asdf-dependency-grovel
 and XCVB together to migrate an existing system from ASDF to XCVB.
 
-Be sure to make it work with the latest version at::
-
-	http://git.boinkor.net/git/asdf-dependency-grovel.git/
-
 
 In-image loading
 ----------------
@@ -102,51 +98,63 @@ but eventually, we should have a domain-specific language to describe
 the structure of the dependency graph and the operations used to build it.
 
 Note that we have to map various entities.
-A- *state*
- 1- *files*, i.e. persistent state
-   a- Files are divided in source files vs object files.
-      Source files are sufficient to build the rest of the project.
-   b- actual source files are to be version-controlled and archived,
-      but configuration files count as source, but are computed or edited.
-   c- object files may be deliverables or just intermediate throwables.
-   d- for bootstrap purposes, the content of an object file is sometimes
-      copied into a source file.
-   e- Generated lisp files count as objects, not source, unless bootstrapped
-      and checked in. It is necessary to have the meta-data on these files
-      before a plan may be made to compile them, so either these files need
-      to have static meta-data known in advance, or the planning process needs
-      to be staged so that the plan will be revised when the file contents
-      are known and the meta-data is available.
-   f- we thus distinguish file path from file contents.
-      File *contents* are pure extensional data,
-      file *paths* are intentional anchors.
-      In a given *checkout*, the mapping of source path to contents is a given.
- 2- *worlds*, i.e. linear state
-   a- there again *processes* are the intentional agents,
-      whereas *process states* are the extensional states, up to some gross equivalence.
-   b- by forking, we may (or may not) preserve the desired equivalent process state;
-      another strategy (sometimes not available) may be to dump an image and resume from it.
-B- *plans*
- 1- *operations*, i.e. atomic sets of commands to compute one set of states from others.
-   a- concrete operations are nodes in the dependency graph,
+
+  A- *state*
+
+    1- *files*, i.e. persistent state
+
+      a- Files are divided in source files vs object files.
+         Source files are sufficient to build the rest of the project.
+
+      b- actual source files are to be version-controlled and archived,
+         but configuration files count as source, but are computed or edited.
+
+      c- object files may be deliverables or just intermediate throwables.
+
+      d- for bootstrap purposes, the content of an object file is sometimes
+         copied into a source file.
+
+      e- Generated lisp files count as objects, not source, unless bootstrapped
+         and checked in. It is necessary to have the meta-data on these files
+         before a plan may be made to compile them, so either these files need
+         to have static meta-data known in advance, or the planning process needs
+         to be staged so that the plan will be revised when the file contents
+         are known and the meta-data is available.
+
+      f- we thus distinguish file path from file contents.
+         File *contents* are pure extensional data,
+         file *paths* are intentional anchors.
+         In a given *checkout*, the mapping of source path to contents is a given.
+
+    2- *worlds*, i.e. linear state
+
+      a- there again *processes* are the intentional agents,
+         whereas *process states* are the extensional states, up to some gross equivalence.
+
+      b- by forking, we may (or may not) preserve the desired equivalent process state;
+         another strategy (sometimes not available) may be to dump an image and resume from it.
+
+  B- *plans*
+
+    1- *operations*, i.e. atomic sets of commands to compute one set of states from others.
+
+      a- concrete operations are nodes in the dependency graph,
       joining together input states to output states.
-   b- in a given representation (i.e. Makefile, ASDF, etc.), not all operations are permitted.
-      e.g. with make, you can't duplicate a process state with fork, whereas you could
-      with a future native driver. Or using ECL, you can't load then dump -- you must link
-      with a special process.
-   c- And so whether operations are decomposed into basic elements or grouped in actionable wholes
-      depends on the specific target. It may also depend on opportunities for optimization:
 
- 2- *operators* are methods that create concrete operations out 
- 3- 
- 2- *plans*
-   a- a plan is a graph of operations 
+      b- in a given representation (i.e. Makefile, ASDF, etc.), not all operations are permitted.
+         e.g. with make, you can't duplicate a process state with fork, whereas you could
+         with a future native driver. Or using ECL, you can't load then dump -- you must link
+         with a special process.
 
-   - multiple operations may lead to the "same" outcome up to equivalence.
-      Operations may be combined and some combinations preferred to others.
-   a- we need to have various representations of the above,
-      vs actually acting on the representation.
+      c- And so whether operations are decomposed into basic elements or grouped in actionable wholes
+         depends on the specific target. It may also depend on opportunities for optimization.
 
+      d- multiple operations may lead to the "same" outcome up to equivalence.
+         Operations may be combined and some combinations preferred to others.
+   
+    2- *operators* are methods that create concrete operations out of various parameters
+
+      a- parameters include input file, options (which compiler/flags to use), etc.
 
 
 
@@ -184,11 +192,10 @@ Don't miss these:
 Some advice from a schemer
 --------------------------
 
-Riastradh on #scheme:
+Riastradh on the irc.openprojects.net #scheme channel gave the following piece of advice.
 Personally I think that it would be easiest to use Scheme48's module system for that,
 but what I'd care most about is (1) that you separate phases sensibly, and
 (2) that you provide working hygiene.
-See Flatt, `Composable and Compilable Macros', 2002.
-	http://www.cs.utah.edu/plt/publications/macromod.pdf
+See Flatt, 'Composable and Compilable Macros', 2002.
+http://www.cs.utah.edu/plt/publications/macromod.pdf
 (The R6RS's library system emphatically got phase separation wrong.  Don't repeat their mistake.)
-

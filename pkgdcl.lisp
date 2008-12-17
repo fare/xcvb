@@ -6,21 +6,49 @@
   (:use :cl :xcvb-driver)
   (:import-from :xcvb-driver #:quit)
   (:export
+
+     ;; Defining and using modules and extensions
+     #:parse-module #:module-form-p
      #:module
+     #:version
+     #:author
+     #:maintainer
+     #:description
+     #:long-description
+     #:licence
+     #:fullname
+     #:build-module
+     #:build-requires
+     #:compile-depends-on
+     #:load-depends-on
+     #:defextension
+     #:extension-form
+
+     ;; Utilities
+     #:coerce-asdf-system-name
+     #:filepath
+     #:strcat
+     #:quit
+
+     ;; Create graphs
      #:create-dependency-graph
      #:create-dump-image-graph
-     #:defextension
-     #:quit
-     #:quit-form
-     ;;Main functions for using xcvb
+
+     ;; Main functions for using xcvb
      #:write-makefile
      #:write-asd-file
-     ;;compiler options
+
+     ;; Compiler options
      #:*lisp-implementation*
      #:*lisp-executable-pathname*
      #:*lisp-image-pathname*
      #:*lisp-options*
      #:*use-cfasls*
-     ;;Conditions
+
+     ;; Converting ASDF systems.
+     #:asdf-systems-are-up-to-date-p
+     #:convert-asdf-system-to-xcvb
+
+     ;; Conditions
      #:no-build-file-found
      #:dependency-cycle))

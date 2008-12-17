@@ -1,4 +1,4 @@
-(in-package :asdf-to-xcvb)
+(in-package :xcvb)
 
 (defun equivalent-deps-p (module)
   "This function takes a module and returns whether or not
@@ -60,7 +60,7 @@ until something else is found, then return that header as a string"
      (loop
 	 (case (peek-char nil in nil)
 	   ((#\space #\tab #\newline #\linefeed) (princ (read-char in) out))
-	   ((#\;) (format out "~A~%" (read-line in) out))
+	   ((#\;) (format out "~A~%" (read-line in)))
 	   (t (return))))))
 
 (defun add-module-to-file (module &optional (filename (filepath module)))
@@ -206,3 +206,5 @@ file for that system, so that the system can now be compiled with xcvb."
       (add-module-to-file (get-module-for-component component
                                                     build-module
                                                     asdf-system)))))
+
+

@@ -1,4 +1,4 @@
-;;; xcvb driver to be compiled in buildee images
+;;; xcvb driver to be compiled in buildee images (largely copy-pasted from cl-launch)
 
 (in-package :cl)
 
@@ -70,12 +70,12 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defun do-resume ()
   (when *restart* (funcall *restart*))
-  (quit 0))
+  (quit))
 
 #-ecl
 (defun dump-image (filename &key standalone (package :cl-user))
   (declare (ignorable filename standalone package))
-  (setf *package* package)
+  (setf *package* (find-package package))
   #+clisp
   (apply #'ext:saveinitmem filename
    :quiet t

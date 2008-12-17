@@ -17,7 +17,7 @@ the node the function is being called on is included in the resulting list."
 	(list nil))
     (flet ((pusher (x) (push x list)))
       (loop for (node operation) in node-operation-list do
-	    (traverse-helper node operation pusher visited-nodes-map)))
+	    (traverse-helper node operation #'pusher visited-nodes-map)))
     (reverse list)))
 
 (defun pushmany (pusher list)
@@ -39,6 +39,7 @@ the node the function is being called on is included in the resulting list."
       (labels ((c (,x) (funcall ,pusher ,x))
 	       (rec (,x ,y) (traverse-helper ,x ,y ,pusher ,visited-nodes-map))
 	       (rec* (,y ,op) (dolist (,x ,y) (rec ,x ,op))))
+	(declare (ignorable #'c #'rec #'rec*))
 	,@body))))
 
 (define-traverse ((node asdf-system-node) operation)
