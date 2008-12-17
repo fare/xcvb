@@ -21,7 +21,7 @@ and none of the source files in the system have changed since then"
   "Takes a list of names of asdf systems, and
 exits lisp with a status code indicating
 whether or not all of those systems were up-to-date or not."
-  (xcvb:quit
+  (xcvb-driver::quit
    :exit-status (if (every (lambda (system) (asdf-system-is-up-to-date-p 'asdf:load-op system))
 			   systems)
 		    0 1)))

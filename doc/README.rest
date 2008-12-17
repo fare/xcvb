@@ -103,6 +103,12 @@ Francois-Rene Rideau restarted work on it in mid December 2008.
 We hope to have a complete release with example and documentation
 ready for showing at ILC'09 by March 2008.
 
+The basic functionality is already working;
+we could give you the recipe to get it to apply to your projects manually,
+but we'd rather write the code that will do it automatically.
+Subscribe to one of our mailing-lists
+if you're interested in learning about our progress.
+
 
 Alternative
 -----------
@@ -133,12 +139,11 @@ We'll publish an example soon.
 Converting your ASDF system
 ---------------------------
 
-First, you need to use asdf-to-xcvb to convert your existing system
+First, you need to use ASDF-TO-XCVB to convert your existing system
 based on the .asd files.
 
-Note: this isn't implemented yet;
-I could give you the recipe to do it manually,
-but I'd rather write the script that does it automatically.
+As this functionality gets implemented, we'll provide an example in:
+	exscribe-migration.lisp.example
 
 
 Further Limitations

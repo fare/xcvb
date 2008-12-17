@@ -6,3 +6,9 @@
 .#*
 *.lisp-expr
 configure.mk
+foo
+bar
+baz
+quux
+fare
+sbrody

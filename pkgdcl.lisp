@@ -29,6 +29,7 @@
      #:filepath
      #:strcat
      #:quit
+     #:asdf-systems-are-up-to-date-p
 
      ;; Create graphs
      #:create-dependency-graph
@@ -46,8 +47,7 @@
      #:*use-cfasls*
 
      ;; Converting ASDF systems.
-     #:asdf-systems-are-up-to-date-p
-     #:convert-asdf-system-to-xcvb
+     #:asdf-to-xcvb
 
      ;; Conditions
      #:no-build-file-found

@@ -1,31 +1,38 @@
-;;; -*- Lisp -*- ; Example on how I used XCVB to migrate Exscribe from ASDF.
+;;;; -*- Lisp -*- ; Example on how I migrated Exscribe from ASDF to XCVB. ;;;;
 
-;; I ran the following command from the shell command-line:
+;;; I ran the following command from the shell command-line:
 ; xcvb doc/exscribe-migration.lisp.example
 
 (in-package :xcvb)
 
-;;; Some configuration.
-(setf
- ;; Systems to include in the application, but to not co-convert to XCVB.
- *systems-to-preload*
- '(:cl-launch :fare-utils :fare-matcher :scribble :meta
-   :cl-pdf :salza :iterate :cl-typesetting)
 
- ;; Systems to convert
- *systems-to-convert*
- '(:exscribe)
-
- ;; ASDF Dependencies to override
- *dependency-overrides*
- '())
-
-
-;;; use ADG to compute dependencies into migrated-system-components.lisp-expr...
-
-(trace simplify-systems convert-asdf-system-to-xcvb
+;;; This is for my own debugging purposes.
+;;#+uncommenting-this-line-disables-the-trace
+(trace asdf-to-xcvb
+       add-module-to-file
+       dependency-sort
        ;;asdf::register-system asdf::parse-component-form
        rename-file)
 
-(simplify-systems :system :exscribe :base-pathname #p"/home/fare/fare/lisp/exscribe/")
-(convert-asdf-system-to-xcvb :migrated-system)
+(asdf-to-xcvb
+ ;;; Convert this one system
+ :system :exscribe
+
+ ;;; In more complex cases,
+ ;;; you can include multiple ASDF systems in one XCVB build,
+ ;; :systems '(:foo :bar)
+
+ ;;; In such complex cases, you may want to declare
+ ;;; the base directory if improperly autodetected.
+ ;; :base-pathname "/path/to/foo-and-bar"
+
+ ;;; These may help make sure stuff doesn't get included in dependency groveling.
+ ;;; Or it may be unnecessary I have to test.
+ :systems-to-preload
+ '(:cl-launch :fare-utils :fare-matcher :scribble :meta
+   :cl-pdf :salza :iterate :cl-typesetting)
+
+ ;;; No manual additions to ASDF groveled dependencies.
+ ;; Not currently supported, anyway.
+
+);There we go!

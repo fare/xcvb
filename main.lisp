@@ -2,20 +2,6 @@
 
 (in-package :xcvb)
 
-
-(defun asdf-to-xcvb ()
-#|
-  (setf *systems-to-preload* ...) ;; get it from some argument
-  (setf *systems-to-convert* ...) ;; get it from some argument
-  ... have some mechanism to specify overrides...
-  ... use ADG to compute dependencies into migrated-system-components.lisp-expr...
-  ... Splice migrated-system-components.lisp-expr into a new migrated-system.asd...
-  ... (xcvb::convert-asdf-system-to-xcvb :quux) ...
-  ... make clean ...
-  ...
-|#
-  nil)
-
 (defun build ()
 #|
   ... Create an image with the setup loaded ... (see load-setup-and-die)

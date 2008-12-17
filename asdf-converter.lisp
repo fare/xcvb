@@ -28,7 +28,8 @@ and the load dependencies depending on load-time effects of the files."
 top of a source file"
   (with-output-to-string (out)
     (format out "(xcvb:module (")
-    (format out "~@[~%~7,0T:fullname ~s~]" (fullname module))
+    (when (typep module 'build-module)
+      (format out "~@[~%~7,0T:fullname ~s~]" (fullname module)))
     (format out "~@[~%~7,0T:author ~s~]" (author module))
     (format out "~@[~%~7,0T:maintainer ~s~]" (maintainer module))
     (format out "~@[~%~7,0T:version ~s~]" (version module))
@@ -54,7 +55,7 @@ top of a source file"
     (format out ")")))
 
 (defun read-comment-header (in)
-  "From Lisp file IN, read any header made of blanks and ;-comments
+  "From Lisp file stream IN, read any header made of blanks and ;-comments
 until something else is found, then return that header as a string"
   (with-output-to-string (out)
      (loop
@@ -63,13 +64,20 @@ until something else is found, then return that header as a string"
 	   ((#\;) (write-line (read-line in) out))
 	   (t (return))))))
 
+(defun skip-whitespace (in)
+  "From stream IN, read any number of whitespace until non-whitespace is found."
+  (loop while (member (peek-char nil in nil) '(#\space #\tab #\newline #\linefeed))
+    do (read-char in)))
+
+
 (defun add-module-to-file (module &optional (filename (filepath module)))
   "Adds a module form to the beginning of a file, replacing the existing module
 form if there is one (but leaving the extension forms)."
   (if (probe-file filename)
-    (let ((tmppath (make-pathname
-                    :type (strcat (pathname-type filename) ".xcvbtmp")
-                    :defaults filename)))
+    (let* ((tmppath (make-pathname
+		     :type (strcat (pathname-type filename) ".xcvbtmp")
+		     :defaults filename))
+	   (*features* (cons :xcvb *features*)))
       (with-open-file (in filename :direction :input :if-does-not-exist nil)
         (with-open-file (out tmppath
                              :direction :output
@@ -84,7 +92,8 @@ form if there is one (but leaving the extension forms)."
                        (parse-module first-form
                                      :build-module-p (typep module 'build-module))))
                 (file-position in first-form-position))
-	    (format out "~a~%" (module-string module)))
+	    (format out "#+xcvb~%~a~%~%" (module-string module)))
+	  (skip-whitespace in)
           (do ((line (read-line in nil) (read-line in nil)))
               ((null line))
             (write-line line out))))
@@ -151,22 +160,14 @@ form if there is one (but leaving the extension forms)."
                    :type "lisp"
                    :defaults (asdf:component-pathname asdf-system))))))
 
-;; Function taken from afuchs' asdf-dependencies-grovel
-(defun components-in-traverse-order (system compspecs
-                                     &optional (traverse-type 'asdf:load-op))
-  (let* ((op (make-instance traverse-type))
-         (opspecs (asdf::traverse op system))
-         (order-table (make-hash-table)))
-    (loop for (op . component) in opspecs
-          for component-index from 0
-          do (setf (gethash component order-table) component-index))
-    (sort compspecs #'<
-          :key (lambda (c) (gethash (first c) order-table -1)))))
-
-
 (defun dependency-sort (components system)
   "Sorts a list of asdf components according to their dependencies."
-  (components-in-traverse-order system components))
+  (mapcar #'(lambda (x) (asdf:component-name (car x)))
+	  (asdf-dependency-grovel::components-in-traverse-order
+	   system
+	   (mapcar #'(lambda (c) (list (find c (asdf:module-components system)
+					     :key #'asdf:component-name :test #'equal)))
+		   components))))
 
 (defun get-module-for-component (asdf-component build-module asdf-system)
   "Returns a module object for the file represented by the given asdf-component"
@@ -192,42 +193,29 @@ form if there is one (but leaving the extension forms)."
       :load-depends-on dependencies)))
 
 
-(defun convert-asdf-system-to-xcvb (system-name)
-  "Takes the name of an asdf system, and adds xcvb module declarations to the
-top of all the files in that system, and also writes a corresponding BUILD.lisp
-file for that system, so that the system can now be compiled with xcvb."
-  (let* ((asdf-system (asdf:find-system system-name))
-         (build-module (get-build-module-for-asdf-system asdf-system))
-	 (*default-pathname-defaults* (component-pathname asdf-system)))
-    (add-module-to-file build-module)
-    (dolist (component (asdf:module-components asdf-system))
-      (add-module-to-file (get-module-for-component component
-                                                    build-module
-                                                    asdf-system)))))
-
-(defvar *systems-to-preload* nil
-  "Systems to preload in your Lisp image, but to not co-convert to XCVB.")
-
-(defvar *systems-to-convert* nil
-  "Systems to convert together to XCVB")
-
-(defvar *dependency-overrides* nil
-  "Manual overrides to ASDF dependencies in the converted systems")
-
 (defvar *components-path* #p"/tmp/simplified-system-components.lisp-expr")
 
 (defun pathname-directory-pathname (pathname)
   (make-pathname :type nil :name nil :defaults pathname))
 
-(defun simplify-systems (&key system
-			      (systems (when system (list system)))
-			      (simplified-system :simplified-system)
-			      (base-pathname
-			       (pathname-directory-pathname
-				(asdf::system-definition-pathname
-				 (asdf::coerce-name (first systems)))))
-			      (components-path *components-path*)
-			      (systems-to-preload *systems-to-preload*))
+(defun asdf-to-xcvb (&key
+		     system
+		     (systems (when system (list system)))
+		     (simplified-system :simplified-system)
+		     (base-pathname
+		      (pathname-directory-pathname
+		       (truename
+			(asdf::system-definition-pathname
+			 (asdf::coerce-name (first systems))))))
+		     (components-path *components-path*)
+		     systems-to-preload)
+
+  "Takes the name of one or several ASDF system(s) and
+merge them into a single XCVB build,
+adding xcvb module declarations to the top of all the files in that build,
+and writing a corresponding BUILD.lisp file,
+so that the system can now be compiled with XCVB."
+
   (dolist (sys systems-to-preload)
     (asdf:operate 'asdf:load-op sys))
   (eval
@@ -241,7 +229,20 @@ file for that system, so that the system can now be compiled with xcvb."
 		   :cull-redundant nil
 		   :base-pathname ,base-pathname
 		   :verbose nil))))
-  (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system)
-  (let ((op (make-instance 'asdf-dependency-grovel:dependency-op))
-	(sys (asdf:find-system simplified-system)))
-    (asdf:output-files op sys)))
+  (let ((*default-pathname-defaults* (cl-launch:apply-output-pathname-translations base-pathname)))
+    (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system))
+  (eval
+   `(asdf:defsystem :migrated-system
+     ,@(with-open-file (s (cl-launch:apply-output-pathname-translations
+			   (merge-pathnames *components-path*)))
+		       (cdar (read s)))))
+  (let ((asdf-system (asdf:find-system :migrated-system)))
+      (setf (slot-value asdf-system 'asdf::name) (asdf::coerce-name (first systems)))
+      (setf (slot-value asdf-system 'asdf::relative-pathname) base-pathname)
+      (let* ((*default-pathname-defaults* base-pathname)
+	     (build-module (get-build-module-for-asdf-system asdf-system)))
+	(add-module-to-file build-module)
+	(dolist (component (asdf:module-components asdf-system))
+	  (add-module-to-file (get-module-for-component component
+							build-module
+							asdf-system))))))
