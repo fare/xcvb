@@ -14,14 +14,15 @@ enforced locally-declared dependencies.
 ..
     1  About XCVB
       1.1  Home page
-      1.2  Documentation
-      1.3  Timeline
-      1.4  Alternative
-    2  Using XCVB 0.1
+      1.2  Dependencies
+      1.3  Documentation
+      1.4  Timeline
+      1.5  Alternative
+    2  Using XCVB 0.15
       2.1  Starting a new XCVB project
       2.2  Running XCVB
       2.3  Converting your ASDF system
-    3  Further Limitations
+      2.4  Further Limitations
 
 
 About XCVB
@@ -111,10 +112,10 @@ you may want to use ASDF-DEPENDENCY-GROVEL and POIU
 to achieve some of the same benefits with existing technology.
 
 
-Using XCVB 0.1
-==============
+Using XCVB 0.15
+===============
 
-You may want to checkout the latest revision of xcvb, using git tag "xcvb_0.1".
+You may want to checkout the latest semi-release of xcvb, using git tag "xcvb_0.15".
 
 
 Starting a new XCVB project
@@ -143,8 +144,9 @@ but I'd rather write the script that does it automatically.
 Further Limitations
 -------------------
 
-If your build has some of the below complications,
-you're currently out of luck until an extension is written.
+If your build has any of the below complications,
+you're currently out of luck until an extension is written
+or unless you write such an extension yourself.
 
   * your build depends on data files.
 

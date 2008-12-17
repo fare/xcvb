@@ -1,0 +1,31 @@
+;;; -*- Lisp -*- ; Example on how I used XCVB to migrate Exscribe from ASDF.
+
+;; I ran the following command from the shell command-line:
+; xcvb doc/exscribe-migration.lisp.example
+
+(in-package :xcvb)
+
+;;; Some configuration.
+(setf
+ ;; Systems to include in the application, but to not co-convert to XCVB.
+ *systems-to-preload*
+ '(:cl-launch :fare-utils :fare-matcher :scribble :meta
+   :cl-pdf :salza :iterate :cl-typesetting)
+
+ ;; Systems to convert
+ *systems-to-convert*
+ '(:exscribe)
+
+ ;; ASDF Dependencies to override
+ *dependency-overrides*
+ '())
+
+
+;;; use ADG to compute dependencies into migrated-system-components.lisp-expr...
+
+(trace simplify-systems convert-asdf-system-to-xcvb
+       ;;asdf::register-system asdf::parse-component-form
+       rename-file)
+
+(simplify-systems :system :exscribe :base-pathname #p"/home/fare/fare/lisp/exscribe/")
+(convert-asdf-system-to-xcvb :migrated-system)

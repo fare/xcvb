@@ -18,7 +18,7 @@
     :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-    ;; :depends-on (:asdf-dependency-grovel)
+    :depends-on (:asdf-dependency-grovel)
     :components
     ((:file "driver")
      (:file "pkgdcl" :depends-on ("driver"))
@@ -33,4 +33,5 @@ deterministic separate compilation and enforced locally-declared dependencies."
 	     "xcvb" "traverse"))
      (:file "asd-generator" :depends-on ("pkgdcl" "xcvb" "traverse"))
      (:file "asdf-converter" :depends-on ("pkgdcl" "xcvb" "utilities"))
-     (:file "main" :depends-on ("xcvb" "asdf-converter"))))
+     ;;(:file "command-line-arguments" :depends-on ("pkgdcl"))
+     (:file "main" :depends-on ("xcvb" "asdf-converter" #|"command-line-arguments"|#))))

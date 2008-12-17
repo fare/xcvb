@@ -43,14 +43,14 @@
   "Quits from the Lisp world, with the given exit status if provided.
 This is designed to abstract away the implementation specific quit forms."
   (unless recklessly (finish-outputs))
-  #+cmu (unix:unix-exit code)
-  #+clisp (ext:quit code)
-  #+sbcl (sb-unix:unix-exit code)
-  #+clozure (ccl:quit code)
-  #+gcl (lisp:quit code)
-  #+allegro (excl:exit code :quiet t)
-  #+ecl (si:quit code)
-  #+lispworks (lispworks:quit :status code :confirm nil :return nil :ignore-errors-p t)
+  #+cmu (unix:unix-exit exit-status)
+  #+clisp (ext:quit exit-status)
+  #+sbcl (sb-unix:unix-exit exit-status)
+  #+clozure (ccl:quit exit-status)
+  #+gcl (lisp:quit exit-status)
+  #+allegro (excl:exit exit-status :quiet t)
+  #+ecl (si:quit exit-status)
+  #+lispworks (lispworks:quit :status exit-status :confirm nil :return nil :ignore-errors-p t)
   #-(or cmu clisp sbcl clozure gcl allegro ecl lispworks)
   (error "xcvb driver: Quitting not implemented"))
 

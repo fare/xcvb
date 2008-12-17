@@ -54,15 +54,15 @@ CL_LAUNCH_FLAGS :=
 ##
 ## DEFAULT: This will create a script wrapping a dumped image.
 ## However, in this mode you *HAVE TO* define a IMAGE_DIR directory below.
-#CL_LAUNCH_OUTPUT_MODE := image
+#CL_LAUNCH_MODE := image
 ##
 ## This will create a script that will reload xcvb from fasl and
 ## recompile the source whenever it changes. For xcvb developers only.
-#CL_LAUNCH_OUTPUT_MODE := fasls
+#CL_LAUNCH_MODE := fasls
 ##
 ## This will create a standalone executable. The catch is that it requires
 ## cl-launch >=2.10 and sbcl >=1.0.22 or clisp >=2.48.
-#CL_LAUNCH_OUTPUT_MODE := standalone
+#CL_LAUNCH_MODE := standalone
 ##
 ##
 ## Image directory for lisp images.

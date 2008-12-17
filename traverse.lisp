@@ -20,9 +20,6 @@ the node the function is being called on is included in the resulting list."
 	    (traverse-helper node operation #'pusher visited-nodes-map)))
     (reverse list)))
 
-(defun pushmany (pusher list)
-  (map () pusher list))
-
 (defgeneric traverse-helper (node operation pusher visited-nodes-map)
   (:documentation "helper for the traverse function"))
 

@@ -15,7 +15,7 @@ Future improvements planned for XCVB.
     2  Internals
       2.1  Use of Namestrings
       2.2  Error handling
-      2.3  Higher-level dependency description
+      2.3  Higher-level description
     3  The semantics of dependencies
       3.1  FASL vs CFASL
       3.2  Data files

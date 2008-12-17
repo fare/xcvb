@@ -1,7 +1,7 @@
 ### Makefile for XCVB ###
 
 ## default target
-all: xcvb asdf-to-xcvb
+all: xcvb
 
 
 ## Ensure presence of configuration file
@@ -31,7 +31,7 @@ endef
 xcvb:
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
 	--system xcvb --restart xcvb::main \
-	$(call CL_LAUNCH_MODE_${CL_LAUNCH_OUTPUT_MODE},xcvb)
+	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
 
 ## Janitoring
 clean:
@@ -48,5 +48,5 @@ mrproper: clean
 
 doc: $(patsubst %.rest, %.html, $(wildcard doc/*.rest))
 
-update-cl-net-doc: doc
+online-doc: doc
 	rsync -av doc/*.html common-lisp.net:/project/xcvb/public_html/doc/
