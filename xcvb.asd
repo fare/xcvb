@@ -5,10 +5,9 @@
 ;;;                                                                  ;;;
 ;;; Copyright (c) 2008 ITA Software, Inc.  All rights reserved.      ;;;
 ;;;                                                                  ;;;
-;;; Original author: Spencer Brody                                   ;;;
+;;; Original authors: Spencer Brody, Francois-Rene Rideau            ;;;
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 (asdf:defsystem :xcvb
     :author ("Spencer Brody" "Francois-Rene Rideau")
@@ -18,20 +17,20 @@
     :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-    :depends-on (:asdf-dependency-grovel)
+    :depends-on (:cl-launch :asdf-dependency-grovel)
     :components
     ((:file "driver")
      (:file "pkgdcl" :depends-on ("driver"))
-     (:file "compiler-options" :depends-on ("pkgdcl"))
      (:file "macros" :depends-on ("pkgdcl"))
-     (:file "utilities" :depends-on ("pkgdcl" "compiler-options"))
-     (:file "xcvb" :depends-on ("pkgdcl" "utilities" "extensions"))
+     (:file "specials" :depends-on ("pkgdcl"))
+     (:file "utilities" :depends-on ("pkgdcl" "macros" "specials"))
+     (:file "lisp-invocation" :depends-on ("pkgdcl" "specials"))
+     (:file "xcvb" :depends-on ("pkgdcl" "utilities" "extensions" "specials"))
      (:file "traverse" :depends-on ("pkgdcl" "xcvb" "macros"))
      (:file "extensions" :depends-on ("pkgdcl"))
      (:file "makefile-generator" :depends-on
-	    ("pkgdcl" "compiler-options" "utilities"
-	     "xcvb" "traverse"))
+	    ("pkgdcl" "specials" "utilities"
+	     "xcvb" "traverse" "lisp-invocation"))
      (:file "asd-generator" :depends-on ("pkgdcl" "xcvb" "traverse"))
      (:file "asdf-converter" :depends-on ("pkgdcl" "xcvb" "utilities"))
-     ;;(:file "command-line-arguments" :depends-on ("pkgdcl"))
-     (:file "main" :depends-on ("xcvb" "asdf-converter" #|"command-line-arguments"|#))))
+     (:file "main" :depends-on ("xcvb" "asdf-converter"))))

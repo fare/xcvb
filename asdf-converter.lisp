@@ -162,18 +162,19 @@ form if there is one (but leaving the extension forms)."
 
 (defun dependency-sort (components system)
   "Sorts a list of asdf components according to their dependencies."
-  (mapcar #'(lambda (x) (asdf:component-name (car x)))
-	  (asdf-dependency-grovel::components-in-traverse-order
-	   system
-	   (mapcar #'(lambda (c) (list (find c (asdf:module-components system)
-					     :key #'asdf:component-name :test #'equal)))
-		   components))))
+  (let ((name-to-module (make-hash-table :test 'equal))) ; Precompute to avoid O(n^2) behavior
+    (dolist (c (asdf:module-components system))          ; Should be lifted upwards.
+      (setf (gethash (asdf:component-name c) name-to-module) c))
+    (flet ((carname (x) (asdf:component-name (car x)))
+	   (nameop (x) (list (gethash x name-to-module))))
+    (mapcar #'carname
+	    (asdf-dependency-grovel::components-in-traverse-order
+	     system (mapcar #'nameop components))))))
 
 (defun get-module-for-component (asdf-component build-module asdf-system)
   "Returns a module object for the file represented by the given asdf-component"
   (let* ((dependencies
-          (dependency-sort (reverse
-                            (get-dependencies-from-component asdf-component))
+          (dependency-sort (get-dependencies-from-component asdf-component)
                            asdf-system))
          (filepath (asdf:component-pathname asdf-component))
          (fullname (strcat ;NUN
@@ -194,9 +195,6 @@ form if there is one (but leaving the extension forms)."
 
 
 (defvar *components-path* #p"/tmp/simplified-system-components.lisp-expr")
-
-(defun pathname-directory-pathname (pathname)
-  (make-pathname :type nil :name nil :defaults pathname))
 
 (defun asdf-to-xcvb (&key
 		     system
@@ -229,7 +227,8 @@ so that the system can now be compiled with XCVB."
 		   :cull-redundant nil
 		   :base-pathname ,base-pathname
 		   :verbose nil))))
-  (let ((*default-pathname-defaults* (cl-launch:apply-output-pathname-translations base-pathname)))
+  (let ((asdf-dependency-grovel::*system-base-dir*
+	 (cl-launch:apply-output-pathname-translations base-pathname)))
     (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system))
   (eval
    `(asdf:defsystem :migrated-system

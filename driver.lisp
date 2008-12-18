@@ -3,8 +3,8 @@
 (in-package :cl)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (declaim (optimize (speed 1) (safety 2) (compilation-speed 3) #-gcl (debug 1)
-       	   #+sbcl (sb-ext:inhibit-warnings 3)
+  (declaim (optimize (speed 2) (safety 3) (compilation-speed 0) #-gcl (debug 3)
+;;     	   #+sbcl (sb-ext:inhibit-warnings 3)
            #+sbcl (sb-c::merge-tail-calls 3) ;-- this plus debug 1 (or sb-c::insert-debug-catch 0 ???) should ensure all tail calls are optimized, says jsnell
 	   #+cmu (ext:inhibit-warnings 3)))
   #+gcl ;;; If using GCL, do some safety checks
@@ -17,8 +17,8 @@
             (and (= system::*gcl-major-version* 2)
                  (< system::*gcl-minor-version* 7)))
     (pushnew :gcl-pre2.7 *features*))
-  (setf *print-readably* nil ; allegro 5.0 notably will bork without this
-        *load-verbose* nil *compile-verbose* nil *compile-print* nil)
+;;  (setf *print-readably* nil ; allegro 5.0 notably will bork without this
+;;        *load-verbose* nil *compile-verbose* nil *compile-print* nil)
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
   #+gcl (setf compiler::*compiler-default-type* (pathname "")
@@ -60,7 +60,7 @@ This is designed to abstract away the implementation specific quit forms."
 (defun lcq (dependencies source object &rest args)
   "load dependencies, compile source to object, quit"
   (load-dependencies dependencies)
-  (apply #'compile-file module :output-file object
+  (apply #'compile-file source :output-file object
 	 ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
 	 args)
   (quit))

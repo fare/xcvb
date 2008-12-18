@@ -5,6 +5,7 @@
 (cl:defpackage :xcvb
   (:use :cl :xcvb-driver)
   (:import-from :xcvb-driver #:quit)
+  (:import-from :cl-launch #:DBG)
   (:export
 
      ;; Defining and using modules and extensions

@@ -7,11 +7,10 @@
 
 
 ;;; This is for my own debugging purposes.
-;;#+uncommenting-this-line-disables-the-trace
+#+commenting-this-line-enables-the-trace
 (trace asdf-to-xcvb
        add-module-to-file
        dependency-sort
-       ;;asdf::register-system asdf::parse-component-form
        rename-file)
 
 (asdf-to-xcvb

@@ -2,15 +2,6 @@
 
 (in-package :xcvb)
 
-(defun build ()
-#|
-  ... Create an image with the setup loaded ... (see load-setup-and-die)
-  ... (setf xcvb:*lisp-executable-pathname* ...) ... the path to the image you dumped in
-  ... (xcvb::write-makefile "/ita/devel/qres/lisp/quux/BUILD.lisp" "/ita/devel/qres/lisp/quux/") ...
-  ... make -f /ita/devel/qres/lisp/quux/Makefile.xcvb lisp-image.core ...
-|#
-  nil)
-
 (defun usage (&optional (out *standard-output*))
   (format out "~&Usage: xcvb FILE.lisp~%  ~
 	where FILE.lisp configures xcvb and starts computation.~%  ~
@@ -22,7 +13,8 @@
      (let ((x (car cl-launch:*arguments*)))
        (if (member x '("-?" "--help" "-h") :test 'equal)
 	   (usage)
-	   (load x))
+	   (let ((*package* (find-package :xcvb)))
+	     (load x)))
        (quit :exit-status 0)))
     (t
      (usage *error-output*)

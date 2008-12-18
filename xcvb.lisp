@@ -278,13 +278,7 @@ leading to this node from other nodes with crypto hash values, e.g.
   ((source-filepath
     :initarg :source-filepath
     :initform (error "Must supply source-filepath")
-    :reader source-filepath)
-   (escaped-source-filepath
-    :reader escaped-source-filepath)))
-
-(defmethod initialize-instance :after ((node file-node) &key)
-  (setf (slot-value node 'escaped-source-filepath)
-        (escape-string (namestring (source-filepath node)))))
+    :reader source-filepath)))
 
 (defclass source-file-node (file-node) ())
 
@@ -662,14 +656,11 @@ lisp file at sourcepath loaded"
 (defun create-dependency-graph (sourcepath)
   "Constructs a dependency graph with a lisp-image-node for a lisp image
 with the given lisp file loaded as the root of the graph."
+  (setf sourcepath (merge-pathnames sourcepath "BUILD.lisp"))
   (setf *node-map* (make-hash-table :test #'equal))
   (setf *module-map* (make-hash-table :test #'equal))
   (setf *build-module* nil)
-  (setf *build-module* (create-module (find-build-file (pathname sourcepath))
+  (setf *build-module* (create-module (find-build-file sourcepath)
                                       :build-module-p T))
   (create-lisp-image-node
-   (list (create-module (pathname sourcepath) :parent-module *build-module*))))
-
-
-;;;TODO: do this at runtime, in the proper function, in a dynamic scope.
-;;;(pushnew :xcvb *features*)
+   (list (create-module sourcepath :parent-module *build-module*))))

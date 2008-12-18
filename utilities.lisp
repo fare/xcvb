@@ -42,6 +42,9 @@
 
 ;;; Filename handling
 
+(defun pathname-directory-pathname (pathname)
+  (make-pathname :type nil :name nil :defaults pathname))
+
 (defun pathname-parent (pathname)
   "Takes a pathname and returns the pathname of the parent directory
 of the directory of the given pathname"
@@ -71,43 +74,84 @@ if there isn't one there already"
   "This function take the name of an asdf-system, and
 converts it to a string representation that can universally be used to refer to that system.
 Modeled after the asdf function coerce-name"
-  (typecase name
-    (symbol (string-downcase (symbol-name name)))
-    (string (string-downcase name))
-    (t (simply-error 'syntax-error "~@<invalid asdf system designator ~A~@:>" name))))
+  (string-downcase
+   (typecase name
+     (asdf:component (asdf:component-name name))
+     (symbol (symbol-name name))
+     (string name)
+     (t (simply-error 'syntax-error "~@<invalid asdf system designator ~A~@:>" name)))))
 
 
-;;; Avoiding use of a compiled-in driver in the build process
+;;; Escaping strings
 
-(defun quit-form (&key exit-status (lisp-implementation *lisp-implementation*))
-  "Returns the correct form to quit lisp, based on the value of lisp-implementation.
-Can optionally be given a unix status code to exit with"
-  (quit-form-helper lisp-implementation :exit-status exit-status))
+(defun escape-shell-command-for-Makefile (string &optional out)
+  "Takes a string and excapes all the characters that need to be put into a makefile.
+The only such character right now is $.  Raises an error if the string contains a newline."
+  (with-output (out)
+    (loop for c across string do
+      (case c
+        ;;TODO - instead of erroring, should this insert a "\" to escape the newline?
+        (#\newline (error "Makefile line cannot contain a newline"))
+        (#\$ (write-string "$$" out))
+        (otherwise (write-char c out))))))
 
-(defgeneric quit-form-helper (lisp-impl &key exit-status)
-  (:documentation "Helper generic function for quit-form function"))
+(defparameter *need-shell-double-quote-escape* "\"`$\\"
+  "characters that need be escaped in a shell double-quote context")
 
-(defmethod quit-form-helper ((lisp-impl (eql :sbcl)) &key exit-status)
-  (declare (ignore lisp-impl))
-  (format nil "(sb-ext:quit~@[ :unix-status ~a~])" exit-status))
+(defun char-needs-shell-double-quote-escape-p (c)
+  (find c *need-shell-double-quote-escape*))
 
-(defmethod quit-form-helper ((lisp-impl (eql :ccl)) &key exit-status)
-  (declare (ignore lisp-impl))
-  (format nil "(ccl:quit~@[ ~a~])" exit-status))
+(defun escape-string-for-shell-double-quote (string &optional out quotes)
+  "Takes a string and escapes all the characters that need to be to be run in the shell."
+  (with-output (out)
+    (when quotes
+      (write-char #\" out))
+    (loop for c across string do
+	  (when (char-needs-shell-double-quote-escape-p c)
+	    (write-char #\\ out))
+	  (write-char c out))
+    (when quotes
+      (write-char #\" out))))
 
+(defun char-needs-shell-quoting-p (c)
+  "characters may require some shell quoting to be included as a shell argument"
+  ;; Assumes ASCII
+  (not (or (char<= #\a c #\z)
+	   (char<= #\A c #\Z)
+	   (char<= #\0 c #\9)
+	   (find c "%.,-_:/"))))
 
-(defun save-image-form (filepath &optional (lisp-impl *lisp-implementation*))
-  "Returns the lisp form to save the lisp image to the given filepath"
-  (save-image-form-helper filepath lisp-impl))
+(defun escape-string-for-shell (string &optional out)
+  "Takes a string and if needed, includes the string in double quotes to use as shell argument"
+  (cond
+    ((some #'char-needs-shell-quoting-p string)
+     (escape-string-for-shell-double-quote string out t))
+    (out
+     (with-output (out)
+       (write-string string out)))
+    (t
+     string)))
 
-(defgeneric save-image-form-helper (filepath lisp-impl)
-  (:documentation "Helper generic function for save-image-form function"))
+(defun escape-string-for-Makefile (string &optional out)
+  "Takes a string and escapes it first for the shell, then for a makefile"
+  (escape-shell-command-for-Makefile (escape-string-for-shell string) out))
 
-(defmethod save-image-form-helper (filepath (lisp-impl (eql :sbcl)))
-  (declare (ignore lisp-impl))
-  (format nil "(sb-ext:save-lisp-and-die \\\"~a\\\")" (namestring filepath)))
-
-(defmethod save-image-form-helper (filepath (lisp-impl (eql :ccl)))
-  (declare (ignore lisp-impl))
-  (format nil "(ccl:save-application \\\"~a\\\")" (namestring filepath)))
-
+(defun arglist-to-Makefile (arglist &optional out)
+  "Transforms an arglist into something to print on a Makefile line
+to execute the specified process.
+List elements can be either strings that will be escaped
+or escapes of the form (:makefile string) that won't be escaped."
+  (with-output (out)
+    (loop for arg in arglist
+	  for () = () then (when arg (write-char #\space out))
+	  do (cond
+	       ((null arg))
+	       ((stringp arg)
+		(escape-string-for-Makefile arg out))
+	       ((and (consp arg) (eq :makefile (car arg)))
+		(dolist (s (cdr arg))
+		  (write-string s out)))
+	       ((consp arg)
+		(arglist-to-Makefile arg out))
+	       (t
+		(error "Invalid arglist member ~S" arg))))))
