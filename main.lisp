@@ -19,11 +19,3 @@
     (t
      (usage *error-output*)
      (quit :exit-status 1))))
-
-
-;;; Set this up before you create the binary...
-
-(setf *xcvb-lisp-directory*
-      (pathname (strcat (cl-launch:getenv "INSTALL_LISP") "/")))
-
-;; (cl-launch::DBG :main *xcvb-lisp-directory*)

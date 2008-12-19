@@ -14,6 +14,7 @@ Future improvements planned for XCVB.
       1.3  Generalized Staged Images
       1.4  In-image loading
       1.5  Multiple BUILD.lisp files
+      1.6  ASDF backend
     2  Internals
       2.1  Distinguish target nodes and operation nodes
       2.2  Use of Namestrings
@@ -48,7 +49,13 @@ Configurability of the build image
 
 The user needs to be able to specify files to be loaded
 and/or forms to be evaluated in the initial build image.
-Most notably he needs to be able to customize his asdf:\*central-registry\*.
+Most notably he needs to be able to customize his asdf:\*central-registry\*
+and possibly proclaim the desired optimization settings.
+
+Typically, this is done by a file called setup.lisp
+loaded into the initial staged build image.
+
+For a simple example, no document, see doc/exscribe-compilation.lisp.example.
 
 
 Generalized Staged Images
@@ -85,6 +92,14 @@ and also has multiple ${CWBRLRUN} macros
 so that compilation will happen with the correct core at each step of the way.
 The asd-generator will similarly need to be changed
 to have one asdf module for each BUILD.lisp's build-requires slot (if present).
+
+
+ASDF backend
+------------
+
+Add support for :load-source dependencies.
+
+Add a test suite for the ASDF backend.
 
 
 Internals

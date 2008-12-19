@@ -6,7 +6,7 @@ XCVB: Improving Modularity for Common Lisp
 
 :Description: Submission for a Demonstration and/or a Lightning Talk at ILC'09.
 :Authors: Francois-Rene Rideau <fare@tunes.org> and Spencer Brody <sbrody88@gmail.com>
-:Date: 2008-12-13
+:Date: 2008-12-19
 
 .. contents::
 ..
@@ -98,11 +98,11 @@ What the XCVB prototype already brings as opposed to ASDF:
      + was easily added to SBCL by Juho Snellman, could be as easily added to other compilers
      + as with defsystem, careful EVAL-WHEN discipline needed (but now it is enforced)
 
-  * semi-automated migration path from ASDF
+  * Automated migration path from ASDF
      + XCVB accepts dependencies from XCVB systems to ASDF systems and vice-versa
-     + migrate your systems using Andreas Fuchs's asdf-dependency-grovel
-     + Lisp extensions require extending the dependency-detection tool
-     + ASDF extensions require extending the migration tool
+     + automatic migration of your ASDF system using Andreas Fuchs's asdf-dependency-grovel
+     + Compile-time Lisp state requires extending the dependency-detection tool
+     + ASDF extensions not supported yet.
 
 
 XCVB today
@@ -110,14 +110,18 @@ XCVB today
 
 Urgently needed:
 
-  * make it user-friendly
-     + fully automate migration from ASDF
-     + make the use of XCVB a short one-liner (from REPL or command line)
+  * User friendliness:
      + add documentation and examples
+     + better behavior in face or errors
+
+  * More features:
+     + refine migration and compilation to deal with harder cases
+       (data files, computed lisp files, etc.)
+     + Have a more general model for staged builds
+       (multiple intermediate images, dynamic dependency computation)
 
   * actually migrate a critical mass of existing ASDF systems
-     + refine automatic tool to deal with harder cases
-     + use manual overrides when automation breaks down
+     + support manual overrides when automation breaks down
      + maintain until upstream adopts XCVB (if ever)
      + have a distribution system (as in asdf-install or mudballs, etc.)
      + fully bootstrap xcvb (make asdf optional)
@@ -212,6 +216,9 @@ XCVB can be found at
 
 Initially developed by Spencer Brody during the Summer 2008 at ITA Software,
 under the guidance of Francois-Rene Rideau.
+Work restarted by Rideau in mid December 2008,
+with an semi-usable prototype released.
+
 Many thanks to James Knight for his many insights
 and to Juho Snellman for the SBCL CFASL.
 

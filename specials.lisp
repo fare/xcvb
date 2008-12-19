@@ -21,7 +21,12 @@
 (defvar *xcvb-setup-dependencies*
   '("driver.lisp" "asdf-extensions.lisp"))
 
-(defvar *xcvb-lisp-directory* nil
+;;; Note: this needs be setup before you create the binary.
+;;; The variable is set in configure.mk and exported by the Makefile.
+;;; Ideally, the form would be evaluated when you dump the image,
+;;; not when you compile the FASL.
+(defvar *xcvb-lisp-directory*
+  (pathname (concatenate 'string (cl-launch:getenv "INSTALL_LISP") "/"))
   "Directory pathname for the location where XCVB Lisp files are installed")
 
 (defvar *lisp-allow-debugger* nil
