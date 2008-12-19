@@ -76,4 +76,11 @@ CL_LAUNCH_FLAGS :=
 ##
 #INSTALL_BIN := /usr/local/bin
 #INSTALL_BIN := /home/fare/bin
+#INSTALL_BIN := /usr/bin
 
+
+#### Where to install Lisp files?
+##
+#INSTALL_LISP := /usr/local/lib/xcvb
+#INSTALL_LISP := /home/fare/lib/xcvb
+#INSTALL_LISP := /usr/share/common-lisp/source/xcvb

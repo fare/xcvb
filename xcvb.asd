@@ -20,6 +20,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
     :depends-on (:cl-launch :asdf-dependency-grovel)
     :components
     ((:file "driver")
+     (:file "asdf-extensions" :depends-on ("driver"))
      (:file "pkgdcl" :depends-on ("driver"))
      (:file "macros" :depends-on ("pkgdcl"))
      (:file "specials" :depends-on ("pkgdcl"))
@@ -33,4 +34,4 @@ deterministic separate compilation and enforced locally-declared dependencies."
 	     "xcvb" "traverse" "lisp-invocation"))
      (:file "asd-generator" :depends-on ("pkgdcl" "xcvb" "traverse"))
      (:file "asdf-converter" :depends-on ("pkgdcl" "xcvb" "utilities"))
-     (:file "main" :depends-on ("xcvb" "asdf-converter"))))
+     (:file "main" :depends-on ("xcvb" "asdf-converter" "specials"))))

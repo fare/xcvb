@@ -62,6 +62,7 @@ What the XCVB prototype already brings as opposed to ASDF:
      + deterministic file-based separate compilation
      + compute objects from source, just as in any modern language
      + semantics of a file fully encapsulated in its contents (+ those of dependencies)
+     + proper staging of compile-time dependencies (compile macros before they are used)
      + incremental change-driven building and testing
 
   * Therefore: dependencies must be declared locally

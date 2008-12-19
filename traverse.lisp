@@ -35,7 +35,7 @@ the node the function is being called on is included in the resulting list."
     `(defmethod traverse-helper (,node ,operation ,pusher ,visited-nodes-map)
       (labels ((c (,x) (funcall ,pusher ,x))
 	       (rec (,x ,y) (traverse-helper ,x ,y ,pusher ,visited-nodes-map))
-	       (rec* (,y ,op) (dolist (,x ,y) (rec ,x ,op))))
+	       (rec* (,y ,op) (dolist (,x (reverse ,y)) (rec ,x ,op))))
 	(declare (ignorable #'c #'rec #'rec*))
 	,@body))))
 
@@ -43,6 +43,9 @@ the node the function is being called on is included in the resulting list."
   (c node))
 
 (define-traverse ((node source-file-node) operation)
+  (c node))
+
+(define-traverse ((node load-source-node) operation)
   (c node))
 
 (define-traverse ((node lisp-image-node) operation)

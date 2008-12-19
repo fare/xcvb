@@ -10,19 +10,22 @@ Future improvements planned for XCVB.
 ..
     1  Usability
       1.1  Migration from ASDF
-      1.2  Generalized Staged Images
-      1.3  In-image loading
-      1.4  Multiple BUILD.lisp files
+      1.2  Configurability of the build image
+      1.3  Generalized Staged Images
+      1.4  In-image loading
+      1.5  Multiple BUILD.lisp files
     2  Internals
-      2.1  Use of Namestrings
-      2.2  Error handling
-      2.3  Higher-level description
-    3  The semantics of dependencies
-      3.1  FASL vs CFASL
-      3.2  Data files
-    4  Building a real module system
-      4.1  Bibliography
-      4.2  Some advice from a schemer
+      2.1  Distinguish target nodes and operation nodes
+      2.2  Use of Namestrings
+      2.3  Error handling
+      2.4  Pre-escaping
+    3  Higher-level description
+    4  The semantics of dependencies
+      4.1  FASL vs CFASL
+      4.2  Data files
+    5  Building a real module system
+      5.1  Bibliography
+      5.2  Some advice from a schemer
 
 
 Usability
@@ -35,6 +38,17 @@ Automate and document in an example how to use asdf-dependency-grovel
 and XCVB together to migrate an existing system from ASDF to XCVB.
 
 For a simple example, no document, see doc/exscribe-migration.lisp.example.
+
+For more complex cases involving migrating several ASDF systems to XCVB,
+it will be more "interesting".
+
+
+Configurability of the build image
+----------------------------------
+
+The user needs to be able to specify files to be loaded
+and/or forms to be evaluated in the initial build image.
+Most notably he needs to be able to customize his asdf:\*central-registry\*.
 
 
 Generalized Staged Images
@@ -76,6 +90,14 @@ to have one asdf module for each BUILD.lisp's build-requires slot (if present).
 Internals
 =========
 
+Distinguish target nodes and operation nodes
+--------------------------------------------
+
+An operation can create multiple targets.
+A target can depend on a combination of multiple operations.
+See how to make Mae Make deal with such.
+
+
 Use of Namestrings
 ------------------
 
@@ -101,8 +123,17 @@ We should also provide a nicer way of presenting errors to the end-user.
 Maybe there should also be some library for that.
 
 
+Pre-escaping
+------------
+
+I slashed the pre-escaping trick that sbrody used to allow for lisp files
+to use ${FASL} as an extension that wouldn't be quoted for the Makefile.
+We'll need to find some trick to do such things in a clean way,
+if we really want to do them.
+
+
 Higher-level description
-------------------------
+========================
 
 It's OK that we started with hand-coding the behaviour of XCVB in Lisp
 but eventually, we should have a domain-specific language to describe
@@ -166,7 +197,6 @@ Note that we have to map various entities.
     2- *operators* are methods that create concrete operations out of various parameters
 
       a- parameters include input file, options (which compiler/flags to use), etc.
-
 
 
 The semantics of dependencies

@@ -1,7 +1,7 @@
 ### Makefile for XCVB ###
 
 ## default target
-all: xcvb
+all: xcvb lisp-install
 
 
 ## Ensure presence of configuration file
@@ -14,6 +14,9 @@ endif
 
 include configure.mk
 
+export INSTALL_LISP
+
+LISP_INSTALL_FILES := driver.lisp asdf-extensions.lisp
 
 ## cl-launch mode: standalone executable, script+image or script+fasls?
 define CL_LAUNCH_MODE_standalone
@@ -32,6 +35,13 @@ xcvb:
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
 	--system xcvb --restart xcvb::main \
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
+# for debugging, also use --file setup.lisp and have that file do
+# (asdf:oos 'asdf:load-op :cl-launch) (setf *compile-verbose* t *load-verbose* t)
+
+
+## Installing Lisp files needed at runtime
+lisp-install:
+	rsync -av ${LISP_INSTALL_FILES} ${INSTALL_LISP}/
 
 ## Janitoring
 clean:

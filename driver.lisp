@@ -29,8 +29,9 @@
   (unless (find-package :xcvb-driver)
     (if (find-package :common-lisp)
        (defpackage :xcvb-driver (:use :common-lisp))
-       (make-package :xcvb-driver :use '(:lisp))))
-  (in-package :xcvb-driver))
+       (make-package :xcvb-driver :use '(:lisp)))))
+
+(in-package :xcvb-driver)
 
 ;; Variables that define the current system
 (defvar *restart* nil)
@@ -54,23 +55,23 @@ This is designed to abstract away the implementation specific quit forms."
   #-(or cmu clisp sbcl clozure gcl allegro ecl lispworks)
   (error "xcvb driver: Quitting not implemented"))
 
-(defun load-dependencies (dependencies)
+(defun load* (dependencies)
   (map nil #'load dependencies))
 
 (defun lcq (dependencies source object &rest args)
   "load dependencies, compile source to object, quit"
-  (load-dependencies dependencies)
+  (load* dependencies)
   (apply #'compile-file source :output-file object
 	 ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
 	 args)
   (quit))
 
-(defun resume ()
-  (do-resume))
-
 (defun do-resume ()
   (when *restart* (funcall *restart*))
   (quit))
+
+(defun resume ()
+  (do-resume))
 
 #-ecl
 (defun dump-image (filename &key standalone (package :cl-user))
@@ -120,7 +121,7 @@ This is designed to abstract away the implementation specific quit forms."
 
 #-ecl
 (defun create-image (image dependencies &rest flags)
-  (load-dependencies dependencies)
+  (load* dependencies)
   (apply #'dump-image image flags))
 
 #+ecl

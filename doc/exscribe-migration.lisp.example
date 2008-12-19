@@ -8,10 +8,14 @@
 
 ;;; This is for my own debugging purposes.
 #+commenting-this-line-enables-the-trace
-(trace asdf-to-xcvb
-       add-module-to-file
-       dependency-sort
-       rename-file)
+(trace ;;asdf-to-xcvb
+       ;;asdf:component-depends-on
+       get-dependencies-from-components
+       get-build-module-for-asdf-system
+       ;;add-module-to-file
+       ;;dependency-sort
+       ;;rename-file
+       )
 
 (asdf-to-xcvb
  ;;; Convert this one system

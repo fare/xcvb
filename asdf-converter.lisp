@@ -106,18 +106,25 @@ form if there is one (but leaving the extension forms)."
              :if-exists :supersede)
       (format out "~a~%" (module-string module)))))
 
-
-(defun get-dependencies-from-component (asdf-component)
+;; See also http://paste.lisp.org/display/66610
+(defun get-dependencies-from-components (components)
   "Returns a list of the files or systems that the asdf:component depends on"
-  (let ((component-depends-on
-         (asdf:component-depends-on 'asdf:compile-op asdf-component)))
-    (unless (null component-depends-on)
-      (destructuring-bind ((compile-op &rest deps)) component-depends-on
-        (declare (ignore compile-op))
-        deps))))
+  (let (dependencies)
+    (dolist (component components)
+      (let ((component-depends-on
+	     (asdf:component-depends-on 'asdf:compile-op component)))
+	(unless (null component-depends-on)
+	  (destructuring-bind ((compile-op &rest deps)) component-depends-on
+	    (declare (ignore compile-op))
+	    (dolist (d deps)
+	      (pushnew (coerce-asdf-system-name d) dependencies :test #'equal))))))
+    (nreverse dependencies)))
+
+(defun get-dependencies-from-component (component)
+  (get-dependencies-from-components (list component)))
 
 
-(defun get-build-module-for-asdf-system (asdf-system)
+(defun get-build-module-for-asdf-system (asdf-system original-systems)
   "Returns a build-module with information from the given asdf system"
   (flet ((maybe-slot-value (object slot)
            (if (slot-boundp object slot)
@@ -130,7 +137,7 @@ form if there is one (but leaving the extension forms)."
           (long-description (maybe-slot-value asdf-system
                                               'asdf::long-description))
           (licence (maybe-slot-value asdf-system 'asdf::licence))
-          (asdf-deps (get-dependencies-from-component asdf-system))
+          (asdf-deps (get-dependencies-from-components original-systems))
           (file-deps (mapcar
                       (lambda (component)
                         (enough-namestring
@@ -239,7 +246,8 @@ so that the system can now be compiled with XCVB."
       (setf (slot-value asdf-system 'asdf::name) (asdf::coerce-name (first systems)))
       (setf (slot-value asdf-system 'asdf::relative-pathname) base-pathname)
       (let* ((*default-pathname-defaults* base-pathname)
-	     (build-module (get-build-module-for-asdf-system asdf-system)))
+	     (build-module (get-build-module-for-asdf-system asdf-system
+							     (mapcar #'asdf:find-system systems))))
 	(add-module-to-file build-module)
 	(dolist (component (asdf:module-components asdf-system))
 	  (add-module-to-file (get-module-for-component component

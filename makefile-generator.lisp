@@ -17,24 +17,26 @@ the build-stage1.image target")
   "The path that the Makefile is being written to.
 The Makefile targets will be relative to this path.")
 
+(defun simplify-target-path (x)
+  (enough-namestring x *output-path*))
+
 (defgeneric target-for-node (node)
   (:documentation "Returns the name of the makefile target for the given node"))
 
 (defmethod target-for-node ((node object-file-node))
-  (enough-namestring
+  (simplify-target-path
    (make-pathname
     :type "fasl"
-    :defaults (source-filepath node))
-   *output-path*))
+    :defaults (source-filepath node))))
 
+;;TODO: proper Makefile escaping should be done by the target user.
+;;escape-string-for-Makefile won't do it. And is a misnomer.
+;; should be renamed escape-shell-argument-for-Makefile or some such.
 (defmethod target-for-node ((node source-file-node))
-  (enough-namestring
-   (source-filepath node)
-   *output-path*))
+  (simplify-target-path (source-filepath node)))
 
 (defmethod target-for-node ((node image-dump-node))
-  (enough-namestring (escape-string-for-Makefile (namestring (dump-path node)))
-                     *output-path*))
+  (simplify-target-path (namestring (dump-path node))))
 
 (defmethod target-for-node ((node asdf-system-node))
   (fullname node))
@@ -42,28 +44,31 @@ The Makefile targets will be relative to this path.")
 (defmethod target-for-node ((node lisp-image-node))
   (fullname node))
 
+(defmethod target-for-node ((node load-source-node))
+  (simplify-target-path (namestring (source-filepath node))))
+
 ;;TODO: Simplify with calls to function in xcvb.
 (defgeneric form-string-for-node (node)
   (:documentation "Returns a string of the lisp form that will perform the
 action that the node represents"))
 
 (defmethod form-string-for-node ((node asdf-system-node))
-  (format nil
+   (format nil
           "(asdf:oos 'asdf:load-op ~(~S~))"
-	  (intern (string-upcase (name node)) :keyword)))
+     (intern (string-upcase (name node)) :keyword)))
+
+(defmethod form-string-for-node ((node load-source-node))
+  (format nil
+          "(load ~S)"
+	  (target-for-node node)))
 
 (defmethod form-string-for-node ((node image-dump-node))
   (save-image-form
    (namestring (dump-path node))))
 
 (defmethod form-string-for-node ((node source-file-node))
-  (if *use-cfasls*
-    (format nil
-            "#+cfasls (cl:compile-file ~S ~
-:emit-cfasl T)#-cfasls (cl:compile-file ~:*~S)"
-            (source-filepath node))
-    (format nil "(cl:compile-file \\\"~a\\\")"
-            (source-filepath node))))
+  (format nil "(cl:compile-file ~S~:[~; :emit-cfasl T~])"
+	  (source-filepath node) *use-cfasls*))
 
 (defmethod form-string-for-node ((node fasl-node))
   (format nil
@@ -74,11 +79,9 @@ action that the node represents"))
 
 (defmethod form-string-for-node ((node cfasl-node))
   (if *use-cfasls*
-    (format nil
-            "#+cfasls (cl:load ~S)#-cfasls (cl:compile-file ~S)"
+    (format nil "(cl:load ~S)"
             (make-pathname :type "cfasl"
-                           :defaults (source-filepath node))
-            (source-filepath node))
+                           :defaults (source-filepath node)))
     (format nil "(cl:compile-file ~S)"
             (source-filepath node))))
 
@@ -144,30 +147,34 @@ given node"))
 (defun Makefile-lisp-invocation (out &rest keys)
   (arglist-to-Makefile (apply #'lisp-invocation-arglist keys) out))
 
-
 (defun makefile-setup (out)
   "Writes information to the top of the makefile about how to actually run lisp
 to compile files, and also how to create an image to use that contains all the
 dependencies from the build-requires slot of the build module loaded"
   (with-output (out)
     (format out "lisp.image:~%")
-    (format out "LISPRUN := ~a~%~%" 
-	    (Makefile-lisp-invocation nil :eval '(:makefile)))
-    (let* ((cwbrlpath (namestring
-		       (make-pathname
-			:name "build-stage1"
-			:type "image"
-			:defaults *output-path*)))
+    (format out "export PATH := .:${PATH}~%")
+    (format out "LISPRUN := ~a~%~%"
+	    (Makefile-lisp-invocation nil
+				      :eval '(:makefile)))
+    (let* ((cwbrlpath (make-pathname
+		       :name "build-stage1"
+		       :type "image"
+		       :defaults *output-path*))
 	   (core-with-build-requires-graph
 	    (create-image-dump-node (create-lisp-image-node
-				     (pushnew (list :asdf "xcvb")
-					      (build-requires *build-module*)))
+				     (append (xcvb-setup-dependencies)
+					     *lisp-setup-dependencies*
+					     (build-requires *build-module*)))
 				    cwbrlpath)))
-      (format out "CWBRL := ~a~%~%" cwbrlpath)
+      (format out "CWBRL := ./~a~%~%" (simplify-target-path cwbrlpath))
       (format out "CWBRLRUN := ~a~%~%"
 	      (Makefile-lisp-invocation nil :image-path '(:makefile "${CWBRL}") :eval '(:makefile)))
-      (format out "FASL := $(shell ${LISPRUN} \"(progn (princ (pathname-type (compile-file-pathname \\\"test.lisp\\\"))) (sb-ext:quit))\")~%~%") ;;XXX should be using quit-form
-      (format out "CFASL := cfasl~%~%")
+      #|(format out "FASL := $(shell ${LISPRUN} ~A)~%~%"
+	      (escape-string-for-Makefile
+	       (format nil "(progn (princ (pathname-type (compile-file-pathname \"test.lisp\"))) ~a)"
+		       (quit-form))))
+      (format out "CFASL := cfasl~%~%")|#
       (format out
 	      "CHECK_ASDFS := $(shell if ! ( [ -f ${CWBRL} ] && (${CWBRLRUN} ~
 \"(asdf::asdf-systems-are-up-to-date-p ~{:~a~^ ~})\") ) ; ~
@@ -193,7 +200,7 @@ then echo force ; fi )~%~%force : ~%.PHONY: force~%~%"
 (defun write-makefile (source-path
                        &key
 		       (output-path (pathname-directory-pathname source-path))
-                       (makefile-name "Makefile.xcvb")
+                       (makefile-name "xcvb.mk")
                        (image-name "lisp.image"))
   "Writes a makefile to output-path with information about how to compile the file at source-path.  What the makefile is designed to do can be specified by graph-type"
   (let* ((dependency-graph

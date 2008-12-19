@@ -315,6 +315,9 @@ leading to this node from other nodes with crypto hash values, e.g.
   ((name
     :initarg :name :reader name)))
 
+(defclass load-source-node (file-node)
+  ())
+
 (defgeneric add-dependency (node dependency &key type)
   (:documentation "Adds a dependency to a node in the dependency graph."))
 
@@ -455,14 +458,25 @@ so that they can detect and handle dependency cycles properly."))
   (destructuring-bind (dep-name) dependency
     (create-asdf-system-node dep-name)))
 
+(defmethod create-dependency-node-from-type ((dependency-type (eql :load-source))
+                                             dependency
+                                             build-module
+                                             previous-nodes-map
+                                             previous-nodes-list
+                                             &optional old-build-module)
+  (declare (ignore old-build-module))
+  (destructuring-bind (dep-name) dependency
+    (create-load-source-node dep-name)))
+
 ;; TODO: document better when you need to use this dependency?
 ;; = have a root node for the dependency DAG
 ;; maybe get rid of it? or rename it as root node of the whole graph
 ;; (why need a root instead of say iterating on the DAG?)
 (defun create-lisp-image-node (dependencies &optional name)
   "This function constructs a lisp-image-node in the dependency graph
-for a lisp with the given dependencies loaded.  This is used as the
-root as the dependency graph unless there is a dump-image node above it."
+for a lisp with the given dependencies loaded.
+This is used as the root as the dependency graph
+unless there is a dump-image node above it."
   (let ((previous-nodes-map (make-hash-table :test #'equal))
         (previous-nodes-list nil))
     (flet ((f (dep)
@@ -510,6 +524,15 @@ root as the dependency graph unless there is a dump-image node above it."
                 :name (coerce-asdf-system-name system-name)
                 :fullname fullname)))))
 
+(defun create-load-source-node (source-file-name)
+  "This function constructs a load-source-node in the dependency graph"
+  (let* ((truename (truename source-file-name)) ;NUN
+	 (fullname (strcat "//load-source/" (namestring truename)))) ;NUN
+    (or (gethash fullname *node-map*)
+        (setf (gethash fullname *node-map*)
+              (make-instance 'load-source-node
+                :source-filepath truename
+                :fullname fullname)))))
 
 (defun create-image-dump-node (lisp-image-node dump-path)
   "This function constructs an image-dump-node in the dependency graph, which is designed to dump an image of the lisp state described by lisp-image-node"
@@ -664,3 +687,9 @@ with the given lisp file loaded as the root of the graph."
                                       :build-module-p T))
   (create-lisp-image-node
    (list (create-module sourcepath :parent-module *build-module*))))
+
+(defun xcvb-setup-dependencies ()
+  (mapcar (lambda (x)
+	    `(:load-source
+	      ,(merge-pathnames x *xcvb-lisp-directory*)))
+	  *xcvb-setup-dependencies*))
