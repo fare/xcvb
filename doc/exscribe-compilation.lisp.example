@@ -6,22 +6,27 @@
 ; xcvb doc/exscribe-migration.lisp.example
 ; make -C /home/fare/fare/lisp/exscribe -f xcvb.mk
 
-
 (in-package :xcvb)
 
 ;;; This is for my own debugging purposes.
 #+commenting-this-line-enables-the-trace
 (trace write-makefile get-lisp-implementation)
-(define-lisp-implementation :test () :fullname "Test!")
-(get-lisp-implementation :test)
-(get-lisp-implementation :sbcl)
+
+;;; You may want to set parameters such as this one and others in specials.lisp
+;(setf *lisp-implementation-type* :sbcl)
+;(setf *lisp-executable-pathname* "/usr/local/bin/sbcl")
+;(setf *lisp-image-pathname* "/path/to/my/monster-sbcl.core")
+;(setf *lisp-options* '("--dynamic-space-size" "3192"))
+;(setf *use-cfasls* t)
 
 
-;;; And this is the compilation setup...
-(defvar *build-dir* #p"/home/fare/fare/lisp/exscribe/") ;; Mind the trailing /
-(setf *default-pathname-defaults* *build-dir*) ; alternatively, merge-pathnames setup.lisp below.
-(setf *lisp-executable-pathname* "/usr/local/bin/sbcl")
+;;;; Not for stuff that's specific to the project.
+;;; First, let's use the same setup file as used by cl-launch.
+;;; Importantly, setup.lisp will set the asdf:*central-registry*
 (setf *lisp-setup-dependencies*
       '((:asdf "cl-launch") ;; Required by setup.lisp
-	(:load-source "setup.lisp"))) ;; Importantly sets the asdf:*central-registry*
+	(:load-source "setup.lisp")))
+
+;;;; And now, let's just do it!
+(defvar *build-dir* #p"/home/fare/fare/lisp/exscribe/") ;; Mind the trailing /
 (write-makefile *build-dir*)

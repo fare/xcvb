@@ -6,7 +6,7 @@ XCVB: Improving Modularity for Common Lisp
 
 :Description: Submission for a Demonstration and/or a Lightning Talk at ILC'09.
 :Authors: Francois-Rene Rideau <fare@tunes.org> and Spencer Brody <sbrody88@gmail.com>
-:Date: 2008-12-19
+:Date: 2008-12-20
 
 .. contents::
 ..
@@ -36,10 +36,12 @@ Key Insight
 
 Despite plenty of advanced module systems
 having been implemented in various Lisp dialects,
-the current state of the art in the Common Lisp world is "systems",
-as in ASDF, mk-defsystem or mudballs,
-whereby a system file defines an acyclic graph of components
-to be compiled and loaded into the current Lisp image, arcs being dependencies.
+the current state of the art in the Common Lisp world
+are still descendent's of Weinreb's & Moon's 1984 defsystem:
+in ASDF, mk-defsystem or mudballs,
+a central system file defines an acyclic graph of components
+to be compiled and loaded into the current Lisp image,
+arcs being dependencies.
 
 Our insight is to break the classic Lisp assumption
 of programming for a single concrete Lisp world
@@ -59,50 +61,50 @@ XCVB yesterday
 What the XCVB prototype already brings as opposed to ASDF:
 
   * Goal: separate compilation
-     + deterministic file-based separate compilation
+     + independent compilation of individual files
      + compute objects from source, just as in any modern language
-     + semantics of a file fully encapsulated in its contents (+ those of dependencies)
      + proper staging of compile-time dependencies (compile macros before they are used)
+     + semantics of a file fully encapsulated in its contents (+ those of dependencies)
      + incremental change-driven building and testing
 
   * Therefore: dependencies must be declared locally
      + move dependencies away from centralized off-file meta-data
      + module import statement, just as in any modern language
-     + no more global recompilation (or subtle failure) at least change in module connection
+     + no more global recompilation (or subtle failure) at the least change in module connection
      + no more subtle bugs to non-local change in ordering of compile-time side-effects
      + unlike ASDF, can incrementally track dependencies across systems
 
-  * eager enforcement of dependencies
+  * Eager enforcement of dependencies
      + each file is built with none but the declared dependencies loaded
      + requires import discipline, just as in any modern language
-     + dependency bugs are detected early
+     + a bit slower, but much more robust: dependency bugs are detected early
      + no more unmaintainable large manual dependency graphs
      + allows eager incremental unit tests based on what has changed (beware: reflection)
 
-  * current build backends
-     + xcvb computes the build graph, currently lets other software do the build
+  * Current build backends
+     + XCVB computes the build graph, currently lets other software do the build
      + ASDF: your software can be integrated as part of Lisp builds using legacy ASDF
-     + Makefile: your software can be integrated as part of larger-than-Lisp builds.
+     + Makefile: your software can be integrated as part of larger-than-Lisp builds
      + more backends possible in the future (SCons? take over your build?)
 
-  * decoupling builder and buildee
+  * Decoupling builder and buildee
+     + protection from uncontrolled side-effects from buildee to builder
      + allows for integration with make as mentionned above
      + allows for cross-compilation from one compiler/architecture to a different one
      + allows for a feature-rich build system that needn't fit in one small file, yet
      + allows builder to rebuild and test its dependencies and self
-     + protection from uncontrolled side-effects from buildee to builder
 
-  * can use CFASLs to capture compile-time side-effects
-     + like C++ precompiled headers, except automatically deduced from the code
+  * Can use CFASLs to capture compile-time side-effects
      + vast speed improvement, fewer rebuilds (the FASL may have changed but not the CFASL)
+     + like C++ precompiled headers, except automatically deduced from the code
      + was easily added to SBCL by Juho Snellman, could be as easily added to other compilers
-     + as with defsystem, careful EVAL-WHEN discipline needed (but now it is enforced)
+     + careful EVAL-WHEN discipline needed (as with defsystem really, but now it is enforced)
 
   * Automated migration path from ASDF
      + XCVB accepts dependencies from XCVB systems to ASDF systems and vice-versa
      + automatic migration of your ASDF system using Andreas Fuchs's asdf-dependency-grovel
-     + Compile-time Lisp state requires extending the dependency-detection tool
-     + ASDF extensions not supported yet.
+     + compile-time Lisp state requires extending the dependency-detection tool
+     + ASDF extensions will require extending XCVB
 
 
 XCVB today
@@ -110,26 +112,26 @@ XCVB today
 
 Urgently needed:
 
-  * User friendliness:
+  * User friendliness
      + add documentation and examples
      + better behavior in face or errors
 
-  * More features:
+  * More features
      + refine migration and compilation to deal with harder cases
-       (data files, computed lisp files, etc.)
-     + Have a more general model for staged builds
+       (data files read at compile-time, computed lisp files, etc.)
+     + have a more general model for staged builds
        (multiple intermediate images, dynamic dependency computation)
 
-  * actually migrate a critical mass of existing ASDF systems
+  * Actually migrate a critical mass of existing ASDF systems
      + support manual overrides when automation breaks down
-     + maintain until upstream adopts XCVB (if ever)
-     + have a distribution system (as in asdf-install or mudballs, etc.)
-     + fully bootstrap xcvb (make asdf optional)
+     + maintain until upstream adopts XCVB (if ever) - automated migration makes that possible
+     + provide a distribution system (as in asdf-install, mudballs or clbuild, etc.)
+     + fully bootstrap XCVB (make asdf optional)
 
   * Refactor internals
      + current implementation was a good first attempt, but needs to be reworked
-     + recognize hand-coded patterns, formalize a domain, grow a language
-     + allow staged planning to accomodate for dynamically computed modules
+     + needs to be made more general to allow for desired and future features
+     + recognize hand-coded patterns, read literature, formalize a domain, grow a language
 
 
 XCVB tomorrow
@@ -137,36 +139,37 @@ XCVB tomorrow
 
 The following improvements are enabled by XCVB's deterministic separate compilation model:
 
-  * distributed backends
+  * Distributed backends
      + pluggable distributed compilation (distcc for CL)
-     + take over the build based on Erlang-in-Lisp
+     + take over the build, make it distributed with Erlang-in-Lisp
      + requires compiler support to preserve source locations for debugging
 
-  * caching (thanks to determinism!)
+  * Caching
      + cache objects rather than rebuild (ccache for CL)
      + base cache on crypto hash fully capturing the computation and its dependencies
-     + can track all the modified dependencies since last success at building and verifying a component.
+     + can track all the modified dependencies since last success at building and verifying a component
+     + push for more determinism in Lisp compilers!
 
-  * extend the build specification language
+  * Extend the build specification language
      + build rules that call arbitrary programs (as in a Makefile)
      + computed source files, including from parametrized computations
      + dependency on arbitrary computed features, only compiled once
      + automated finalization and verification of modules
 
-  * manage reader extensions, alternate grammars, hygienic macros, etc.
+  * Manage reader extensions, alternate grammars, hygienic macros, etc.
      + made possible and convenient by separate compilation
      + no pollution of compile-time environment from other modules
      + everyone can use whatever fits his purposes, with well-defined semantics
      + requires compiler support to preserve source locations for debugging
 
-  * layer namespace management on top of it:
-     + automatic package management
+  * Layer namespace management on top of it
+     + automate evolution of defpackage
      + more sensible replacement for packages (lexicons? PLT-like modules?)
      + higher-order parametric components (PLT units)
      + many levels of static typing with interface that enforces implicit contracts, etc.
      + generally, make CL competitive again wrt access to latest improvements from research
 
-  * abstract away the execution model:
+  * Abstract away the execution model
      + semantics: proper tail calls? continuations? serializable state? etc.
      + performance: debuggability? optimization levels?
      + a file can require some of the above settings
@@ -182,26 +185,26 @@ they require access to functionality
 below the standardized abstraction barrier of a CL implementation.
 
    * Access to system functions
-      + open, fork, exec, sockets, etc. -- happily we have CFFI, IOLib, etc.
-      + Nothing specific to XCVB here, but still (sadly) deserves mentionning.
+      + open, fork, exec, sockets, etc. -- happily we have CFFI, OSICat, IOLib, etc.
+      + nothing specific to XCVB here, but still (sadly) deserves mentionning
 
    * Encapsulation of COMPILE-TIME side effects
       + CFASL only in SBCL for now
       + can make do if you can cope with slow "FAS"L loading
 
    * Encapsulation of LOAD-TIME partial state, not side-effects
-      + FASL is still too slow to load, cannot be shared between binaries.
-      + SB-HEAPDUMP can be mmap()ed -- but isn't even standard feature of SBCL.
+      + FASL is still too slow to load, cannot be shared between binaries
+      + SB-HEAPDUMP can be mmap()ed -- but isn't even standard feature of SBCL
 
    * Programmable access to debugging meta-information
       + syntax extension requires support for recording source locations
-      + semantic layering is a challenge for single-stepping, access to high-level view of the state.
+      + semantic layering is a challenge for single-stepping, access to high-level view of the state
       + support multiple evaluation models in a same running environment
 
    * PCLSRing
       + needed for transactionality in single-stepped and/or concurrent evaluation.
-      + Challenge: a good meta-level protocol for users to define PCLSRing for arbitrary semantic layers.
-      + With such a tool, all the system can be implemented with first-class translation layers.
+      + challenge: a good meta-level protocol for users to define PCLSRing for arbitrary semantic layers.
+      + with such a tool, all the system can be implemented with first-class translation layers.
 
 
 Conclusion
@@ -225,6 +228,7 @@ and to Juho Snellman for the SBCL CFASL.
 PS: Our hope is that by the time the conference happens,
 we will have already deployed XCVB on a large system,
 and moved some points from "XCVB today" into "XCVB yesterday";
-for the purpose of this submission, no such thing should be assumed though.
+for the purpose of evaluating this submission,
+no such thing should be assumed though.
 
 .. ; Note: slides to include examples for each discussed case.

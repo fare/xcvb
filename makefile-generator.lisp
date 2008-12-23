@@ -203,15 +203,16 @@ then echo force ; fi )~%~%force : ~%.PHONY: force~%~%"
                        (makefile-name "xcvb.mk")
                        (image-name "lisp.image"))
   "Writes a makefile to output-path with information about how to compile the file at source-path.  What the makefile is designed to do can be specified by graph-type"
-  (let* ((dependency-graph
-         (create-dump-image-graph
-          (merge-pathnames image-name output-path)
-          source-path))
-        (all-nodes (traverse dependency-graph :all))
-        (*written-nodes* (make-hash-table :test #'equal))
-        (*targets-dependent-on-cwbrl* nil)
-        (*build-requires-p* nil)
-        (*output-path* (namestring output-path)))
+  (let* ((*default-pathname-defaults* (pathname-directory-pathname output-path))
+	 (*targets-dependent-on-cwbrl* nil)
+	 (*build-requires-p* nil)
+	 (*output-path* (namestring output-path))
+	 (*written-nodes* (make-hash-table :test #'equal))
+	 (dependency-graph
+	  (create-dump-image-graph
+	   (merge-pathnames image-name output-path)
+	   source-path))
+	 (all-nodes (traverse dependency-graph :all)))
     (with-open-file (out (merge-pathnames makefile-name output-path)
                          :direction :output
                          :if-exists :supersede)

@@ -1,8 +1,9 @@
 ### Makefile for XCVB ###
 
 ## default target
-all: xcvb lisp-install
+all: install
 
+install: xcvb lisp-install
 
 ## Ensure presence of configuration file
 ifeq ($(wildcard configure.mk),)
@@ -28,6 +29,7 @@ endef
 define CL_LAUNCH_MODE_fasls
 	--output ${INSTALL_BIN}/$1
 endef
+
 
 
 ## Creating executable

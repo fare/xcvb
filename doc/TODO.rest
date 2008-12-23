@@ -8,40 +8,73 @@ Future improvements planned for XCVB.
 
 .. contents::
 ..
-    1  Usability
-      1.1  Migration from ASDF
-      1.2  Configurability of the build image
-      1.3  Generalized Staged Images
-      1.4  In-image loading
-      1.5  Multiple BUILD.lisp files
-      1.6  ASDF backend
-    2  Internals
-      2.1  Distinguish target nodes and operation nodes
-      2.2  Use of Namestrings
-      2.3  Error handling
-      2.4  Pre-escaping
-    3  Higher-level description
-    4  The semantics of dependencies
-      4.1  FASL vs CFASL
-      4.2  Data files
-    5  Building a real module system
-      5.1  Bibliography
-      5.2  Some advice from a schemer
+    1  Usability Issues
+      1.1  Lack of Manual
+      1.2  Migration from ASDF
+      1.3  Configurability of the build image
+      1.4  Generalized Staged Images
+      1.5  In-image loading
+      1.6  Multiple BUILD.lisp files
+      1.7  ASDF backend
+    2  Features
+      2.1  Initialization and Finalization
+      2.2  Tests
+    3  Internals
+      3.1  Distinguish target nodes and operation nodes
+      3.2  Use of Namestrings
+      3.3  Error handling
+      3.4  Pre-escaping
+    4  Higher-level description
+    5  The semantics of dependencies
+      5.1  FASL vs CFASL
+      5.2  Data files
+    6  Building a real module system
+      6.1  Bibliography
+      6.2  Some advice from IRC
 
 
-Usability
-=========
+Usability Issues
+================
+
+This section describes usability bugs,
+i.e. things that do not modify the deep semantic model of XCVB,
+but are necessary to make it usable.
+
+
+Lack of Manual
+--------------
+
+Document all there is to know to use XCVB in README.rest.
+If README grows too big, create a separate MANUAL.rest.
+
+There should be both a tutorial and an API specification.
+
 
 Migration from ASDF
 -------------------
 
-Automate and document in an example how to use asdf-dependency-grovel
-and XCVB together to migrate an existing system from ASDF to XCVB.
+We can already do simple cases. See doc/exscribe-migration.lisp.example.
 
-For a simple example, no document, see doc/exscribe-migration.lisp.example.
+We need to handle more complex cases involving migrating
+several ASDF systems to XCVB,
+or systems that rely on ASDF extensions such as
+compile-time reading of data files or
+dynamic creation of lisp files.
 
-For more complex cases involving migrating several ASDF systems to XCVB,
-it will be more "interesting".
+Also, we may want to document how to extend asdf-dependency-grovel.
+Actually, we might be interested in tweaking asdf-dependency-grovel
+into some kind of xcvb-dependency-grovel, and possibly
+move all the groveling on the XCVB side.
+
+Ideally, you should be able to simultaneously convert many systems at once,
+while deciding which systems will preserve their identity,
+which will be merged, etc.
+Or you should be able to convert systems incrementally,
+and have the converter autodetect that some ASDF dependencies
+have already been converted into XCVB dependencies.
+i.e. the system should be able to scan existing XCVB builds in a search path
+and maintain a table of which ASDF systems
+have been superseded by which available BUILD.
 
 
 Configurability of the build image
@@ -78,9 +111,18 @@ Note that this is also necessary for extensions to XCVB itself,
 whereby extensions are to be loaded in the current XCVB image.
 See the :load-into-xcvb extension (rename it!).
 
+As a crock, we may use the ASDF backend to provide this feature.
+Or we may just run-command a make, then unconditionally load
+all the dependencies for the required module.
+Or keep a hash-table of which modules have been loaded
+(with which content cryptohash).
+
 
 Multiple BUILD.lisp files
 -------------------------
+
+Have a search path mechanism that allows XCVB
+to automatically find and register existing BUILD.lisp files.
 
 Allow the build-requires slot to work with multiple BUILD.lisp files.
 Right now, only the top-most BUILD.lisp file's build-requires slot
@@ -97,9 +139,76 @@ to have one asdf module for each BUILD.lisp's build-requires slot (if present).
 ASDF backend
 ------------
 
+It is understood that ASDF can never fully implement
+all the features required for XCVB.
+Nevertheless, we should in most cases be able to do
+a good enough job that with some additional discipline,
+a correct XCVB module should build with ASDF as a backend.
+
 Add support for :load-source dependencies.
 
 Add a test suite for the ASDF backend.
+
+
+
+
+Features
+========
+
+This section describes features that have to be added to XCVB.
+They modify the underlying build model.
+
+
+Initialization and Finalization
+-------------------------------
+
+Some code has to be run before and after file is compiled.
+
+Before to compile a file, one may want to
+
+  * change the readtable (or the reader)
+  * set up some infrastructure (db connection)
+  * initialize some meta-data tables
+
+At the beginning of a file's compilation, one may want to
+
+  * Insert compile-time or load-time form to be evaluated
+    to dynamically initialize the module.
+
+At the end of a file's compilation, one may want to
+
+  * Insert compile-time or load-time form to be evaluated
+    to dynamically finalize the module.
+
+After the file is compiled, one may want to
+
+  * save cross-reference data
+  * register dynamic dependencies (i.e. "requires once-per-project instantiation of this form")
+  * more generally update meta-data
+
+
+Executables
+-----------
+
+When creating a standalone executable, some initializers and finalizers may have to be run as above.
+
+If the executable needs a wrapping script, things get even trickier.
+
+We may want to reuse cl-launch here, to leverage all the support already available.
+
+
+Tests
+-----
+
+Test modules should be run when their dependencies have changed;
+i.e. after they have been compiled into a FASL,
+they should be loaded and create a report of whether the run was successful.
+Reports can further be collected for statistics, etc.
+
+
+Bootstrap
+---------
+
 
 
 Internals
@@ -213,6 +322,12 @@ Note that we have to map various entities.
 
       a- parameters include input file, options (which compiler/flags to use), etc.
 
+    3- *dependencies*
+
+      a- effective dependencies include any data that was actually consulted in building an object.
+         Which dependencies were or weren't included may be discovered only after the fact.
+
+      b-
 
 The semantics of dependencies
 =============================
@@ -245,7 +360,7 @@ Don't miss these:
   http://readscheme.org/modules/
 
 
-Some advice from a schemer
+Some advice from IRC
 --------------------------
 
 Riastradh on the irc.openprojects.net #scheme channel gave the following piece of advice.
@@ -255,3 +370,11 @@ but what I'd care most about is (1) that you separate phases sensibly, and
 See Flatt, 'Composable and Compilable Macros', 2002.
 http://www.cs.utah.edu/plt/publications/macromod.pdf
 (The R6RS's library system emphatically got phase separation wrong.  Don't repeat their mistake.)
+
+Rainer Joswig, suggested:
+'BUILD: A tool for maintaining consistency in modular systems'
+by Richard Elliot Robbins, 1985.
+ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
+
+Also see Ruby gems, Chicken eggs, Java beans.
+SCons, OMake, CMake, etc.

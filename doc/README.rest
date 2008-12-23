@@ -83,8 +83,16 @@ configure.mk.example:
 	example file to copy into xcvb/configure.mk and edit,
 	so as to be able to create the xcvb and asdf-to-xcvb executables.
 
+doc/exscribe-migration.lisp.example:
+	example file you can run (see on top of it) to migrate exscribe
+	from ASDF to XCVB.
+
+doc/exscribe-compilation.lisp.example:
+	example file you can run (see on top of it)
+	to compile the migrated exscribe with XCVB.
+
 setup.lisp.example:
-	example of customization you will need to adapt XCVB to your project.
+	example of customization you might want to adapt XCVB to your project.
 
 
 Timeline
@@ -128,6 +136,14 @@ Using XCVB
 
 You may want to checkout the latest xcvb from git.
 We'll tag stable releases when there are some.
+
+
+Building XCVB
+-------------
+
+Install the dependencies as listed above, then
+create and edit your own configure.mk from doc/configure.mk.example
+and finally make
 
 
 Converting your ASDF system
