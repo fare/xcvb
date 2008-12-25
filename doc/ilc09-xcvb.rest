@@ -6,7 +6,7 @@ XCVB: Improving Modularity for Common Lisp
 
 :Description: Submission for a Demonstration and/or a Lightning Talk at ILC'09.
 :Authors: Francois-Rene Rideau <fare@tunes.org> and Spencer Brody <sbrody88@gmail.com>
-:Date: 2008-12-20
+:Date: 2008-12-22
 
 .. contents::
 ..
@@ -37,9 +37,10 @@ Key Insight
 Despite plenty of advanced module systems
 having been implemented in various Lisp dialects,
 the current state of the art in the Common Lisp world
-are still descendent's of Weinreb's & Moon's 1984 defsystem:
+are still descendents of DEFSYSTEM (Weinreb & Moon 1984):
 in ASDF, mk-defsystem or mudballs,
-a central system file defines an acyclic graph of components
+a central system file that mainly defines
+an acyclic graph of components
 to be compiled and loaded into the current Lisp image,
 arcs being dependencies.
 
@@ -47,7 +48,7 @@ Our insight is to break the classic Lisp assumption
 of programming for a single concrete Lisp world
 that is side-effected by source code as it is sequentially compiled then loaded.
 Instead, have a pure-functional approach to building encapsulated components,
-abstracting over the state of virtual Lisp worlds as unix processes.
+abstracting over the state of virtual Lisp worlds as isolated processes.
 
 The former model was well ahead of its time in the 1950s and valid into the 1980s,
 but doesn't fit programming in the large in the 2000s.
@@ -114,7 +115,7 @@ Urgently needed:
 
   * User friendliness
      + add documentation and examples
-     + better behavior in face or errors
+     + better behavior in face of errors
 
   * More features
      + refine migration and compilation to deal with harder cases
@@ -213,6 +214,11 @@ Conclusion
 It's nothing fancy -- just elaborate plumbing.
 Mostly well-known ideas, yet the bulk of the work is still ahead.
 That's how far behind CL is wrt modularity.
+
+The deep rationale is a social concern:
+minimizing programmer-side cognitive burden in combining modules.
+Technical and social aspects are tied in obvious ways,
+yet most people wilfully ignore at least one of the two aspects.
 
 XCVB can be found at
 	http://common-lisp.net/projects/xcvb/

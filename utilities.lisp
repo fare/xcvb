@@ -26,20 +26,6 @@
   (apply 'concatenate 'string strings))
 
 
-;;; Module forms
-
-(defun read-first-file-form (filepath)
-  "Reads the first form from the top of a file"
-  (with-open-file (in filepath) (read in)))
-
-(defun module-form-p (form)
-  "Returns whether or not the given form is an xcvb:module form"
-  (eql (first form) 'xcvb:module))
-#|  (destructuring-bind (module-decl &rest rest) form
-    (declare (ignore rest))
-    (eql module-decl 'xcvb:module)))|#
-
-
 ;;; Filename handling
 
 (defun pathname-directory-pathname (pathname)
@@ -81,12 +67,128 @@ Modeled after the asdf function coerce-name"
      (string name)
      (t (simply-error 'syntax-error "~@<invalid asdf system designator ~A~@:>" name)))))
 
+(defun portable-pathname-string-component-char-p (c)
+  ;; Assumes ASCII
+  (and (or (char<= #\a c #\z)
+	   (char<= #\A c #\Z)
+	   (char<= #\0 c #\9)
+	   (find c ".,-_"))
+       t))
+
+(defun portable-pathname-string-component-p (x)
+  (and (stringp x)
+       (not (zerop (length x)))
+       (every #'portable-pathname-string-component-char-p x)))
+
+(defun portable-pathname-type-component-p (x)
+  (and (portable-pathname-string-component-p x)
+       (not (find #\. x))))
+
+(defun portable-pathname-directory-output
+    (directory &key out (allow-absolute t) (allow-relative t))
+  "DIRECTORY being the directory component of a pathname,
+output to OUT a portable representation of it,
+erroring out if some source of non-portability is found"
+  (with-output (out)
+    (labels ((d2s (x)
+	       (dolist (c x)
+		 (unless (portable-pathname-string-component-p c)
+		   (error "Non-portable component ~S in directory ~S" c directory))
+		 (write-string c out)
+		 (write-char #\/ out))))
+      (cond
+	((member directory '(:wild :unspecific nil))
+	 (error "Cannot portably stringify directory ~S" directory))
+	((stringp directory)
+	 (error "xcvb doesn't support non-hierarchical filesystems"))
+	((and (consp directory) (eq (car directory) :absolute))
+	 (unless allow-absolute
+	   (error "absolute directory ~S not allowed" directory))
+	 (write-char #\/ out)
+	 (d2s (cdr directory)))
+	((and (consp directory) (eq (car directory) :relative))
+	 (unless allow-relative
+	   (error "relative directory ~S not allowed" directory))
+	 (d2s (cdr directory)))
+	(t
+	 (error "Invalid directory ~S" directory))))))
+
+(defun portable-pathname-name-output (name &key out)
+  (with-output (out)
+    (unless (portable-pathname-string-component-p name)
+      (error "Non-portable pathname name ~S" name))
+    (write-string name out)))
+
+(defun portable-pathname-type-output (type &key out)
+  (with-output (out)
+    (unless (portable-pathname-type-component-p type)
+      (error "Non-portable pathname type ~S" type))
+    (write-string type out)))
+
+(defun portable-pathname-output (pathname &key out (allow-absolute t) (allow-relative t))
+  (with-output (out)
+    (let* ((p (pathname pathname))
+	   (directory (pathname-directory p))
+	   (name (pathname-name p))
+	   (type (pathname-type p))
+	   (version (pathname-version p)))
+      (unless (member version '(nil :unspecific :newest))
+	(error "Non-portable pathname version ~S in ~S" version pathname))
+      (portable-pathname-directory-output
+       directory
+       :out out :allow-absolute allow-absolute :allow-relative allow-relative)
+      (when name
+	(portable-pathname-name-output name :out out)
+	(cond
+	  ((stringp type)
+	   (write-char #\. out)
+	   (portable-pathname-type-output type :out out))
+	  ((member type '(nil :unspecific :newest))
+	   (when (find #\. name)
+	     (error "Non-portable pathname ~S with a dot in name but no type" pathname)))
+	  (t
+	   (error "Non-portable pathname type ~S" type)))))))
+
+(defun portable-pathname-from-string (string &key
+					     (start 0) (end (length string))
+					     (allow-absolute t) (allow-relative t))
+  (let (r name type)
+    (unless (< start end)
+      (error "cannot parse beyond the end of string ~S (start: ~S, end: ~S)" string start end))
+    (cond
+      ((eql (char string start) #\/)
+       (unless allow-absolute
+	 (error "unexpected absolute pathname ~S (start: ~S, end: ~S)" string start end))
+       (setf r (list :absolute)) (incf start))
+      (t
+       (unless allow-relative
+	 (error "unexpected absolute pathname ~S (start: ~S, end: ~S)" string start end))
+       (setf r (list :relative))))
+    (loop for p = (and (< start end) (position #\/ string :start start :end end))
+	  while p do
+	  (let ((dir (subseq string start p)))
+	    (unless (portable-pathname-string-component-p dir)
+	      (error "non-portable pathname directory ~S" dir))
+	    (push dir r)
+	    (setf start (1+ p))))
+    (when (< start end)
+      (let ((ldp (position #\. string :start start :end end :from-end t)))
+	(setf name (subseq string start (or ldp end))
+	      type (and ldp (subseq string (1+ ldp) end)))
+	(unless (portable-pathname-string-component-p name)
+	  (error "non-portable pathname name ~S" name))
+	(when type
+	  (unless (portable-pathname-type-component-p type)
+	    (error "non-portable pathname type ~S" type)))))
+    (make-pathname :directory (nreverse r) :name name :type type)))
+
 
 ;;; Escaping strings
 
-(defun escape-shell-command-for-Makefile (string &optional out)
+(defun escape-string-for-Makefile (string &optional out)
   "Takes a string and excapes all the characters that need to be put into a makefile.
-The only such character right now is $.  Raises an error if the string contains a newline."
+The only such character right now is $.
+Raises an error if the string contains a newline."
   (with-output (out)
     (loop for c across string do
       (case c
@@ -121,37 +223,37 @@ The only such character right now is $.  Raises an error if the string contains 
 	   (char<= #\0 c #\9)
 	   (find c "%.,-_:/"))))
 
-(defun escape-string-for-shell (string &optional out)
+(defun escape-shell-token (string &optional out)
   "Takes a string and if needed, includes the string in double quotes to use as shell argument"
   (cond
     ((some #'char-needs-shell-quoting-p string)
      (escape-string-for-shell-double-quote string out t))
-    (out
-     (with-output (out)
-       (write-string string out)))
+    ((null out)
+     string)
     (t
-     string)))
+     (with-output (out)
+       (write-string string out)))))
 
-(defun escape-string-for-Makefile (string &optional out)
+(defun escape-shell-token-for-Makefile (string &optional out)
   "Takes a string and escapes it first for the shell, then for a makefile"
-  (escape-shell-command-for-Makefile (escape-string-for-shell string) out))
+  (escape-string-for-Makefile (escape-shell-token string) out))
 
-(defun arglist-to-Makefile (arglist &optional out)
-  "Transforms an arglist into something to print on a Makefile line
-to execute the specified process.
+(defun shell-tokens-to-Makefile (tokens &optional out)
+  "Transforms an list of tokens into something to print on a Makefile line
+for the Makefile-invoked shell to execute the process specified by these tokens.
 List elements can be either strings that will be escaped
 or escapes of the form (:makefile string) that won't be escaped."
   (with-output (out)
-    (loop for arg in arglist
-	  for () = () then (when arg (write-char #\space out))
+    (loop for tok in tokens
+	  for () = () then (when tok (write-char #\space out))
 	  do (cond
-	       ((null arg))
-	       ((stringp arg)
-		(escape-string-for-Makefile arg out))
-	       ((and (consp arg) (eq :makefile (car arg)))
-		(dolist (s (cdr arg))
+	       ((null tok))
+	       ((stringp tok)
+		(escape-shell-token-for-Makefile tok out))
+	       ((and (consp tok) (eq :makefile (car tok)))
+		(dolist (s (cdr tok))
 		  (write-string s out)))
-	       ((consp arg)
-		(arglist-to-Makefile arg out))
+	       ((consp tok)
+		(shell-tokens-to-Makefile tok out))
 	       (t
-		(error "Invalid arglist member ~S" arg))))))
+		(error "Invalid token member ~S" tok))))))

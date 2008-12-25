@@ -64,8 +64,11 @@ file can be compiled")
 file can be loaded")
    (filepath
     :initarg :filepath :accessor filepath
-    :documentation "The absolute path to the file that the module was
-declared in")
+    :documentation "The absolute path to the file that
+the module was declared in")
+   (supersedes-asdf
+    :initarg :supersedes-asdf :reader supersedes-asdf :initform nil
+    :documentation "A list of ASDF systems superseded by this module")
    (extension-forms
     :initarg :extension-forms :initform nil :accessor extension-forms
     :documentation "extension forms!")))
@@ -87,10 +90,11 @@ declared in")
 (defclass build-module (concrete-module)
   ((build-requires
     :initarg :build-requires :accessor build-requires :initform nil
-    :documentation "A list of dependencies that apply to all files in the
-system specified by this BUILD.lisp file.  These dependencies will be loaded
-first thing into an image that will be used for all future compile/load
-operations")))
+    :documentation
+"A list of dependencies that apply to all files in the
+system specified by this BUILD.lisp file.
+These dependencies will be loaded first thing
+into an image that will be used for all future compile/load operations")))
 
 
 (defun register-module (module)
@@ -138,6 +142,20 @@ It is keyed both by its fullname and its nickname."
              :extension-forms extension-forms)))
       module)))
 
+(defun read-first-file-form (filepath)
+  "Reads the first form from the top of a file"
+  (with-standard-io-syntax ()
+    (let ((*features* (cons :xcvb *features*))
+	  (*package* (find-package :xcvb-user))
+	  (*read-eval* nil))
+      (with-open-file (in filepath) (read in)))))
+
+(defun module-form-p (form)
+  "Returns whether or not the given form is an xcvb:module form"
+  (eql (first form) 'xcvb:module))
+#|  (destructuring-bind (module-decl &rest rest) form
+    (declare (ignore rest))
+    (eql module-decl 'xcvb:module)))|#
 
 (defun create-module (module-path &key parent-module build-module-p)
   "Takes a filepath to a lisp file, and returns the module object
@@ -150,9 +168,7 @@ It is keyed both by its fullname and its nickname."
                                    (pathname module-path)))
     ;;(format T "using build-module~%")
     (return-from create-module *build-module*))
-  (let ((module (parse-module (let ((*features* (cons :xcvb *features*)))
-				(read-first-file-form module-path))
-                              :build-module-p build-module-p)))
+  (let ((module (parse-module (read-first-file-form module-path) :build-module-p build-module-p)))
     (setf (filepath module) module-path)
     (when (not (typep module 'build-module))
       (if (typep parent-module 'build-module)

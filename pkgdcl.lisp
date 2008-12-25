@@ -53,3 +53,7 @@
      ;; Conditions
      #:no-build-file-found
      #:dependency-cycle))
+
+(cl:defpackage :xcvb-user
+  (:use)
+  (:import-from :xcvb :module))

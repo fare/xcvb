@@ -41,7 +41,7 @@ Returns a list of the names of all the asdf-systems that this node depends on
   nil)
 
 
-(defun write-asdf-system-header (filestream asdf-systems 
+(defun write-asdf-system-header (filestream asdf-systems
                                  &optional (build-module *build-module*))
   "Writes the information from the build module to the asdf file"
   (let* ((system-name (namestring
@@ -62,7 +62,7 @@ Returns a list of the names of all the asdf-systems that this node depends on
   (if (description build-module)
     (format filestream "~2,0T:description ~s~%" (description build-module)))
   (if (long-description build-module)
-    (format filestream "~2,0T:long-description ~s~%" 
+    (format filestream "~2,0T:long-description ~s~%"
             (long-description build-module)))
   (if asdf-systems
       (format filestream "~2,0T:depends-on (~{:~a~^ ~})~%" asdf-systems)))

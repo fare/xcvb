@@ -29,9 +29,6 @@ The Makefile targets will be relative to this path.")
     :type "fasl"
     :defaults (source-filepath node))))
 
-;;TODO: proper Makefile escaping should be done by the target user.
-;;escape-string-for-Makefile won't do it. And is a misnomer.
-;; should be renamed escape-shell-argument-for-Makefile or some such.
 (defmethod target-for-node ((node source-file-node))
   (simplify-target-path (source-filepath node)))
 
@@ -95,7 +92,7 @@ action that the node represents"))
 that will be used to build the target"
   (with-output (out)
     (format out "${~:[LISPRUN~;CWBRLRUN~]} " *build-requires-p*)
-    (escape-string-for-Makefile
+    (escape-shell-token-for-Makefile
      (format nil "(progn ~{~@[~a~^ ~]~} ~a)"
 	     (mapcar #'form-string-for-node (traverse node operation))
 	     (quit-form))
@@ -145,7 +142,7 @@ given node"))
   (declare (ignore filestream node)))
 
 (defun Makefile-lisp-invocation (out &rest keys)
-  (arglist-to-Makefile (apply #'lisp-invocation-arglist keys) out))
+  (shell-tokens-to-Makefile (apply #'lisp-invocation-arglist keys) out))
 
 (defun makefile-setup (out)
   "Writes information to the top of the makefile about how to actually run lisp
@@ -171,7 +168,7 @@ dependencies from the build-requires slot of the build module loaded"
       (format out "CWBRLRUN := ~a~%~%"
 	      (Makefile-lisp-invocation nil :image-path '(:makefile "${CWBRL}") :eval '(:makefile)))
       #|(format out "FASL := $(shell ${LISPRUN} ~A)~%~%"
-	      (escape-string-for-Makefile
+	      (escape-shell-token-for-Makefile
 	       (format nil "(progn (princ (pathname-type (compile-file-pathname \"test.lisp\"))) ~a)"
 		       (quit-form))))
       (format out "CFASL := cfasl~%~%")|#
@@ -179,7 +176,7 @@ dependencies from the build-requires slot of the build module loaded"
 	      "CHECK_ASDFS := $(shell if ! ( [ -f ${CWBRL} ] && (${CWBRLRUN} ~
 \"(asdf::asdf-systems-are-up-to-date-p ~{:~a~^ ~})\") ) ; ~
 then echo force ; fi )~%~%force : ~%.PHONY: force~%~%"
-	      (mapcar (lambda (dep) (escape-string-for-Makefile (name dep)))
+	      (mapcar (lambda (dep) (escape-shell-token-for-Makefile (name dep)))
 		      (remove-if-not
 		       (lambda (dep) (typep dep 'asdf-system-node))
 		       (traverse core-with-build-requires-graph :create))))

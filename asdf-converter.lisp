@@ -27,7 +27,7 @@ and the load dependencies depending on load-time effects of the files."
   "Returns a string representation of a module object that can be put at the
 top of a source file"
   (with-output-to-string (out)
-    (format out "(xcvb:module (")
+    (format out "#+xcvb~%(module (")
     (when (typep module 'build-module)
       (format out "~@[~%~7,0T:fullname ~s~]" (fullname module)))
     (format out "~@[~%~7,0T:author ~s~]" (author module))
@@ -92,7 +92,7 @@ form if there is one (but leaving the extension forms)."
                        (parse-module first-form
                                      :build-module-p (typep module 'build-module))))
                 (file-position in first-form-position))
-	    (format out "#+xcvb~%~a~%~%" (module-string module)))
+	    (format out "~a~%~%" (module-string module)))
 	  (skip-whitespace in)
           (do ((line (read-line in nil) (read-line in nil)))
               ((null line))

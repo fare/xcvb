@@ -32,13 +32,16 @@ Home page
 ---------
 
 The home page of the project is at
-	http://common-lisp.net/project/xcvb/docs/xcvb.text
+	http://common-lisp.net/project/xcvb/
 
 You can checkout our public repository with
 	git clone http://common-lisp.net/project/xcvb/xcvb.git
 
 Or if you are a project member, you can obtain write access using
 	git clone ssh://USER@common-lisp.net/project/xcvb/public_html/xcvb.git
+
+You can also browse the repository at
+	http://github.com/fare/xcvb/tree/master
 
 
 Dependencies
@@ -49,7 +52,7 @@ You will need the following pieces of software to get XCVB running:
   * a Lisp implementation. We test with SBCL using the CFASL patch:
 	http://cliki.net/SBCL
 
-  * If you want CFASL, you may need this patch until it has been merged upstream:
+  * If you want CFASL, you may need this patch to SBCL until it has been merged upstream:
 	http://repo.or.cz/w/sbcl/jsnell.git?a=treediff;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master
 
   * cl-launch:
@@ -191,3 +194,4 @@ or unless you write such an extension yourself.
   * your build generates lisp files dynamically.
 
   * your build otherwise uses some ASDF extension.
+

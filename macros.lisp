@@ -14,12 +14,19 @@ Mostly the same as cliki's WITH-UNIQUE-NAMES."
   `(call-with-output ,obj (lambda (,out) ,@body)))
 
 (defun call-with-output (obj fun)
-  (cond
-    ((null obj)
-     (with-output-to-string (s) (funcall fun s)))
-    ((eq obj t)
-     (funcall fun *standard-output*))
-    ((streamp obj)
+  "Calls FUN with an actual stream argument, behaving like FORMAT with respect to stream'ing:
+If OBJ is a stream, use it as the stream.
+If OBJ is NIL, use a STRING-OUTPUT-STREAM as the stream, and return the resulting string.
+If OBJ is T, use *STANDARD-OUTPUT* as the stream.
+If OBJ is a string with a fill-pointer, use it as a string-output-stream.
+Otherwise, signal an error."
+  (etypecase obj
+    (stream
      (funcall fun obj))
-    (t
-     (error "Invalid output stream specifier ~S" obj))))
+    ((eql t)
+     (funcall fun *standard-output*))
+    (null
+     (with-output-to-string (s) (funcall fun s)))
+    ((and string (satisfies array-has-fill-pointer-p))
+     (with-output-to-string (s obj)
+       (funcall fun s)))))

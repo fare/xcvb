@@ -19,7 +19,7 @@ it may or may not be up to date.
       1.4   utilities.lisp
       1.5   asdf-extensions.lisp
       1.6   traverse.lisp
-      1.7   compiler-options.lisp
+      1.7   specials.lisp
       1.8   makefile-generator.lisp
       1.9   asd-generator.lisp
       1.10  asdf-converter.lisp
@@ -33,7 +33,7 @@ Files
 pkgdcl.lisp
 -----------
 
-This file creates the xcvb package and exports the necessary symbols
+This file creates the xcvb package and exports the necessary symbols.
 
 
 xcvb.lisp
@@ -42,6 +42,7 @@ xcvb.lisp
 This file contains the bulk of the code
 to read the module forms from the top of the source files
 and construct the dependency graph.
+
 The main entry point into this file is through the functions
 create-dependency-graph and create-dump-image-graph.
 Both of these take a pathspec for the source file
@@ -96,19 +97,22 @@ to determine whether or not an asdf system needs to be re-compiled.
 traverse.lisp
 -------------
 
-This file contains a the function traverse,
-which is just a wrapper around the large collection of methods
-on the generic function traverse-helper.
-This provides a couple of different ways
+This file contains the function traverse,
+as composed from a collection of methods.
+It provides a couple of different ways
 of topologically sorting the dependency graph.
 
+It probably should be refactored to be automatically deduced
+from a higher-level description of the operators underlying
+the creation of the graph.
 
-compiler-options.lisp
+
+specials.lisp
 ---------------------
 
-A collection of global variables that are used by
-makefile-generator.lisp to specify what compiler to use
-and what options to provide it in the makefile that is being generated.
+A collection of global variables,
+many of which can be used to customize the behavior
+of the user-visible parts XCVB.
 
 
 makefile-generator.lisp
@@ -143,6 +147,11 @@ to load all the files/systems in the build-requires slot
 of the global build-module,
 and another module -- which depends on the first module --
 for all the other files/systems.
+
+The conversion to ASDF is lossy and the Makefile target
+should be preferred for development purposes,
+but the ASDF target should be good enough for deployment purposes
+when providing backwards compatibility with ASDF projects.
 
 
 asdf-converter.lisp
