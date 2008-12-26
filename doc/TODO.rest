@@ -57,7 +57,8 @@ Future improvements planned for XCVB.
         7.3.3  Actionable operations
         7.3.4  Complete plan
         7.3.5  Plan transformation
-        7.3.6  Dependencies
+        7.3.6  Reference model
+        7.3.7  Dependencies
       7.4  Operators
         7.4.1  Abstracting Operations
         7.4.2  Generating computation and hashes
@@ -157,9 +158,9 @@ on different machines,
 including machines that may partake in the same distributed build.
 
 To map source-level names to paths in the filesystem,
-ASDF has its infamous *central-registry*,
-GCC has /usr/include and various -I flags,
-Perl has PERL5PATH, Python has PYTHONPATH, etc.
+ASDF has its infamous ``*central-registry*``,
+GCC has ``/usr/include`` and various ``-I`` flags,
+Perl has ``PERL5PATH``, ``Python`` has ``PYTHONPATH``, etc.
 What should XCVB do to locate modules?
 
 The current plan is that at startup,
@@ -167,15 +168,15 @@ XCVB will initialize a search path list
 from each of the following, in order,
 that may either modify or replace the former:
 
-  1- A builtin default, say ("/usr/share/common-lisp/modules/")
+  1- A builtin default, say ``("/usr/share/common-lisp/modules/")``
 
-  2- An environment variable, say XCVB_PATH, ":"-delimited,
-  with some magic entry "!" that means "splice the previous value".
+  2- An environment variable, say ``XCVB_PATH``, "``:``"-delimited,
+  with some magic entry "``!`" that means "splice the previous value".
 
-  3- A command-line argument, say --path, with the same behavior as above.
+  3- A command-line argument, say ``--path``, with the same behavior as above.
 
   4- A Lisp configuration, that can either use the modifying function used
-  above, or directly modify variable xcvb:\*search-path\*
+  above, or directly modify variable ``xcvb:*search-path*``
   by prepending and/or appending more pathname designators.
 
 
@@ -277,7 +278,7 @@ There should be both a tutorial and an API specification.
 Migration from ASDF [V1]
 ------------------------
 
-We can already do simple cases. See doc/exscribe-migration.lisp.example.
+We can already do simple cases. See ``doc/exscribe-migration.lisp.example``.
 
 We need to handle more complex cases involving migrating
 several ASDF systems to XCVB,
@@ -301,13 +302,13 @@ Configurability of the build image [V1]
 
 The user needs to be able to specify files to be loaded
 and/or forms to be evaluated in the initial build image.
-Most notably he needs to be able to customize his asdf:\*central-registry\*
+Most notably he needs to be able to customize his ``asdf:*central-registry*``
 and possibly proclaim the desired optimization settings.
 
 Typically, this is done by a file called setup.lisp
 loaded into the initial staged build image.
 
-For a simple example, see doc/exscribe-compilation.lisp.example.
+For a simple example, see ``doc/exscribe-compilation.lisp.example``.
 
 It's there already, but we need to document how this works.
 
@@ -330,7 +331,7 @@ or possibly by using either as a backend).
 
 Note that this is also necessary for extensions to XCVB itself,
 whereby extensions are to be loaded in the current XCVB image.
-See the :load-into-xcvb extension (rename it!).
+See the ``:load-into-xcvb`` extension (rename it!).
 
 As a crock, we may use the ASDF backend to provide this feature.
 Or we may just run-command a make, then unconditionally load
@@ -348,7 +349,7 @@ Nevertheless, we should in most cases be able to do
 a good enough job that with some additional discipline,
 a correct XCVB module should build with ASDF as a backend.
 
-Add support for :load-source dependencies.
+Add support for ``:load-source`` dependencies.
 
 Add a test suite for the ASDF backend.
 
@@ -458,7 +459,7 @@ which missing dependencies should be added
 -- and optionally automatically recompile after adding them.
 
 For bonus points [V3], the groveler should know how to distinguish
-between :COMPILE-TOPLEVEL and :LOAD-TOPLEVEL side-effects to
+between ``:compile-toplevel`` and ``:load-toplevel`` side-effects to
 the evaluation environment.
 
 
@@ -932,15 +933,6 @@ representing process states that may be not be reachable
 in the specific target environment
 that the build session will take place in.
 
-.. or do we want to fully decouple the reference model as something distinct
-   from a build graph? Then we could handle reference classes such as
-   (:package A B)) - to compile or load A, some package in B is needed.
-   (:macro-calls A B) - to compile A, some macros or reader-macros in B are needed.
-   (:calls A B) - to load A, load B too (before or after)
-   (:setup-calls A B) - when loading A, load B first
-   Note that the current XCVB model of :depends, :load-depends, :compile-depends
-   corresponds loosely to :package, :setup-calls, :macro-calls.
-
 Thus, the build system may have to transform its plan
 both for the purpose of correctness and
 for purpose of performance optimization.
@@ -949,6 +941,23 @@ from the extension of the initial grains,
 and from the build request,
 then apply configuration-dependent transformations
 to that plan to create a complete plan.
+
+
+Reference model
+^^^^^^^^^^^^^^^
+
+We possibly may want to fully distinguish the reference model
+as something distinct from a build graph, just like the AITR-874 author.
+Then we could handle reference classes such as:
+
+  * ``(:package-ref A B)`` - A uses a package defined in B (before to either compile or load A, load B).
+  * ``(:macro-calls A B)`` - A uses a (reader)macro in B (before to compile A, load B).
+  * ``(:calls A B)`` - code in A calls code in B (before you run code in A, load B).
+  * ``(:setup-calls A B)`` - while loading A there are calls to code in B (load B before you load A).
+
+Note that the current XCVB model of ``:depends``, ``:load-depends``, ``:compile-depends``
+corresponds loosely to ``:package-ref``, ``:setup-calls``, ``:macro-calls``.
+We may want to add a ``:run-depends`` to add the functionality of ``:calls``.
 
 
 Dependencies
