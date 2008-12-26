@@ -8,58 +8,80 @@ Future improvements planned for XCVB.
 
 .. contents::
 ..
-    1  Roadmap
-    2  Usability Issues [V1]
-      2.1  Lack of Manual [V1]
-      2.2  Migration from ASDF [V1]
-      2.3  Configurability of the build image [V1]
-      2.4  Generalized Staged Images [V2]
-      2.5  In-image loading [V1]
-      2.6  ASDF backend [V1]
-      2.7  Command-line interface [V3]
-    3  Features [V1]
-      3.1  Multiple BUILD.lisp files [V1]
-      3.2  Initialization and Finalization [V2]
-      3.3  Executables [V1]
-      3.4  Tests [V2]
-      3.5  Dependency grovelling [V2]
-      3.6  Revert [V1]
-      3.7  Bootstrap [V3]
-      3.8  Same source, multiple compilers [V4]
-      3.9  Bug hunting [V5]
-    4  The semantics of dependencies [V1]
-      4.1  FASL vs CFASL [V2]
-      4.2  Data files [V1]
-      4.3  Computed Lisp files [V2]
+    1  Roadmap [V1]
+    2  Module Naming [V1]
+      2.1  Module reference [V1]
+      2.2  Search Path [V1]
+      2.3  Eager vs Lazy Module Scanning [V1]
+      2.4  Automatically install modules from the Internet [V5]
+    3  Usability Issues [V1]
+      3.1  Lack of Manual [V1]
+      3.2  Migration from ASDF [V1]
+      3.3  Configurability of the build image [V1]
+      3.4  Generalized Staged Images [V2]
+      3.5  In-image loading [V1]
+      3.6  ASDF backend [V1]
+      3.7  Command-line interface [V3]
+    4  Features [V1]
+      4.1  Multiple BUILD.lisp files [V1]
+      4.2  Initialization and Finalization [V2]
+      4.3  Executables [V1]
       4.4  Tests [V2]
-      4.5  Crypto Check [V3]
-      4.6  Template Instantiations [V5]
-    5  Internals [V1]
-      5.1  Distinguish target nodes and operation nodes [V1]
-      5.2  Use of Namestrings [V1]
-      5.3  Error handling [V4]
-      5.4  Pre-escaping [V5]
-    6  Higher-level description [V1]
-    7  Advanced Building Issues [V3]
-      7.1   Read the classics
-      7.2   distclc [V3]
-      7.3   clcache [V3]
-      7.4   XCVB as its own backend [V3]
-      7.5   Push for better control of file source location [V3]
-      7.6   Push for better control of in-file source location [V4]
-      7.7   Push for more determinism in Lisp compilers [V5]
-      7.8   Push for First-class PCLSRing in Lisp compilers [V5]
-      7.9   Support dependencies for modules written in other languages [V4]
-      7.10  Mixing and Matching compilers [V5]
-    8  A real module system [V5]
-      8.1  Syntax Extensions [V3]
-      8.2  Automatic Package management [V5]
-      8.3  Better Namespace Management [V5]
-      8.4  Packaging and Distribution [V5]
+      4.5  Dependency grovelling [V2]
+      4.6  Revert [V1]
+      4.7  Bootstrap [V3]
+      4.8  Same source, multiple compilers [V4]
+      4.9  Bug hunting [V5]
+    5  The semantics of dependencies [V1]
+      5.1  FASL vs CFASL [V2]
+      5.2  Data files [V1]
+      5.3  Computed Lisp files [V2]
+      5.4  Tests [V2]
+      5.5  Crypto Check [V3]
+      5.6  Template Instantiations [V5]
+    6  Internals [V1]
+      6.1  Distinguish target nodes and operation nodes [V1]
+      6.2  Use of Namestrings [V1]
+      6.3  Error handling [V4]
+      6.4  Pre-escaping [V5]
+    7  Higher-level description [V1]
+      7.1  XCVB's Architecture
+      7.2  Grains and Types
+        7.2.1  Initial, Final and in-between
+        7.2.2  Persistent vs Transient
+        7.2.3  Intention vs Extension
+        7.2.4  Generated modules
+      7.3  Plans
+        7.3.1  Build Graph
+        7.3.2  Operations
+        7.3.3  Actionable operations
+        7.3.4  Complete plan
+        7.3.5  Plan transformation
+        7.3.6  Dependencies
+      7.4  Operators
+        7.4.1  Abstracting Operations
+        7.4.2  Generating computation and hashes
+        7.4.3  Graph building
+    8  Advanced Build Issues [V3]
+      8.1   Read the classics [V3]
+      8.2   distclc [V3]
+      8.3   clcache [V3]
+      8.4   XCVB as its own backend [V3]
+      8.5   Push for better control of file source location [V3]
+      8.6   Push for better control of in-file source location [V4]
+      8.7   Push for more determinism in Lisp compilers [V5]
+      8.8   Push for First-class PCLSRing in Lisp compilers [V5]
+      8.9   Support dependencies for modules written in other languages [V4]
+      8.10  Mixing and Matching compilers [V5]
+    9  A Real Module System [V3]
+      9.1  Syntax Extensions [V3]
+      9.2  Automatic Package management [V5]
+      9.3  Better Namespace Management [V5]
+      9.4  Packaging and Distribution [V5]
 
 
-Roadmap
-=======
+Roadmap [V1]
+============
 
 Improvements required for XCVB version 1 are marked [V1].
 These correspond to a system suitable to automatically replace ASDF,
@@ -87,6 +109,152 @@ Improvements required for XCVB version 5 are marked [V5].
 The goal is for XCVB to grow fancy features and heuristics
 that demonstrate the advantages of a higher-level design.
 Things go here that have really low priority.
+
+As things get done, they should be moved
+from the TODO document to the appropriate documentation
+(at this moment, either README or INTERNALS).
+
+
+Module Naming [V1]
+==================
+
+Before we proceed to the point where we can reliably support
+compilation of a project that spans over multiple BUILDs,
+we need to settle on the way that we name modules.
+Depending on how the naming happens,
+we may need more or fewer brittle levels of indirection.
+
+Module reference [V1]
+---------------------
+
+The algorithm for identifying a module from the name specified
+in some dependency declaration is as follows:
+
+  1- The module is looked up under the current BUILD
+
+  2- Each parent of the current BUILD is looked up, until we reach a toplevel BUILD.
+
+  3- Each of the paths in the global search path is looked up, in order
+     (from first to last in a Lisp list, from left to right in a shell variable).
+
+  4- If the path is not found, a hook function may be called,
+     that may attempt to download and install the module.
+
+  5- If the hook function fails or there is no hook functions,
+     then the identification fails and the build aborts.
+
+What makes a BUILD toplevel will be discussed below
+in the section about `Eager vs Lazy Module Scanning [V1]`_.
+
+
+Search Path [V1]
+----------------
+
+We need to be able to name modules independently
+from their specific location on a given machine,
+especially since source files are installed on different paths
+on different machines,
+including machines that may partake in the same distributed build.
+
+To map source-level names to paths in the filesystem,
+ASDF has its infamous *central-registry*,
+GCC has /usr/include and various -I flags,
+Perl has PERL5PATH, Python has PYTHONPATH, etc.
+What should XCVB do to locate modules?
+
+The current plan is that at startup,
+XCVB will initialize a search path list
+from each of the following, in order,
+that may either modify or replace the former:
+
+  1- A builtin default, say ("/usr/share/common-lisp/modules/")
+
+  2- An environment variable, say XCVB_PATH, ":"-delimited,
+  with some magic entry "!" that means "splice the previous value".
+
+  3- A command-line argument, say --path, with the same behavior as above.
+
+  4- A Lisp configuration, that can either use the modifying function used
+  above, or directly modify variable xcvb:\*search-path\*
+  by prepending and/or appending more pathname designators.
+
+
+Eager vs Lazy Module Scanning [V1]
+----------------------------------
+
+There are two ways that the search path may be search for modules,
+and we have to choose early on because of the naming implications.
+
+In the eager scanning approach,
+the search paths are scanned for BUILD modules
+at the beginning of the build session,
+avoiding recursion into version control repositories
+or other excluded patterns.
+
+In the lazy scanning approach, the search paths are scanned
+only when a specific module is requested,
+and the path to scan relative to directories in the search path
+can be deduced trivially from the module specification,
+so only a small number of candidate paths need to be searched
+at any time.
+
+In the eager approach,
+the mapping from module name to pathname could be arbitrary,
+developers or system integrators
+would be free to organize their sources as they wish
+and could easily override installed modules
+with the specific versions they need,
+without having to mimic a standard installation
+by moving things around or by using symlinks.
+Significant long hierarchical names could be used
+to disambiguate modules globally
+(but shorter nicknames could also be used if non-ambiguous).
+What would make a module toplevel would be the fact
+that it declares such a fullname.
+The downside would be that eager scanning
+introduces two levels of complexity.
+The first complexity is this naming indirection,
+whereby the whole hierarchy of installed modules
+would have to be scanned at every build,
+or a cache of the module map would have to be maintained
+with timestamp information.
+The second complexity is the fact that eager scanning
+requires lazy evaluation of the scanned modules,
+least the whole Lisp world needs be planned for
+(and conflicts resolved) everytime anything is built;
+it must be possible to extract naming information from
+the module declarations without evaluating any of the
+computations required to otherwise make sense of the module.
+
+The lazy approach is much simpler,
+at the cost of constraining developers and/or system integrators
+to agree on a file hierarchy for their modules.
+This cost seems to be paid happily by developers of
+Perl, OCaml, Python, PLT Scheme, and many more languages,
+so it isn't that high.
+In this approach, what makes a module toplevel is simply that
+it's located at the top of a directory in the search-path.
+
+I think the lazy approach is good enough for XCVB version 1,
+especially since ASDF seems to be doing fine with a flat namespace,
+and other languages seem to do just fine with a global hierarchical namespace.
+
+On the other hand, the eager approach seems to better fit
+the destructured way that Common Lispers currently work
+with respect to filesystem organization (as with other topics)
+and may be a double pain (socially speaking) to first reject
+then to retrofit after the fact if we find it's required.
+Attila Lendvai notably favors the eager approach
+(which was also my initial reflex).
+
+
+Automatically install modules from the Internet [V5]
+----------------------------------------------------
+
+An extension to the module search mechanism may automatically
+download and install modules from the Internet when they are not found in the search path.
+This would happen whenever one tries to build a module
+that depends on a yet to be installed other module.
 
 
 Usability Issues [V1]
@@ -517,6 +685,9 @@ if we really want to do them.
 Higher-level description [V1]
 =============================
 
+XCVB's Architecture
+-------------------
+
 It's OK that we started with hand-coding the behaviour of XCVB in Lisp
 but eventually, we should have a domain-specific language to describe
 the structure of the dependency graph and the operations used to build it.
@@ -530,80 +701,389 @@ For XCVB version 4, we want to have a fully generalized design
 that can handle arbitrary operations used to build projects
 using any kind of programming language or compiler, not just Lisp.
 
-
-  A- *state*
-
-    Note that AITR-874 calls them "grain", which is perhaps less confusing.
-    TODO: use the same vocabulary as they do.
-
-    1- *files*, i.e. persistent state
-
-      a- Files are divided in source files vs object files.
-         Source files are sufficient to build the rest of the project.
-
-      b- actual source files are to be version-controlled and archived,
-         but configuration files count as source, but are computed or edited.
-
-      c- object files may be deliverables or just intermediate throwables.
-
-      d- for bootstrap purposes, the content of an object file is sometimes
-         copied into a source file.
-
-      e- Generated lisp files count as objects, not source, unless bootstrapped
-         and checked in. It is necessary to have the meta-data on these files
-         before a plan may be made to compile them, so either these files need
-         to have static meta-data known in advance, or the planning process needs
-         to be staged so that the plan will be revised when the file contents
-         are known and the meta-data is available.
-
-      f- we thus distinguish file path from file contents.
-         File *contents* are pure extensional data,
-         file *paths* are intentional anchors.
-         In a given *checkout*, the mapping of source path to contents is a given.
-
-    2- *worlds*, i.e. linear state
-
-      a- there again *processes* are the intentional agents,
-         whereas *process states* are the extensional states, up to some gross equivalence.
-
-      b- by forking, we may (or may not) preserve the desired equivalent process state;
-         another strategy (sometimes not available) may be to dump an image and resume from it.
-
-  B- *plans*
-
-    1- *operations*, i.e. atomic sets of commands to compute one set of states from others.
-
-      a- concrete operations are nodes in the dependency graph,
-      joining together input states to output states.
-
-      b- in a given representation (i.e. Makefile, ASDF, etc.), not all operations are permitted.
-         e.g. with make, you can't duplicate a process state with fork, whereas you could
-         with a future native driver. Or using ECL, you can't load then dump -- you must link
-         with a special process.
-
-      c- And so whether operations are decomposed into basic elements or grouped in actionable wholes
-         depends on the specific target. It may also depend on opportunities for optimization.
-
-      d- multiple operations may lead to the "same" outcome up to equivalence.
-         Operations may be combined and some combinations preferred to others.
-   
-    2- *operators* are methods that create concrete operations out of various parameters
-
-      a- parameters include input file, options (which compiler/flags to use), etc.
-
-    3- *dependencies*
-
-      a- effective dependencies include any data that was actually consulted in building an object.
-         Which dependencies were or weren't included may be discovered only after the fact.
-
-      b- XXXXXXXX
+For the sake of avoiding ambiguity and starting from existing knowledge,
+we'll try to reuse the vocabulary defined in MIT AITR-874
+to describe the concepts at hand.
 
 
-Advanced Building Issues [V3]
-=============================
+Grains and Types
+----------------
 
-Read the classics
------------------
+*Grains* are the units of data that the build deals with.
+
+Grains come in many *types*
+themselves hierarchically organized in subtypes and supertypes.
+Main types include files and running processes;
+subtypes of files include Lisp source files, C source and header files,
+shell scripts, python scripts or perl scripts,
+ReST documents, FASL files (that come in as many variants
+as there are combinations of Lisp implementations and various options),
+linker object files (for many architectures),
+executable files (for as many architectures),
+test report files, etc.
+Types of processes include Lisp compilation processes,
+C compilation processes, etc.
+
+
+Initial, Final and in-between
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some grains are the inputs of the overall build, they are the *initial* grains.
+They include the *source* code and data
+(usually kept under revision control and otherwise part of the source archive),
+user-specified *configuration* (edited by users to fit their local configuration),
+and any file (such as a compiler) or process (some daemon) in the running *environment*
+that is used during the build.
+Anything else is a *derived* grain.
+
+Some grains are the outputs of the overall build, they are the *final* grains.
+They are anything sought for by the user,
+usually deliverable files needed for some software installation.
+
+Some grains may be both initial and final,
+for instance data files that are copied over as is
+from the source archive to the final installation.
+Some grains are neither initial nor final, they are called *intermediate* grains,
+and are usually thrown away after the build.
+
+For *bootstrapping* purposes, the content of a final grain
+is sometimes copied into what will be a source grain in future sessions.
+Within a given build session, though, we will distinguish
+the initial grain
+(that may be the copy of a final grain from a previous session)
+from the final grian
+(that may be copied as an initial grain for a next session).
+
+
+Persistent vs Transient
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Files are *persistent* grains. They are stored on disk.
+They can be trusted to be recovered from one session to the next.
+They cannot spontaneously compute.
+
+Processes are *transient* grains. They do the computations.
+They can transform inputs into outputs, and in between maintain active state.
+They often are born and die within a session,
+and may not be trusted to survive until a next session
+(although if the build is used to monitoring updates to a live robust system,
+they may well be).
+
+
+Intention vs Extension
+^^^^^^^^^^^^^^^^^^^^^^
+
+We must distinguish file path from file contents,
+process id and process state.
+
+File *contents* are pure extensional data,
+while file *paths* are intentional anchors.
+Similarly, running *processes* are the intentional agents,
+whereas *process states* are the extensional states.
+
+In a given *session*,
+the mapping of source path (intention) to contents (extension)
+is assumed to not change.
+Otherwise, an error condition is detected,
+and the build may be aborted or restarted as a new session.
+In a given session,
+it may thus be assumed that a file behaves
+like persistent pure functional data,
+deterministically yielding the same contents every time it is read.
+
+On the other hand,
+the mapping from processes (intention) to process states (extension)
+is likely to change a lot during a session
+(and a fortiori between sessions).
+The computation that happens in a given process consumes
+its input state that is lost as it produce its output state.
+Process state is thus behaves like a linear pure functional data.
+Processes may be created with an birth state,
+or die and cease to have a state.
+
+Process state is often considered up to some gross equivalence
+that neglects details such as process id, etc.
+If you may neglect a small driver that forks the processes
+and executes requested tasks,
+or dumps images and resumes from them,
+then you may be able to explicitly duplicate the state of a running process.
+So as to be able to reinstate a desired state
+on another machine or in another session,
+the build needs to be able to reconstruct such state
+from persistent data (e.g. by dumping an image),
+up to the desired equivalence.
+
+
+Generated modules
+^^^^^^^^^^^^^^^^^
+
+Generated modules count as derived grains, not source,
+since they need not be part of the source archive
+and are not checked in to revision control system
+(unless they are indeed bootstrapped,
+in which case the derived final file of a build
+may be initial source file for the next).
+
+They may make the build more complex in that
+the build needs to know the associated dependencies
+before it may plan how to build the derived grains,
+yet may not be able to know these dependencies
+before the Lisp file is generated.
+
+In simple cases, the dependencies can be identified
+before the file is generated,
+as special off-file declarations in the generating source code.
+
+In other cases, the build system may have to update
+its build graph after the file is computed,
+possibly doing a recursive call to the main build entry point.
+
+
+Plans
+-----
+
+Build Graph
+^^^^^^^^^^^
+
+The plan is a build graph
+that contains nodes that represent the intensional grains,
+and nodes that represent the intensional operations
+that will derive output grains from input grains,
+from the initial ones up to the final ones.
+
+As the builder executes the plan,
+it computes the extensions of derived grains
+from the extensions of former grains.
+
+At the beginning of a session,
+only the initial extensions are available.
+At the end of a session,
+the final extensions are computed.
+
+The plan is static if it doesn't need to be updated
+based on the extension of any derived grain.
+The plan is dynamic if it new nodes need to be created
+during a given session.
+
+
+Operations
+^^^^^^^^^^
+
+Operations are nodes in the build graph,
+that join together a set of input grains to a set of the output grains.
+
+An operation specifies a computation whereby the output grains
+can be computed from the input grains when the latter are available.
+
+The computation may involve creating processes or talking to existing processes;
+these processes will change state, including being born and dying,
+as they operate the specified commands,
+creating output grains as they consume input grains.
+
+For caching purposes, an operation also specifies how to compute a buildhash
+identifying each of the outputs of the operation
+from the buildhashes of inputs.
+
+
+Actionable operations
+^^^^^^^^^^^^^^^^^^^^^
+
+In a given backend (i.e. Makefile, ASDF, etc.),
+not all operations are permitted.
+For instance with make, you can't duplicate a process state with fork,
+whereas you could with a future native backend.
+Additionally, some Lisp compilers have operations that other compilers don't.
+For instance, you can't load then dump --
+instead you link with a special process.
+An operation that can actually be executed is called *actionable*.
+
+And so whether operations are decomposed into basic elements
+or grouped in actionable wholes depends on the specific target.
+Also, multiple operations may lead to the "same" outcome
+up to the desired equivalence, and operations may be combined
+in different ways.
+Some combinations may be preferred to others,
+especially if the some are valid operations on the target
+whereas the others are not,
+but also if some operations are reputedly slow
+whereas others are expected to be fast.
+
+
+Complete plan
+^^^^^^^^^^^^^
+
+In a complete plan, all operations are actionable.
+Moreover, initial grains are never the output parameter of an operation,
+and derived grains appear as the output parameter of an operation
+exactly once in the build graph.
+
+
+Plan transformation
+^^^^^^^^^^^^^^^^^^^
+
+From the module declarations, a model may be constructed
+of which modules contain compile-time or load-time references
+to which other modules,
+and otherwise depends on which modules at build-time, etc.
+This reference model constitutes a build graph,
+but may not be an actionable build graph,
+and may notably include intermediate grains
+representing process states that may be not be reachable
+in the specific target environment
+that the build session will take place in.
+
+.. or do we want to fully decouple the reference model as something distinct
+   from a build graph? Then we could handle reference classes such as
+   (:package A B)) - to compile or load A, some package in B is needed.
+   (:macro-calls A B) - to compile A, some macros or reader-macros in B are needed.
+   (:calls A B) - to load A, load B too (before or after)
+   (:setup-calls A B) - when loading A, load B first
+   Note that the current XCVB model of :depends, :load-depends, :compile-depends
+   corresponds loosely to :package, :setup-calls, :macro-calls.
+
+Thus, the build system may have to transform its plan
+both for the purpose of correctness and
+for purpose of performance optimization.
+A build session with start by computing the reference model
+from the extension of the initial grains,
+and from the build request,
+then apply configuration-dependent transformations
+to that plan to create a complete plan.
+
+
+Dependencies
+^^^^^^^^^^^^
+
+The *declared* dependencies of a node
+(or declared inputs of an operation)
+are computed by the operator that creates the operation node,
+and include all the grains that must be available
+before the operation may be computed.
+They are established at the beginning of the session
+at the time the actionable plan is created,
+and do not change for a static plan,
+but may be updated for a dynamic plan,
+in which case an operation that will update the dependencies
+might itself be required as part of the plan
+before the operation may be computed.
+
+The *effective* dependencies of a node
+(or effective inputs of an operation)
+include any grains that were actually consulted in computing the operation.
+In a static build, these effective dependencies
+will be the same as the declared dependencies.
+In a dynamic build, which dependencies were or weren't included
+may sometimes be discovered only after the fact.
+If they are found to contain grains that weren't available,
+a condition is raised, and
+the build session may be aborted,
+or the required grains may be computed
+before the operation may be restarted.
+
+
+Operators
+---------
+
+Abstracting Operations
+^^^^^^^^^^^^^^^^^^^^^^
+
+*operators* are methods that create concrete operations
+out of various parameters.
+
+Parameters may include input grains, output grains,
+options (which compiler/flags to use), etc.
+
+Note however, that the inputs and outputs
+of one of the operations created by an operator
+need not be those given as parameter by the operator.
+For instance, an operator may create intermediate grains,
+add detected dependencies, recurse by calling other operators, etc.
+(Operators correspond loosely to what AITR-874 calls
+request-handlers and reference-handlers,
+or to what ASDF calls operations).
+
+A same grain can be used as the parameter to multiple operations,
+or to the same operator in multiple instances with different other parameters.
+For instance, a file may be both compiled
+and processed for documentation extraction.
+Or it may be compiled for speed in one case,
+compiled for code coverage in another case,
+and compiled with serializable continuations in a third case.
+
+
+Generating computation and hashes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The computation, the static buildhash,
+and the algorithm to compute the dynamic buildhash
+may all be obtained from the same specification
+of the relationship between outputs and inputs,
+at the time the operator is instantiated.
+
+Say the operation has some specification like::
+
+  (:compile-lisp :loading (fasl1 fasl2)
+		 :source lisp3 :target fasl3
+		 :lisp-compiler image4 :options (o5 o6 o7))
+
+Then the evaluator would invoke the specified Lisp image
+with the proper options to load the specified fasls
+and compile the source file into the target fasl.
+
+The direct hash of a grain would be a cryptographic hash of
+its specification (type and module name)
+followed by the hash of its file contents
+(or for a process,
+the hashes of the binary images and configuration files used
+to start the daemon).
+
+The static buildhash of each output grain
+can be obtained in advance of any computation
+with a cryptographic hash of the concatenation of the specification,
+something that identifies which output is considered
+(say "(1)" for the first output,
+or "(2 3)" for the third file in the second list of outputs,
+or just the output module name),
+and the successive static buildhashes of each of the inputs,
+with the static buildhash of an initial grain being its direct hash.
+
+The dynamic buildhash of each output would be computed in a similar way
+right before (for a static computation)
+or right after (for a dynamic computation)
+the computation, by hashing the concatenation of the specification,
+of the output identifier, and the successive direct hashes
+of each declared input (for a static build)
+or effective input (for a dynamic build).
+
+The hashing algorithm used for all hashing by XCVB will be
+a Tiger Tree Hash (TTH).
+
+Hashes can be used to index a cache of already computed objects.
+Static builds with only static computations
+may use the static buildhash to index objects in the cache
+in advance of any computation --
+and by looking for final objects directly at the top of the graph
+skipping unneeded intermediate grains.
+Dynamic builds or builds with dynamic computations
+must use dynamic buildhash to index objects in the cache
+and must rebuild all grains from the ground up.
+Builds with both static and dynamic elements are conceivable.
+
+
+Graph building
+^^^^^^^^^^^^^^
+
+A build starts with an initial request:
+an operator is called with a set of input parameters.
+
+
+
+
+Advanced Build Issues [V3]
+==========================
+
+Read the classics [V3]
+----------------------
 
 As we try to get XCVB to rival with existing build systems,
 we may want to cover our bases and see what previous systems
@@ -615,6 +1095,14 @@ Rainer Joswig on #lisp suggested:
 'BUILD: A tool for maintaining consistency in modular systems'
 by Richard Elliot Robbins, 1985.
 ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
+The build system described takes an interesting declarative approach:
+the system builds an abstract model of the modules in terms
+of grains having various kinds of directed reference relationships as
+in (:macros-calls foo bar).
+The task graph to fulfill a build request is automatically deduced
+from the reference model and various request-handlers
+(pre and post reference handling) and reference-handlers
+that propagate the information along the nodes.
 
 
 distclc [V3]
@@ -675,7 +1163,9 @@ where 67890 is the hash of quux.fasl.
 
 Yet when associating source location information to functions being compiled,
 XCVB needs be able to tell the underlying Lisp compiler that it should be
-using the virtual location foo/bar/baz.lisp (and foo/bar/quux.lisp).
+using the virtual location foo/bar/baz.lisp (and foo/bar/quux.lisp),
+and additionally identify the hash of the file's contents
+and possibly its revision in the version control system.
 
 Of course, logical pathnames as defined by the CLHS are about unusable.
 So offer to standardize something different for those virtual paths,
@@ -767,7 +1257,7 @@ XCVB might grow some generic protocol to describe the steps required to
 interface something to something else.
 
 
-A real module system [V5]
+A Real Module System [V3]
 =========================
 
 Up to version 4, XCVB can be seen as the bottom half of a real module system.
@@ -857,4 +1347,4 @@ See Ruby gems, Python eggs, Chicken eggs, Java beans.
 
 When extending the system to include the management of packages for distribution,
 be sure that you play well with whichever Operating System's packaging software:
-	http://www.b-list.org/weblog/2008/dec/14/packaging/
+http://www.b-list.org/weblog/2008/dec/14/packaging/

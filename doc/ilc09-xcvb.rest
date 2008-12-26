@@ -37,7 +37,7 @@ Key Insight
 Despite plenty of advanced module systems
 having been implemented in various Lisp dialects,
 the current state of the art in the Common Lisp world
-are still descendents of DEFSYSTEM (Weinreb & Moon 1984):
+are still descendents of DEFSYSTEM (Weinreb & Moon 1981):
 in ASDF, mk-defsystem or mudballs,
 a central system file that mainly defines
 an acyclic graph of components
