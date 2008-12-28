@@ -62,3 +62,12 @@ doc: $(patsubst %.rest, %.html, $(wildcard doc/*.rest))
 
 online-doc: doc
 	rsync -av doc/*.html common-lisp.net:/project/xcvb/public_html/doc/
+
+push:
+	git push git@github.com:fare/xcvb.git master:master
+	git push common-lisp.net:/project/xcvb/public_html/xcvb.git master:master
+
+show-current-revision:
+	git show --pretty=oneline HEAD | head -1 | cut -d' ' -f1
+
+# To check out a particular revision: git fetch; git merge $commit

@@ -166,7 +166,7 @@ Building XCVB
 
 Install the dependencies as listed above, then
 create and edit your own ``configure.mk`` from ``doc/configure.mk.example``
-and finally ``make``
+and finally ``make``.
 
 
 Converting your ASDF system

@@ -171,7 +171,7 @@ that may either modify or replace the former:
   1- A builtin default, say ``("/usr/share/common-lisp/modules/")``
 
   2- An environment variable, say ``XCVB_PATH``, "``:``"-delimited,
-  with some magic entry "``!`" that means "splice the previous value".
+  with some magic entry "``!``" that means "splice the previous value".
 
   3- A command-line argument, say ``--path``, with the same behavior as above.
 
@@ -1098,8 +1098,6 @@ As we try to get XCVB to rival with existing build systems,
 we may want to cover our bases and see what previous systems
 did right and what they did wrong.
 
-See Make, SCons, OMake, CMake, etc.
-
 Rainer Joswig on #lisp suggested:
 'BUILD: A tool for maintaining consistency in modular systems'
 by Richard Elliot Robbins, 1985.
@@ -1113,6 +1111,11 @@ from the reference model and various request-handlers
 (pre and post reference handling) and reference-handlers
 that propagate the information along the nodes.
 
+See also GNU Make, SCons, OMake, CMake, Boost Jam, Cabal, etc.:
+
+	* http://www.scons.org/
+	* http://omake.metaprl.org/index.html
+	* http://www.cmake.org/
 
 distclc [V3]
 ------------
