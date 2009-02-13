@@ -34,6 +34,11 @@ About XCVB
 Status
 ------
 
+Bottom line:
+XCVB isn't yet ready as a full replacement for ASDF.
+But it is already working and useful
+in the simple case with a single big project.
+
 The basic functionality is already working:
 you can either write an XCVB project or
 automatically convert an existing ASDF project;
@@ -85,18 +90,20 @@ You will need the following pieces of software to get XCVB running:
 Timeline
 --------
 
-The original idea for what became XCVB came from discussions with James Knight
-at ITA Software in 2007 and 2008.
+The original idea for what became XCVB came from
+discussions with James Knight at ITA Software in 2007.
 
 XCVB was originally written by Spencer Brody under the supervision of
 Francois-Rene Rideau from late May to mid August 2008.
 The result was a working prototype,
-but requiring some layer of hacks specific to the target on which XCVB was run
+but requiring some layer of manual hacks
+specific to the target on which XCVB was run
 (an internal project at ITA Software).
 
 Francois-Rene Rideau restarted work on it
 and released an initial semi-usable prototype
-in mid December 2008.
+in mid December 2008, where the above hacks were automated away.
+
 We hope to have a complete release with example and documentation
 ready for showing at ILC'09 by March 2008.
 
@@ -249,6 +256,9 @@ and the same side-effects need to be available at ``:load-toplevel``.
 
 Therefore, any ``defun``, ``defvar`` or other side-effect used by a macro
 needs be be enclosed in an ``(eval-when (:compile-toplevel :load-toplevel :execute) ...)``.
+(Actually the ``:execute`` is not necessary in code you write manually,
+but you probably want to include it in any macro that generates an ``eval-when``).
+
 
 
 Further Limitations

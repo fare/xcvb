@@ -6,7 +6,7 @@ XCVB: Improving Modularity for Common Lisp
 
 :Description: Submission for a Demonstration and/or a Lightning Talk at ILC'09.
 :Authors: Francois-Rene Rideau <fare@tunes.org> and Spencer Brody <sbrody88@gmail.com>
-:Date: 2008-12-22
+:Date: 2009-01-13
 
 .. contents::
 ..
@@ -36,9 +36,10 @@ Key Insight
 
 Despite plenty of advanced module systems
 having been implemented in various Lisp dialects,
-the current state of the art in the Common Lisp world
-are still descendents of DEFSYSTEM (Weinreb & Moon 1981):
-in ASDF, mk-defsystem or mudballs,
+the current state of the art in the Common Lisp community
+is still descendents of DEFSYSTEM (Weinreb & Moon 1981):
+in the portable mk-defsystem and
+the somewhat more declarative ASDF and mudballs,
 a central system file that mainly defines
 an acyclic graph of components
 to be compiled and loaded into the current Lisp image,
@@ -84,9 +85,9 @@ What the XCVB prototype already brings as opposed to ASDF:
 
   * Current build backends
      + XCVB computes the build graph, currently lets other software do the build
-     + ASDF: your software can be integrated as part of Lisp builds using legacy ASDF
-     + Makefile: your software can be integrated as part of larger-than-Lisp builds
-     + more backends possible in the future (SCons? take over your build?)
+     + Makefile: integrate into a larger build, just as in any modern language
+     + ASDF: integrate into legacy ASDF builds
+     + more backends possible in the future (SCons? OMake? take over your build?)
 
   * Decoupling builder and buildee
      + protection from uncontrolled side-effects from buildee to builder
@@ -118,6 +119,7 @@ Urgently needed:
      + better behavior in face of errors
 
   * More features
+     + combine multiple projects, find them using a search path
      + refine migration and compilation to deal with harder cases
        (data files read at compile-time, computed lisp files, etc.)
      + have a more general model for staged builds
@@ -150,6 +152,12 @@ The following improvements are enabled by XCVB's deterministic separate compilat
      + base cache on crypto hash fully capturing the computation and its dependencies
      + can track all the modified dependencies since last success at building and verifying a component
      + push for more determinism in Lisp compilers!
+
+  * Dependency management
+     + xcvb-dependency-grovel to detect superfluous dependencies
+     + cache above results to suggest missing dependencies
+     + actually implement dependency-based testing
+     + integrate test dependency tracking with code-coverage tools
 
   * Extend the build specification language
      + build rules that call arbitrary programs (as in a Makefile)
@@ -226,7 +234,7 @@ XCVB can be found at
 Initially developed by Spencer Brody during the Summer 2008 at ITA Software,
 under the guidance of Francois-Rene Rideau.
 Work restarted by Rideau in mid December 2008,
-with an semi-usable prototype released.
+with a semi-usable prototype released.
 
 Many thanks to James Knight for his many insights
 and to Juho Snellman for the SBCL CFASL.

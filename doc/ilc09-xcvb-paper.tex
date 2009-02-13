@@ -1,0 +1,704 @@
+%-*- latex; coding: iso-8859-1; buffer-file-coding-system: iso-8859-1 -*-
+% Faré: Latin1 encoding
+\documentclass[natbib]{sigplanconf}
+%\documentclass[preprint,natbib]{sigplanconf}
+
+\usepackage[latin1]{inputenc}
+\usepackage[english]{babel}
+%\usepackage{ae}
+%\usepackage{aeguill}
+%\usepackage{shortvrb}
+%\usepackage{tabularx}
+%\usepackage{longtable}
+%\setlength{\extrarowheight}{2pt}
+%\usepackage{amsmath}
+%\usepackage{graphicx}
+%\usepackage{color}
+%\usepackage{multirow}
+%\usepackage{ifthen}
+%\usepackage[DIV12]{typearea}
+%\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage[colorlinks=false]{hyperref}
+
+\newlength{\locallinewidth}
+
+\conferenceinfo{ILC '09}{2009-03-22, Cambridge, MA.}
+\copyrightyear{2009}
+\copyrightdata{[to be supplied]}
+
+% The following lines are ignored unless 'preprint' option specified.
+\titlebanner{Preprint of an ILC'09 paper}
+\preprintfooter{This is a preprint}
+
+\title{XCVB: Improving Modularity for Common Lisp}
+%\subtitle{Subtitle Text, if any}
+\authorinfo{François-René Rideau}
+           {ITA Software, Inc.}
+           {fare@tunes.org}
+\authorinfo{Spencer Brody}
+           {Brown University}
+           {sbrody88@gmail.com}
+
+\hypersetup{
+pdftitle={XCVB: Improving Modularity for Common Lisp},
+pdfauthor={Francois-Rene Rideau {\textless}fare@tunes.org{\textgreater} and Spencer Brody {\textless}sbrody88@gmail.com{\textgreater}}
+}
+\raggedbottom
+
+\begin{document}
+\toappear{}
+\maketitle
+%\thanks{This presentation describes work done at ITA Software, Inc.}
+
+\begin{abstract}
+We present XCVB, a new open source system to build Common Lisp software.
+XCVB notably features separate compilation.
+This departs from the Common Lisp tradition
+of compiling within a live world.
+But separate compilation scales to very large systems,
+and opens many possibilities for the future.
+\end{abstract}
+
+%\category{CR-number}{subcategory}{third-level}
+
+%\terms
+%term1, term2
+
+%\keywords
+%keyword1, keyword2
+
+\setlength{\locallinewidth}{\linewidth}
+
+\section{Introduction}
+
+Despite plenty of advanced module systems
+having been implemented in various Lisp dialects
+(and languages from other families)
+in the last 25 years,
+the current state of the art for the Common Lisp community
+hasn't improved much since 1980:
+a central file defines the build graph,
+and components are compiled and loaded
+as successive side effects to the current Lisp world.
+
+Our insight is to break the classic Lisp assumption of programming
+in a single concrete Lisp world that is side-effected
+as source code is sequentially compiled then loaded.
+Instead, we propose a pure-functional approach of
+building encapsulated components,
+each compiled in its own isolated virtual Lisp world.
+
+The traditional Lisp model may have been
+ahead of its time in the 1970s and valid into the 1980s,
+when memory and virtualization were expensive.
+But it doesn't scale well to programming in the large in the 2000s,
+with projects of tens of programmers with hundreds of files,
+where the side-effects of processing various files
+may interact in unexpected ways.
+Our model, which is traditional for many other languages (like OCaml),
+does scale to large projects and allows a concurrent and distributed build.
+
+
+\section{Past Common Lisp build systems}
+
+In the original DEFSYSTEM \cite{CHINE-NUAL} and its descendents,
+a ``system'' is defined in a central file as
+an acyclic graph of components
+to be compiled and loaded into the current Lisp world,
+arcs being dependencies.
+
+The original DEFSYSTEM and
+its once-popular portable descendent MK:DEFSYSTEM (from 1990 on)
+required one to manually list all transitive dependencies of a component
+in a statement separate from its definition
+(see figure~\ref{dep:defsystem}).
+The current state of the art and most popular descendent of DEFSYSTEM,
+ASDF \cite{ASDF-Manual},
+simplifies things tremendously
+by automatically computing the transitive closure
+of directly declared dependencies
+from single statements defining both both component and direct dependencies
+(see figure~\ref{dep:asdf}).
+Such improvements and more had been suggested as early as 1984
+\cite{Pitman-Large-Systems,AITR-874}
+but not available as a portable package until ASDF was created 2001.
+ASDF also supports some limited form of extensibility using CLOS,
+but for the purpose of this presentation,
+we will focus on the core architecture of the build system.
+Another DEFSYSTEM variant, mudballs, was recently created,
+that seems to cleanup and simplify ASDF
+while keeping the same general architecture.
+
+\begin{figure}[tbp]
+\begin{verbatim}
+  (:module BAR ("BAR"))
+  ...
+  (:compile-load BAR
+     (PACKAGES MACROS SPECIALS)
+     (:fasload PACKAGES MACROS SPECIALS))
+\end{verbatim}
+\caption{Using DEFSYSTEM:
+        component {\tt bar} defined in two places in system file {\tt foo.system}
+        -- all transitive dependencies have to be listed explicitly.}
+\label{dep:defsystem}
+\end{figure}
+
+\begin{figure}[tbp]
+\begin{verbatim}
+  (:file "bar" :depends-on ("macros" "specials"))
+\end{verbatim}
+\caption{Using ASDF:
+        component {\tt bar} defined somewhere in system file {\tt foo.asd}
+        -- transitive dependency on {\tt packages} may be skipped.}
+\label{dep:asdf}
+\end{figure}
+
+\begin{figure}[tbp]
+\begin{verbatim}
+#+xcvb
+(module
+ (:depends-on ("macros" "specials")))
+\end{verbatim}
+\caption{Using XCVB:
+        component {\tt bar} defined on top of module file {\tt bar.lisp}
+        -- transitive dependency on {\tt packages} is implicit}
+\label{dep:xcvb}
+\end{figure}
+
+\section{XCVB}
+
+XCVB, the eXtensible Component Verifier and Builder,
+is a new open source system to build software written in Common Lisp.
+
+XCVB most notably features separate compilation in isolated Lisp worlds.
+The current implementation spawns a new Lisp process for each compilation.
+In XCVB, dependency information is not declared in a central file,
+but at the top of each component file
+(see figure~\ref{dep:xcvb}).
+
+In the following bullet-point presentation,
+we briefly outline the reasons why separate compilation is important,
+yet why it didn't happen for Common Lisp before.
+We describe the state of the project and the benefits at hand.
+We suggest the many future benefits that can be enabled by this design,
+and we discuss the challenges that will have to be overcome
+to achieve some of those benefits.
+
+%___________________________________________________________________________
+
+\section{XCVB yesterday}
+
+What the XCVB prototype already brings as compared to ASDF.
+
+\subsection{Goal: Separate Compilation}
+
+\begin{itemize}
+\item
+Independent compilation of individual files.
+
+\item
+Compute objects from source, just as in any modern language.
+
+\item
+Proper staging of compile-time dependencies (macros compiled before they are used).
+
+\item
+Semantics of a file fully encapsulated in its contents (+ contents of dependencies).
+
+\item
+Incremental change-driven building and testing.
+
+\end{itemize}
+
+\subsection{Therefore: Dependencies must be declared locally}
+\begin{itemize}
+
+\item
+Move dependencies away from centralized off-file meta-data.
+
+\item
+Module import statement, just as in any modern language.
+
+\item
+No more global recompilation (or subtle failure)
+at the least change in centralized system definition.
+
+\item
+No more subtle bugs to non-local change
+in ordering of compile-time side-effects
+(see figure \ref{asdf-break-down}).
+
+\item
+Unlike ASDF, can incrementally track dependencies across systems.
+
+\end{itemize}
+
+\begin{figure}[tbp]
+Step 1: Initially working system.
+\begin{verbatim}
+  ;; bar provides base for baz
+  (:file "bar" :depends-on ("base"))
+
+  ;; quux unrelatedly depends on base
+  (:file "quux" :depends-on ("base"))
+
+  ;; baz also depends on base,
+  ;; transitively provided by bar
+  (:file "baz" :depends-on ("bar"))
+\end{verbatim}
+
+\vskip 1em
+
+Step 2: after refactoring, {\tt bar} is simplified to not need {\tt base}
+\begin{verbatim}
+  ;; bar no longer depends on base
+  (:file "bar" :depends-on ("packages"))
+
+  ;; quux happens to load base
+  ;; before baz is compiled
+  (:file "quux" :depends-on ("base"))
+
+  ;; baz really depends on base
+  ;; but the missing dependency is not detected
+  (:file "baz" :depends-on ("bar"))
+\end{verbatim}
+
+\vskip 1em
+
+Step 3: {\tt quux} is also refactored to not need {\tt base}.
+Now compilation of unrelated file {\tt baz} breaks
+because its {\em implicit} dependency {\tt base} is not loaded anymore.
+\begin{verbatim}
+  ;; bar still does not depend on base
+  (:file "bar" :depends-on ("packages"))
+
+  ;; quux no longer loads base
+  (:file "quux" :depends-on ("packages"))
+
+  ;; despite a lack of related modifications,
+  ;; baz now breaks inexplicably
+  ;; at next clean compilation
+  (:file "baz" :depends-on ("bar"))
+\end{verbatim}
+
+Of course, the lines that matter need not be consecutive
+but separated by many unrelated lines,
+the missing dependency may not be a direct dependency, but any transitive dependency,
+and steps 2 and 3 may be separated by a lot of unrelated changes.
+
+%First workaround: always make from clean
+%(and lose any incremental building advantage).
+%Second workaround: use a rigid serial dependency order
+%(and lose most incremental building, accumulate coding scars).
+
+%With XCVB, when you modify {\tt bar}, {\tt baz} automatically gets recompiled,
+%and any missing dependency is immediately detected.
+%No timebomb. No need for a workaround.
+
+\caption{Break down of ASDF:
+	a mistake at step 2 creates a timebomb
+        that is only triggered
+        by an innocuous change much later at step 3.}
+\label{asdf-break-down}
+\end{figure}
+
+
+\subsection{Eager enforcement of dependencies}
+\begin{itemize}
+
+\item
+Each file is built with none but the declared dependencies loaded.
+
+\item
+Requires import discipline, just as in any modern language.
+
+\item
+A bit slower, but much more robust: dependency bugs are detected early.
+
+\item
+No more unmaintainable large manual dependency graphs
+(or rigid unmaintained serial list of files as a workaround).
+
+\item
+Allows eager incremental unit tests based on what has changed (beware: reflection).
+
+\end{itemize}
+
+\subsection{Current build backends}
+\begin{itemize}
+
+\item
+XCVB computes the build graph, currently lets other software do the build.
+
+\item
+{\tt Makefile}: integrate into a larger build, just as in any modern language.
+
+\item
+ASDF: integrate into legacy ASDF builds.
+
+\item
+More backends possible in the future:
+{\tt OMake} \cite{OMake},
+take over your build.
+
+\end{itemize}
+
+\subsection{Decoupling builder and buildee}
+\begin{itemize}
+\item
+Protection from uncontrolled side-effects from buildee to builder.
+
+\item
+Allows for integration with make as mentioned above.
+
+\item
+Allows for cross-compilation from one compiler/architecture to a different one.
+
+\item
+Allows for a feature-rich build system that needn't fit in one small file, yet.
+
+\item
+Allows builder to rebuild and test its dependencies and self.
+
+\end{itemize}
+
+\subsection{Can use CFASLs to capture COMPILE-TIME side-effects}
+\begin{itemize}
+\item
+Vast speed improvement, fewer rebuilds (the FASL may have changed but not the CFASL).
+
+\item
+Like C++ precompiled headers, except automatically deduced from the code.
+
+\item
+Was easily added to SBCL by Juho Snellman, could be as easily added to other compilers.
+
+\item
+Careful {\tt EVAL-WHEN} discipline needed (as with ASDF really, but now it is enforced).
+
+\end{itemize}
+
+\subsection{Automated migration path from ASDF}
+\begin{itemize}
+\item
+XCVB accepts dependencies from XCVB systems to ASDF systems and vice-versa.
+
+\item
+Automatic migration of your ASDF system using Andreas Fuchs's asdf-dependency-grovel.
+
+\item
+Compile-time Lisp state requires extending the dependency-detection tool.
+
+\item
+ASDF extensions will require extending XCVB.
+
+\end{itemize}
+
+%___________________________________________________________________________
+
+\section{XCVB today}
+
+Urgently needed.
+
+\subsection{User friendliness}
+\begin{itemize}
+\item
+Add documentation and examples.
+
+\item
+Better behavior in face of errors.
+
+\end{itemize}
+
+\subsection{More features}
+\begin{itemize}
+\item
+Combine multiple projects, find them using a search path.
+
+\item
+Refine migration and compilation to deal with harder cases
+(data files read at compile-time, computed lisp files, etc.).
+
+\item
+Have a more general model for staged builds
+(multiple intermediate images, dynamic dependency computation).
+
+\end{itemize}
+
+\subsection{Actually migrate a critical mass of existing ASDF systems}
+\begin{itemize}
+\item
+Support manual overrides when automation breaks down.
+
+\item
+Maintain until upstream adopts XCVB (if ever)
+-- automated migration makes that possible.
+
+\item
+Provide a distribution system (as in asdf-install, mudballs or clbuild, etc.).
+
+\item
+Fully bootstrap XCVB (make asdf optional).
+
+\end{itemize}
+
+\subsection{Refactor Internals}
+\begin{itemize}
+\item
+Current implementation was a good first attempt, but needs to be reworked.
+
+\item
+Needs to be made more general to allow for desired and future features.
+
+\item
+Recognize hand-coded patterns, read literature, formalize a domain, grow a language.
+
+\end{itemize}
+
+%___________________________________________________________________________
+
+\section{XCVB tomorrow}
+
+The following improvements are enabled by
+XCVB's deterministic separate compilation model.
+
+\subsection{Distributed backends}
+\begin{itemize}
+\item
+Pluggable distributed compilation ({\tt distcc} for CL).
+
+\item
+Take over the build, make it distributed with Erlang-in-Lisp.
+
+\item
+Requires compiler support to preserve source locations for debugging.
+
+\end{itemize}
+
+\subsection{Caching}
+\begin{itemize}
+\item
+Cache objects rather than rebuild ({\tt ccache} for CL).
+
+\item
+Base cache on crypto hash fully capturing the computation and its dependencies.
+
+\item
+Can track all the modified dependencies
+since last success at building and verifying a component.
+
+\item
+Push for more determinism in Lisp compilers!
+
+\end{itemize}
+
+\subsection{Dependency management}
+\begin{itemize}
+\item
+xcvb-dependency-check to detect superfluous dependencies
+(to be based on asdf-dependency-grovel).
+
+\item
+Cache above results to suggest missing dependencies.
+
+\item
+Actually implement dependency-based testing.
+
+\item
+Integrate test dependency tracking with code-coverage tools.
+
+\end{itemize}
+
+\subsection{Extend the build Specification Language}
+\begin{itemize}
+\item
+Build rules that call arbitrary programs (as in a {\tt Makefile}).
+
+\item
+Computed source files, including from parametrized computations.
+
+\item
+Dependency on arbitrary computed features, only compiled once.
+
+\item
+Automated finalization and verification of modules.
+
+\end{itemize}
+
+\subsection{Manage reader extensions, alternate grammars, hygienic macros, etc.}
+\begin{itemize}
+\item
+Made possible and convenient by separate compilation.
+
+\item
+No pollution of compile-time environment from other modules.
+
+\item
+Everyone can use whatever fits his purposes, with well-defined semantics.
+
+\item
+Requires compiler support to preserve source locations for debugging.
+
+\end{itemize}
+
+\subsection{Layer namespace management on top of it}
+\begin{itemize}
+\item
+Automate evolution of {\tt defpackage} forms.
+
+\item
+More sensible replacement for packages (lexicons? modules as in PLT Scheme?).
+
+\item
+Higher-order parametric components (PLT Scheme units).
+
+\item
+Many levels of static typing with interface that enforces implicit contracts, etc.
+
+\item
+Generally, make CL competitive again wrt access to latest improvements from research.
+
+\end{itemize}
+
+\subsection{Abstract away the execution model}
+\begin{itemize}
+\item
+Semantics: proper tail calls? continuations? serializable state? etc.
+
+\item
+Performance: debuggability? optimization levels?
+
+\item
+A file can require some of the above settings.
+
+\item
+A same module can be compiled according many combinations of them.
+
+\end{itemize}
+
+%___________________________________________________________________________
+
+\section{Need for extensions to the CL standard}
+
+Short of reimplementing all of CL in a translation layer,
+some of the above features cannot be implemented on top of standard CL:
+they require access to functionality
+below the standardized abstraction barrier of a CL implementation.
+\subsection{Access to system functions}
+\begin{itemize}
+\item
+open, fork, exec, sockets, etc. -- happily we have CFFI, IOLib.
+
+\item
+nothing specific to XCVB here, but still (sadly) deserves mentioning.
+
+\end{itemize}
+
+\subsection{Encapsulation of COMPILE-TIME side-effects}
+\begin{itemize}
+\item
+CFASL only in SBCL for now.
+
+\item
+can make do if you can cope with slow ``FAS''L loading.
+
+\end{itemize}
+
+\subsection{Encapsulation of LOAD-TIME partial state, not side-effects}
+\begin{itemize}
+\item
+FASL is still too slow to load, cannot be shared between binaries.
+
+\item
+{\tt SB-HEAPDUMP} can be {\tt mmap}()ed -- but isn't even standard feature of SBCL.
+
+\end{itemize}
+
+\subsection{Programmable access to debugging meta-information}
+\begin{itemize}
+\item
+Syntax extension requires support for recording source locations.
+
+\item
+Semantic layering is a challenge for single-stepping, access to high-level view of the state.
+
+\item
+Support multiple evaluation models in a given running environment.
+
+\end{itemize}
+
+\subsection{PCLSRing}
+
+Generalizing PCLSRing \cite{PCLSRing},
+when interrupting, inspecting or single-stepping a program in a higher-level language,
+you don't want to handle intermediate states of the low-level implementation,
+but safe points with a meaningful high-level interpretation.
+
+\begin{itemize}
+\item
+Needed for transactionality in single-stepped and/or concurrent evaluation.
+
+\item
+Challenge: a good meta-level protocol for users to define PCLSRing for arbitrary semantic layers.
+
+\item
+With such a tool, all the system can be implemented with first-class translation layers.
+
+\end{itemize}
+
+%___________________________________________________________________________
+
+\section{Conclusion}
+
+%\subsection{Common Lisp is behind}
+
+XCVB is nothing fancy -- just elaborate plumbing.
+The ideas within are mostly well-known,
+yet the bulk of the work is still ahead.
+That's how far behind other languages
+Common Lisp is with respect to modularity.
+
+%\subsection{Social Rationale}
+
+The deep rationale for XCVB is a social concern:
+minimizing programmer-side cognitive burden in combining modules.
+Technical and social aspects are tied in obvious ways,
+yet most people wilfully ignore at least one of the two aspects.
+
+%\subsection{Timeline}
+
+XCVB was initially developed by Spencer Brody
+during the Summer 2008 at ITA Software,
+under the guidance of François-René Rideau.
+Rideau briefly worked on it in mid December 2008
+to get a semi-usable prototype released.
+
+Our hope is that by the time the conference happens,
+we will have already deployed XCVB on a large system,
+and moved some points from ``XCVB today'' into ``XCVB yesterday'';
+however as of this writing, this hasn't happened yet.
+
+%\subsection{The Code}
+
+XCVB code and documentation can be found at:
+\center{\tt \href{http://common-lisp.net/projects/xcvb/}{http://common-lisp.net/projects/xcvb/}}
+
+%\appendix
+%\section{Appendix Title}
+
+\acks
+This presentation describes work done at ITA Software, Inc.
+Many thanks to James Knight for his many essential insights,
+and to Juho Snellman for implementing CFASL support in SBCL.
+
+\nocite{AITR-874}
+\bibliography{xcvb}
+\bibliographystyle{plainnat}
+
+\end{document}
+
+% 8.5"x 11" paper -- standard US Letter size.
+% 4 pages max, 9pt font.
+% http://www.sigplan.org/authorInformation.htm 
+% http://www.sigplan.org/sigplanconf.cls
+% http://www.sigplan.org/sigplanconf-template.tex

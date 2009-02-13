@@ -47,8 +47,8 @@ lisp-install:
 
 ## Janitoring
 clean:
-	rm -f *.*fasl *.*fsl *.lib *.fas
-	rm -f xcvb doc/*.html
+	rm -f *.*fasl *.*fsl *.lib *.fas xcvb
+	cd doc ; rm -f *.html *.aux *.out *.bbl *.dvi *.log *.blg *.pdf
 
 mrproper: clean
 	rm -f configure.mk
@@ -57,6 +57,14 @@ mrproper: clean
 ## For use on common-lisp.net
 %.html: %.rest
 	rst2html $< $@
+
+ILCPAPER=ilc09-xcvb-paper
+
+doc/$(ILCPAPER).pdf: doc/$(ILCPAPER).tex doc/xcvb.bib
+	cd doc && pdflatex $(ILCPAPER) && bibtex $(ILCPAPER) && pdflatex $(ILCPAPER)
+
+xpdf: doc/$(ILCPAPER).pdf
+	xpdf $<
 
 doc: $(patsubst %.rest, %.html, $(wildcard doc/*.rest))
 
@@ -69,5 +77,9 @@ push:
 
 show-current-revision:
 	git show --pretty=oneline HEAD | head -1 | cut -d' ' -f1
+
+
+.PHONY: all install lisp-install clean mrproper \
+	xpdf doc online-doc push show-current-revision
 
 # To check out a particular revision: git fetch; git merge $commit

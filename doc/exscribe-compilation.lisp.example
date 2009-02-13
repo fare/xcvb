@@ -12,7 +12,7 @@
 #+commenting-this-line-enables-the-trace
 (trace write-makefile get-lisp-implementation)
 
-;;; You may want to set parameters such as this one and others in specials.lisp
+;;; You may want to set parameters such as these and others in specials.lisp
 ;(setf *lisp-implementation-type* :sbcl)
 ;(setf *lisp-executable-pathname* "/usr/local/bin/sbcl")
 ;(setf *lisp-image-pathname* "/path/to/my/monster-sbcl.core")
@@ -20,8 +20,8 @@
 ;(setf *use-cfasls* t)
 
 
-;;;; Not for stuff that's specific to the project.
-;;; First, let's use the same setup file as used by cl-launch.
+;;;; Now for stuff that's specific to the project.
+;;; First, use the same setup file as when compiling with ASDF through cl-launch
 ;;; Importantly, setup.lisp will set the asdf:*central-registry*
 (setf *lisp-setup-dependencies*
       '((:asdf "cl-launch") ;; Required by setup.lisp

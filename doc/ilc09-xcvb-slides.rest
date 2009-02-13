@@ -1,0 +1,6 @@
+
+problem I have with ASDF is when you change a dependency
+and this causes unintended changes in transitive dependencies, and something wholly unrelated breaks
+except you don't detect that it breaks until another unrelated change
+modifies the order in which files compile, and then all hell break loose.
+

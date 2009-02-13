@@ -23,15 +23,17 @@ Future improvements planned for XCVB.
       3.6  ASDF backend [V1]
       3.7  Command-line interface [V3]
     4  Features [V1]
-      4.1  Multiple BUILD.lisp files [V1]
-      4.2  Initialization and Finalization [V2]
-      4.3  Executables [V1]
-      4.4  Tests [V2]
-      4.5  Dependency grovelling [V2]
-      4.6  Revert [V1]
-      4.7  Bootstrap [V3]
-      4.8  Same source, multiple compilers [V4]
-      4.9  Bug hunting [V5]
+      4.1   Multiple BUILD.lisp files [V1]
+      4.2   Initialization and Finalization [V2]
+      4.3   Executables [V1]
+      4.4   Tests [V2]
+      4.5   Dependency grovelling [V2]
+      4.6   Revert [V1]
+      4.7   Bootstrap [V3]
+      4.8   Same source, multiple compilers [V4]
+      4.9   Correctly handling C libraries [V4]
+      4.10  Dynamic compilation [V4]
+      4.11  Bug hunting [V5]
     5  The semantics of dependencies [V1]
       5.1  FASL vs CFASL [V2]
       5.2  Data files [V1]
@@ -74,11 +76,13 @@ Future improvements planned for XCVB.
       8.8   Push for First-class PCLSRing in Lisp compilers [V5]
       8.9   Support dependencies for modules written in other languages [V4]
       8.10  Mixing and Matching compilers [V5]
+      8.11  Constraint-based goal language [V6]
     9  A Real Module System [V3]
       9.1  Syntax Extensions [V3]
       9.2  Automatic Package management [V5]
       9.3  Better Namespace Management [V5]
       9.4  Packaging and Distribution [V5]
+      9.5  More bibliography [V5]
 
 
 Roadmap [V1]
@@ -514,6 +518,32 @@ the higher the burden on the compiler to produce good code,
 but the wider the settings in which your code might be useful.
 A very same executable could thus contain multiple versions of a same function
 compiled with different options, to be used in different contexts.
+
+
+Correctly handling C libraries [V4]
+-----------------------------------
+
+While objects may have to be compiled one way to be dynamically loaded into Lisp,
+they may have to be compiled another way to be statically linked into the Lisp image.
+XCVB will eventually have to know both ways, and do the right thing.
+
+For dynamic objects, it should be able to have them installed in a place that
+the Lisp image can find them when it needs them later.
+
+For static objects, it should be able to recompile the Lisp runtime to include them.
+This will require some synchronization with CFFI.
+
+
+Dynamic compilation [V4]
+------------------------
+
+XCVB should have a thin layer that enables to call it from an interactive environment,
+and request the loading of some system.
+
+The thin layer will collect the information about the running system
+and about objects already loaded in it, as well as the additional systems required,
+then invoke (with fork+exec) an xcvb process that will build any additional file
+and print a form to be evaluated by the calling process so it may be suitably enhanced.
 
 
 Bug hunting [V5]
@@ -1183,6 +1213,12 @@ Of course, logical pathnames as defined by the CLHS are about unusable.
 So offer to standardize something different for those virtual paths,
 and the way that SLIME and/or the builtin debugger with interpret those paths.
 
+jsnell suggests to look at what SLIME does -- presumably (for SBCL)
+ask for extra information to be stored in the debug info with
+a non-standard with-compilation-unit keyword. OR one might be able to do
+sneaky stuff with logical-pathname-translations: ask to COMPILE-FILE
+some logical-pathname for which an ad-hoc translation was created.
+
 
 Push for better control of in-file source location [V4]
 -------------------------------------------------------
@@ -1204,6 +1240,15 @@ tracker that only remembers the enclosing toplevel form wholly useless.
 
 The PLT Scheme system has a good source tracking facility
 that we may want to reuse of get inspiration from.
+Even the C preprocessor has the crude line identification:
+# 123 "baz.h" 2 3 4 ?
+
+For SBCL, ask jsnell, tcr, nyef: the preprocessed file could expand to
+things like #.(preprocessed-form 345) where the (preprocessed-form ...)
+function would return expanded forms and subforms that each (as applicable)
+already have source locations associated through something like
+(setf (gethash EXPANDEDFORM *some-source-location-hash*)
+      ORIGINAL-SOURCE-LOCATION)
 
 
 Push for more determinism in Lisp compilers [V5]
@@ -1267,6 +1312,17 @@ modules written in different languages.
 
 XCVB might grow some generic protocol to describe the steps required to
 interface something to something else.
+
+
+Constraint-based goal language [V6]
+-----------------------------------
+
+The build language of XCVB could in the most general case be
+some constraint declaration language, and XCVB would use a constraint solver,
+whereby you want to build a running system that has these final properties,
+starting from an existing running system that has these initial properties.
+XCVB could detect conformance of the specification with various known subsets
+of the language that keep the constraint satisfaction easy.
 
 
 A Real Module System [V3]
@@ -1360,3 +1416,9 @@ See Ruby gems, Python eggs, Chicken eggs, Java beans.
 When extending the system to include the management of packages for distribution,
 be sure that you play well with whichever Operating System's packaging software:
 http://www.b-list.org/weblog/2008/dec/14/packaging/
+
+
+More bibliography [V5]
+----------------------
+
+http://ieeexplore.ieee.org/xpl/freeabs_all.jsp?arnumber=138664

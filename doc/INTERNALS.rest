@@ -191,10 +191,29 @@ called via a keyword in the appropriate place in a module declaration.
 Notes
 =====
 
-(1) A fullname is used as a unique name
+Fullnames
+---------
+
+A fullname is used as a unique name
 to specify a component in the system.
 Both modules and nodes have fullnames --
 usually a node will have the same fullname as the module it was generated from
 modulo a different file extension.
 
-(2) For issues and TODO items, see TODO.rest
+Random Remarks
+--------------
+
+On the choice of osicat vs cl-fad to access files,
+I decided that fixing cl-fad is an uphill battle whereas extending osicat isn't:
+to fix cl-fad, I need to fix it once per implementation,
+with a growing number of implementations and interactions with many system-dependent variants;
+to fix osicat, I need to fix it once per OS,
+with a dwindling number of relevant OSes and implementation interactions already handled by cffi.
+So, if we ever port XCVB to anything else than Unix,
+the correct way will be to grow Windows (and JVM, Genera) support in OSICAT.
+
+TODO
+----
+
+For issues and TODO items, see TODO.rest.
+
