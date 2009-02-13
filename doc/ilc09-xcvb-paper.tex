@@ -121,8 +121,8 @@ from single statements defining both both component and direct dependencies
 (see figure~\ref{dep:asdf}).
 Such improvements and more had been suggested as early as 1984
 \cite{Pitman-Large-Systems,AITR-874}
-but not available as a portable package until ASDF was created 2001.
-ASDF also supports some limited form of extensibility using CLOS,
+but not available as a portable package until ASDF was created in 2001.
+ASDF also features some limited form of extensibility using CLOS;
 but for the purpose of this presentation,
 we will focus on the core architecture of the build system.
 Another DEFSYSTEM variant, mudballs, was recently created,
@@ -138,7 +138,7 @@ while keeping the same general architecture.
      (:fasload PACKAGES MACROS SPECIALS))
 \end{verbatim}
 \caption{Using DEFSYSTEM:
-        component {\tt bar} defined in two places in system file {\tt foo.system}
+        component {\tt bar} is defined in two places in system file {\tt foo.system}
         -- all transitive dependencies have to be listed explicitly.}
 \label{dep:defsystem}
 \end{figure}
@@ -148,7 +148,7 @@ while keeping the same general architecture.
   (:file "bar" :depends-on ("macros" "specials"))
 \end{verbatim}
 \caption{Using ASDF:
-        component {\tt bar} defined somewhere in system file {\tt foo.asd}
+        component {\tt bar} is defined somewhere in system file {\tt foo.asd}
         -- transitive dependency on {\tt packages} may be skipped.}
 \label{dep:asdf}
 \end{figure}
@@ -160,8 +160,8 @@ while keeping the same general architecture.
  (:depends-on ("macros" "specials")))
 \end{verbatim}
 \caption{Using XCVB:
-        component {\tt bar} defined on top of module file {\tt bar.lisp}
-        -- transitive dependency on {\tt packages} is implicit}
+        component {\tt bar} is defined on top of module file {\tt bar.lisp}
+        -- transitive dependency on {\tt packages} is implicit.}
 \label{dep:xcvb}
 \end{figure}
 
@@ -178,7 +178,7 @@ but at the top of each component file
 
 In the following bullet-point presentation,
 we briefly outline the reasons why separate compilation is important,
-yet why it didn't happen for Common Lisp before.
+though it requires a break from the traditional Common Lisp model.
 We describe the state of the project and the benefits at hand.
 We suggest the many future benefits that can be enabled by this design,
 and we discuss the challenges that will have to be overcome
@@ -224,7 +224,7 @@ No more global recompilation (or subtle failure)
 at the least change in centralized system definition.
 
 \item
-No more subtle bugs to non-local change
+No more subtle bugs due to non-local change
 in ordering of compile-time side-effects
 (see figure \ref{asdf-break-down}).
 
@@ -281,12 +281,16 @@ because its {\em implicit} dependency {\tt base} is not loaded anymore.
   (:file "baz" :depends-on ("bar"))
 \end{verbatim}
 
-Of course, the lines that matter need not be consecutive
-but separated by many unrelated lines,
-the missing dependency may not be a direct dependency, but any transitive dependency,
-and steps 2 and 3 may be separated by a lot of unrelated changes.
+The lines that matter need not be consecutive
+but may be separated arbitrarily.
+The missing dependency may not be a direct dependency,
+but any transitive dependency.
+Steps 2 and 3 may be separated by a lot of unrelated changes.
+Also, they need not be done by the same person,
+rewarding the culprit, punishing the innocent,
+encouraging sloppiness and discouraging refactoring.
 
-%First workaround: always make from clean
+%First workaround: always build from clean
 %(and lose any incremental building advantage).
 %Second workaround: use a rigid serial dependency order
 %(and lose most incremental building, accumulate coding scars).
@@ -298,7 +302,7 @@ and steps 2 and 3 may be separated by a lot of unrelated changes.
 \caption{Break down of ASDF:
 	a mistake at step 2 creates a timebomb
         that is only triggered
-        by an innocuous change much later at step 3.}
+        by an innocent change much later.}
 \label{asdf-break-down}
 \end{figure}
 
@@ -307,20 +311,24 @@ and steps 2 and 3 may be separated by a lot of unrelated changes.
 \begin{itemize}
 
 \item
-Each file is built with none but the declared dependencies loaded.
+Build each file in a world loaded with none but its dependencies.
 
 \item
 Requires import discipline, just as in any modern language.
 
 \item
-A bit slower, but much more robust: dependency bugs are detected early.
+A bit slower, but much more robust:
+dependency bugs are detected early
+(as opposed to figure \ref{asdf-break-down}).
+ 
 
 \item
 No more unmaintainable large manual dependency graphs
-(or rigid unmaintained serial list of files as a workaround).
+(or rigid unmaintained serial lists of files as a workaround).
 
 \item
-Allows eager incremental unit tests based on what has changed (beware: reflection).
+Allows correct incremental unit tests based on what has changed
+(beware: tests that use reflection).
 
 \end{itemize}
 
@@ -338,8 +346,7 @@ ASDF: integrate into legacy ASDF builds.
 
 \item
 More backends possible in the future:
-{\tt OMake} \cite{OMake},
-take over your build.
+{\tt OMake} \cite{OMake}; take over your build.
 
 \end{itemize}
 
@@ -349,7 +356,7 @@ take over your build.
 Protection from uncontrolled side-effects from buildee to builder.
 
 \item
-Allows for integration with make as mentioned above.
+Allows for integration with {\tt make} as mentioned above.
 
 \item
 Allows for cross-compilation from one compiler/architecture to a different one.
@@ -365,7 +372,7 @@ Allows builder to rebuild and test its dependencies and self.
 \subsection{Can use CFASLs to capture COMPILE-TIME side-effects}
 \begin{itemize}
 \item
-Vast speed improvement, fewer rebuilds (the FASL may have changed but not the CFASL).
+Vast speed improvement, fewer rebuilds (the FASL may have changed yet the CFASL stay the same).
 
 \item
 Like C++ precompiled headers, except automatically deduced from the code.
@@ -374,7 +381,7 @@ Like C++ precompiled headers, except automatically deduced from the code.
 Was easily added to SBCL by Juho Snellman, could be as easily added to other compilers.
 
 \item
-Careful {\tt EVAL-WHEN} discipline needed (as with ASDF really, but now it is enforced).
+Careful {\tt eval-when} discipline required (as with ASDF really, but now it is enforced).
 
 \end{itemize}
 
@@ -384,13 +391,13 @@ Careful {\tt EVAL-WHEN} discipline needed (as with ASDF really, but now it is en
 XCVB accepts dependencies from XCVB systems to ASDF systems and vice-versa.
 
 \item
-Automatic migration of your ASDF system using Andreas Fuchs's asdf-dependency-grovel.
+Automatic migration of your ASDF system using Andreas Fuchs's {\tt asdf-dependency-grovel}.
 
 \item
 Compile-time Lisp state requires extending the dependency-detection tool.
 
 \item
-ASDF extensions will require extending XCVB.
+ASDF extensions will require according XCVB extensions.
 
 \end{itemize}
 
@@ -435,10 +442,11 @@ Maintain until upstream adopts XCVB (if ever)
 -- automated migration makes that possible.
 
 \item
-Provide a distribution system (as in asdf-install, mudballs or clbuild, etc.).
+Provide a distribution system
+(as in {\tt asdf-install}, {\tt mudballs} or {\tt clbuild}, etc.).
 
 \item
-Fully bootstrap XCVB (make asdf optional).
+Fully bootstrap XCVB (make ASDF optional).
 
 \end{itemize}
 
@@ -495,8 +503,8 @@ Push for more determinism in Lisp compilers!
 \subsection{Dependency management}
 \begin{itemize}
 \item
-xcvb-dependency-check to detect superfluous dependencies
-(to be based on asdf-dependency-grovel).
+{\tt xcvb-dependency-check} to detect superfluous dependencies
+(to be based on {\tt asdf-dependency-grovel}).
 
 \item
 Cache above results to suggest missing dependencies.
@@ -572,7 +580,7 @@ Performance: debuggability? optimization levels?
 A file can require some of the above settings.
 
 \item
-A same module can be compiled according many combinations of them.
+A same module can be compiled according to many combinations of them.
 
 \end{itemize}
 
@@ -600,7 +608,8 @@ nothing specific to XCVB here, but still (sadly) deserves mentioning.
 CFASL only in SBCL for now.
 
 \item
-can make do if you can cope with slow ``FAS''L loading.
+slow loading ``FAS''L can make do if you can cope with
+intermixing LOAD-TIME side-effects.
 
 \end{itemize}
 
@@ -653,9 +662,12 @@ With such a tool, all the system can be implemented with first-class translation
 %\subsection{Common Lisp is behind}
 
 XCVB is nothing fancy -- just elaborate plumbing.
-The ideas within are mostly well-known,
-yet the bulk of the work is still ahead.
-That's how far behind other languages
+The ideas within are mostly well-known;
+each but the most prospective of them
+are already implemented in many build or module systems
+for other languages.
+Yet the bulk of the work is still ahead for XCVB.
+That's how far behind
 Common Lisp is with respect to modularity.
 
 %\subsection{Social Rationale}
@@ -671,27 +683,27 @@ XCVB was initially developed by Spencer Brody
 during the Summer 2008 at ITA Software,
 under the guidance of François-René Rideau.
 Rideau briefly worked on it in mid December 2008
-to get a semi-usable prototype released.
+to release and document a usable prototype.
 
 Our hope is that by the time the conference happens,
 we will have already deployed XCVB on a large system,
-and moved some points from ``XCVB today'' into ``XCVB yesterday'';
-however as of this writing, this hasn't happened yet.
+and moved some points from ``XCVB today'' into ``XCVB yesterday''.
+However as of this writing, this hasn't happened yet.
 
 %\subsection{The Code}
 
 XCVB code and documentation can be found at:
-\center{\tt \href{http://common-lisp.net/projects/xcvb/}{http://common-lisp.net/projects/xcvb/}}
+\center{\tt\href{http://common-lisp.net/projects/xcvb/}
+		{http://common-lisp.net/projects/xcvb/}}
 
 %\appendix
 %\section{Appendix Title}
 
 \acks
-This presentation describes work done at ITA Software, Inc.
-Many thanks to James Knight for his many essential insights,
-and to Juho Snellman for implementing CFASL support in SBCL.
+This presentation describes work done at ITA Software, Inc. \\
+Many thanks to James Knight for the essential insights. \\
+Thanks to Juho Snellman for CFASL support in SBCL.
 
-\nocite{AITR-874}
 \bibliography{xcvb}
 \bibliographystyle{plainnat}
 
