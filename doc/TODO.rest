@@ -330,7 +330,7 @@ In-image loading [V1]
 
 Provide support for xcvb to be able to handle
 compiling and loading a system into the given lisp image
-(instead of relying on generated Makefiles or asd file --
+(instead of relying on a generated ``Makefile`` or ``*.asd`` file --
 or possibly by using either as a backend).
 
 Note that this is also necessary for extensions to XCVB itself,
@@ -362,7 +362,7 @@ Command-line interface [V3]
 ---------------------------
 
 It should be possible to invoke and control XCVB fully from the shell command line
-(and/or from a carefully constructed Makefile)
+(and/or from a carefully constructed ``Makefile``)
 without the user having to edit a Lisp configuration file.
 The XCVB command-line should obey the usual unix command interpreter syntax::
 
@@ -708,7 +708,7 @@ Pre-escaping [V5]
 -----------------
 
 I slashed the pre-escaping trick that sbrody used to allow for lisp files
-to use ${FASL} as an extension that wouldn't be quoted for the Makefile.
+to use ``${FASL}`` as an extension that wouldn't be quoted for the ``Makefile``.
 We'll need to find some trick to do such things in a clean way,
 if we really want to do them.
 
@@ -919,7 +919,7 @@ from the buildhashes of inputs.
 Actionable operations
 ^^^^^^^^^^^^^^^^^^^^^
 
-In a given backend (i.e. Makefile, ASDF, etc.),
+In a given backend (i.e. ``Makefile``, ASDF, etc.),
 not all operations are permitted.
 For instance with make, you can't duplicate a process state with fork,
 whereas you could with a future native backend.
@@ -1080,8 +1080,8 @@ The static buildhash of each output grain
 can be obtained in advance of any computation
 with a cryptographic hash of the concatenation of the specification,
 something that identifies which output is considered
-(say "(1)" for the first output,
-or "(2 3)" for the third file in the second list of outputs,
+(say ``"(1)"`` for the first output,
+or ``"(2 3)"`` for the third file in the second list of outputs,
 or just the output module name),
 and the successive static buildhashes of each of the inputs,
 with the static buildhash of an initial grain being its direct hash.
@@ -1141,7 +1141,7 @@ from the reference model and various request-handlers
 (pre and post reference handling) and reference-handlers
 that propagate the information along the nodes.
 
-See also GNU Make, SCons, OMake, CMake, Boost Jam, Cabal, etc.:
+See also GNU Make, OMake, CMake, SCons, Boost Jam, Cabal, etc.:
 
 	* http://www.scons.org/
 	* http://omake.metaprl.org/index.html
@@ -1150,18 +1150,18 @@ See also GNU Make, SCons, OMake, CMake, Boost Jam, Cabal, etc.:
 distclc [V3]
 ------------
 
-The first step towards distributed builds is to plug into the usual Makefile, etc.,
+The first step towards distributed builds is to plug into the usual ``Makefile``, etc.,
 mechanisms, only adding an automated manager for distributed compilation through
-a farm of available hosts, just like distcc does for C compilation.
+a farm of available hosts, just like ``distcc`` does for C compilation.
 
-distclc should be written on top of Erlang-in-Lisp.
+``distclc`` should be written on top of Erlang-in-Lisp.
 
 
 clcache [V3]
 ------------
 
 The second step towards distributed builds is to have an automated
-(distributed) cache of compiled objects, just like ccache does for C compilation.
+(distributed) cache of compiled objects, just like ``ccache`` does for C compilation.
 
 Interestingly, to do it properly, we index grains by a buildhash
 that summarizes all the input used to build the grain, including
@@ -1183,7 +1183,7 @@ XCVB as its own backend [V3]
 Eventually, we want to be able to take over the Lisp build from Make,
 so as to achieve things that Make can't do.
 
-This can be done after we have distclc and clcache,
+This can be done after we have ``distclc`` and ``clcache``,
 by evolving the result to the point that we don't need Make.
 
 
@@ -1194,14 +1194,14 @@ When doing a distributed build,
 of course the actual pathname of the file being compiled or loaded
 will be different from the virtual name of the module being compiled or loaded.
 
-For instance, when asking distclc to compile
-module foo/bar/baz.lisp under directory /home/fare/src/
-which as a dependency loads quux.fasl,
-distclc may actually create a temporary file
-12345.lisp where 12345 is the hash of baz.lisp
-under directory /tmp/distclc/
-and reuse 67890.fasl from /var/cache/clcache/6/7/
-where 67890 is the hash of quux.fasl.
+For instance, when asking ``distclc`` to compile
+module ``foo/bar/baz.lisp`` under directory ``/home/fare/src/``
+which as a dependency loads ``quux.fasl``,
+``distclc`` may actually create a temporary file
+``12345.lisp`` where ``12345`` is the hash of ``baz.lisp``
+under directory ``/tmp/distclc/``
+and reuse ``67890.fasl`` from ``/var/cache/clcache/6/7/``
+where ``67890`` is the hash of ``quux.fasl``.
 
 Yet when associating source location information to functions being compiled,
 XCVB needs be able to tell the underlying Lisp compiler that it should be
@@ -1216,7 +1216,7 @@ and the way that SLIME and/or the builtin debugger with interpret those paths.
 jsnell suggests to look at what SLIME does -- presumably (for SBCL)
 ask for extra information to be stored in the debug info with
 a non-standard with-compilation-unit keyword. OR one might be able to do
-sneaky stuff with logical-pathname-translations: ask to COMPILE-FILE
+sneaky stuff with logical-pathname-translations: ask to ``COMPILE-FILE``
 some logical-pathname for which an ad-hoc translation was created.
 
 
@@ -1234,21 +1234,22 @@ is not at all the same as the one that matters for the debugger
 to location the actual source code.
 
 For instance, one could provide hygienic macros through a form
-WITH-HYGIENIC-MACROS that does the necessary whole-program
+``WITH-HYGIENIC-MACROS`` that does the necessary whole-program
 identifier tracking. This would make a typical CL source location
 tracker that only remembers the enclosing toplevel form wholly useless.
 
 The PLT Scheme system has a good source tracking facility
 that we may want to reuse of get inspiration from.
 Even the C preprocessor has the crude line identification:
-# 123 "baz.h" 2 3 4 ?
+``# 123 "baz.h" 2 3 4``
 
 For SBCL, ask jsnell, tcr, nyef: the preprocessed file could expand to
-things like #.(preprocessed-form 345) where the (preprocessed-form ...)
+things like ``#.(preprocessed-form 345)`` where the ``(preprocessed-form ...)``
 function would return expanded forms and subforms that each (as applicable)
-already have source locations associated through something like
-(setf (gethash EXPANDEDFORM *some-source-location-hash*)
-      ORIGINAL-SOURCE-LOCATION)
+already have source locations associated through something like::
+
+  (setf (gethash EXPANDEDFORM *some-source-location-hash*)
+        ORIGINAL-SOURCE-LOCATION)
 
 
 Push for more determinism in Lisp compilers [V5]
@@ -1291,7 +1292,7 @@ Support dependencies for modules written in other languages [V4]
 
 If XCVB is to become a general build tool,
 it needs to be made aware of dependencies for projects written in other languages.
-This includes using output of gcc -MM, and other dependency generators.
+This includes using output of ``gcc -MM``, and other dependency generators.
 
 
 Mixing and Matching compilers [V5]
@@ -1357,19 +1358,19 @@ At the same time they need to be all setup in advance of the rest of the compila
 
 A layer on top of XCVB could help manage packages dynamically,
 by allowing to associate a package with a module, itself made of many submodules.
-An initial simple defpackage form would be supplied by the user;
-what the module actually exports (or even imports) could be dynamically inferred
+An initial simple ``defpackage`` form would be supplied by the user;
+what the module actually ``export``s (or even ``import``s) could be dynamically inferred
 from the compilation of the module (and all its submodules),
-with the final defpackage being created automatically from this inferrence.
+with the final ``defpackage`` being created automatically from this inferrence.
 
-Recompilation might be required if the defpackage's imports have changed
+Recompilation might be required if the ``defpackage``'s imports have changed
 since it was last inferred, or it could just be an error.
 
-All users of the module would only see the final stable defpackage,
-and have to be recompiled when said defpackage changes.
+All users of the module would only see the final stable ``defpackage``,
+and have to be recompiled when said ``defpackage`` changes.
 
 Finally, this could serve as the basis for dumping
-package-based partial heap dumps with SB-HEAPDUMP
+package-based partial heap dumps with ``SB-HEAPDUMP``
 instead of using FASLs.
 
 

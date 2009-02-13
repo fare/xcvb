@@ -69,7 +69,11 @@ xpdf: doc/$(ILCPAPER).pdf
 doc: $(patsubst %.rest, %.html, $(wildcard doc/*.rest))
 
 online-doc: doc
-	rsync -av doc/*.html common-lisp.net:/project/xcvb/public_html/doc/
+	rsync -av doc/*.html doc/*.pdf common-lisp.net:/project/xcvb/public_html/doc/
+
+pull:
+	git pull git@github.com:fare/xcvb.git master:master
+	git pull common-lisp.net:/project/xcvb/public_html/xcvb.git master:master
 
 push:
 	git push git@github.com:fare/xcvb.git master:master
@@ -80,6 +84,6 @@ show-current-revision:
 
 
 .PHONY: all install lisp-install clean mrproper \
-	xpdf doc online-doc push show-current-revision
+	xpdf doc online-doc pull push show-current-revision
 
 # To check out a particular revision: git fetch; git merge $commit
