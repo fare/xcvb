@@ -23,8 +23,11 @@ it may or may not be up to date.
       1.8   makefile-generator.lisp
       1.9   asd-generator.lisp
       1.10  asdf-converter.lisp
-    2  Good places to extend xcvb
+    2  Good places to extend XCVB
     3  Notes
+      3.1  Fullnames
+      3.2  Random Remarks
+      3.3  TODO
 
 
 Files
@@ -33,7 +36,7 @@ Files
 pkgdcl.lisp
 -----------
 
-This file creates the xcvb package and exports the necessary symbols.
+This file creates the XCVB package and exports the necessary symbols.
 
 
 xcvb.lisp
@@ -128,7 +131,7 @@ then write a makefile in the directory specifed by output-path
 that will be able to compile the system.
 The generated makefile starts by using the specified lisp executable
 (as specified in compiler-options.lisp)
-to dump an image with xcvb loaded,
+to dump an image with XCVB loaded,
 along with any other files/systems that are specified
 in the build-requires slot of the module for the BUILD.lisp file
 that is associated with the source file whose dependency graph
@@ -160,7 +163,7 @@ asdf-converter.lisp
 This file contains the code to take an asdf system
 and write a BUILD.lisp file for it
 and add module forms to the top of all the source files in the system,
-so that xcvb can now be used to compile the system.
+so that XCVB can now be used to compile the system.
 
 The entry point to this file is the function ASDF-TO-XCVB.
 It take as a parameter one SYSTEM or a list of several SYSTEMS
@@ -175,7 +178,7 @@ keeping any manual rules from a previously added module statement
 but otherwise overriding the main data.
 
 
-Good places to extend xcvb
+Good places to extend XCVB
 ==========================
 
 (1) The generic function create-dependency-node-from-type allows you
@@ -203,17 +206,19 @@ modulo a different file extension.
 Random Remarks
 --------------
 
-On the choice of osicat vs cl-fad to access files,
-I decided that fixing cl-fad is an uphill battle whereas extending osicat isn't:
-to fix cl-fad, I need to fix it once per implementation,
+On the choice of IOLib vs CL-FAD to access files,
+I decided that fixing CL-FAD is an uphill battle whereas extending IOLib isn't (so far):
+to fix CL-FAD, I need to fix it once per implementation,
 with a growing number of implementations and interactions with many system-dependent variants;
-to fix osicat, I need to fix it once per OS,
-with a dwindling number of relevant OSes and implementation interactions already handled by cffi.
+to fix IOLib, I need to fix it once per OS,
+with a dwindling number of relevant OSes, and
+with implementation interactions already handled by CFFI.
 So, if we ever port XCVB to anything else than Unix,
-the correct way will be to grow Windows (and JVM, Genera) support in OSICAT.
+the correct way will be to grow Windows (and JVM, Genera) support in IOLib.
+See my rant "Who's responsible for that moving part?":
+http://fare.livejournal.com/139755.html
 
 TODO
 ----
 
 For issues and TODO items, see TODO.rest.
-

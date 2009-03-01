@@ -105,7 +105,7 @@ and released an initial semi-usable prototype
 in mid December 2008, where the above hacks were automated away.
 
 We hope to have a complete release with example and documentation
-ready for showing at ILC'09 by March 2008.
+ready for showing at ILC'09 by March 2009.
 
 Now is time to extend and refine the existing functionality,
 refactor the internals,

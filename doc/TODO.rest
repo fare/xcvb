@@ -379,6 +379,20 @@ This section describes features that have to be added to XCVB.
 They modify the underlying build model.
 
 
+Abstract Away Paths [V2]
+------------------------
+
+Have a datastructure for "string with substituted variables" (or shell or Make function calls?).
+
+Be able to either dump a corresponding string (for writing Makefile),
+or to expand into an actual string (for running the build).
+
+Map actual paths to and from variablized strings, i.e. have
+``${FOO}/bar/${GAH}`` in your path; it will search for files there,
+and output ``${FOO}/bar/${GAH}/xcvb/BUILD.lisp``
+in the ``Makefile`` (instead of the full expansion).
+
+
 Multiple BUILD.lisp files [V1]
 ------------------------------
 
@@ -1412,7 +1426,9 @@ Packaging and Distribution [V5]
 At some point, we may want to extend XCVB to handle
 the automatic packaging and distribution of Lisp-based projects.
 
-See Ruby gems, Python eggs, Chicken eggs, Java beans.
+See ASDF-INSTALL, clbuild, mudballs, etc.
+
+See Ruby gems, Python eggs, Chicken eggs, Java beans, etc.
 
 When extending the system to include the management of packages for distribution,
 be sure that you play well with whichever Operating System's packaging software:
