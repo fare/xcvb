@@ -69,6 +69,8 @@ Or if you are a project member, you can obtain write access using
 You can also browse the repository at
 	http://github.com/fare/xcvb/tree/master
 
+NB: use `git checkout xcvb_0.11` for the latest stable release.
+
 
 Dependencies
 ------------

@@ -1,261 +1,16 @@
 (in-package :xcvb)
 
-;; TODO: currently, a referenced file always keeps the build-module
+;; TODO: currently, a referenced file always keeps the build-grain
 ;; of the referencing file, unless specified as (:external "foo/bar")
 ;; or as (:external "foo/bar" "path/to/BUILD.lisp")
-;; -- all paths relative to current build-module.
-;; In the future, we may want to always probe the BUILD-module of a file
+;; -- all paths relative to current build-grain.
+;; In the future, we may want to always probe the BUILD-grain of a file
 ;; from its containing directory and its parents.
-;; functions involved include: module-from-name, and plenty of others.
+;; functions involved include: grain-from-name, and plenty of others.
 ;; We can then get rid of :external in create-dependency-node-from-type.
-;; Other functions may create modules and nodes whose build-module is
-;; the same as the referencing module/node instead of that deduced from
+;; Other functions may create grains and nodes whose build-grain is
+;; the same as the referencing grain/node instead of that deduced from
 ;; the filesystem.
-
-(defparameter *module-map* nil
-  "Map of all module objects made thus far to
-   prevent recreating the same module twice")
-(defparameter *node-map* nil
-  "Map of all the nodes created thus far to
-   prevent redundand nodes in the dependency graph")
-(defparameter *build-module* nil
-  "Module object for the nearest surrounding BUILD.lisp file
-to the initial file that is being operated on.")
-
-(defmacro module (&rest options)
-  (declare (ignore options))
-  nil)
-
-(defclass module () ())
-
-(defclass concrete-module (module)
-  ((fullname
-    :initarg :fullname :accessor fullname :initform nil
-    :documentation "The full name of the module.
-This is found from the fullname of his module's build.lisp file")
-   (nickname
-    :initarg :nickname :reader nickname :initform nil
-    :documentation "A short name to be used to refer to the module")
-   (author
-    :initarg :author :reader author :initform nil
-    :documentation "The author of the file")
-   (maintainer
-    :initarg :maintainer :reader maintainer :initform nil
-    :documentation "The maintainer(s) of the file")
-   (version
-    :initarg :version :reader version :initform nil
-    :documentation "The version number of the file")
-   (licence
-    :initarg :licence :reader licence :initform nil
-    :documentation "The licence being used for the file")
-   (description
-    :initarg :description :reader description :initform nil
-    :documentation "A short description of the file")
-   (long-description
-    :initarg :long-description :reader long-description
-    :initform nil :documentation "A detailed description of the file")
-   (compile-depends-on
-    :initarg :compile-depends-on :initform nil :accessor compile-depends-on
-    :documentation "A list of dependencies that must be loaded before this
-file can be compiled")
-   (load-depends-on
-    :initarg :load-depends-on :initform nil :accessor load-depends-on
-    :documentation "A list of dependencies that must be loaded before this
-file can be loaded")
-   (filepath
-    :initarg :filepath :accessor filepath
-    :documentation "The absolute path to the file that
-the module was declared in")
-   (supersedes-asdf
-    :initarg :supersedes-asdf :reader supersedes-asdf :initform nil
-    :documentation "A list of ASDF systems superseded by this module")
-   (extension-forms
-    :initarg :extension-forms :initform nil :accessor extension-forms
-    :documentation "extension forms!")))
-
-(defmethod initialize-instance :after ((module concrete-module) &key depends-on)
-  (when depends-on
-    (with-slots (compile-depends-on load-depends-on) module
-      (setf compile-depends-on
-            (append compile-depends-on
-                    (mapcar (lambda (dep) (list :compile dep))
-                            depends-on)))
-      (setf load-depends-on (append load-depends-on depends-on)))))
-
-(defclass standard-module (concrete-module)
-  ((build-module
-    :initarg :build-module :accessor build-module
-    :documentation "The build module for this module")))
-
-(defclass build-module (concrete-module)
-  ((build-requires
-    :initarg :build-requires :accessor build-requires :initform nil
-    :documentation
-"A list of dependencies that apply to all files in the
-system specified by this BUILD.lisp file.
-These dependencies will be loaded first thing
-into an image that will be used for all future compile/load operations")))
-
-
-(defun register-module (module)
-  "Adds the given module object to the hashtable containing all the modules thus far.
-It is keyed both by its fullname and its nickname."
-  (unless (null (nickname module))
-    (setf (gethash (nickname module) *module-map*) module))
-  (setf (gethash (make-fullname-absolute module) *module-map*) module)) ;;TODO: why?
-
-
-(defun parse-module (form &key build-module-p)
-  "Takes a module declaration form and returns a module object representing
-  that module.  Inherits licence, author, and maintainer slots
-  from the build-module, if not specifically overwritten"
-  (destructuring-bind (module-decl
-                       (&key fullname
-                             nickname
-                             licence
-                             version
-                             author
-                             maintainer
-                             description
-                             long-description
-                             compile-depends-on
-                             depends-on
-                             load-depends-on)
-                       &rest extension-forms) form
-    (unless (eql module-decl 'xcvb:module)
-      (error "Missing module declaration"))
-    (when (and build-module-p (not fullname))
-      (error "Build module must have a fullname"))
-    (let ((module
-           (make-instance (if build-module-p 'build-module 'standard-module)
-             :fullname fullname
-             :nickname nickname
-             :author author
-             :maintainer maintainer
-             :licence licence
-             :version version
-             :description description
-             :long-description long-description
-             :compile-depends-on compile-depends-on
-             :load-depends-on load-depends-on
-             :depends-on depends-on
-             :extension-forms extension-forms)))
-      module)))
-
-(defun read-first-file-form (filepath)
-  "Reads the first form from the top of a file"
-  (with-standard-io-syntax ()
-    (let ((*features* (cons :xcvb *features*))
-	  (*package* (find-package :xcvb-user))
-	  (*read-eval* nil))
-      (with-open-file (in filepath) (read in)))))
-
-(defun module-form-p (form)
-  "Returns whether or not the given form is an xcvb:module form"
-  (eql (first form) 'xcvb:module))
-#|  (destructuring-bind (module-decl &rest rest) form
-    (declare (ignore rest))
-    (eql module-decl 'xcvb:module)))|#
-
-(defun create-module (module-path &key parent-module build-module-p)
-  "Takes a filepath to a lisp file, and returns the module object
- represented by the module specifer at the top of that lisp file.
- If the argument parent-module is supplied, then the new module
- will be given a fullname relative to the fullname of parent-module
- (if the fullname isn't already specified)"
-  ;;(format T "resolving ~:[module~;build-module~]: ~a~%" build-module-p module-path)
-  (when (and *build-module* (equal (pathname (filepath *build-module*))
-                                   (pathname module-path)))
-    ;;(format T "using build-module~%")
-    (return-from create-module *build-module*))
-  (let ((module (parse-module (read-first-file-form module-path) :build-module-p build-module-p)))
-    (setf (filepath module) module-path)
-    (when (not (typep module 'build-module))
-      (if (typep parent-module 'build-module)
-        (setf (build-module module) parent-module)
-        (setf (build-module module) (build-module parent-module))))
-    (if (and parent-module (not (fullname module)))
-      (setf (fullname module)
-            (namestring (merge-pathnames ;NUN
-                         (enough-namestring (filepath module)
-                                            (filepath parent-module))
-                         (fullname parent-module))))
-      ;;(strcat (fullname parent-module) "/" (enough-namestring (filepath module) (filepath parent-module))))
-      (setf (fullname module)
-            ;;(namestring (make-pathname :name (pathname-name (filepath module)) :type (pathname-type (filepath module)) :defaults (fullname module))))) ;NUN
-            (strcat (fullname module)
-                    "/"
-                    (file-namestring (filepath module)))))
-    (when (typep module 'build-module)
-      (make-fullname-absolute module)) ;;TODO: why this???
-    (handle-extension-forms module)
-    (register-module module)))
-
-(defun module-from-name (name &optional
-                         (build-module *build-module*)
-                         old-build-module)
-  "This function takes the name of module, and the current build module,
-   and returns the correct module with that given name.
-    * It starts by checking
-      if there already is a module with the fullname of
-      <(fullname build-module)/name>.
-    * If not, then it gets the filepath of the build module, and looks for
-      a file for the module under the filepath of the build module.
-    * If there is no such file, then it assumes that the top-level-name
-      of the given name must be global, and so looks up that global name,
-      and if found, looks for a file for the module under the filepath of
-      the module of top-level-name.
-    * Finally, if that doesn't exist, it tries to find the module in the
-      registry (currently just throws an error)"
-  (flet ((module-from-parent-module (name
-                                     parent-module
-                                     &optional old-build-module)
-           (let ((source-file-pathname
-                  (make-pathname
-                   :type "lisp"
-                   :defaults (merge-pathnames name (filepath
-                                                    (or old-build-module
-                                                        parent-module))))))
-             (when (probe-file source-file-pathname)
-               (create-module source-file-pathname
-                              :parent-module parent-module)))))
-    (or (gethash (strcat (namestring
-                          (make-pathname
-                           :name nil
-                           :type nil
-                           :defaults (fullname build-module)))
-                         "/"
-                         name) ;NUN
-                 *module-map*)
-        (module-from-parent-module name build-module old-build-module)
-        (let ((parent-module (gethash (top-level-name name) *module-map*)))
-          (if parent-module
-            (or (module-from-parent-module name parent-module)
-                (lookup-in-registry name build-module))))
-        (progn
-          (format t "The path of the build-module is: ~a~%" (filepath build-module))
-          (simply-error ()
-                      "The module with name \"~a\" cannot be found" name)))))
-
-
-(defun lookup-in-registry (module-name build-module)
-  (declare (ignore module-name build-module))
-  (error "The registry has not been implemented yet"))
-
-
-(defun find-build-file (source-filepath)
-  "Looks for the first BUILD.lisp file in the given directory or any
-of its parent directories and returns its filepath.
-Throws an error if no BUILD.lisp file is found"
-  (if (equal source-filepath (pathname-parent source-filepath))
-    (error 'no-build-file-found
-           :format-control "no BUILD.lisp file found"))
-  (let ((build-filepath
-         (make-pathname :name "BUILD" :type "lisp" :defaults source-filepath)))
-    (if (probe-file build-filepath)
-      build-filepath
-      (find-build-file (pathname-parent source-filepath)))))
-
 
 ;;This class represents a node in the graph of dependencies
 (defclass dependency-graph-node ()
@@ -263,9 +18,9 @@ Throws an error if no BUILD.lisp file is found"
     :initarg :fullname :initform nil :accessor fullname
     :documentation "abstract name for the intention of the node,
 e.g. //xcvb-test/foo/bar/quux.fasl") ;TODO
-   (build-module
-    :initarg :build-module :initform nil :reader build-module
-    :documentation "The build-module for this node")
+   (build-grain
+    :initarg :build-grain :initform nil :reader build-grain
+    :documentation "The build-grain for this node")
    (long-name
     :initarg :long-name :reader long-name
     :documentation "(NOT USED YET) A description of the whole computation
@@ -341,8 +96,8 @@ leading to this node from other nodes with crypto hash values, e.g.
                            (dependency dependency-graph-node)
                            &key type)
   (case type
-    (:load (push dependency (load-dependencies node)))
-    (:compile (push dependency (compile-dependencies node)))
+    (:load (push dependency (lisp-load-depends-on node)))
+    (:compile (push dependency (lisp-compile-depends-on node)))
     (otherwise (error "Invalid type of dependency.
 Must be either :compile or :load"))))
 
@@ -353,7 +108,7 @@ Must be either :compile or :load"))))
     (add-dependency node dep :type type)))
 
 (defun create-dependency-node (dependency
-                               build-module
+                               build-grain
                                previous-nodes-map
                                previous-nodes-list)
   "Takes a form for a dependency, and builds the correct type of
@@ -365,21 +120,20 @@ the right type, so that they can detect and handle dependency cycles properly."
       (create-dependency-node-from-type
        dep-type
        dep
-       build-module
+       build-grain
        previous-nodes-map
        previous-nodes-list))
     (create-dependency-node-from-type :load
                                       (list dependency)
-                                      build-module
+                                      build-grain
                                       previous-nodes-map
                                       previous-nodes-list)))
 
 (defgeneric create-dependency-node-from-type (dependency-type
                                               dependency
-                                              build-module
+                                              build-grain
                                               previous-nodes-map
-                                              previous-nodes-list
-                                              &optional old-build-module)
+                                              previous-nodes-list)
   (:documentation "Takes a symbol specifying the type of the dependency and a
 string specifying its name, and creates the dependency-graph-node of the proper
 type.  It also needs the map of previous nodes and the list of previous nodes
@@ -388,57 +142,48 @@ so that they can detect and handle dependency cycles properly."))
 
 (defmethod create-dependency-node-from-type ((dependency-type (eql :load))
                                              dependency
-                                             build-module
+                                             build-grain
                                              previous-nodes-map
-                                             previous-nodes-list
-                                             &optional old-build-module)
+                                             previous-nodes-list)
   (destructuring-bind (dep-name) dependency
-    (create-fasl-node (module-from-name dep-name build-module old-build-module)
+    (create-fasl-node (grain-from-name dep-name build-grain)
                       previous-nodes-map
                       previous-nodes-list)))
 
 (defmethod create-dependency-node-from-type ((dependency-type (eql :external))
                                              dependency
-                                             build-module
+                                             build-grain
                                              previous-nodes-map
-                                             previous-nodes-list
-                                             &optional old-build-module)
-  (declare (ignore old-build-module))
-  (destructuring-bind (dep &optional build-file-path) dependency
+                                             previous-nodes-list)
+  (destructuring-bind (dep) dependency
     (if (typep dep 'list)
       (destructuring-bind (dep-type dep-name &rest rest) dep
         (let ((build-file-path
-               (if build-file-path
-                 (merge-pathnames build-file-path (filepath build-module))
-                 (find-build-file  (merge-pathnames dep-name
-                                                    (filepath build-module))))))
+               (grain-pathname build-grain))) ;; TODO: the build file FOR THE DEPENDENCY
           (create-dependency-node-from-type
            dep-type
            (cons dep-name rest)
-           (create-module build-file-path :build-module-p T)
+           (make-grain-from-file build-file-path :build-p t)
            previous-nodes-map
            previous-nodes-list
-           build-module)))
+           build-grain)))
       (let ((build-file-path
-             (or build-file-path
-                 (find-build-file
-                  (merge-pathnames dep (filepath build-module))))))
+             (grain-pathname build-grain))) ;; TODO: use the build file FOR THE DEPENDENCY
         (create-dependency-node-from-type
          :load
          (list dep)
-         (create-module build-file-path :build-module-p T)
+         (make-grain-from-file build-file-path :build-p t)
          previous-nodes-map
          previous-nodes-list
-         build-module)))))
+         build-grain)))))
 
 (defmethod create-dependency-node-from-type ((dependency-type (eql :compile))
                                              dependency
-                                             build-module
+                                             build-grain
                                              previous-nodes-map
-                                             previous-nodes-list
-                                             &optional old-build-module)
+                                             previous-nodes-list)
   (destructuring-bind (dep-name) dependency
-    (create-cfasl-node (module-from-name dep-name build-module old-build-module)
+    (create-cfasl-node (grain-from-name dep-name build-grain)
                        previous-nodes-map
                        previous-nodes-list)))
 
@@ -447,40 +192,33 @@ so that they can detect and handle dependency cycles properly."))
 (defmethod create-dependency-node-from-type ((dependency-type
                                               (eql :cfasl-or-fasl))
                                              dependency
-                                             build-module
+                                             build-grain
                                              previous-nodes-map
-                                             previous-nodes-list
-                                             &optional old-build-module)
+                                             previous-nodes-list)
   (destructuring-bind (dep-name) dependency
     (make-instance 'cfasl-or-fasl-node
-      :fasl-node (create-fasl-node (module-from-name dep-name
-                                                     build-module
-                                                     old-build-module)
+      :fasl-node (create-fasl-node (grain-from-name dep-name
+                                                     build-grain)
                                    previous-nodes-map
                                    previous-nodes-list)
-      :cfasl-node (create-cfasl-node (module-from-name dep-name
-                                                       build-module
-                                                       old-build-module)
+      :cfasl-node (create-cfasl-node (grain-from-name dep-name
+                                                       build-grain)
                                      previous-nodes-map
                                      previous-nodes-list))))
 
 (defmethod create-dependency-node-from-type ((dependency-type (eql :asdf))
                                              dependency
-                                             build-module
+                                             build-grain
                                              previous-nodes-map
-                                             previous-nodes-list
-                                             &optional old-build-module)
-  (declare (ignore old-build-module))
+                                             previous-nodes-list)
   (destructuring-bind (dep-name) dependency
     (create-asdf-system-node dep-name)))
 
 (defmethod create-dependency-node-from-type ((dependency-type (eql :load-source))
                                              dependency
-                                             build-module
+                                             build-grain
                                              previous-nodes-map
-                                             previous-nodes-list
-                                             &optional old-build-module)
-  (declare (ignore old-build-module))
+                                             previous-nodes-list)
   (destructuring-bind (dep-name) dependency
     (create-load-source-node dep-name)))
 
@@ -498,12 +236,12 @@ unless there is a dump-image node above it."
     (flet ((f (dep)
              (typecase dep
                (dependency-graph-node dep)
-               (module
+               (grain
                   (create-fasl-node
                    dep previous-nodes-map previous-nodes-list))
                (otherwise
                   (create-dependency-node dep
-                                          *build-module*
+                                          *build-grain*
                                           previous-nodes-map
                                           previous-nodes-list)))))
       (let* ((dependencies (mapcar #'f dependencies))
@@ -512,30 +250,30 @@ unless there is a dump-image node above it."
                                    (mapcar #'fullname dependencies))))
              (lisp-image-node (make-instance 'lisp-image-node
                                 :fullname fullname
-                                :build-module *build-module*
+                                :build-grain *build-grain*
                                 :compile-dependencies (reverse dependencies))))
         lisp-image-node))))
 
 
-(defun create-source-file-node (module)
+(defun create-source-file-node (grain)
   "This function constructs a source-file-node in the dependency graph"
   (let ((fullname
-         (namestring (fullname module))))
+         (namestring (fullname grain))))
     ;;If this node already exists, don't recreate it
-    (or (gethash fullname *node-map*)
+    (or (gethash fullname *grains*)
         (let* ((source-node (make-instance 'source-file-node
                               :fullname fullname
-                              :build-module (if (typep module 'build-module)
-                                              module
-                                              (build-module module))
-                              :source-filepath (filepath module))))
-          (setf (gethash fullname *node-map*) source-node)))))
+                              :build-grain (if (typep grain 'build-grain)
+                                              grain
+                                              (build-grain grain))
+                              :source-filepath (grain-pathname grain))))
+          (setf (gethash fullname *grains*) source-node)))))
 
 (defun create-asdf-system-node (system-name)
   "This function constructs a asdf-system-node in the dependency graph"
   (let ((fullname (strcat "//asdf/" system-name)))
-    (or (gethash fullname *node-map*)
-        (setf (gethash fullname *node-map*)
+    (or (gethash fullname *grains*)
+        (setf (gethash fullname *grains*)
               (make-instance 'asdf-system-node
                 :name (coerce-asdf-system-name system-name)
                 :fullname fullname)))))
@@ -544,8 +282,8 @@ unless there is a dump-image node above it."
   "This function constructs a load-source-node in the dependency graph"
   (let* ((truename (truename source-file-name)) ;NUN
 	 (fullname (strcat "//load-source/" (namestring truename)))) ;NUN
-    (or (gethash fullname *node-map*)
-        (setf (gethash fullname *node-map*)
+    (or (gethash fullname *grains*)
+        (setf (gethash fullname *grains*)
               (make-instance 'load-source-node
                 :source-filepath truename
                 :fullname fullname)))))
@@ -555,7 +293,7 @@ unless there is a dump-image node above it."
   (make-instance 'image-dump-node
     :dump-path dump-path
     :lisp-image lisp-image-node
-    :build-module *build-module*
+    :build-grain *build-grain*
     :fullname (format nil "//image-dump/~a" dump-path)))
 
 
@@ -599,92 +337,92 @@ cycle"
 
 
 (defun set-fasl-node-dependencies (fasl-node
-                                   module
+                                   grain
                                    previous-nodes-map
                                    previous-nodes-list)
-   "This function takes a fasl-node and its module and builds nodes for all of
-that module's dependencies, and adds them as dependencies of the fasl-node"
+   "This function takes a fasl-node and its grain and builds nodes for all of
+that grain's dependencies, and adds them as dependencies of the fasl-node"
   (add-dependencies fasl-node (mapcar
                                (lambda (name) (create-dependency-node
                                                name
-                                               (build-module fasl-node)
+                                               (build-grain fasl-node)
                                                previous-nodes-map
                                                previous-nodes-list))
-                               (load-depends-on module)) :type :load)
+                               (lisp-load-depends-on grain)) :type :load)
   (add-dependencies fasl-node (mapcar
                                (lambda (name) (create-dependency-node
                                                name
-                                               (if (typep module 'build-module)
-                                                 module
-                                                 (build-module module))
+                                               (if (typep grain 'build-grain)
+                                                 grain
+                                                 (build-grain grain))
                                                previous-nodes-map
                                                previous-nodes-list))
-                               (compile-depends-on module)) :type :compile)
+                               (lisp-compile-depends-on grain)) :type :compile)
   ;;Add dependency on the lisp source file
-  (add-dependency fasl-node (create-source-file-node module) :type :compile))
+  (add-dependency fasl-node (create-source-file-node grain) :type :compile))
 
 (defun set-cfasl-node-dependencies (cfasl-node
-                                    module
+                                    grain
                                     previous-nodes-map
                                     previous-nodes-list)
-  "This function takes a cfasl-node and its module and builds nodes for all of
-that module's dependencies, and adds them as dependencies of the cfasl-node"
+  "This function takes a cfasl-node and its grain and builds nodes for all of
+that grain's dependencies, and adds them as dependencies of the cfasl-node"
   (let ((dependencies (mapcar
                        (lambda (name) (create-dependency-node
                                        name
-                                       (build-module cfasl-node)
+                                       (build-grain cfasl-node)
                                        previous-nodes-map
                                        previous-nodes-list))
-                       (compile-depends-on module))))
+                       (lisp-compile-depends-on grain))))
     (add-dependencies cfasl-node dependencies :type :compile)
     (add-dependencies cfasl-node dependencies :type :load)
     ;;Add dependency on the lisp source file
-    (add-dependency cfasl-node (create-source-file-node module) :type :compile)))
+    (add-dependency cfasl-node (create-source-file-node grain) :type :compile)))
 
-(defun create-fasl-node (module previous-nodes-map previous-nodes-list)
+(defun create-fasl-node (grain previous-nodes-map previous-nodes-list)
   "This function constructs a fasl-node in the dependency graph.  It also
 builds dependency-graph-nodes for any of its dependencies."
   (let ((fullname (namestring ;NUN
-                   (make-pathname :type "fasl" :defaults (fullname module)))))
+                   (make-pathname :type "fasl" :defaults (fullname grain)))))
     ;(format T "building fasl file node with name: ~a.~%" fullname)
     (with-catching-dependency-cycle
         (fullname previous-nodes-map previous-nodes-list)
-      (let ((existing-node (gethash fullname *node-map*)))
+      (let ((existing-node (gethash fullname *grains*)))
         (or existing-node ;If this node already exists, don't re-create it.
             (let* ((fasl-node (make-instance 'fasl-node
                                 :fullname fullname
-                                :build-module (if (typep module 'build-module)
-                                                module
-                                                (build-module module))
-                                :source-filepath (filepath module))))
+                                :build-grain (if (typep grain 'build-grain)
+                                                grain
+                                                (build-grain grain))
+                                :source-filepath (grain-pathname grain))))
               (set-fasl-node-dependencies fasl-node
-                                          module
+                                          grain
                                           previous-nodes-map
                                           previous-nodes-list)
-              (setf (gethash fullname *node-map*) fasl-node)))))))
+              (setf (gethash fullname *grains*) fasl-node)))))))
 
 
-(defun create-cfasl-node (module previous-nodes-map previous-nodes-list)
+(defun create-cfasl-node (grain previous-nodes-map previous-nodes-list)
   "This function constructs a cfasl-node in the dependency graph.  It also
 builds dependency-graph-nodes for any of its dependencies."
   (let ((fullname (namestring ;NUN
-                   (make-pathname :type "cfasl" :defaults (fullname module)))))
+                   (make-pathname :type "cfasl" :defaults (fullname grain)))))
     ;(format T "building cfasl file node with name: ~a.~%" fullname)
     (with-catching-dependency-cycle
         (fullname previous-nodes-map previous-nodes-list)
-      (let ((existing-node (gethash fullname *node-map*)))
+      (let ((existing-node (gethash fullname *grains*)))
         (or existing-node ;If this node already exists, don't re-create it.
             (let* ((cfasl-node (make-instance 'cfasl-node
                                  :fullname fullname
-                                 :build-module (if (typep module 'build-module)
-                                                 module
-                                                 (build-module module))
-                                 :source-filepath (filepath module))))
+                                 :build-grain (if (typep grain 'build-grain)
+                                                 grain
+                                                 (build-grain grain))
+                                 :source-filepath (grain-pathname grain))))
               (set-cfasl-node-dependencies cfasl-node
-                                           module
+                                           grain
                                            previous-nodes-map
                                            previous-nodes-list)
-              (setf (gethash fullname *node-map*) cfasl-node)))))))
+              (setf (gethash fullname *grains*) cfasl-node)))))))
 
 
 (defun create-dump-image-graph (imagepath sourcepath)
@@ -696,13 +434,7 @@ lisp file at sourcepath loaded"
   "Constructs a dependency graph with a lisp-image-node for a lisp image
 with the given lisp file loaded as the root of the graph."
   (setf sourcepath (merge-pathnames sourcepath "BUILD.lisp"))
-  (setf *node-map* (make-hash-table :test #'equal))
-  (setf *module-map* (make-hash-table :test #'equal))
-  (setf *build-module* nil)
-  (setf *build-module* (create-module (find-build-file sourcepath)
-                                      :build-module-p T))
-  (create-lisp-image-node
-   (list (create-module sourcepath :parent-module *build-module*))))
+  (create-lisp-image-node (list (make-grain-from-file sourcepath))))
 
 (defun xcvb-setup-dependencies ()
   (mapcar (lambda (x)

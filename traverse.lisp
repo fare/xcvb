@@ -16,7 +16,7 @@ the node the function is being called on is included in the resulting list."
   (let ((visited-nodes-map (make-hash-table :test 'equal))
 	(list nil))
     (flet ((pusher (x) (push x list)))
-      (loop for (node operation) in node-operation-list do
+      (loop :for (node operation) :in node-operation-list :do
 	    (traverse-helper node operation #'pusher visited-nodes-map)))
     (reverse list)))
 

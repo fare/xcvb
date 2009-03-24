@@ -46,9 +46,13 @@ lisp-install:
 	rsync -av ${LISP_INSTALL_FILES} ${INSTALL_LISP}/
 
 ## Janitoring
-clean:
-	rm -f *.*fasl *.*fsl *.lib *.fas xcvb
-	cd doc ; rm -f *.html *.aux *.out *.bbl *.dvi *.log *.blg *.pdf
+tidy:
+	rm -f *.*fasl *.*fsl *.lib *.fas
+	cd doc ; rm -f *.aux *.out *.bbl *.dvi *.log *.blg
+
+clean: tidy
+	rm -f xcvb
+	cd doc ; rm -f *.html *.pdf
 
 mrproper: clean
 	rm -f configure.mk
@@ -56,22 +60,27 @@ mrproper: clean
 
 ## For use on common-lisp.net
 %.html: %.rest
-	rst2html $< $@
+	case "$<" in (*slides*) rst2s5 $< $@ ;; (*) rst2html $< $@ ;; esac
 
 ILCPAPER=ilc09-xcvb-paper
 
 doc/$(ILCPAPER).pdf: doc/$(ILCPAPER).tex doc/xcvb.bib
-	cd doc && pdflatex $(ILCPAPER) && bibtex $(ILCPAPER) && pdflatex $(ILCPAPER)
+	cd doc && pdflatex $(ILCPAPER) && \
+	bibtex $(ILCPAPER) && pdflatex $(ILCPAPER) && \
+	bibtex $(ILCPAPER) && pdflatex $(ILCPAPER)
 
 xpdf: doc/$(ILCPAPER).pdf
 	xpdf $<
 
-doc: $(patsubst %.rest, %.html, $(wildcard doc/*.rest))
+doc: $(patsubst %.rest, %.html, $(wildcard doc/*.rest)) doc/$(ILCPAPER).pdf
 
 online-doc: doc
-	rsync -av doc/*.html doc/*.pdf common-lisp.net:/project/xcvb/public_html/doc/
+	rsync -av doc/*.html doc/*.pdf doc/ui common-lisp.net:/project/xcvb/public_html/doc/
 
-pull:
+test:
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-test --restart xcvb::quit
+
+Pull:
 	git pull git@github.com:fare/xcvb.git master:master
 	git pull common-lisp.net:/project/xcvb/public_html/xcvb.git master:master
 
@@ -83,7 +92,7 @@ show-current-revision:
 	git show --pretty=oneline HEAD | head -1 | cut -d' ' -f1
 
 
-.PHONY: all install lisp-install clean mrproper \
+.PHONY: all install lisp-install test tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision
 
 # To check out a particular revision: git fetch; git merge $commit

@@ -1,6 +1,536 @@
+.. ; Slides for presentation at ILC'09 -*- rst -*-
+.. This document is available under the bugroff_ license.
 
-problem I have with ASDF is when you change a dependency
-and this causes unintended changes in transitive dependencies, and something wholly unrelated breaks
-except you don't detect that it breaks until another unrelated change
-modifies the order in which files compile, and then all hell break loose.
+.. footer:: XCVB: Improving Modularity for Common Lisp - ILC'09 - Faré_
 
+==================================
+Destroying the One True Lisp World
+==================================
+
+.. class:: center
+
+  **XCVB: Improving Modularity for Common Lisp**
+
+  .. class:: small
+
+    (note: click ``Ø`` in the menu on the lower-right to disable slideshow mode)
+
+This Presentation
+=================
+
+:Title: Destroying the One True Lisp World
+:Subtitle: XCVB: Improving Modularity for Common Lisp
+:Author: `François-René Rideau`_, `ITA Software`_
+:Meeting: `ILC'09`_, 2009-03-24
+:URL: http://common-lisp.net/project/xcvb/doc/ilc09-xcvb-slides.html
+
+.. ; .. contents:: :class: handout
+
+
+XCVB
+====
+
+The *eXtensible Component Verifier and Builder* (for CL).
+
+.. class:: center
+
+  A Shift Downright From
+
+  ASDF
+
+  (Another System Definition Facility).
+
+
+What is XCVB?
+=============
+
+Like ASDF, it builds your CL system.
+
+Unlike ASDF, it scales -
+
+because it features *separate compilation*.
+
+
+Free Software
+=============
+
+Copyright `ITA Software`_.
+
+MIT style license.
+
+Documentation, GIT repository, mailing-list:
+
+.. class:: center
+
+  http://common-lisp.net/project/xcvb/
+
+
+Working Prototype
+=================
+
+XCVB 0.11 released (git tag: `xcvb_0.11`)
+
+Compiled a 100-file system (in parallel).
+
+Automatically migrated simple ASDF systems.
+
+Includes docs & examples.
+
+
+Work in Progress
+================
+
+Not yet ready to replace ASDF, but working on it.
+
+Current development: adding support for multiple systems.
+
+Send me email to join!
+
+
+Previous Lisp System Builders
+=============================
+
+Simplest: a list of files to load in order (?, 1960s)
+
+Initial improvement: DEFSYSTEM (Weinreb, Moon 1981)
+
+Made portable: MK:DEFSYSTEM (Kantrowitz 1989)
+
+Inspiring: BUILD (Robbins '84), "Large Systems" (Pitman '84)
+
+State of the Art: ASDF (Barlow 2001), mudballs (Ross 2008)
+
+
+List of files: Full Build Only
+==============================
+
+::
+
+   ... "bar" ...
+
+Components defined once in the master file `foo.lisp`.
+
+File limits are but glorified paragraph boundaries.
+
+Always build the whole system (or else).
+
+
+Incremental Build
+=================
+
+Some files *depend* on other files
+
+Dependencies = arcs of a DAG
+
+Incremental build: only rebuild necessary files:
+
+(base case) rebuild if source file was modified
+
+(recursive case) rebuild if any dependency rebuilt
+
+Automatic coherence maintenance, e.g. by `make`
+
+
+Dependencies in Common Lisp
+===========================
+
+Macros, special variables, types, classes, inline functions
+
+Specified as compile-time side-effects to the Lisp World
+
+Meta-level data-structures, including symbols, CLOS
+
+Advantage: user-extensible compile-time state
+
+Disadvantage: state = gets messy quickly
+
+
+A module with DEFSYSTEM
+=======================
+
+::
+
+  (:module BAR ("bar"))
+  ...
+  (:compile-load BAR
+     (PACKAGES MACROS SPECIALS)
+     (:fasload PACKAGES MACROS SPECIALS))
+
+Each component appears *twice* in system file `foo.system`.
+
+All transitive dependencies to be listed explicitly.
+
+
+A module with ASDF
+==================
+
+::
+
+  (:file "bar" :depends-on ("macros" "specials"))
+
+Each component defined once in system file `foo.asd`.
+
+Transitive dependencies may be skipped.
+
+
+A module with XCVB
+==================
+
+::
+
+  (module (:depends-on ("macros" "specials")))
+
+Each component is its own file, e.g. `bar.lisp`.
+
+Semantic context defined at beginning of file.
+
+
+One True Lisp World
+===================
+
+One Lisp World.
+
+One God Programmer.
+
+One Central System Definition.
+
+Compile and load modules inside the World.
+
+
+Assumptions Break Down
+======================
+
+Many Distributed Lisp Processes.
+
+Many Programmers.
+
+Knowledge about dependencies about Distributed.
+
+Uncontrollable interactions of meta-level state.
+
+
+DEFSYSTEM's Don't Scale
+=======================
+
+Unmaintainable dependencies.
+
+Latent failures.
+
+Defensive programming: avoid meta-level features.
+
+
+Latent full build failure (step 1)
+==================================
+
+::
+
+  (:file "bar" :depends-on ("base"))
+  (:file "quux" :depends-on ("base"))
+  (:file "baz" :depends-on ("bar"))
+
+`baz` actually depends on `base`.
+
+`base` is transitively provided by `bar`.
+
+`quux` unrelatedly depends on `base`.
+
+
+Latent full build failure (step 2)
+==================================
+
+::
+
+  (:file "bar" :depends-on ("packages"))
+  (:file "quux" :depends-on ("base"))
+  (:file "baz" :depends-on ("bar"))
+
+`bar` no longer depends on `base`.
+
+`quux` happens to load `base` before `baz` is compiled.
+
+missing dependency from `baz` to `base` not detected.
+
+
+Latent full build failure (step 3)
+==================================
+
+::
+
+  (:file "bar" :depends-on ("packages"))
+  (:file "quux" :depends-on ("packages"))
+  (:file "baz" :depends-on ("bar"))
+
+`quux` no longer loads `base` either.
+
+`baz` now inexplicably breaks -
+
+despite lack of any related modifications!
+
+
+Latent full build failure redux
+===============================
+
+The missing dependency may not be a direct dependency.
+
+The lines that matter need not be consecutive.
+
+Steps 2 and 3 need not be consecutive.
+
+Not the same person: culprit rewarded, innocent punished.
+
+
+Workarounds
+===========
+
+1- Always full build. Back before defsystem.
+
+2- Use serial dependency order. Lose most incrementality.
+
+Changing order becomes hard.
+
+Accumulating unidentified dependencies becomes easy.
+
+Sloppiness encouraged. Refactoring discouraged.
+
+
+Latent incremental build failure
+================================
+
+1- Compile and load FOO, then BAR -- works!
+
+2- Only load FOO, then compile BAR -- fails!
+
+BAR depended on compile-time side-effects of FOO.
+
+Workaround: only do full builds.
+
+
+Compile-time interactions
+=========================
+
+DEFSYSTEM only compiles what has changed, hence
+
+non-determinism in compile-time side-effects
+
+before a file is compiled.
+
+
+Defensive side-effect inclusion
+===============================
+
+Erratic failures if any required side-effect fails to happen.
+
+Never `eval-when` `:compile-toplevel` without `:load-toplevel`
+
+(except for strictly file-local side-effect).
+
+
+Defensive side-effect exclusion
+===============================
+
+Cannot locally bind compile-time state around files.
+
+Compile-time side-effects affect *all* that follow.
+
+If *any* file modifies *any* non-local compile-time state,
+
+unrelated subsequent files might sometime break.
+
+
+Anti-Extensibility Conventions
+==============================
+
+.. class:: incremental
+
+  Modifying the reader in a library is frowned upon.
+
+  If you give someone Fortran, he has Fortran.
+  If you give someone Lisp, he has any language he pleases. (gls)
+
+  ... but it cannot be the same as anyone else's.
+
+
+Social consequences
+===================
+
+[A] Computer [programming] language is inherently a pun -
+[it] needs to be interpreted by both men & machines. (hbaker)
+
+PL structure does not matter to the machine.
+
+Humans care for more than a Turing tar-pit.
+
+Technical design of PL has social consequences.
+
+
+Scaling
+=======
+
+At ITA Software, no true incremental build.
+
+Two big CL projects, each >400 kLOC, >700 files.
+
+QPX: load list - two passes to resolve circularities
+
+QRS: mostly serial ASDF.
+
+10'-20' from code to test. 60' from test to finish.
+
+
+My Solution
+===========
+
+.. class:: center
+
+  .. class:: incremental
+
+    Destroy the World.
+
+
+Destroy the World?
+==================
+
+Destroy the One True Lisp World.
+
+The CL model of One True Lisp World doesn't scale:
+
+meta-level side-effects on *global* datastructures.
+
+Drop that obsolete paradigm.
+
+
+The Universe is Dead
+====================
+
+Long Live the Multiverse!
+
+Virtual Lisp processes, isolated from each other.
+
+Separate compilation as pure transform:
+
+.. class:: center
+
+ ::
+
+   context→source→object
+
+Well-defined context: compile from initial World.
+
+Just like any modern language! (Haskell, OCaml...)
+
+
+XCVB Yesterday
+==============
+
+*Separate Compilation*, incremental build.
+
+*Semantic context declared locally*, by he who knows.
+
+*Eagerly enforced dependencies*, punish sloppiness.
+
+`make` *as a backend*, parallelization for free.
+
+*Decoupling builder & buildee*, bootstrap rich cross-builder.
+
+*Automated migration* to/from ASDF.
+
+
+XCVB Today
+==========
+
+Multi-system build: naming, compile, migration.
+
+User-friendly: update docs, error-recovery.
+
+General case: (Lisp) files computed from data.
+
+Staged build: saved image, dynamic dependencies.
+
+Migrate & maintain critical mass of libraries.
+
+Distribution system (clbuild, mudballs).
+
+
+XCVB Tomorrow
+=============
+
+Distribution, caching...
+
+Dependency-based testing, dependency checks.
+
+Grow a general build language?
+
+Syntax contexts: reader, grammar, hygiene...
+
+Semantic modules: namespaces, typing/contracts...
+
+Execution models: callcc? debug? migrate?
+
+
+Required CL extensions
+======================
+
+System calls - CL standardization failure.
+
+CFASL: encapsulate compile-time side-effects.
+
+SB-HEAPDUMP: encapsulate partial state.
+
+Meta info: source location, single stepping, eval models.
+
+PCLSRing: concurrency, first-class language translation.
+
+
+Conclusion
+==========
+
+Nothing fancy - elaborate plumbing.
+
+Well-known ideas - each previously implemented.
+
+CL is lagging behind...
+
+.. class:: incremental
+
+  This is an *opportunity* to improve things - join!
+
+
+Real Conclusion
+===============
+
+The deep rationale for XCVB is a social concern.
+
+Modularity is about *human* division of labor.
+
+Minimize cognitive burden of collaboration.
+
+Technique and social aspects linked.
+
+The Universe is dead - Long live the Multiverse!
+
+Better Stories, Better Languages.
+
+
+The End
+=======
+
+Credits: ITA, James Knight, Juho Snellman, Spencer Brody.
+
+XCVB currently undergoing major refactoring.
+
+2(?) interns in Summer 2009: apply XCVB to ITA projects.
+
+	http://common-lisp.net/projects/xcvb/
+
+.. class:: center
+
+  **Questions?**
+
+
+.. _François-René Rideau: http://fare.tunes.org/
+.. _Faré: http://fare.tunes.org/
+.. _ITA Software: http://itasoftware.com/
+.. _slides: http://common-lisp.net/project/xcvb/doc/ilc09-xcvb-slides.html
+.. _bugroff: http://www.geocities.com/SoHo/Cafe/5947/bugroff.html
+.. _ILC'09: http://www.international-lisp-conference.org/2009/
+.. _XCVB: http://common-lisp.net/project/xcvb/

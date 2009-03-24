@@ -96,12 +96,12 @@ the enhanced robustness, maintainability and integration with Make.
 Improvements required for XCVB version 2 are marked [V2].
 These correspond to the "V" in XCVB: Verification.
 Automated incremental testing, dependency groveling,
-checksum verification, etc.
+checksum verification, compartmentalized file trees, etc.
 
 Improvements required for XCVB version 3 are marked [V3].
 The goal is for XCVB to be able to build Lisp projects
 all by itself, taking advantage of parallelism and distribution,
-minimizing slow LOADs by forking (or dumping imagses?), etc.
+minimizing slow LOADs by forking (or dumping images?), etc.
 
 Improvements required for XCVB version 4 are marked [V4].
 The goal is for XCVB to become its own better building system,
@@ -587,6 +587,16 @@ Allow a module to depend on the cfasl of a file if it is available,
 or the fasl of the file if there are no cfasls.
 There is already a cfasl-or-fasl-node for this purpose
 -- but the actual functionality hasn't been implemented yet.
+
+Note that when a CFASL file itself hasn't changed,
+but one its dependencies (or the list of dependencies itself) has changed,
+then one may have to recompile all files that depend on it.
+This is taken into account by digesting not just the direct dependencies,
+all the transitive dependencies loaded before compilation.
+And so, if building a propagation network for recompilation,
+the list of dependencies itself is to be part of
+the network that triggers updates to a compilation,
+not just the individual dependencies listed.
 
 
 Data files [V1]
@@ -1428,7 +1438,8 @@ the automatic packaging and distribution of Lisp-based projects.
 
 See ASDF-INSTALL, clbuild, mudballs, etc.
 
-See Ruby gems, Python eggs, Chicken eggs, Java beans, etc.
+See Haskell Cabal and Hackage, Caml Hump,
+Ruby gems, Python eggs, Chicken eggs, Java beans, etc.
 
 When extending the system to include the management of packages for distribution,
 be sure that you play well with whichever Operating System's packaging software:

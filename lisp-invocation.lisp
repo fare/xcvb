@@ -129,11 +129,11 @@
 
 ;;; Avoiding use of a compiled-in driver in the build process
 
-(defun quit-form (&key exit-status (implementation-type *lisp-implementation-type*))
+(defun quit-form (&key code (implementation-type *lisp-implementation-type*))
   "Returns the correct form to quit lisp, based on the value of lisp-implementation.
-Can optionally be given a unix status code to exit with"
+Can optionally be given a unix status CODE to exit with"
   (format nil (slot-value (get-lisp-implementation implementation-type) 'quit-format)
-	  (or exit-status 0)))
+	  (or code 0)))
 
 (defun save-image-form (filepath &optional (implementation-type *lisp-implementation-type*))
   "Returns the lisp form to save the lisp image to the given filepath"

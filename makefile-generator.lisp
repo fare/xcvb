@@ -1,7 +1,7 @@
 (in-package :xcvb)
 
 (defparameter *build-requires-p* nil
-  "Flag to specify if the build module's build-requires slot has been set --
+  "Flag to specify if the build grain's build-requires slot has been set --
 and therefore whether or not to have a build-stage1.image
 target")
 
@@ -147,7 +147,7 @@ given node"))
 (defun makefile-setup (out)
   "Writes information to the top of the makefile about how to actually run lisp
 to compile files, and also how to create an image to use that contains all the
-dependencies from the build-requires slot of the build module loaded"
+dependencies from the build-requires slot of the build grain loaded"
   (with-output (out)
     (format out "lisp.image:~%")
     (format out "export PATH := .:${PATH}~%")
@@ -162,7 +162,7 @@ dependencies from the build-requires slot of the build module loaded"
 	    (create-image-dump-node (create-lisp-image-node
 				     (append (xcvb-setup-dependencies)
 					     *lisp-setup-dependencies*
-					     (build-requires *build-module*)))
+					     (build-requires *build-grain*)))
 				    cwbrlpath)))
       (format out "CWBRL := ./~a~%~%" (simplify-target-path cwbrlpath))
       (format out "CWBRLRUN := ~a~%~%"

@@ -1,9 +1,9 @@
 #+xcvb
-(xcvb:module
-  :description "package for XCVB")
+(module
+ (:description "package for XCVB"))
 
 (cl:defpackage :xcvb
-  (:use :cl :xcvb-driver)
+  (:use :cl :xcvb-driver :closer-mop)
   (:import-from :xcvb-driver #:quit)
   (:import-from :cl-launch #:DBG)
   (:export
@@ -29,8 +29,28 @@
      #:coerce-asdf-system-name
      #:filepath
      #:strcat
+     #:join-strings
      #:quit
      #:asdf-systems-are-up-to-date-p
+
+     ;; portablish-pathnames
+     #:pathname-directory-pathname
+
+     ;; Grains
+     #:registered-grain
+
+     ;; search-path
+     #:*search-path*
+     #:*search-path-searched-p*
+     #:*archive-directory-names*
+     #:default-search-path
+     #:initialize-search-path
+     #:set-search-path!
+     #:finalize-search-path
+     #:search-search-path
+
+     ;; registry
+     #:register-build-named
 
      ;; Create graphs
      #:create-dependency-graph
@@ -55,5 +75,4 @@
      #:dependency-cycle))
 
 (cl:defpackage :xcvb-user
-  (:use)
-  (:import-from :xcvb :module))
+  (:use :common-lisp :xcvb))

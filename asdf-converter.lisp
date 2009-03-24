@@ -9,12 +9,12 @@ This happens when the compile and load dependencies
 are all the same files, in the same order,
 with the compile dependencies depending on compile-time effects of the files,
 and the load dependencies depending on load-time effects of the files."
-  (and (= (length (compile-depends-on module))
-          (length (load-depends-on module)))
+  (and (= (length (lisp-compile-depends-on module))
+          (length (lisp-load-depends-on module)))
        (loop
-         for comp-dep in (compile-depends-on module)
-         for load-dep in (load-depends-on module)
-         always (and (listp comp-dep)
+         :for comp-dep :in (lisp-compile-depends-on module)
+         :for load-dep :in (lisp-load-depends-on module)
+         :always (and (listp comp-dep)
                      (eql (first comp-dep) :compile)
                      (null (rest (rest comp-dep)))
                      (if (listp load-dep)
@@ -28,7 +28,7 @@ and the load dependencies depending on load-time effects of the files."
 top of a source file"
   (with-output-to-string (out)
     (format out "#+xcvb~%(module (")
-    (when (typep module 'build-module)
+    (when (typep module 'build-grain)
       (format out "~@[~%~7,0T:fullname ~s~]" (fullname module)))
     (format out "~@[~%~7,0T:author ~s~]" (author module))
     (format out "~@[~%~7,0T:maintainer ~s~]" (maintainer module))
@@ -39,19 +39,19 @@ top of a source file"
     (cond
       ((equivalent-deps-p module)
        (format out "~@[~%~7,0T:depends-on (~%~14,7T~{~15,0T~s~^~%~})~]"
-               (load-depends-on module)))
+               (lisp-load-depends-on module)))
       (t
        (format out
                "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~s~^~%~})~]"
-               (compile-depends-on module))
+               (lisp-compile-depends-on module))
        (format out
                "~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~s~^~%~})~]"
-               (load-depends-on module))))
+               (lisp-load-depends-on module))))
     (format out ")")
-    (if (and (typep module 'build-module) (build-requires module))
+    (if (and (typep module 'build-grain) (build-requires module))
       (format out "~@[~%~7,0T(:set :this-module :build-requires ~s)~]"
               (build-requires module)))
-    (format out "~@[~%~{~7,0T~s~^~%~}~]" (extension-forms module))
+    (format out "~@[~%~{~7,0T~s~^~%~}~]" (grain-extension-forms module))
     (format out ")")))
 
 (defun read-comment-header (in)
@@ -66,11 +66,11 @@ until something else is found, then return that header as a string"
 
 (defun skip-whitespace (in)
   "From stream IN, read any number of whitespace until non-whitespace is found."
-  (loop while (member (peek-char nil in nil) '(#\space #\tab #\newline #\linefeed))
-    do (read-char in)))
+  (loop :while (member (peek-char nil in nil) '(#\space #\tab #\newline #\linefeed))
+        :do (read-char in)))
 
 
-(defun add-module-to-file (module &optional (filename (filepath module)))
+(defun add-module-to-file (module &optional (filename (grain-pathname module)))
   "Adds a module form to the beginning of a file, replacing the existing module
 form if there is one (but leaving the extension forms)."
   (if (probe-file filename)
@@ -87,10 +87,12 @@ form if there is one (but leaving the extension forms)."
           (let* ((first-form-position (file-position in))
 		 (first-form (read in nil)))
             (if (module-form-p first-form)
-                (setf (extension-forms module)
-                      (extension-forms
-                       (parse-module first-form
-                                     :build-module-p (typep module 'build-module))))
+                (setf (grain-extension-forms module)
+                      (grain-extension-forms
+                       (parse-module-declaration
+                        first-form
+                        :path filename
+                        :build-p (typep module 'build-grain))))
                 (file-position in first-form-position))
 	    (format out "~a~%~%" (module-string module)))
 	  (skip-whitespace in)
@@ -124,8 +126,8 @@ form if there is one (but leaving the extension forms)."
   (get-dependencies-from-components (list component)))
 
 
-(defun get-build-module-for-asdf-system (asdf-system original-systems)
-  "Returns a build-module with information from the given asdf system"
+(defun get-build-grain-for-asdf-system (asdf-system original-systems)
+  "Returns a build-grain with information from the given asdf system"
   (flet ((maybe-slot-value (object slot)
            (if (slot-boundp object slot)
              (slot-value object slot))))
@@ -146,7 +148,7 @@ form if there is one (but leaving the extension forms)."
                           :defaults (asdf:component-pathname component))
                          (asdf:component-pathname asdf-system)))
                       (asdf:module-components asdf-system))))
-      (make-instance 'build-module
+      (make-instance 'build-grain
         :fullname fullname
         :author author
         :maintainer maintainer
@@ -178,22 +180,22 @@ form if there is one (but leaving the extension forms)."
 	    (asdf-dependency-grovel::components-in-traverse-order
 	     system (mapcar #'nameop components))))))
 
-(defun get-module-for-component (asdf-component build-module asdf-system)
+(defun get-module-for-component (asdf-component build-grain asdf-system)
   "Returns a module object for the file represented by the given asdf-component"
   (let* ((dependencies
           (dependency-sort (get-dependencies-from-component asdf-component)
                            asdf-system))
          (filepath (asdf:component-pathname asdf-component))
          (fullname (strcat ;NUN
-                    (fullname build-module)
+                    (fullname build-grain)
                     "/"
                     (enough-namestring
                      (make-pathname :type nil :defaults filepath)
-                     (filepath build-module)))))
+                     (grain-pathname build-grain)))))
     (make-instance 'standard-module
       :fullname fullname
       :filepath filepath
-      :build-module build-module
+      :build-grain build-grain
       :compile-depends-on (if *use-cfasls*
                             (mapcar (lambda (dep) (list :compile dep))
                                     dependencies)
@@ -246,10 +248,10 @@ so that the system can now be compiled with XCVB."
       (setf (slot-value asdf-system 'asdf::name) (asdf::coerce-name (first systems)))
       (setf (slot-value asdf-system 'asdf::relative-pathname) base-pathname)
       (let* ((*default-pathname-defaults* base-pathname)
-	     (build-module (get-build-module-for-asdf-system asdf-system
+	     (build-grain (get-build-grain-for-asdf-system asdf-system
 							     (mapcar #'asdf:find-system systems))))
-	(add-module-to-file build-module)
+	(add-module-to-file build-grain)
 	(dolist (component (asdf:module-components asdf-system))
 	  (add-module-to-file (get-module-for-component component
-							build-module
+							build-grain
 							asdf-system))))))

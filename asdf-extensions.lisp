@@ -16,12 +16,14 @@ and none of the source files in the system have changed since then"
 	 (steps (traverse op system)))
     ;(format T "~%that system is ~:[out-of-date~;up-to-date~]" (null steps))
     (null steps)))
- 
+
+(defun asdf-system-is-loaded-up-to-date-p (system)
+  (asdf-system-is-up-to-date-p 'asdf:load-op system))
+
 (defun asdf-systems-are-up-to-date-p (&rest systems)
   "Takes a list of names of asdf systems, and
 exits lisp with a status code indicating
 whether or not all of those systems were up-to-date or not."
   (xcvb-driver::quit
-   :exit-status (if (every (lambda (system) (asdf-system-is-up-to-date-p 'asdf:load-op system))
-			   systems)
-		    0 1)))
+   (if (every #'asdf-system-is-loaded-up-to-date-p systems)
+     0 1)))

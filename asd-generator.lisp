@@ -42,28 +42,28 @@ Returns a list of the names of all the asdf-systems that this node depends on
 
 
 (defun write-asdf-system-header (filestream asdf-systems
-                                 &optional (build-module *build-module*))
-  "Writes the information from the build module to the asdf file"
+                                 &optional (build-grain *build-grain*))
+  "Writes the information from the build grain to the asdf file"
   (let* ((system-name (namestring
                        (make-pathname :name nil
                                       :type nil
-                                      :defaults (fullname build-module)))) ;NUN
+                                      :defaults (fullname build-grain)))) ;NUN
          ;;This is fragile!
          (system-name (subseq system-name 1 (1- (length system-name)))))
     (format filestream "~&(asdf:defsystem :~a~%" system-name))
-  (if (author build-module)
-    (format filestream "~2,0T:author ~s~%" (author build-module)))
-  (if (maintainer build-module)
-    (format filestream "~2,0T:maintainer ~s~%" (maintainer build-module)))
-  (if (version build-module)
-    (format filestream "~2,0T:version ~s~%" (version build-module)))
-  (if (licence build-module)
-    (format filestream "~2,0T:licence ~s~%" (licence build-module)))
-  (if (description build-module)
-    (format filestream "~2,0T:description ~s~%" (description build-module)))
-  (if (long-description build-module)
+  (if (author build-grain)
+    (format filestream "~2,0T:author ~s~%" (author build-grain)))
+  (if (maintainer build-grain)
+    (format filestream "~2,0T:maintainer ~s~%" (maintainer build-grain)))
+  (if (version build-grain)
+    (format filestream "~2,0T:version ~s~%" (version build-grain)))
+  (if (licence build-grain)
+    (format filestream "~2,0T:licence ~s~%" (licence build-grain)))
+  (if (description build-grain)
+    (format filestream "~2,0T:description ~s~%" (description build-grain)))
+  (if (long-description build-grain)
     (format filestream "~2,0T:long-description ~s~%"
-            (long-description build-module)))
+            (long-description build-grain)))
   (if asdf-systems
       (format filestream "~2,0T:depends-on (~{:~a~^ ~})~%" asdf-systems)))
 
@@ -116,7 +116,7 @@ that can be used to compile the file at source-path with asdf"
   (with-open-file (out output-path :direction :output :if-exists :supersede)
     (let* ((dependency-graph (create-dependency-graph source-path))
            (build-requires-graph (create-lisp-image-node
-                                  (build-requires *build-module*)))
+                                  (build-requires *build-grain*)))
            (*visited-nodes* (make-hash-table :test #'equal))
            (asdf-systems (append
                           (find-asdf-systems build-requires-graph)
@@ -124,12 +124,12 @@ that can be used to compile the file at source-path with asdf"
            (*output-path* output-path))
       (write-asdf-system-header out asdf-systems)
       (format out
-              "~2,0T:components~%~2,0T((:module \"build-requires-files\"~%~
+              "~2,0T:components~%~2,0T((:grain \"build-requires-files\"~%~
 ~12,0T:pathname #p\".\"~%~12,0T:components~%~12,0T(")
       (let ((*written-nodes* (make-hash-table :test #'equal)))
         (write-node-to-asd-file out build-requires-graph))
       (format out
-              "~12,0T))~%~3,0T(:module \"main-files\"~%~
+              "~12,0T))~%~3,0T(:grain \"main-files\"~%~
 ~12,0T:pathname #p\".\"~%~12,0T:depends-on(\"build-requires-files\")~%~
 ~12,0T:components~%~12,0T(")
       ;; TODO: explain the issue with nodes that appear twice
@@ -138,7 +138,7 @@ that can be used to compile the file at source-path with asdf"
       (let* ((system-name (namestring ;NUN
                            (make-pathname :name nil
                                           :type nil
-                                          :defaults (fullname *build-module*))))
+                                          :defaults (fullname *build-grain*))))
              ;;This is fragile!
              (system-name (subseq system-name 1 (- (length system-name) 1))))
         (format out "~12,0T)))~%~%(cl:pushnew :~a *features*)" system-name)))))

@@ -20,7 +20,7 @@ then when writing the extension form in the module declaration of a file,
 use the keyword :this-module to represent the current module.
 The extension function will be passed the current module
 instead of any arguments that are :this-module."
-  (dolist (form (extension-forms module))
+  (dolist (form (grain-extension-forms module))
     (destructuring-bind (operation &rest args) form
       (apply
        (gethash operation *extension-functions-map*)

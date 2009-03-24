@@ -11,11 +11,11 @@
   (cond
     ((eql 1 (length cl-launch:*arguments*))
      (let ((x (car cl-launch:*arguments*)))
-       (if (member x '("-?" "--help" "-h") :test 'equal)
+       (if (member x '("-?" "--help" "-h") :test #'equal)
 	   (usage)
-	   (let ((*package* (find-package :xcvb)))
+	   (let ((*package* (find-package :xcvb-user)))
 	     (load x)))
-       (quit :exit-status 0)))
+       (quit 0)))
     (t
      (usage *error-output*)
-     (quit :exit-status 1))))
+     (quit 1))))
