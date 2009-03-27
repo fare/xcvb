@@ -273,9 +273,93 @@ needs be be enclosed in an ``(eval-when (:compile-toplevel :load-toplevel :execu
 but you probably want to include it in any macro that generates an ``eval-when``).
 
 
+Combining Multiple Projects
+===========================
 
-Further Limitations
--------------------
+Module Full Names
+-----------------
+
+XCVB relies on a global namespace for developers to name modules.
+Using this namespace allows programmers to name modules independently
+from their specific location on any particular machine's filesystem.
+
+Thus each hierarchy of XCVB files contains a top-level ``BUILD.lisp`` file.
+This file contains a module declaration with a ``:fullname`` initializer
+that specifies a prefix name for all modules in the hierarchy.
+E.g. if your directory ``/foo/bar/`` has a file ``BUILD.lisp``
+containing the specification ``:fullname "com.example.lisp/quux"``
+then all files under this file hierarchy will be considered as being under
+the hierarchy ``com.example.lisp/quux`` within the global module namespace,
+unless overridden by a lower ``BUILD.lisp``.
+Thus, a file ``/foo/bar/baz/toto.lisp`` would inherit the fullname
+``com.example.lisp/quux/baz/toto``.
+
+Nicknames are also allowed, and the same ``BUILD.lisp`` could declare
+the nickname ``quux`` and the same file would then be accessible
+under the shorter name ``quux/baz/toto``.
+
+
+Module Relative Names
+---------------------
+
+When a module form refers to another module, it may use a short name.
+The algorithm by which a name reference is resolved to a full name is as follows:
+
+  ... (TODO: document the algorithm) ...
+
+
+Search Path
+-----------
+
+To map names to files on the current machine,
+XCVB relies on the user having properly configured its search path.
+
+The search path is stored in the Lisp variable ``xcvb:*search-path*``
+that has a (hopefully) sensible default and
+can otherwise be configured through
+environment variables, configuration files, or
+(in the near future) command-line arguments.
+
+  1- When XCVB starts, it initializes ``xcvb:*search-path*`` to its default,
+  by evaluating function ``xcvb::default-search-path`` which evaluates
+  and returns the following::
+
+    (list
+      *default-pathname-defaults*
+      (subpathname (user-homedir-pathname) "lisp/")
+      #p"/usr/local/share/common-lisp/modules/"
+      #p"/usr/share/common-lisp/modules/"))
+
+  2- If environment variable ``XCVB_PATH`` is set,
+  it is read as a "``:``"-delimited list of path strings,
+  wherein an entry "``!``" means "splice the previous value".
+
+  3- (In the future) If a command-line argument is specified with ``--path``
+  then it is interpreted with the same behavior as above.
+
+  4- Your Lisp configuration or command file may arbitrarily modify
+  special variable ``xcvb:*search-path*``
+  by prepending and/or appending more pathname designators.
+
+Before XCVB actually tries to process any module,
+it will finalize its search path by eliminating all invalid paths
+from *search-path* and eagerly collecting a list of all the top-level
+``BUILD.lisp`` files under the specified filesystem hierarchies.
+Conflicts between two ``BUILD.lisp`` files
+claiming the same name or nickname are resolved as follows:
+if one ``BUILD.lisp`` appears in a hierarchy
+that appears earlier in the search path, then it takes precedence;
+if the previous rule doesn't disambiguate a name, then
+said name will be marked as a conflict and
+will be available for use during the build.
+
+Note to people migrating from ASDF:
+this more or less corresponds
+to the ``asdf:*central-registry*`` special variable.
+
+
+Current Limitations
+===================
 
 If your build has any of the below complications,
 you're currently out of luck until an extension is written

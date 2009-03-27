@@ -2,9 +2,6 @@
 
 (in-package :xcvb)
 
-(defvar *search-path* '()
-  "Path to search for XCVB modules")
-
 (defvar *search-path-searched-p* nil
   "Did we search the search path?")
 
@@ -12,6 +9,7 @@
   (list
    *default-pathname-defaults*
    (subpathname (user-homedir-pathname) "lisp/")
+   #p"/usr/local/share/common-lisp/modules/"
    #p"/usr/share/common-lisp/modules/"))
 
 (defun verify-path-element (element)

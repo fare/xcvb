@@ -9,7 +9,7 @@
   (make-hash-table :test 'equal)
   "A registry of known grains,
 indexed by normalized name, either fullname of a module,
-nickname, or SEX representing a computed entity.
+nickname, or SEXP representing a computed entity.
 Initially populated with all BUILD.lisp files from the search path,
 then enriched as we build the graph from the main BUILD file.")
 

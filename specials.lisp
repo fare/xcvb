@@ -19,7 +19,11 @@
   "Should we assume the target Lisp supports CFASL?")
 
 (defvar *xcvb-setup-dependencies*
-  '("driver.lisp" "asdf-extensions.lisp"))
+  '("driver.lisp" "asdf-extensions.lisp")
+  "Dependencies in the buildee image, as required for XCVB to work properly.")
+
+(defvar *search-path* '()
+  "Path to search for XCVB modules")
 
 ;;; Note: this needs be setup before you create the binary.
 ;;; The variable is set in configure.mk and exported by the Makefile.

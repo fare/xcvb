@@ -11,9 +11,8 @@ Future improvements planned for XCVB.
     1  Roadmap [V1]
     2  Module Naming [V1]
       2.1  Module reference [V1]
-      2.2  Search Path [V1]
-      2.3  Eager vs Lazy Module Scanning [V1]
-      2.4  Automatically install modules from the Internet [V5]
+      2.2  Search Path [V1] (done)
+      2.3  Automatically install modules from the Internet [V5]
     3  Usability Issues [V1]
       3.1  Lack of Manual [V1]
       3.2  Migration from ASDF [V1]
@@ -23,17 +22,18 @@ Future improvements planned for XCVB.
       3.6  ASDF backend [V1]
       3.7  Command-line interface [V3]
     4  Features [V1]
-      4.1   Multiple BUILD.lisp files [V1]
-      4.2   Initialization and Finalization [V2]
-      4.3   Executables [V1]
-      4.4   Tests [V2]
-      4.5   Dependency grovelling [V2]
-      4.6   Revert [V1]
-      4.7   Bootstrap [V3]
-      4.8   Same source, multiple compilers [V4]
-      4.9   Correctly handling C libraries [V4]
-      4.10  Dynamic compilation [V4]
-      4.11  Bug hunting [V5]
+      4.1   Abstract Away Paths [V2]
+      4.2   Multiple BUILD.lisp files [V1]
+      4.3   Initialization and Finalization [V2]
+      4.4   Executables [V1]
+      4.5   Tests [V2]
+      4.6   Dependency grovelling [V2]
+      4.7   Revert [V1]
+      4.8   Bootstrap [V3]
+      4.9   Same source, multiple compilers [V4]
+      4.10  Correctly handling C libraries [V4]
+      4.11  Dynamic compilation [V4]
+      4.12  Bug hunting [V5]
     5  The semantics of dependencies [V1]
       5.1  FASL vs CFASL [V2]
       5.2  Data files [V1]
@@ -91,7 +91,7 @@ Roadmap [V1]
 Improvements required for XCVB version 1 are marked [V1].
 These correspond to a system suitable to automatically replace ASDF,
 but otherwise without any extra feature besides
-the enhanced robustness, maintainability and integration with Make.
+the enhanced robustness, maintainability and integration with ``make``.
 
 Improvements required for XCVB version 2 are marked [V2].
 These correspond to the "V" in XCVB: Verification.
@@ -116,8 +116,8 @@ that demonstrate the advantages of a higher-level design.
 Things go here that have really low priority.
 
 As things get done, they should be moved
-from the TODO document to the appropriate documentation
-(at this moment, either README or INTERNALS).
+from the ``TODO`` document to the appropriate documentation
+(at this moment, either ``README`` or ``INTERNALS``).
 
 
 Module Naming [V1]
@@ -135,9 +135,9 @@ Module reference [V1]
 The algorithm for identifying a module from the name specified
 in some dependency declaration is as follows:
 
-  1- The module is looked up under the current BUILD
+  1- The module is looked up under the current ``BUILD``
 
-  2- Each parent of the current BUILD is looked up, until we reach a toplevel BUILD.
+  2- Each parent of the current ``BUILD`` is looked up, until we reach a toplevel ``BUILD``.
 
   3- Each of the paths in the global search path is looked up, in order
      (from first to last in a Lisp list, from left to right in a shell variable).
@@ -148,12 +148,9 @@ in some dependency declaration is as follows:
   5- If the hook function fails or there is no hook functions,
      then the identification fails and the build aborts.
 
-What makes a BUILD toplevel will be discussed below
-in the section about `Eager vs Lazy Module Scanning [V1]`_.
 
-
-Search Path [V1]
-----------------
+Search Path [V1] (done)
+-----------------------
 
 We need to be able to name modules independently
 from their specific location on a given machine,
@@ -161,96 +158,7 @@ especially since source files are installed on different paths
 on different machines,
 including machines that may partake in the same distributed build.
 
-To map source-level names to paths in the filesystem,
-ASDF has its infamous ``*central-registry*``,
-GCC has ``/usr/include`` and various ``-I`` flags,
-Perl has ``PERL5PATH``, ``Python`` has ``PYTHONPATH``, etc.
-What should XCVB do to locate modules?
-
-The current plan is that at startup,
-XCVB will initialize a search path list
-from each of the following, in order,
-that may either modify or replace the former:
-
-  1- A builtin default, say ``("/usr/share/common-lisp/modules/")``
-
-  2- An environment variable, say ``XCVB_PATH``, "``:``"-delimited,
-  with some magic entry "``!``" that means "splice the previous value".
-
-  3- A command-line argument, say ``--path``, with the same behavior as above.
-
-  4- A Lisp configuration, that can either use the modifying function used
-  above, or directly modify variable ``xcvb:*search-path*``
-  by prepending and/or appending more pathname designators.
-
-
-Eager vs Lazy Module Scanning [V1]
-----------------------------------
-
-There are two ways that the search path may be search for modules,
-and we have to choose early on because of the naming implications.
-
-In the eager scanning approach,
-the search paths are scanned for BUILD modules
-at the beginning of the build session,
-avoiding recursion into version control repositories
-or other excluded patterns.
-
-In the lazy scanning approach, the search paths are scanned
-only when a specific module is requested,
-and the path to scan relative to directories in the search path
-can be deduced trivially from the module specification,
-so only a small number of candidate paths need to be searched
-at any time.
-
-In the eager approach,
-the mapping from module name to pathname could be arbitrary,
-developers or system integrators
-would be free to organize their sources as they wish
-and could easily override installed modules
-with the specific versions they need,
-without having to mimic a standard installation
-by moving things around or by using symlinks.
-Significant long hierarchical names could be used
-to disambiguate modules globally
-(but shorter nicknames could also be used if non-ambiguous).
-What would make a module toplevel would be the fact
-that it declares such a fullname.
-The downside would be that eager scanning
-introduces two levels of complexity.
-The first complexity is this naming indirection,
-whereby the whole hierarchy of installed modules
-would have to be scanned at every build,
-or a cache of the module map would have to be maintained
-with timestamp information.
-The second complexity is the fact that eager scanning
-requires lazy evaluation of the scanned modules,
-least the whole Lisp world needs be planned for
-(and conflicts resolved) everytime anything is built;
-it must be possible to extract naming information from
-the module declarations without evaluating any of the
-computations required to otherwise make sense of the module.
-
-The lazy approach is much simpler,
-at the cost of constraining developers and/or system integrators
-to agree on a file hierarchy for their modules.
-This cost seems to be paid happily by developers of
-Perl, OCaml, Python, PLT Scheme, and many more languages,
-so it isn't that high.
-In this approach, what makes a module toplevel is simply that
-it's located at the top of a directory in the search-path.
-
-I think the lazy approach is good enough for XCVB version 1,
-especially since ASDF seems to be doing fine with a flat namespace,
-and other languages seem to do just fine with a global hierarchical namespace.
-
-On the other hand, the eager approach seems to better fit
-the destructured way that Common Lispers currently work
-with respect to filesystem organization (as with other topics)
-and may be a double pain (socially speaking) to first reject
-then to retrofit after the fact if we find it's required.
-Attila Lendvai notably favors the eager approach
-(which was also my initial reflex).
+See the README.rest, section 'search path'.
 
 
 Automatically install modules from the Internet [V5]
@@ -716,6 +624,8 @@ We should eventually make that stuff portable,
 using some existing library for dealing with namestrings sensibly,
 mostly bypassing the unreliable CL pathnames.
 Stelian Ionescu may be working on something like that soon for zeta-streams.
+In the meantime, we'll use our own library portablish-pathnames
+to get rid of these non-portable things.
 
 
 Error handling [V4]
@@ -1383,7 +1293,7 @@ At the same time they need to be all setup in advance of the rest of the compila
 A layer on top of XCVB could help manage packages dynamically,
 by allowing to associate a package with a module, itself made of many submodules.
 An initial simple ``defpackage`` form would be supplied by the user;
-what the module actually ``export``s (or even ``import``s) could be dynamically inferred
+what the module actually ``export``'s (or even ``import``'s) could be dynamically inferred
 from the compilation of the module (and all its submodules),
 with the final ``defpackage`` being created automatically from this inferrence.
 
@@ -1421,13 +1331,15 @@ the being able to do it at all issue.
 Don't miss this important bibliography:
   http://readscheme.org/modules/
 
-Taylor Campbell on the irc.openprojects.net #scheme channel gave the following piece of advice.
+Taylor Campbell on the irc.openprojects.net ``#scheme`` channel gave the following piece of advice.
 Personally I think that it would be easiest to use Scheme48's module system for that,
-but what I'd care most about is (1) that you separate phases sensibly, and
+but what I'd care most about is
+(1) that you separate phases sensibly, and
 (2) that you provide working hygiene.
 See Flatt, 'Composable and Compilable Macros', 2002.
 http://www.cs.utah.edu/plt/publications/macromod.pdf
-(The R6RS's library system emphatically got phase separation wrong.  Don't repeat their mistake.)
+(The R6RS's library system emphatically got phase separation wrong.
+Don't repeat their mistake.)
 
 
 Packaging and Distribution [V5]

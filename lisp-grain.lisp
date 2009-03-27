@@ -29,7 +29,9 @@
 (defun compute-target-system-features ()
   ;; TODO: extract and use the *features* of the TARGET system.
   ;; and mixin :xcvb-host-FOO for any feature FOO in the HOST system?
-  (cons :xcvb *features*))
+  ;;(cons :xcvb *features*))
+  ;; In the meantime, just :xcvb to make things deterministic.
+  (list :xcvb))
 
 (defun read-first-file-form (filepath)
   "Reads the first form from the top of a file"

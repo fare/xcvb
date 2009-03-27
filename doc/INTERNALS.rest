@@ -13,25 +13,52 @@ it may or may not be up to date.
 .. contents::
 ..
     1  Files
-      1.1   pkgdcl.lisp
-      1.2   xcvb.lisp
-      1.3   extensions.lisp
-      1.4   utilities.lisp
-      1.5   asdf-extensions.lisp
-      1.6   traverse.lisp
-      1.7   specials.lisp
-      1.8   makefile-generator.lisp
-      1.9   asd-generator.lisp
-      1.10  asdf-converter.lisp
+      1.1   driver.lisp
+      1.2   asdf-extensions.lisp
+      1.3   pkgdcl.lisp
+      1.4   macros.lisp
+      1.5   utilities.lisp
+      1.6   specials.lisp
+      1.7   grains.lisp
+      1.8   portablish-pathnames.lisp
+      1.9   names.lisp
+      1.10  registry.lisp
+      1.11  search-path.lisp
+      1.12  lisp-grain.lisp
+      1.13  lisp-invocation.lisp
+      1.14  string-escape.lisp
+      1.15  asdf-extensions.lisp
+      1.16  extensions.lisp
+      1.17  xcvb.lisp
+      1.18  traverse.lisp
+      1.19  makefile-generator.lisp
+      1.20  asd-generator.lisp
+      1.21  asdf-converter.lisp
+      1.22  main.lisp
     2  Good places to extend XCVB
     3  Notes
       3.1  Fullnames
-      3.2  Random Remarks
-      3.3  TODO
+      3.2  Eager vs Lazy Module Scanning
+      3.3  Random Remarks
+      3.4  TODO
 
 
 Files
 =====
+
+driver.lisp
+-----------
+
+A small collection of utilities to be compiled into buildee processes
+so as to provide an abstraction layer for XCVB.
+
+
+asdf-extensions.lisp
+--------------------
+
+This file adds a function in the asdf package
+to determine whether or not an asdf system needs to be re-compiled.
+
 
 pkgdcl.lisp
 -----------
@@ -39,12 +66,119 @@ pkgdcl.lisp
 This file creates the XCVB package and exports the necessary symbols.
 
 
+macros.lisp
+-----------
+
+A collection of general-purpose macros.
+Most of them should be moved to a library that XCVB would depend upon.
+
+
+utilities.lisp
+--------------
+
+A collection of utility functions.
+Most of them should be moved to a library that XCVB would depend upon.
+
+Also defines many conditions (TODO: move them to another file).
+
+
+specials.lisp
+-------------
+
+A collection of global variables,
+many of which can be used to customize the behavior of the user-visible parts XCVB.
+
+
+grains.lisp
+-----------
+
+Definition of the main datastructures of XCVB and helper functions.
+Named grains after reading
+'BUILD: A tool for maintaining consistency in modular systems'
+by Richard Elliot Robbins, 1985.
+ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
+
+
+portablish-pathnames.lisp
+-------------------------
+
+Abstraction layer to ensure that XCVB uses reasonably portable names when naming modules.
+Internally, XCVB will use the "``/``" character as a pathname directory separator,
+in a way that is guaranteed to work even if the OS-dependent separator is different.
+Also, XCVB will only accept module names where all characters are valid: ``[-_.,A-Za-z0-9]``.
+
+
+names.lisp
+----------
+
+Handles the mapping from file to fullname,
+including recursing in the case that the fullname is
+inherited from a BUILD.lisp up the filesystem tree.
+
+
+registry.lisp
+-------------
+
+Handles the mapping from fullname to grain,
+and conflicts when multiple BUILDs claim the same name.
+
+
+search-path.lisp
+----------------
+
+Handles the search path.
+
+
+lisp-grain.lisp
+---------------
+
+Handles parsing module forms in lisp grains,
+including the naming of other modules within a module form.
+
+
+lisp-invocation.lisp
+--------------------
+
+Handles the invocation of the target lisp system.
+
+
+string-escape.lisp
+------------------
+
+Handles escaping strings, for use in shell invocations and/or
+``Makefile`` commands.
+
+
+asdf-extensions.lisp
+--------------------
+
+OBSOLETE: contains a single function used by other files.
+
+To be removed after refactoring.
+
+
+extensions.lisp
+---------------
+
+OBSOLETE: this file and associated functionality should be replaced
+by some proper build language, inspired by OMake(?).
+
+This file contains the defextension macro
+and a couple of pre-defined extensions.
+
+The defextension macro defines a function and specifies a keyword
+that can be used to specify that function
+in the extension forms part of a module declaration.
+The extension functions from a module form are applied
+right after the module form has been parsed into a module object.
+
+
 xcvb.lisp
 ---------
 
-This file contains the bulk of the code
-to read the module forms from the top of the source files
-and construct the dependency graph.
+OBSOLETE: this file is a remnant from XCVB 0.11 and
+will be replaced by other files.
+It still contains the code that used to construct the dependency graph.
 
 The main entry point into this file is through the functions
 create-dependency-graph and create-dump-image-graph.
@@ -71,34 +205,10 @@ so that there is a way to specify that type of dependency
 in a module declaration.
 
 
-extensions.lisp
----------------
-
-This file contains the defextension macro
-and a couple of pre-defined extensions.
-
-The defextension macro defines a function and specifies a keyword
-that can be used to specify that function
-in the extension forms part of a module declaration.
-The extension functions from a module form are applied
-right after the module form has been parsed into a module object.
-
-
-utilities.lisp
---------------
-
-A collection of utility functions.
-
-
-asdf-extensions.lisp
---------------------
-
-This file adds a function in the asdf package
-to determine whether or not an asdf system needs to be re-compiled.
-
-
 traverse.lisp
 -------------
+
+OBSOLETE: will be replaced as I refactor the grain API.
 
 This file contains the function traverse,
 as composed from a collection of methods.
@@ -110,16 +220,10 @@ from a higher-level description of the operators underlying
 the creation of the graph.
 
 
-specials.lisp
----------------------
-
-A collection of global variables,
-many of which can be used to customize the behavior
-of the user-visible parts XCVB.
-
-
 makefile-generator.lisp
 -----------------------
+
+OUT-OF-DATE: should be rewritten as part of our refactoring.
 
 This file contains the code to take a dependency graph
 and write a Makefile that can be used by make
@@ -141,6 +245,8 @@ is being written to the makefile.
 asd-generator.lisp
 ------------------
 
+OUT-OF-DATE: should be rewritten as part of our refactoring.
+
 This file contains the code to take a dependency graph
 and write an asd file that can be used by asdf
 to compile the system specified by the graph.
@@ -160,6 +266,8 @@ when providing backwards compatibility with ASDF projects.
 asdf-converter.lisp
 -------------------
 
+OUT-OF-DATE: should be rewritten as part of our refactoring.
+
 This file contains the code to take an asdf system
 and write a BUILD.lisp file for it
 and add module forms to the top of all the source files in the system,
@@ -176,6 +284,15 @@ and create or update a BUILD.lisp and update all source files
 to insert a module statement,
 keeping any manual rules from a previously added module statement
 but otherwise overriding the main data.
+
+
+main.lisp
+---------
+
+The main entry file.
+
+TODO: after the refactoring, add some proper command-line interface.
+
 
 
 Good places to extend XCVB
@@ -202,6 +319,85 @@ to specify a component in the system.
 Both modules and nodes have fullnames --
 usually a node will have the same fullname as the module it was generated from
 modulo a different file extension.
+
+
+Eager vs Lazy Module Scanning
+-----------------------------
+
+There are two ways that the search path may be search for modules,
+and we have to choose early on because of the naming implications.
+
+In the eager scanning approach,
+the search paths are scanned for BUILD modules
+at the beginning of the build session,
+avoiding recursion into version control repositories
+or other excluded patterns.
+
+In the lazy scanning approach, the search paths are scanned
+only when a specific module is requested,
+and the path to scan relative to directories in the search path
+can be deduced trivially from the module specification,
+so only a small number of candidate paths need to be searched
+at any time.
+
+In the eager approach,
+the mapping from module name to pathname could be arbitrary,
+developers or system integrators
+would be free to organize their sources as they wish
+and could easily override installed modules
+with the specific versions they need,
+without having to mimic a standard installation
+by moving things around or by using symlinks.
+Significant long hierarchical names could be used
+to disambiguate modules globally
+(but shorter nicknames could also be used if non-ambiguous).
+What would make a module toplevel would be the fact
+that it declares such a fullname.
+The downside would be that eager scanning
+introduces two levels of complexity.
+The first complexity is this naming indirection,
+whereby the whole hierarchy of installed modules
+would have to be scanned at every build,
+or a cache of the module map would have to be maintained
+with timestamp information.
+The second complexity is the fact that eager scanning
+requires lazy evaluation of the scanned modules,
+least the whole Lisp world needs be planned for
+(and conflicts resolved) everytime anything is built;
+it must be possible to extract naming information from
+the module declarations without evaluating any of the
+computations required to otherwise make sense of the module.
+
+The lazy approach is much simpler,
+at the cost of constraining developers and/or system integrators
+to agree on a file hierarchy for their modules.
+This cost seems to be paid happily by developers of
+Perl, OCaml, Python, PLT Scheme, and many more languages,
+so it isn't that high.
+In this approach, what makes a module toplevel is simply that
+it's located at the top of a directory in the search-path.
+
+The lazy approach allows to better scale to compilation of software
+using larger sets of libraries when each piece of software only
+uses a small subset of the libraries.
+It corresponds to what ASDF currently does.
+However, it seems harder to program,
+especially if we are to scan whole filesystem hierarchies
+and still handle conflicts gracefully;
+it is harder to configure if we are to avoid symlinks all over the place
+without forcing things into a centralized hierarchy like other languages do;
+and it opens a larger window to race conditions
+creating unpredictable behaviour if libraries are
+tweaked in the middle of a run.
+
+On the other hand, the eager approach seems to better fit
+the destructured way that Common Lispers currently work
+with respect to filesystem organization (as with other topics)
+and may be a double pain (socially speaking) to first reject
+then to retrofit after the fact if we find it's required.
+Attila Lendvai notably favors the eager approach
+(which was also my initial reflex).
+
 
 Random Remarks
 --------------
