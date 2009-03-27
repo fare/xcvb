@@ -122,9 +122,9 @@ Some files *depend* on other files
 
 Dependencies = arcs of a DAG
 
-Incremental build: only rebuild necessary files:
+Incremental build: only rebuild necessary files
 
-(base case) rebuild if source file was modified
+(base case) rebuild if source was modified
 
 (recursive case) rebuild if any dependency rebuilt
 
@@ -202,11 +202,11 @@ Assumptions Break Down
 
 Many Distributed Lisp Processes.
 
-Many Programmers.
+Many Human Programmers.
 
-Knowledge about dependencies about Distributed.
+No one knows all dependencies.
 
-Uncontrollable interactions of meta-level state.
+Uncontrollable interactions of meta-level side-effect.
 
 
 DEFSYSTEM's Don't Scale
@@ -224,15 +224,15 @@ Latent full build failure (step 1)
 
 ::
 
+  (:file "foo" :depends-on ("base"))
   (:file "bar" :depends-on ("base"))
-  (:file "quux" :depends-on ("base"))
-  (:file "baz" :depends-on ("bar"))
+  (:file "quux" :depends-on ("foo"))
 
-`baz` actually depends on `base`.
+`quux` actually depends on `base`;
 
-`base` is transitively provided by `bar`.
+`base` is transitively provided by `foo`.
 
-`quux` unrelatedly depends on `base`.
+`bar` unrelatedly depends on `base`.
 
 
 Latent full build failure (step 2)
@@ -240,15 +240,15 @@ Latent full build failure (step 2)
 
 ::
 
-  (:file "bar" :depends-on ("packages"))
-  (:file "quux" :depends-on ("base"))
-  (:file "baz" :depends-on ("bar"))
+  (:file "foo")
+  (:file "bar" :depends-on ("base"))
+  (:file "quux" :depends-on ("foo"))
 
-`bar` no longer depends on `base`.
+`foo` no longer depends on `base`.
 
-`quux` happens to load `base` before `baz` is compiled.
+`bar` happens to load `base` before `quux` is compiled.
 
-missing dependency from `baz` to `base` not detected.
+missing dependency from `quux` to `base` not detected.
 
 
 Latent full build failure (step 3)
@@ -256,13 +256,13 @@ Latent full build failure (step 3)
 
 ::
 
-  (:file "bar" :depends-on ("packages"))
-  (:file "quux" :depends-on ("packages"))
-  (:file "baz" :depends-on ("bar"))
+  (:file "foo")
+  (:file "bar")
+  (:file "quux" :depends-on ("foo"))
 
-`quux` no longer loads `base` either.
+`bar` no longer loads `base` either.
 
-`baz` now inexplicably breaks -
+`quux` now inexplicably breaks -
 
 despite lack of any related modifications!
 
@@ -298,11 +298,11 @@ Latent incremental build failure
 
 1- Compile and load FOO, then BAR -- works!
 
-2- Only load FOO, then compile BAR -- fails!
+2- Modify BAR, only load FOO, compile BAR -- fails!
 
-BAR depended on compile-time side-effects of FOO.
+dependency on compile-time side-effects of FOO.
 
-Workaround: only do full builds.
+Workaround: only do full builds?
 
 
 Compile-time interactions
@@ -312,7 +312,7 @@ DEFSYSTEM only compiles what has changed, hence
 
 non-determinism in compile-time side-effects
 
-before a file is compiled.
+present before a file is compiled.
 
 
 Defensive side-effect inclusion
@@ -328,13 +328,13 @@ Never `eval-when` `:compile-toplevel` without `:load-toplevel`
 Defensive side-effect exclusion
 ===============================
 
-Cannot locally bind compile-time state around files.
-
 Compile-time side-effects affect *all* that follow.
 
 If *any* file modifies *any* non-local compile-time state,
 
-unrelated subsequent files might sometime break.
+unrelated subsequent files *might* sometime break.
+
+Cannot locally bind compile-time state around files.
 
 
 Anti-Extensibility Conventions
@@ -347,24 +347,24 @@ Anti-Extensibility Conventions
   If you give someone Fortran, he has Fortran.
   If you give someone Lisp, he has any language he pleases. (gls)
 
-  ... but it cannot be the same as anyone else's.
+  ... but that language cannot be the same as anyone else's.
 
 
 Social consequences
 ===================
 
-[A] Computer [programming] language is inherently a pun -
-[it] needs to be interpreted by both men & machines. (hbaker)
+[A programming] language is inherently a pun ...
+needs to be interpreted by both men & machines. (hbaker)
 
-PL structure does not matter to the machine.
+Machines don't care about PL structure.
 
 Humans care for more than a Turing tar-pit.
 
 Technical design of PL has social consequences.
 
 
-Scaling
-=======
+Practical Problem
+=================
 
 At ITA Software, no true incremental build.
 
@@ -419,8 +419,8 @@ Well-defined context: compile from initial World.
 Just like any modern language! (Haskell, OCaml...)
 
 
-XCVB Yesterday
-==============
+Already in XCVB
+===============
 
 *Separate Compilation*, incremental build.
 
@@ -435,8 +435,8 @@ XCVB Yesterday
 *Automated migration* to/from ASDF.
 
 
-XCVB Today
-==========
+Current TODO
+============
 
 Multi-system build: naming, compile, migration.
 
@@ -451,8 +451,8 @@ Migrate & maintain critical mass of libraries.
 Distribution system (clbuild, mudballs).
 
 
-XCVB Tomorrow
-=============
+Future Opportunities
+====================
 
 Distribution, caching...
 
@@ -464,7 +464,7 @@ Syntax contexts: reader, grammar, hygiene...
 
 Semantic modules: namespaces, typing/contracts...
 
-Execution models: callcc? debug? migrate?
+Execution models: debug? continuation? serializable?
 
 
 Required CL extensions
@@ -504,10 +504,6 @@ Modularity is about *human* division of labor.
 
 Minimize cognitive burden of collaboration.
 
-Technique and social aspects linked.
-
-The Universe is dead - Long live the Multiverse!
-
 Better Stories, Better Languages.
 
 
@@ -516,7 +512,7 @@ The End
 
 Credits: ITA, James Knight, Juho Snellman, Spencer Brody.
 
-XCVB currently undergoing major refactoring.
+Major refactoring of XCVB.
 
 2(?) interns in Summer 2009: apply XCVB to ITA projects.
 
