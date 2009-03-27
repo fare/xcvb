@@ -57,19 +57,26 @@ etc.
 Home page
 ---------
 
-The home page of the project is at
+The home page of the project is at:
+
 	http://common-lisp.net/project/xcvb/
 
-You can checkout our public repository with
+You can checkout our public repository with:
+
 	git clone http://common-lisp.net/project/xcvb/xcvb.git
 
-Or if you are a project member, you can obtain write access using
+Or if you are a project member, you can obtain write access using:
+
 	git clone ssh://USER@common-lisp.net/project/xcvb/public_html/xcvb.git
 
-You can also browse the repository at
+You can also browse the repository at:
+
 	http://github.com/fare/xcvb/tree/master
 
-NB: use `git checkout xcvb_0.11` for the latest stable release.
+To use the latest working prototype, you should checkout
+the properly tagged code in a branch::
+
+	git checkout -b working_prototype xcvb_0.11
 
 
 Dependencies
@@ -89,6 +96,9 @@ You will need the following pieces of software to get XCVB running:
   * asdf-dependency-grovel:
 	http://cliki.net/asdf-dependency-grovel
 
+  * Closer to MOP:
+	http://common-lisp.net/project/closer/closer-mop.html
+
 Timeline
 --------
 
@@ -106,6 +116,7 @@ Francois-Rene Rideau restarted work on it
 and released an initial semi-usable prototype
 in mid December 2008, where the above hacks were automated away.
 
+ILC'09 has passed, and
 We hope to have a complete release with example and documentation
 ready for showing at ILC'09 by March 2009.
 

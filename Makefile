@@ -85,8 +85,8 @@ Pull:
 	git pull common-lisp.net:/project/xcvb/public_html/xcvb.git master:master
 
 push:
-	git push git@github.com:fare/xcvb.git master:master
-	git push common-lisp.net:/project/xcvb/public_html/xcvb.git master:master
+	git push --tags git@github.com:fare/xcvb.git master:master
+	git push --tags common-lisp.net:/project/xcvb/public_html/xcvb.git master:master
 
 show-current-revision:
 	git show --pretty=oneline HEAD | head -1 | cut -d' ' -f1
