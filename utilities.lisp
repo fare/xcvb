@@ -80,3 +80,6 @@
                  (map () #'add1 (funcall children-f x)))))
       (add1 x))
     (nreverse r)))
+
+(define-memo-function make-the (class &rest args)
+  (apply #'make-instance class args))

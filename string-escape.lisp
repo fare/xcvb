@@ -75,5 +75,13 @@ or escapes of the form (:makefile string) that won't be escaped."
 	       (t
 		(error "Invalid token member ~S" tok))))))
 
-#|
-|#
+(defun shell-tokens-to-string (tokens &optional out)
+  (with-output (out)
+    (loop :for tok :in tokens
+	  :for () = () :then (when tok (write-char #\space out))
+	  :do (cond
+	       ((null tok))
+	       ((stringp tok)
+		(escape-shell-token tok out))
+	       (t
+		(error "Invalid token ~S" tok))))))

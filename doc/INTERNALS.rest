@@ -99,6 +99,18 @@ by Richard Elliot Robbins, 1985.
 ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
 
 
+lisp-invocation.lisp
+--------------------
+
+Handles the invocation of the target lisp system.
+
+
+computations.lisp
+-----------------
+
+Computations from (set of) grains to (set of) grains.
+
+
 portablish-pathnames.lisp
 -------------------------
 
@@ -136,10 +148,10 @@ Handles parsing module forms in lisp grains,
 including the naming of other modules within a module form.
 
 
-lisp-invocation.lisp
---------------------
+fasl-grain.lisp
+---------------
 
-Handles the invocation of the target lisp system.
+Handles the compiling of lisp grains into fasl grains.
 
 
 string-escape.lisp
@@ -149,12 +161,16 @@ Handles escaping strings, for use in shell invocations and/or
 ``Makefile`` commands.
 
 
-asdf-extensions.lisp
+asdf-dependencies.lisp
+----------------------
+
+Support for dependencies upon ASDF systems.
+
+
+static-backends.lisp
 --------------------
 
-OBSOLETE: contains a single function used by other files.
-
-To be removed after refactoring.
+Builds a static graph, for use with GNU Make, ASDF, and other static backends.
 
 
 extensions.lisp

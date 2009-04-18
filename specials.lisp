@@ -9,11 +9,11 @@
 (defvar *lisp-image-pathname* nil
   "What path to a Lisp image do we need invoke the target Lisp with?")
 
+(defvar *lisp-flags* :default
+  "What options do we need invoke the target Lisp with?")
+
 (defvar *lisp-setup-dependencies* nil
   "What dependencies should we compile into our stage1 lisp image ?")
-
-(defvar *lisp-options* nil
-  "What options do we need invoke the target Lisp with?")
 
 (defvar *use-cfasls* (eq *lisp-implementation-type* :sbcl)
   "Should we assume the target Lisp supports CFASL?")

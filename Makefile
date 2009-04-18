@@ -80,7 +80,7 @@ online-doc: doc
 test:
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-test --restart xcvb::quit
 
-Pull:
+pull:
 	git pull git@github.com:fare/xcvb.git master:master
 	git pull common-lisp.net:/project/xcvb/public_html/xcvb.git master:master
 

@@ -149,18 +149,6 @@ in some dependency declaration is as follows:
      then the identification fails and the build aborts.
 
 
-Search Path [V1] (done)
------------------------
-
-We need to be able to name modules independently
-from their specific location on a given machine,
-especially since source files are installed on different paths
-on different machines,
-including machines that may partake in the same distributed build.
-
-See the README.rest, section 'search path'.
-
-
 Automatically install modules from the Internet [V5]
 ----------------------------------------------------
 

@@ -29,7 +29,10 @@
     :documentation "digest of the build command with actual dependencies")
    (content-digest
     :accessor grain-content-digest
-    :documentation "digest of the contents of the grain."))
+    :documentation "digest of the contents of the grain.")
+   (computation
+    :initarg :computation
+    :reader grain-computation))
   (:documentation "Mixin for a grain you can build (for V2)"))
 
 (defclass persistent-grain (grain)
@@ -40,9 +43,10 @@
   ()
   (:documentation "Active computational grain"))
 
-(defclass phony-grain (grain)
-  ()
-  (:documentation "Other grain"))
+(defclass phony-grain (buildable-grain)
+  ((fullname
+    :initarg :fullname))
+  (:documentation "virtual grain used for side-effects"))
 
 (defclass file-grain (persistent-grain buildable-grain)
   ((pathname
@@ -54,33 +58,27 @@
 (defclass documented-grain (grain)
   ((author
     :initarg :author
-    :reader author
-    :initform nil
+    ;;:reader author
     :documentation "The author of the grain")
    (maintainer
     :initarg :maintainer
-    :reader maintainer
-    :initform nil
+    ;;:reader maintainer
     :documentation "The maintainer(s) of the file")
    (version
     :initarg :version
-    :reader version
-    :initform nil
+    ;;:reader version
     :documentation "The version number of the file")
    (licence
     :initarg :licence
-    :reader licence
-    :initform nil
+    ;;:reader licence
     :documentation "The licence being used for the file")
    (description
     :initarg :description
-    :reader description
-    :initform nil
+    ;;:reader description
     :documentation "A short description of the file")
    (long-description
     :initarg :long-description
-    :reader long-description
-    :initform nil
+    ;;:reader long-description
     :documentation "A detailed description of the file"))
   (:documentation "Documented grain"))
   
@@ -126,6 +124,22 @@
     :documentation "A list of dependencies that apply to all files in the
 system specified by this BUILD.lisp file.
 These dependencies will be loaded first thing
+into an image that will be used for all future compile/load operations")
+   (build-requires
+    :initarg :build-requires
+    :accessor build-requires
+    :initform nil
+    :documentation "A list of dependencies that apply to all files in the
+system specified by this BUILD.lisp file.
+These dependencies will be loaded first thing
+into an image that will be used for all future compile/load operations")
+   (build-image
+    :initarg :build-image
+    :accessor build-image
+    :initform t
+    :documentation "A list of dependencies that apply to all files in the
+system specified by this BUILD.lisp file.
+These dependencies will be loaded first thing
 into an image that will be used for all future compile/load operations"))
   (:documentation "BUILD.lisp file grain"))
 
@@ -136,6 +150,8 @@ into an image that will be used for all future compile/load operations"))
 (defclass cfasl-grain (file-grain)
   ()
   (:documentation "Lisp CFASL file grain"))
+
+
 
 ;------>8------>8------>8------>8------>8------>8------>8------>8------>8------
 

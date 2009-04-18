@@ -14,44 +14,41 @@ and the load dependencies depending on load-time effects of the files."
        (loop
          :for comp-dep :in (lisp-compile-depends-on module)
          :for load-dep :in (lisp-load-depends-on module)
-         :always (and (listp comp-dep)
-                     (eql (first comp-dep) :compile)
-                     (null (rest (rest comp-dep)))
-                     (if (listp load-dep)
+         :always (and (consp comp-dep)
+                      (eql (first comp-dep) :compile)
+                      (null (rest (rest comp-dep)))
+                      (if (consp load-dep)
                         (and (eql (first load-dep) :load)
                              (null (rest (rest load-dep)))
                              (equal (second load-dep) (second comp-dep)))
                         (equal load-dep (second comp-dep)))))))
 
-(defun module-string (module)
+(defun module-string (grain)
   "Returns a string representation of a module object that can be put at the
 top of a source file"
   (with-output-to-string (out)
     (format out "#+xcvb~%(module (")
-    (when (typep module 'build-grain)
-      (format out "~@[~%~7,0T:fullname ~s~]" (fullname module)))
-    (format out "~@[~%~7,0T:author ~s~]" (author module))
-    (format out "~@[~%~7,0T:maintainer ~s~]" (maintainer module))
-    (format out "~@[~%~7,0T:version ~s~]" (version module))
-    (format out "~@[~%~7,0T:description ~s~]" (description module))
-    (format out "~@[~%~7,0T:long-description ~s~]" (long-description module))
-    (format out "~@[~%~7,0T:licence ~s~]" (licence module))
+    (when (typep grain 'build-grain)
+      (format out "~@[~%~7,0T:fullname ~s~]" (fullname grain)))
+    (dolist (slot '(author maintainer version licence description long-description))
+      (when (slot-boundp grain slot)
+        (format out "~@[~%~7,0T:~(~A) ~S~]" slot (slot-value grain slot))))
     (cond
-      ((equivalent-deps-p module)
+      ((equivalent-deps-p grain)
        (format out "~@[~%~7,0T:depends-on (~%~14,7T~{~15,0T~s~^~%~})~]"
-               (lisp-load-depends-on module)))
+               (lisp-load-depends-on grain)))
       (t
        (format out
                "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~s~^~%~})~]"
-               (lisp-compile-depends-on module))
+               (lisp-compile-depends-on grain))
        (format out
                "~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~s~^~%~})~]"
-               (lisp-load-depends-on module))))
+               (lisp-load-depends-on grain))))
     (format out ")")
-    (if (and (typep module 'build-grain) (build-requires module))
+    (if (and (typep grain 'build-grain) (build-requires grain))
       (format out "~@[~%~7,0T(:set :this-module :build-requires ~s)~]"
-              (build-requires module)))
-    (format out "~@[~%~{~7,0T~s~^~%~}~]" (grain-extension-forms module))
+              (build-requires grain)))
+    (format out "~@[~%~{~7,0T~s~^~%~}~]" (grain-extension-forms grain))
     (format out ")")))
 
 (defun read-comment-header (in)
@@ -169,33 +166,33 @@ form if there is one (but leaving the extension forms)."
                    :type "lisp"
                    :defaults (asdf:component-pathname asdf-system))))))
 
-(defun dependency-sort (components system)
+(defun dependency-sort (components system name-to-module)
   "Sorts a list of asdf components according to their dependencies."
-  (let ((name-to-module (make-hash-table :test 'equal))) ; Precompute to avoid O(n^2) behavior
-    (dolist (c (asdf:module-components system))          ; Should be lifted upwards.
-      (setf (gethash (asdf:component-name c) name-to-module) c))
-    (flet ((carname (x) (asdf:component-name (car x)))
-	   (nameop (x) (list (gethash x name-to-module))))
+  (flet ((carname (x) (asdf:component-name (car x)))
+         (nameop (x) (list (gethash x name-to-module))))
     (mapcar #'carname
-	    (asdf-dependency-grovel::components-in-traverse-order
-	     system (mapcar #'nameop components))))))
+            (asdf-dependency-grovel::components-in-traverse-order
+             system (mapcar #'nameop components)))))
 
-(defun get-module-for-component (asdf-component build-grain asdf-system)
+(defun get-module-for-component (asdf-component build-grain asdf-system name-to-module)
   "Returns a module object for the file represented by the given asdf-component"
   (let* ((dependencies
-          (dependency-sort (get-dependencies-from-component asdf-component)
-                           asdf-system))
+          (dependency-sort
+           (get-dependencies-from-component asdf-component) asdf-system name-to-module))
          (filepath (asdf:component-pathname asdf-component))
-         (fullname (strcat ;NUN
+         (fullname (strcat
                     (fullname build-grain)
                     "/"
-                    (enough-namestring
-                     (make-pathname :type nil :defaults filepath)
-                     (grain-pathname build-grain)))))
-    (make-instance 'standard-module
+                    (portable-pathname-output
+                     (enough-namestring
+                      (make-pathname :type nil :defaults filepath)
+                      (grain-pathname build-grain))
+                     :allow-absolute nil))))
+    (make-instance 'lisp-grain
       :fullname fullname
-      :filepath filepath
+      :pathname filepath
       :build-grain build-grain
+      :computation nil
       :compile-depends-on (if *use-cfasls*
                             (mapcar (lambda (dep) (list :compile dep))
                                     dependencies)
@@ -204,6 +201,12 @@ form if there is one (but leaving the extension forms)."
 
 
 (defvar *components-path* #p"/tmp/simplified-system-components.lisp-expr")
+
+(defun name-to-module-map (system)
+  (let ((name-to-module (make-hash-table :test 'equal)))
+    (dolist (c (asdf:module-components system))
+      (setf (gethash (asdf:component-name c) name-to-module) c))
+    name-to-module))
 
 (defun asdf-to-xcvb (&key
 		     system
@@ -247,11 +250,11 @@ so that the system can now be compiled with XCVB."
   (let ((asdf-system (asdf:find-system :migrated-system)))
       (setf (slot-value asdf-system 'asdf::name) (asdf::coerce-name (first systems)))
       (setf (slot-value asdf-system 'asdf::relative-pathname) base-pathname)
-      (let* ((*default-pathname-defaults* base-pathname)
-	     (build-grain (get-build-grain-for-asdf-system asdf-system
-							     (mapcar #'asdf:find-system systems))))
+      (let ((*default-pathname-defaults* base-pathname)
+            (build-grain (get-build-grain-for-asdf-system
+                          asdf-system (mapcar #'asdf:find-system systems)))
+            (name-to-module (name-to-module-map asdf-system))) ; Precompute to ensure O(n) behavior
 	(add-module-to-file build-grain)
 	(dolist (component (asdf:module-components asdf-system))
-	  (add-module-to-file (get-module-for-component component
-							build-grain
-							asdf-system))))))
+	  (add-module-to-file (get-module-for-component
+                               component build-grain asdf-system name-to-module))))))
