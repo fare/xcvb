@@ -3,17 +3,21 @@
 (defclass computation () ())
 (defclass computation-type () ())
 
+;;(defparameter *computations-inputing-grain*
+;;  (make-hash-table :test 'equal)
+;;  "hash mapping each grain to a list of computations that take said grain as input")
+
 (defclass concrete-computation (computation)
-  (inputs
+  ((inputs
    :initarg :inputs
    :accessor computation-inputs)
-  (outputs
+   (outputs
    :initarg :outputs
    :accessor computation-outputs)
-  ;; (side-effects) ; for additional files being side-effected
-  (command
-   :initarg :command
-   :accessor computation-command))
+   ;; (side-effects) ; for additional files being side-effected
+   (command
+    :initarg :command
+    :accessor computation-command)))
 
 (defgeneric computation-inputs (computation))
 (defgeneric computation-outputs (computation))
@@ -37,7 +41,7 @@
     :accessor lisp-image)
    (flags
     :initarg :flags
-    :initarg *lisp-flags*
+    :initform *lisp-flags*
     :accessor lisp-flags)))
 
 (defun make-lisp-command (&rest r)
@@ -91,3 +95,10 @@
          (computation (make-nop-computation dependencies (list grain))))
     (setf (grain-computation grain) computation)
     grain))
+
+;;; TODO: use a more declarative model to describe the various types of objects
+;;; and the types of relations between them within a given first-class context,
+;;; so that there can be pure functions from context to context,
+;;; mapping sets of facts (atoms and relationships) to sets of facts.
+;;; make good use of linear relationships for in-place modification,
+;;; automatically create indices, etc.

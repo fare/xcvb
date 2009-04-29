@@ -21,9 +21,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
     :components
     ((:file "driver")
      (:file "asdf-extensions" :depends-on ("driver"))
-     (:file "pkgdcl" :depends-on ("driver"))
-     (:file "macros" :depends-on ("pkgdcl"))
      (:file "memoization")
+     (:file "pkgdcl" :depends-on ("driver" "memoization"))
+     (:file "macros" :depends-on ("pkgdcl"))
      (:file "utilities" :depends-on ("macros" "memoization"))
      (:file "specials" :depends-on ("utilities"))
      (:file "grains" :depends-on ("utilities"))

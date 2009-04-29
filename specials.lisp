@@ -9,6 +9,9 @@
 (defvar *lisp-image-pathname* nil
   "What path to a Lisp image do we need invoke the target Lisp with?")
 
+(defvar *lisp-image-name* nil
+  "What fullname to a Lisp image do we need invoke the target Lisp with?")
+
 (defvar *lisp-flags* :default
   "What options do we need invoke the target Lisp with?")
 

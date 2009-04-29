@@ -3,8 +3,7 @@
  (:description "package for XCVB"))
 
 (cl:defpackage :xcvb
-  (:use :cl :xcvb-driver :closer-mop)
-  (:import-from :xcvb-driver #:quit)
+  (:use :cl :xcvb-driver :closer-mop :memoization)
   (:import-from :cl-launch #:DBG)
   (:export
 
@@ -75,4 +74,4 @@
      #:dependency-cycle))
 
 (cl:defpackage :xcvb-user
-  (:use :common-lisp :xcvb))
+  (:use :common-lisp :xcvb-driver :xcvb))

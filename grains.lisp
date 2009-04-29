@@ -125,22 +125,11 @@
 system specified by this BUILD.lisp file.
 These dependencies will be loaded first thing
 into an image that will be used for all future compile/load operations")
-   (build-requires
-    :initarg :build-requires
-    :accessor build-requires
-    :initform nil
-    :documentation "A list of dependencies that apply to all files in the
-system specified by this BUILD.lisp file.
-These dependencies will be loaded first thing
-into an image that will be used for all future compile/load operations")
    (build-image
     :initarg :build-image
     :accessor build-image
     :initform t
-    :documentation "A list of dependencies that apply to all files in the
-system specified by this BUILD.lisp file.
-These dependencies will be loaded first thing
-into an image that will be used for all future compile/load operations"))
+    :documentation "Relative pathname of the executable to produce, if any"))
   (:documentation "BUILD.lisp file grain"))
 
 (defclass fasl-grain (file-grain)
@@ -151,6 +140,9 @@ into an image that will be used for all future compile/load operations"))
   ()
   (:documentation "Lisp CFASL file grain"))
 
+(defclass image-grain (file-grain)
+  ()
+  (:documentation "Dumped Image"))
 
 
 ;------>8------>8------>8------>8------>8------>8------>8------>8------>8------

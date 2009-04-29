@@ -19,6 +19,12 @@ then enriched as we build the graph from the main BUILD file.")
 (defun (setf registered-grain) (grain name)
   (setf (gethash name *grains*) grain))
 
+(defun make-grain (class &rest args &key fullname &allow-other-keys)
+  (let ((previous (registered-grain fullname)))
+    (or previous
+        (let ((grain (apply #'make-instance args)))
+          (setf (registered-grain fullname) grain)
+          grain))))
 
 ;;; Special magic for build entries in the registry
 
@@ -48,7 +54,8 @@ for each of its registered names."
     (when fullname
       (setf (bre-root build-grain) root)
       (dolist (name (cons fullname (nicknames build-grain)))
-        (register-build-named name build-grain root)))))
+        (register-build-named name build-grain root))))
+  (values))
 
 (defun register-build-named (name build-grain root)
   "Register under NAME pathname BUILD found in user-specified ROOT."
@@ -76,5 +83,5 @@ for each of its registered names."
       (t
        ;; There was a previous entry in a previous root,
        ;; the previous entry takes precedence -- do nothing.
-       nil)))
-  nil)
+       )))
+  (values))

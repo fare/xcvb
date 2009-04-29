@@ -55,3 +55,4 @@ with a hash-table H, being called with arguments ARGS"
          (labels ((,fun ,formals (block ,name ,@body))
                   (,name (&rest ,args) (compute-memoized-function #',fun ,h ,args)))
            (apply #',name ,args))))))
+

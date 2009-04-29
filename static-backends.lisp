@@ -12,33 +12,65 @@ if said computation is of the form
 (nth-value n computation)
 
 grain-result-index
+
+
+:around method static-graph-for
+makes sure we only compute once
+typechecks inner methods
+
 |#
 
 
 (defun static-graph-for-build-grain (grain)
-  (check-type grain 'build-grain)
+  (check-type grain build-grain)
   (let* (;; Build pre-image if needed
          (pre-image
           (when (build-requires grain)
-            (make-image-grain
-             (build-pre-image-pathname grain)
+            (static-graph-for-image-grain
+             (build-pre-image-name grain)
              (build-requires grain))))
-         (*lisp-image-pathname*
+         (*lisp-image-name*
           (if pre-image
             (grain-pathname pre-image)
-            *lisp-image-pathname*)))
-    ;;; recurse on dependencies, as for a lisp file
-    (static-graph-for-lisp-dependencies grain)
+            *lisp-image-name*)))
     ;;; build post-image if needed
-    (let* ((post-image-pathname (build-image-pathname grain)))
+    (let* ((post-image-name (build-image-name grain))
+           (dependencies (grain-dependencies grain)))
       (if post-image-pathname
-        (make-image-grain post-image-pathname (list grain))
+        (static-graph-for-image-grain
+         post-image-pathname
+         dependencies)
         (make-phony-grain :name `(:build ,(fullname grain))
-                          :dependencies (grain-dependencies grain))))))
+                          :dependencies dependencies)))))
+
+(defun static-graph-for-image-grain (name dependencies)
+  (let* ((grain
+          (make-grain 'image-grain
+            :fullname `(:image ,name)))
+         (dependency-grains
+          (mapcar #'static-graph-for dependencies))
+         (computation
+          (make-instance 'computation
+            :outputs (list grain)
+            :inputs dependency-grains
+            :command
+            `(:lisp
+              :image ,*lisp-image-name*
+              ,@(mapcar #'(lambda (x) `(:load x)) dependency-grains)
+              (:save-image ,name)))))
+    grain))
+
+build-pre-image-name
+make-phony-grain
+static-graph-for
+
 
 (defun static-graph-for-lisp-dependencies (grain)
-  (check-type grain 'lisp-grain)
-  ...)
+  (check-type grain lisp-grain)
+  (dolist (dep (append (lisp-compile-depends-on grain)
+                       (lisp-load-depends-on grain)))
+    (static-graph-for dep)))
+
 
 
 (define-traverse ((node asdf-system-node) operation)

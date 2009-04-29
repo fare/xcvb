@@ -109,16 +109,10 @@
         (simply-error 'grain-not-found
                       "The grain with name ~S cannot be found" name)))
 
-(defun build-image-pathname (build-grain)
-  (check-type build-grain 'build-grain)
+(defun build-image-name (build-grain)
+  (check-type build-grain build-grain)
   (let ((image (build-image build-grain)))
-    (labels ((resolve-pathname (p)
-               (merge-pathnames p (pathname-directory-pathname (grain-pathname build-grain))))
-             (resolve-string (s)
-               (resolve-pathname (portable-pathname-from-string s :allow-absolute nil))))
-      (etypecase image
-        (null nil)
-        (pathname (resolve-pathname image))
-        (string (resolve-string image))
-        ((eql t) (resolve-string
-                  (pathname-name (portable-pathname-from-string (fullname build-grain)))))))))
+    (etypecase image
+      (null nil)
+      (string image)
+      ((eql t) (fullname build-grain)))))
