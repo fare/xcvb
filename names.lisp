@@ -113,11 +113,17 @@ if there isn't one there already"
                                   (return (registered-grain name)))
         :for postfix = nil then (subseq name (1+ p))
         :for build = (if prefix (registered-grain prefix))
-        :for grain = (and (typep build 'build-grain)
-                          (if postfix
+        :for grain = (etypecase build
+                       (null nil)
+                       (build-grain
+                        (if postfix
                             (resolve-module-name-at postfix build)
                             build))
+                       (build-registry-conflict
+                        (error "Trying to use component ~S for conflicted build name ~S"
+                               postfix prefix)))
         :when (typep grain 'grain) :do (return grain)))
 
 (defun resolve-module-name-at (name build)
+  (check-type build build-grain)
   (probe-file-grain (module-subpathname (grain-pathname build) name)))

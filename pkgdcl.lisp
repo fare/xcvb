@@ -37,6 +37,7 @@
 
      ;; portablish-pathnames
      #:pathname-directory-pathname
+     #:subpathname
 
      ;; Grains
      #:grain
@@ -62,6 +63,7 @@
 
      ;; registry
      #:registered-grain
+     #:build-registry-conflict
 
      ;; names
      #:resolve-module-name

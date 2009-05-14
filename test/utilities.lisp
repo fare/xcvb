@@ -1,4 +1,4 @@
-(in-package :xcvb-test)
+(in-package :xcvb)
 
 (assert
  (equal

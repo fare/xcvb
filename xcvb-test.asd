@@ -20,9 +20,9 @@
     :long-description ""
     :depends-on (:xcvb)
     :components
-    ((:file "pkgdcl" :pathname "test/pkgdcl")
+    (;;(:file "pkgdcl" :pathname "test/pkgdcl")
      (:module "test"
-              :depends-on ("pkgdcl")
+              ;;:depends-on ("pkgdcl")
               :components
               ((:file "utilities")
                (:file "search-path")))))

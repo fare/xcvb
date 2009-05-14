@@ -7,7 +7,7 @@
 
 (defparameter *grains*
   (make-hash-table :test 'equal)
-  "A registry of known BUILDs,
+  "A registry of known grains,
 indexed by normalized name, either fullname of a module,
 nickname, or SEXP representing a computed entity.
 Initially populated with all BUILD.lisp files from the search path,

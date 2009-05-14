@@ -297,3 +297,10 @@ Did you mix up the ordering?" f))
 
 (define-memo-function make-the (class &rest args)
   (apply #'make-instance class args))
+
+
+;;; hash tables
+
+(defun hash-table->alist (table)
+  (loop for key being the hash-keys of table using (hash-value value)
+	collect (cons key value)))

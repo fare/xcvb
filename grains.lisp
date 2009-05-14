@@ -91,12 +91,15 @@
 
 (defclass lisp-grain (documented-file-grain)
   ((compile-depends-on
+    :initform nil
     :initarg :compile-depends-on
     :accessor compile-depends-on)
    (depends-on
+    :initform nil
     :initarg :depends-on
     :accessor depends-on)
    (load-depends-on
+    :initform nil
     :initarg :load-depends-on
     :accessor load-depends-on)
    (extension-forms

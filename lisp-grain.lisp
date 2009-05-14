@@ -10,14 +10,13 @@
   (declare (ignore options))
   nil)
 
-(defun parse-module-declaration (form &key path build-p fullname)
+(defun parse-module-declaration (form &key path build-p)
   "Takes a module declaration FORM and returns a grain object for that module."
   (unless (module-form-p form)
     (error "Invalid or missing module declaration"))
   (destructuring-bind ((&rest keys) &rest extension-forms) (cdr form)
     (apply #'make-instance (if build-p 'build-grain 'lisp-grain)
            :pathname path :extension-forms extension-forms
-           :fullname fullname
            :computation nil
            keys)))
 
