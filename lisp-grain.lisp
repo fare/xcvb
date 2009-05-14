@@ -10,13 +10,14 @@
   (declare (ignore options))
   nil)
 
-(defun parse-module-declaration (form &key path build-p)
+(defun parse-module-declaration (form &key path build-p fullname)
   "Takes a module declaration FORM and returns a grain object for that module."
   (unless (module-form-p form)
     (error "Invalid or missing module declaration"))
   (destructuring-bind ((&rest keys) &rest extension-forms) (cdr form)
     (apply #'make-instance (if build-p 'build-grain 'lisp-grain)
            :pathname path :extension-forms extension-forms
+           :fullname fullname
            :computation nil
            keys)))
 
@@ -59,11 +60,8 @@
 (defmethod initialize-instance :after ((module lisp-grain) &key depends-on)
   (when depends-on
     (with-slots (compile-depends-on load-depends-on) module
-      (setf compile-depends-on
-            (append (mapcar (lambda (dep) (list :compile dep)) depends-on)
-                    compile-depends-on)
-            load-depends-on
-            (append depends-on load-depends-on)))))
+        (setf compile-depends-on (append (mapcar #'compiled-dependency depends-on) compile-depends-on)
+              load-depends-on (append depends-on load-depends-on)))))
 
 (defun make-grain-from-file (path &key build-p)
   "Takes a PATH to a lisp file, and returns the corresponding grain."
@@ -108,6 +106,16 @@
         (grain-from-fullname name)
         (simply-error 'grain-not-found
                       "The grain with name ~S cannot be found" name)))
+
+(defun build-pre-image-name (build-grain)
+  (check-type build-grain build-grain)
+  (let ((image (build-pre-image build-grain)))
+    (etypecase image
+      (string image)
+      ((eql t) (merge-pathnames
+                (portable-pathname-from-string (fullname build-grain))
+                (portable-pathname-from-string "pre-image/"))))))
+
 
 (defun build-image-name (build-grain)
   (check-type build-grain build-grain)

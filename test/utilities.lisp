@@ -12,5 +12,6 @@
 
 (assert
  (equal
-  (flatten-f '((1 (2)) 3 4 5) (lambda (x) (cond ((null x) nil) ((consp x) x) (t (list x)))))
+  (all-descendents-f '((1 (2)) 3 4 5)
+                     (lambda (x) (if (listp x) x (list x))))
   '(((1 (2)) 3 4 5) (1 (2)) 1 (2) 2 3 4 5)))

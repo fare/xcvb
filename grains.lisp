@@ -32,7 +32,10 @@
     :documentation "digest of the contents of the grain.")
    (computation
     :initarg :computation
-    :reader grain-computation))
+    :accessor grain-computation)
+   (computation-index ;; index of the grain amongst the outputs of the computation
+    :initarg :computation-index
+    :accessor grain-computation-index))
   (:documentation "Mixin for a grain you can build (for V2)"))
 
 (defclass persistent-grain (grain)
@@ -89,13 +92,13 @@
 (defclass lisp-grain (documented-file-grain)
   ((compile-depends-on
     :initarg :compile-depends-on
-    :accessor lisp-compile-depends-on)
+    :accessor compile-depends-on)
    (depends-on
     :initarg :depends-on
-    :accessor lisp-depends-on)
+    :accessor depends-on)
    (load-depends-on
     :initarg :load-depends-on
-    :accessor lisp-load-depends-on)
+    :accessor load-depends-on)
    (extension-forms
     :initarg :extension-forms
     :accessor grain-extension-forms
@@ -125,11 +128,16 @@
 system specified by this BUILD.lisp file.
 These dependencies will be loaded first thing
 into an image that will be used for all future compile/load operations")
+   (build-pre-image
+    :initarg :build-pre-image
+    :accessor build-pre-image
+    :initform t
+    :documentation "Relative portablish pathname of an image to build for requirements")
    (build-image
     :initarg :build-image
     :accessor build-image
     :initform t
-    :documentation "Relative pathname of the executable to produce, if any"))
+    :documentation "Relative portablish pathname of the executable to produce, if any"))
   (:documentation "BUILD.lisp file grain"))
 
 (defclass fasl-grain (file-grain)
@@ -151,10 +159,10 @@ into an image that will be used for all future compile/load operations")
   (:documentation "List of all the direct grain dependencies"))
 
 (defgeneric all-dependencies (grain)
-  (:documentation "List of all the direct grain dependencies"))
+  (:documentation "List of all the transitive grain dependencies"))
 
 (defmethod all-dependencies (grain)
-  (flatten-f grain #'direct-dependencies))
+  (all-descendents-f grain #'direct-dependencies))
 
 
 #|
@@ -176,8 +184,8 @@ into an image that will be used for all future compile/load operations")
           (implementation lisp-implementation))
   :output ((fasl fasl-grain) &key
            (cfasl cfasl-grain))
-  :binding ((dependencies (lisp-compile-dependencies lisp)))
-  :dependencies (lisp-compile-dependencies lisp)
+  :binding ((dependencies (compile-dependencies lisp)))
+  :dependencies (compile-dependencies lisp)
   :execute (in-process
             (lisp-process
              :implementation implementation

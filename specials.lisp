@@ -22,7 +22,7 @@
   "Should we assume the target Lisp supports CFASL?")
 
 (defvar *xcvb-setup-dependencies*
-  '("driver.lisp" "asdf-extensions.lisp")
+  '((:lisp "/xcvb/driver") (:lisp "/xcvb/asdf-extensions"))
   "Dependencies in the buildee image, as required for XCVB to work properly.")
 
 (defvar *search-path* '()
@@ -33,8 +33,14 @@
 ;;; Ideally, the form would be evaluated when you dump the image,
 ;;; not when you compile the FASL.
 (defvar *xcvb-lisp-directory*
-  (pathname (concatenate 'string (cl-launch:getenv "INSTALL_LISP") "/"))
+  (pathname (strcat (cl-launch:getenv "INSTALL_LISP") "/"))
   "Directory pathname for the location where XCVB Lisp files are installed")
 
 (defvar *lisp-allow-debugger* nil
   "Should we allow interactive debugging of failed build attempts?")
+
+(defvar *build* nil
+  "current build")
+
+;;(defvar *operating-mode* :loading
+;;  "current operating mode: :LOADING, :COMPILING")

@@ -96,8 +96,8 @@ leading to this node from other nodes with crypto hash values, e.g.
                            (dependency dependency-graph-node)
                            &key type)
   (case type
-    (:load (push dependency (lisp-load-depends-on node)))
-    (:compile (push dependency (lisp-compile-depends-on node)))
+    (:load (push dependency (load-depends-on node)))
+    (:compile (push dependency (compile-depends-on node)))
     (otherwise (error "Invalid type of dependency.
 Must be either :compile or :load"))))
 
@@ -348,7 +348,7 @@ that grain's dependencies, and adds them as dependencies of the fasl-node"
                                                (build-grain fasl-node)
                                                previous-nodes-map
                                                previous-nodes-list))
-                               (lisp-load-depends-on grain)) :type :load)
+                               (load-depends-on grain)) :type :load)
   (add-dependencies fasl-node (mapcar
                                (lambda (name) (create-dependency-node
                                                name
@@ -357,7 +357,7 @@ that grain's dependencies, and adds them as dependencies of the fasl-node"
                                                  (build-grain grain))
                                                previous-nodes-map
                                                previous-nodes-list))
-                               (lisp-compile-depends-on grain)) :type :compile)
+                               (compile-depends-on grain)) :type :compile)
   ;;Add dependency on the lisp source file
   (add-dependency fasl-node (create-source-file-node grain) :type :compile))
 
@@ -373,7 +373,7 @@ that grain's dependencies, and adds them as dependencies of the cfasl-node"
                                        (build-grain cfasl-node)
                                        previous-nodes-map
                                        previous-nodes-list))
-                       (lisp-compile-depends-on grain))))
+                       (compile-depends-on grain))))
     (add-dependencies cfasl-node dependencies :type :compile)
     (add-dependencies cfasl-node dependencies :type :load)
     ;;Add dependency on the lisp source file

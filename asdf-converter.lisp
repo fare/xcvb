@@ -9,11 +9,11 @@ This happens when the compile and load dependencies
 are all the same files, in the same order,
 with the compile dependencies depending on compile-time effects of the files,
 and the load dependencies depending on load-time effects of the files."
-  (and (= (length (lisp-compile-depends-on module))
-          (length (lisp-load-depends-on module)))
+  (and (= (length (compile-depends-on module))
+          (length (load-depends-on module)))
        (loop
-         :for comp-dep :in (lisp-compile-depends-on module)
-         :for load-dep :in (lisp-load-depends-on module)
+         :for comp-dep :in (compile-depends-on module)
+         :for load-dep :in (load-depends-on module)
          :always (and (consp comp-dep)
                       (eql (first comp-dep) :compile)
                       (null (rest (rest comp-dep)))
@@ -32,18 +32,18 @@ top of a source file"
       (format out "~@[~%~7,0T:fullname ~s~]" (fullname grain)))
     (dolist (slot '(author maintainer version licence description long-description))
       (when (slot-boundp grain slot)
-        (format out "~@[~%~7,0T:~(~A) ~S~]" slot (slot-value grain slot))))
+        (format out "~@[~%~7,0T:~(~A~) ~S~]" slot (slot-value grain slot))))
     (cond
       ((equivalent-deps-p grain)
        (format out "~@[~%~7,0T:depends-on (~%~14,7T~{~15,0T~s~^~%~})~]"
-               (lisp-load-depends-on grain)))
+               (load-depends-on grain)))
       (t
        (format out
                "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~s~^~%~})~]"
-               (lisp-compile-depends-on grain))
+               (compile-depends-on grain))
        (format out
                "~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~s~^~%~})~]"
-               (lisp-load-depends-on grain))))
+               (load-depends-on grain))))
     (format out ")")
     (if (and (typep grain 'build-grain) (build-requires grain))
       (format out "~@[~%~7,0T(:set :this-module :build-requires ~s)~]"

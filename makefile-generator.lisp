@@ -93,7 +93,7 @@ that will be used to build the target"
   (with-output (out)
     (format out "${~:[LISPRUN~;CWBRLRUN~]} " *build-requires-p*)
     (escape-shell-token-for-Makefile
-     (format nil "(progn ~{~@[~a~^ ~]~} ~a)"
+     (format nil "(progn ~{~@[~A~^ ~]~} ~A)"
 	     (mapcar #'form-string-for-node (traverse node operation))
 	     (quit-form))
      out)))
@@ -116,27 +116,27 @@ given node"))
     (call-next-method))))
 
 (defmethod write-node-to-makefile (filestream (node object-file-node))
-    (format T "writing (c)fasl node: ~a~%" (fullname node))
-    (format filestream "~a : ~{~a~^ ~}~%"
+    (format T "writing (c)fasl node: ~A~%" (fullname node))
+    (format filestream "~A : ~{~A~^ ~}~%"
             (target-for-node node)
             (mapcar #'target-for-node (traverse node :create)))
-    (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create)))
+    (format filestream "~A~A~%~%" #\tab (makefile-line-for-node node :create)))
 
 (defmethod write-node-to-makefile (filestream (node image-dump-node))
-  (format filestream "~a : ~{~a~^ ~}~%"
+  (format filestream "~A : ~{~A~^ ~}~%"
           (target-for-node node)
           (mapcar #'target-for-node (traverse node :create)))
-  (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :load)))
+  (format filestream "~A~A~%~%" #\tab (makefile-line-for-node node :load)))
 
 (defmethod write-node-to-makefile (filestream (node lisp-image-node))
-  (format filestream ".PHONY: ~a~%~:*~a : ~{~a~^ ~}~%"
+  (format filestream ".PHONY: ~A~%~:*~A : ~{~A~^ ~}~%"
           (target-for-node node)
           (mapcar #'target-for-node (traverse node :create)))
-  (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :create)))
+  (format filestream "~A~A~%~%" #\tab (makefile-line-for-node node :create)))
 
 (defmethod write-node-to-makefile (filestream (node asdf-system-node))
-  (format filestream ".PHONY: ~a~%~:*~a : ~%" (target-for-node node))
-  (format filestream "~a~a~%~%" #\tab (makefile-line-for-node node :load)))
+  (format filestream ".PHONY: ~A~%~:*~A : ~%" (target-for-node node))
+  (format filestream "~A~A~%~%" #\tab (makefile-line-for-node node :load)))
 
 (defmethod write-node-to-makefile (filestream node)
   (declare (ignore filestream node)))
@@ -151,7 +151,7 @@ dependencies from the build-requires slot of the build grain loaded"
   (with-output (out)
     (format out "lisp.image:~%")
     (format out "export PATH := .:${PATH}~%")
-    (format out "LISPRUN := ~a~%~%"
+    (format out "LISPRUN := ~A~%~%"
 	    (Makefile-lisp-invocation nil
 				      :eval '(:makefile)))
     (let* ((cwbrlpath (make-pathname
@@ -164,17 +164,17 @@ dependencies from the build-requires slot of the build grain loaded"
 					     *lisp-setup-dependencies*
 					     (build-requires *build-grain*)))
 				    cwbrlpath)))
-      (format out "CWBRL := ./~a~%~%" (simplify-target-path cwbrlpath))
-      (format out "CWBRLRUN := ~a~%~%"
+      (format out "CWBRL := ./~A~%~%" (simplify-target-path cwbrlpath))
+      (format out "CWBRLRUN := ~A~%~%"
 	      (Makefile-lisp-invocation nil :image-path '(:makefile "${CWBRL}") :eval '(:makefile)))
       #|(format out "FASL := $(shell ${LISPRUN} ~A)~%~%"
 	      (escape-shell-token-for-Makefile
-	       (format nil "(progn (princ (pathname-type (compile-file-pathname \"test.lisp\"))) ~a)"
+	       (format nil "(progn (princ (pathname-type (compile-file-pathname \"test.lisp\"))) ~A)"
 		       (quit-form))))
       (format out "CFASL := cfasl~%~%")|#
       (format out
 	      "CHECK_ASDFS := $(shell if ! ( [ -f ${CWBRL} ] && (${CWBRLRUN} ~
-\"(asdf::asdf-systems-are-up-to-date-p ~{:~a~^ ~})\") ) ; ~
+\"(asdf::asdf-systems-are-up-to-date-p ~{:~A~^ ~})\") ) ; ~
 then echo force ; fi )~%~%force : ~%.PHONY: force~%~%"
 	      (mapcar (lambda (dep) (escape-shell-token-for-Makefile (name dep)))
 		      (remove-if-not
@@ -184,12 +184,12 @@ then echo force ; fi )~%~%force : ~%.PHONY: force~%~%"
 		(traverse (lisp-image core-with-build-requires-graph) :create))
 	(write-node-to-makefile out node))
       (format out
-	      "build-stage1.image : $(CHECK_ASDFS) ~{~a~^ ~}~%"
+	      "build-stage1.image : $(CHECK_ASDFS) ~{~A~^ ~}~%"
 	      (mapcar #'target-for-node
 		      (remove-if
 		       (lambda (dep) (typep dep 'asdf-system-node))
 		       (traverse core-with-build-requires-graph :create))))
-      (format out "~a~a~%~%"
+      (format out "~A~A~%~%"
 	      #\tab
 	      (makefile-line-for-node core-with-build-requires-graph :load))
       (setf *build-requires-p* T))))
@@ -215,5 +215,5 @@ then echo force ; fi )~%~%force : ~%.PHONY: force~%~%"
                          :if-exists :supersede)
       (makefile-setup out)
       (dolist (node all-nodes) (write-node-to-makefile out node))
-      (format out "~@[~{~a~^ ~} : build-stage1.image~%~]"
+      (format out "~@[~{~A~^ ~} : build-stage1.image~%~]"
               *targets-dependent-on-cwbrl*))))

@@ -33,12 +33,13 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "names" :depends-on ("portablish-pathnames" "grains"))
      (:file "registry" :depends-on ("names"))
      (:file "search-path" :depends-on ("registry" "specials"))
+     (:file "dependencies-interpreter" :depends-on ("grains" "names"))
      (:file "lisp-grain" :depends-on ("registry"))
      (:file "string-escape" :depends-on ("utilities"))
-     (:file "asdf-dependencies" :depends-on ("pkgdcl"))
-     (:file "static-backends" :depends-on ("asdf-dependencies" "string-escape" "lisp-grain"))
 
-     ;;; These files need to be re-written:
+     ;;; These files need to be (re)-written:
+     (:file "static-backends" :depends-on
+            ("specials" "string-escape" "lisp-grain" "dependencies-interpreter"))
      (:file "extensions" :depends-on ("pkgdcl"))
      (:file "xcvb" :depends-on ("lisp-grain" "extensions"))
      (:file "traverse" :depends-on ("xcvb" "macros"))

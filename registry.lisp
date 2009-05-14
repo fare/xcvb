@@ -7,7 +7,7 @@
 
 (defparameter *grains*
   (make-hash-table :test 'equal)
-  "A registry of known grains,
+  "A registry of known BUILDs,
 indexed by normalized name, either fullname of a module,
 nickname, or SEXP representing a computed entity.
 Initially populated with all BUILD.lisp files from the search path,
@@ -22,7 +22,7 @@ then enriched as we build the graph from the main BUILD file.")
 (defun make-grain (class &rest args &key fullname &allow-other-keys)
   (let ((previous (registered-grain fullname)))
     (or previous
-        (let ((grain (apply #'make-instance args)))
+        (let ((grain (apply #'make-instance class args)))
           (setf (registered-grain fullname) grain)
           grain))))
 

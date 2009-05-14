@@ -58,12 +58,35 @@ This is designed to abstract away the implementation specific quit forms."
 (defun load* (dependencies)
   (map nil #'load dependencies))
 
+
+(defvar *show-compiler-notes* nil "Should we show compiler notes about optimization?")
+
+#+sbcl
+(defun call-with-controlled-compiler-notes (thunk)
+  "If *SHOW-COMPILER-NOTES* is false, suppress any
+   simple-compiler-note messages during compilation."
+  (if *show-compiler-notes*
+    (funcall thunk)
+    (handler-bind ((sb-c::simple-compiler-note
+                    #'(lambda (condition)
+                        (muffle-warning condition))))
+      (funcall thunk))))
+
+#-sbcl
+(defun call-with-controlled-compiler-notes (thunk)
+  "This doesn't do anything in non-SBCL dialects."
+  (funcall thunk))
+
+(defmacro with-controlled-compiler-notes (() &body body)
+  `(call-with-controlled-compiler-notes #'(lambda () ,@body)))
+
 (defun lcq (dependencies source object &rest args)
   "load dependencies, compile source to object, quit"
   (load* dependencies)
-  (apply #'compile-file source :output-file object
-	 ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-	 args)
+  (with-controlled-compiler-notes ()
+    (apply #'compile-file source :output-file object
+           ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+           args))
   (quit))
 
 (defun do-resume ()
@@ -133,3 +156,6 @@ This is designed to abstract away the implementation specific quit forms."
 		:lisp-files dependencies
 		:epilogue-code epilogue-code))
   (quit))
+
+(export '(finish-outputs quit load* lcq resume restart dump-image create-image
+          with-controlled-compiler-notes *show-compiler-notes*))

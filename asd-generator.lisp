@@ -44,29 +44,15 @@ Returns a list of the names of all the asdf-systems that this node depends on
 (defun write-asdf-system-header (filestream asdf-systems
                                  &optional (build-grain *build-grain*))
   "Writes the information from the build grain to the asdf file"
-  (let* ((system-name (namestring
-                       (make-pathname :name nil
-                                      :type nil
-                                      :defaults (fullname build-grain)))) ;NUN
-         ;;This is fragile!
-         (system-name (subseq system-name 1 (1- (length system-name)))))
-    (format filestream "~&(asdf:defsystem :~a~%" system-name))
-  (if (author build-grain)
-    (format filestream "~2,0T:author ~s~%" (author build-grain)))
-  (if (maintainer build-grain)
-    (format filestream "~2,0T:maintainer ~s~%" (maintainer build-grain)))
-  (if (version build-grain)
-    (format filestream "~2,0T:version ~s~%" (version build-grain)))
-  (if (licence build-grain)
-    (format filestream "~2,0T:licence ~s~%" (licence build-grain)))
-  (if (description build-grain)
-    (format filestream "~2,0T:description ~s~%" (description build-grain)))
-  (if (long-description build-grain)
-    (format filestream "~2,0T:long-description ~s~%"
-            (long-description build-grain)))
+  (let* ((fullname (fullname build-grain))
+         (pathname (portable-pathname-from-string fullname :allow-relative nil))
+         (system-name (string-downcase (second (pathname-directory pathname)))))
+    (format filestream "~&(asdf:defsystem :~A~%" system-name))
+  (dolist (slot '(author maintainer version licence description long-description))
+    (when (slot-boundp build-grain slot)
+      (format filestream "~2,0T:~(~A~) ~S~%" slot (slot-value build-grain slot))))
   (if asdf-systems
-      (format filestream "~2,0T:depends-on (~{:~a~^ ~})~%" asdf-systems)))
-
+    (format filestream "~2,0T:depends-on (~{:~A~^ ~})~%" asdf-systems)))
 
 
 (defgeneric write-node-to-asd-file (filestream node)
@@ -141,4 +127,4 @@ that can be used to compile the file at source-path with asdf"
                                           :defaults (fullname *build-grain*))))
              ;;This is fragile!
              (system-name (subseq system-name 1 (- (length system-name) 1))))
-        (format out "~12,0T)))~%~%(cl:pushnew :~a *features*)" system-name)))))
+        (format out "~12,0T)))~%~%(cl:pushnew :~A *features*)" system-name)))))

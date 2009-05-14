@@ -32,6 +32,19 @@ Otherwise, signal an error."
        (funcall fun s)))))
 
 
+(eval-when (:compile-toplevel :load-toplevel)
+  (defun fintern (package format &rest rest)
+    (intern (apply #'format nil format rest)
+            (find-package
+             (cond
+               ((null package) :keyword)
+               ((eql package t) *package*)
+               (t package)))))
+  (defun kintern (format &rest rest)
+    (apply #'fintern nil format rest))
+  (defun keywordify (x)
+    (kintern "~A" x)))
+
 ;;; Collecting data
 
 (defmacro while-collecting ((&rest collectors) &body body)

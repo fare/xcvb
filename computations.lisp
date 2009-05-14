@@ -9,11 +9,11 @@
 
 (defclass concrete-computation (computation)
   ((inputs
-   :initarg :inputs
-   :accessor computation-inputs)
+    :initarg :inputs
+    :accessor computation-inputs)
    (outputs
-   :initarg :outputs
-   :accessor computation-outputs)
+    :initarg :outputs
+    :accessor computation-outputs)
    ;; (side-effects) ; for additional files being side-effected
    (command
     :initarg :command
@@ -84,16 +84,24 @@
     (shell-tokens-to-string a)))
 |#
 
+(defun make-computation (class &rest keys &key inputs outputs command &allow-other-keys)
+  (declare (ignore inputs command))
+  (let ((computation (apply #'make-instance class keys)))
+    (loop for target in outputs
+          for n from 0 do
+          (setf (grain-computation target) computation
+                (grain-computation-index target) n))
+    computation))
+
 (defun make-nop-computation (dependencies &optional targets)
-  (make-instance 'concrete-computation
-    :inputs dependencies
-    :outputs targets
-    :command nil))
+  (make-computation 'concrete-computation
+                    :inputs dependencies
+                    :outputs targets
+                    :command nil))
 
 (defun make-phony-grain (&key name dependencies)
-  (let* ((grain (make-instance 'phony-grain :fullname name))
-         (computation (make-nop-computation dependencies (list grain))))
-    (setf (grain-computation grain) computation)
+  (let* ((grain (make-grain 'phony-grain :fullname name)))
+    (make-nop-computation dependencies (list grain))
     grain))
 
 ;;; TODO: use a more declarative model to describe the various types of objects

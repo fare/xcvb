@@ -4,6 +4,12 @@
 ;;; exchanging between implementation-dependent pathname objects (made with make-pathname)
 ;;; and reasonably portable string representation.
 
+(defvar +root-path+ (make-pathname :directory '(:absolute))
+  "pathname for the file hierarchy root")
+
+(defvar +up-path+ (make-pathname :directory '(:relative :up))
+  "logical parent path")
+
 (defun pathname-directory-pathname (pathname)
   (make-pathname :type nil :name nil :defaults pathname))
 
@@ -16,10 +22,10 @@ of the directory of the given pathname"
      nil)
     ;; / is its own parent.
     ((equal (pathname-directory pathname) '(:absolute))
-     (make-pathname :directory '(:absolute)))
+     +root-path+)
     (t
-     (merge-pathnames (make-pathname :directory '(:relative :up))
-		      (make-pathname :name nil :type nil :defaults pathname) nil))))
+     (merge-pathnames +up-path+
+		      (pathname-directory-pathname pathname)))))
 
 (defun top-level-name (name)
   "This function takes a name, and returns everything up to the first \"/\" in the name"
@@ -148,3 +154,7 @@ erroring out if some source of non-portability is found"
   (merge-pathnames
    (portable-pathname-from-string string :allow-absolute nil)
    path))
+
+(defun pathname-absolute-p (path)
+  (let ((directory (pathname-directory path)))
+    (and (consp directory) (eq (car directory) :absolute))))
