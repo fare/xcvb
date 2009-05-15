@@ -158,3 +158,11 @@ erroring out if some source of non-portability is found"
 (defun pathname-absolute-p (path)
   (let ((directory (pathname-directory path)))
     (and (consp directory) (eq (car directory) :absolute))))
+
+(defun portablish-namestring-absolute-p (namestring)
+  (eql (first-char namestring) #\/))
+
+(defun portablish-pathname-absolute-p (name)
+  (etypecase name
+    (pathname (pathname-absolute-p name))
+    (string (portablish-namestring-absolute-p name))))

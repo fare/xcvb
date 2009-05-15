@@ -38,10 +38,12 @@ Negatives are stored as NIL. Positives as grains.")
 
 (defun canonicalize-fullname (name)
   "This function prepends a #\/ to the beginning of the module's fullname,
-if there isn't one there already"
-  (if (eql #\/ (first-char name))
-    name
-    (strcat "/" name)))
+if there isn't one there already, and strips any tailing #\/"
+  (when (eql #\/ (last-char name))
+    (setf name (subseq name 0 (1- (length name)))))
+  (unless (eql #\/ (first-char name))
+    (setf name (strcat "/" name)))
+  name)
 
 #|
 (defun canonicalize-fullname (name)
@@ -91,16 +93,20 @@ if there isn't one there already"
             (t
              (error "grain ~A is lacking an explicit or implicit fullname" (grain-pathname grain))))))
 
+(defun build-grain-for (grain)
+  (etypecase grain
+    (build-grain grain)
+    (lisp-grain (grain-parent grain))))
 
-(defun resolve-module-name (name build)
+(defun resolve-module-name (name grain)
   "Resolve module NAME in the context of BUILD into an appropriate grain, if any"
-  (if (eql (first-char name) #\/)
-    (resolve-absolute-module-name (subseq name 1)))
-    (loop :for b = build then (grain-parent b)
-          :for grain = (and b (resolve-module-name-at name b))
+  (if (portablish-pathname-absolute-p name)
+    (resolve-absolute-module-name name)
+    (loop :for b = (build-grain-for grain) :then (grain-parent b)
+          :for g = (and b (resolve-module-name-at name b))
           :while b
-          :when (typep grain 'grain) :do (return grain)
-          :finally (return (resolve-absolute-module-name name))))
+          :when (typep g 'grain) :do (return g)
+          :finally (return (resolve-absolute-module-name (canonicalize-fullname name))))))
 
 (defun module-subpathname (path name)
   (subpathname (merge-pathnames +lisp-path+ path) name))
@@ -108,22 +114,24 @@ if there isn't one there already"
 (defun resolve-absolute-module-name (name)
   "Resolve absolute NAME into an appropriate grain, if any"
   (loop :for p = (length name) then (position #\/ name :from-end t :end p)
-        :for prefix = name then (if (and p (plusp p))
-                                  (subseq name 0 p)
-                                  (return (registered-grain name)))
+        :for prefix = (if (and p (plusp p))
+                        (subseq name 0 p)
+                        (return nil))
         :for postfix = nil then (subseq name (1+ p))
         :for build = (if prefix (registered-grain prefix))
-        :for grain = (etypecase build
-                       (null nil)
-                       (build-grain
-                        (if postfix
-                            (resolve-module-name-at postfix build)
-                            build))
-                       (build-registry-conflict
-                        (error "Trying to use component ~S for conflicted build name ~S"
-                               postfix prefix)))
+        :for grain = (resolve-module-name-at postfix build)
         :when (typep grain 'grain) :do (return grain)))
 
 (defun resolve-module-name-at (name build)
-  (check-type build build-grain)
-  (probe-file-grain (module-subpathname (grain-pathname build) name)))
+  (typecase build
+    (null ;; no entry -- look further
+     nil)
+    (build-grain
+     (if name
+       (probe-file-grain (module-subpathname (grain-pathname build) name))
+       build))
+    (build-registry-conflict
+     (error "Trying to use component ~S for conflicted build name ~S"
+            name (fullname build)))
+    (t ;; some entry that isn't a build -- ignore
+     nil)))

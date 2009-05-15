@@ -1,1 +1,1 @@
-#+xcvb (module (:depends-on "foo"))
+#+xcvb (module (:depends-on ("foo")))

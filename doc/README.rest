@@ -76,7 +76,8 @@ You can also browse the repository at:
 To use the latest working prototype, you should checkout
 the properly tagged code in a branch::
 
-	git checkout -b working_prototype xcvb_0.11
+	git pull http://common-lisp.net/project/xcvb/xcvb.git v0.1-prototype:v0.1-prototype
+	git checkout v0.1-prototype
 
 
 Dependencies

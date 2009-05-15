@@ -9,6 +9,9 @@ This file describes the current internals of XCVB.
 Unless you check it out as of an official release as tagged in git,
 it may or may not be up to date.
 
+(As massive refactoring is underway, this document is found lacking.
+Send inquiries to the mailing-list if you need it to be updated.)
+
 
 .. contents::
 ..

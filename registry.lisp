@@ -34,8 +34,10 @@ then enriched as we build the graph from the main BUILD file.")
     :documentation "root path under which the entry was found")))
 
 (defclass build-registry-conflict (build-registry-entry simple-print-object-mixin)
-  ((pathnames
-    :initarg :pathnames :accessor brc-pathnames
+  ((fullname
+    :initarg :fullname :reader fullname)
+   (pathnames
+    :initarg :pathnames :reader brc-pathnames
     :documentation "pathnames of conflicting build files with the same name")))
 
 (defmethod brc-pathnames ((build build-grain))
@@ -78,6 +80,7 @@ for each of its registered names."
        ;; there's an ambiguity, let's register a conflict!
        (setf (registered-grain name)
              (make-instance 'build-registry-conflict
+               :fullname name
                :pathnames (cons (grain-pathname build-grain) (brc-pathnames previous-build))
                :root root)))
       (t

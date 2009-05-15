@@ -1,2 +1,2 @@
-#+xcvb (module (:depends-on "baz"))
+#+xcvb (module (:depends-on ("baz")))
 

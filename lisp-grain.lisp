@@ -56,18 +56,35 @@
 
 ;;; Lisp Grains
 
-(defmethod initialize-instance :after ((module lisp-grain) &key depends-on)
-  (when depends-on
-    (with-slots (compile-depends-on load-depends-on) module
-        (setf compile-depends-on (append (mapcar #'compiled-dependency depends-on) compile-depends-on)
-              load-depends-on (append depends-on load-depends-on)))))
+(defgeneric handle-lisp-dependencies (grain))
+
+(defmethod handle-lisp-dependencies ((grain lisp-grain))
+  (unless (slot-boundp grain 'load-dependencies) ;; Only do it once
+    (flet ((normalize (deps)
+             (mapcar (lambda (dep) (normalize-dependency dep grain)) deps)))
+      (with-slots (compile-depends-on load-depends-on depends-on
+                   compile-dependencies load-dependencies) grain
+        (setf compile-dependencies
+              (normalize (append (mapcar #'compiled-dependency depends-on) compile-depends-on)))
+        (setf load-depends-on
+              (normalize (append depends-on load-depends-on)))))
+    (handle-extension-forms grain))
+  (values))
+
+(defun handle-extension-forms (grain)
+  (declare (ignore grain))
+  ;; TODO: move that to extensions.lisp, etc.
+  nil)
 
 (defun make-grain-from-file (path &key build-p)
   "Takes a PATH to a lisp file, and returns the corresponding grain."
   ;;(format T "resolving ~@[build ~]: ~a~%" build-p path)
   (let ((grain (grain-from-file-declaration path :build-p build-p)))
     (compute-fullname grain)
-    (handle-extension-forms grain)
+    (unless build-p
+      ;; BUILDs are scanned eagerly, their dependencies are processed on demand;
+      ;; other Lisp files are only scanned on demand, so their dependencies are processed eagerly.
+      (handle-lisp-dependencies grain))
     grain))
 
 (defun %grain-from-relative-name (name build)
@@ -79,6 +96,7 @@
                (grain-pathname build)))))
 
 (defun grain-from-fullname (name)
+  (setf name (canonicalize-fullname name))
   (or (registered-grain name)
       (loop :for prev = nil :then pos
             :for pos = (position #\/ name :from-end t :end prev)

@@ -92,16 +92,17 @@
 (defclass lisp-grain (documented-file-grain)
   ((compile-depends-on
     :initform nil
-    :initarg :compile-depends-on
-    :accessor compile-depends-on)
+    :initarg :compile-depends-on)
    (depends-on
     :initform nil
-    :initarg :depends-on
-    :accessor depends-on)
+    :initarg :depends-on)
    (load-depends-on
     :initform nil
-    :initarg :load-depends-on
-    :accessor load-depends-on)
+    :initarg :load-depends-on)
+   (compile-dependencies
+    :accessor compile-dependencies)
+   (load-dependencies
+    :accessor load-dependencies)
    (extension-forms
     :initarg :extension-forms
     :accessor grain-extension-forms
@@ -166,7 +167,6 @@ into an image that will be used for all future compile/load operations")
 
 (defmethod all-dependencies (grain)
   (all-descendents-f grain #'direct-dependencies))
-
 
 #|
 (def grain lisp-grain (file-grain)

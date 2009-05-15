@@ -10,7 +10,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (asdf:defsystem :xcvb
-    :author ("Spencer Brody" "Francois-Rene Rideau")
+    :author ("Francois-Rene Rideau" "Spencer Brody")
     :maintainer "Francois-Rene Rideau"
     :licence "MIT"
     :description "XCVB"
@@ -30,21 +30,22 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "lisp-invocation" :depends-on ("specials"))
      (:file "computations" :depends-on ("grains" "lisp-invocation"))
      (:file "portablish-pathnames" :depends-on ("utilities"))
-     (:file "names" :depends-on ("portablish-pathnames" "grains"))
-     (:file "registry" :depends-on ("names"))
+     (:file "registry" :depends-on ("portablish-pathnames" "grains"))
+     (:file "names" :depends-on ("registry"))
      (:file "search-path" :depends-on ("registry" "specials"))
-     (:file "dependencies-interpreter" :depends-on ("grains" "names"))
+     (:file "dependencies-interpreter" :depends-on ("grains" "names" "specials"))
      (:file "lisp-grain" :depends-on ("registry"))
      (:file "string-escape" :depends-on ("utilities"))
 
      ;;; These files need to be (re)-written:
      (:file "static-backends" :depends-on
             ("specials" "string-escape" "lisp-grain" "dependencies-interpreter"))
-     (:file "extensions" :depends-on ("pkgdcl"))
-     (:file "xcvb" :depends-on ("lisp-grain" "extensions"))
-     (:file "traverse" :depends-on ("xcvb" "macros"))
-     (:file "makefile-generator" :depends-on
-	    ("xcvb" "traverse" "lisp-invocation" "string-escape"))
-     (:file "asd-generator" :depends-on ("xcvb" "traverse"))
-     (:file "asdf-converter" :depends-on ("xcvb"))
-     (:file "main" :depends-on ("xcvb" "asdf-converter" "search-path"))))
+
+     ;;; These files are not meaningful anymore, need to be re-written in the new framework:
+     ;;(:file "extensions" :depends-on ("pkgdcl"))
+     ;;(:file "xcvb" :depends-on ("lisp-grain" "extensions"))
+     ;;(:file "traverse" :depends-on ("xcvb" "macros"))
+     ;;(:file "makefile-generator" :depends-on ("xcvb" "traverse" "lisp-invocation" "string-escape"))
+     ;;(:file "asd-generator" :depends-on ("xcvb" "traverse"))
+     ;;(:file "asdf-converter" :depends-on ("xcvb"))
+     (:file "main" :depends-on ("static-backends" "search-path"))))

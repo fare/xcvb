@@ -63,13 +63,17 @@
 
 (defun list-of-length-p (n x)
   (check-type n (integer 0 *))
-  (if (zerop n)
-    (null x)
-    (list-of-length-p (1- n) (cdr x))))
+  (and (listp x)
+       (loop
+           :for l = x :then (cdr l)
+           :for i :downfrom n :do
+           (cond
+             ((zerop i) (return (null l)))
+             ((null l) (return nil))))))
 
-
-
-;;; Simple interpreter
+;;; Parsing Common Lisp formals
+;; over-engineering alert: this is only useful if some kind of portable
+;; user-friendly error message facility is grown out of it. Not the case now.
 
 (defvar +lambda-formals-keywords+ '(&optional &rest &key &allow-other-keys &aux)) ;; &body &environment
 
@@ -227,23 +231,27 @@ Did you mix up the ordering?" f))
 (defun betweenp (min max n)
   (<= min n max))
 
-(defun combinator-interpreter (atom-processor combinator-hash environment program)
-  (if (consp program)
-    (let* ((combinator (car program))
-           (defined (or (gethash combinator combinator-hash)
-                        (error "undefined combinator in ~S" program)))
+
+;;; Simple Dispatcher
+
+(defun simple-dispatcher (atom-processor function-hash environment expression)
+  (if (consp expression)
+    (let* ((head (car expression))
+           (arguments (cdr expression))
+           (defined (or (gethash head function-hash)
+                        (error "undefined function in ~S" expression)))
            (function (car defined))
            (arity-checker (cdr defined)))
-      (unless (funcall arity-checker (length (cdr program)))
-         (error "incorrect arity for ~S" program))
-      (apply function environment (cdr program)))
-    (funcall atom-processor environment program)))
+      (unless (funcall arity-checker (length arguments))
+         (error "incorrect arity for ~S" expression))
+      (apply function environment arguments))
+    (funcall atom-processor environment expression)))
 
-(defmacro define-combinator-interpreter (name atom-interpreter)
+(defmacro define-simple-dispatcher (name atom-interpreter)
   (let ((hash-name (fintern t "*~A-FUNCTIONS*" name))
         (registrar-name (fintern t "REGISTER-~A" name))
         (definer-name (fintern t "DEFINE-~A" name))
-        (interpreter-name (fintern t "~A-INTERPRETER" name)))
+        (dispatcher-name (fintern t "~A-DISPATCHER" name)))
     `(progn
        (defvar ,hash-name (make-hash-table :test 'eql))
        (defun ,registrar-name (symbol arity-checker function)
@@ -252,11 +260,12 @@ Did you mix up the ordering?" f))
          `(,',registrar-name ',symbol
                              #'(lambda (x) (,@(argument-number-checker formals) x))
                              #'(lambda ,formals ,@body)))
-       (defun ,interpreter-name (environment program)
-         (combinator-interpreter
+       (defun ,dispatcher-name (environment expression)
+         (simple-dispatcher
           ,atom-interpreter
           ,hash-name
-          environment program)))))
+          environment expression)))))
+
 
 ;;; CLOS magic (depends on closer-mop) (from philip-jose)
 

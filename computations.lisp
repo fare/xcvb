@@ -19,10 +19,6 @@
     :initarg :command
     :accessor computation-command)))
 
-(defgeneric computation-inputs (computation))
-(defgeneric computation-outputs (computation))
-;;(defgeneric computation-side-effects (computation))
-
 #|
 (defgeneric computation-command (type computation &key))
 

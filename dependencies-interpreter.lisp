@@ -13,84 +13,93 @@ Modeled after the asdf function coerce-name"
      (string name)
      (t (simply-error 'syntax-error "~@<invalid asdf system designator ~A~@:>" name)))))
 
-(defun normalize-dependency (dep build)
-  (cond
-    ((stringp dep)
-     (resolve-module-name dep build))
-    ((and (list-of-length-p 2 dep)
-          (member (first dep) '(:lisp :compile))
-          (stringp (second dep)))
-     (list (first dep) (resolve-module-name (second dep) build)))
-    ((and (list-of-length-p 2 dep)
-          (eq (first dep) ':asdf))
-     (list :asdf (coerce-asdf-system-name (second dep))))
-    (t
-     ;; Other forms are not recognized
-     (error "unrecognized dependency ~S" dep))))
+(defun normalize-dependency (dep grain)
+  (flet ((n (x) (resolve-module-name x grain))
+         (err () (error "unrecognized dependency ~S" dep)))
+    (cond
+      ((stringp dep)
+       (list :fasl (n dep)))
+      ((and (list-of-length-p 2 dep)
+            (stringp (second dep)))
+       (let ((f (first dep))
+             (x (second dep)))
+         (case f
+           ((:lisp :fasl :cfasl) (list f (n x)))
+           (:compile (list (compile-time-fasl-type) (n x)))
+           (:asdf (list :asdf (coerce-asdf-system-name x)))
+           (t (err)))))
+      (t (err)))))
 
 
-;; Q: What is the best place / time to do that?
-;; Note: the parents must already be setup!
-(defun normalize-grain-dependencies! (grain)
-  (check-type grain lisp-grain)
-  (let ((build (or (grain-parent grain) grain)))
-    (flet ((normalize (dep)
-             (normalize-dependency dep build)))
-      (with-slots (depends-on load-depends-on compile-depends-on) grain
-        (setf depends-on (mapcar #'normalize depends-on)
-              load-depends-on (mapcar #'normalize load-depends-on)
-              compile-depends-on (mapcar #'normalize compile-depends-on))))))
+;;; Matcher for the normalized dependency language
+(defvar +dependency-type+
+  '((:lisp . lisp-grain)
+    (:fasl . fasl-grain)
+    (:cfasl . cfasl-grain)
+    (:asdf . asdf-grain))
+  "what type for grains corresponding to a given dependency tag")
 
-;;; Go from a load-time dependency to the corresponding compile-time dependency
+(defun deconstruct-dependency (dep k)
+  (flet ((err () (error "malformed dependency ~S" dep)))
+    (unless (and (list-of-length-p 2 dep)
+                 (stringp (second dep)))
+      (err))
+    (let* ((head (first dep))
+           (name (second dep))
+           (type (cdr (assoc head +dependency-type+))))
+      (unless type
+        (err))
+      (funcall k head name type))))
+
+(defmacro with-dependency ((&key head name type) expr &body body)
+  (loop :for v :in (list head name type)
+        :for var = (or v (gensym))
+        :collect var :into vars
+        :unless v :collect var :into ignored
+        :finally (return
+                   `(deconstruct-dependency
+                     ,expr
+                     (lambda ,vars
+                       ,@(when ignored `((declare (ignore ,@ignored))))
+                       ,@body)))))
 
 (defun compiled-dependency (dep)
-  (cond
-    ((stringp dep)
-     ;; Lisp modules are to be compiled
-     (list :compile dep))
-    ((and (list-of-length-p 2 dep)
-          (member (first dep) '(:lisp :compiled :asdf))
-          ;; (stringp (second dep)) ;--- should we assume it's been normalized yet?
-          )
-     ;; verbatim Lisp source, compiled stuff, asdf systems stay same
-     dep)
-    (t
-     ;; Other forms are not recognized
-     (error "unrecognized dependency ~S" dep))))
+  "Go from a load-time dependency to the corresponding compile-time dependency,
+in the normalized dependency mini-language"
+  (with-dependency (:head h :name x) dep
+    (ecase h
+      (:fasl (list (compile-time-fasl-type) x))
+      ((:lisp :cfasl :asdf) dep))))
 
-
-;;; Basics of Lisp compilation
 (defun compile-time-fasl-type ()
   (if *use-cfasls* :cfasl :fasl))
 
-(defun ensure-graph-for-grain-compilation (grapher grain)
-  (check-type grain lisp-grain)
-  (funcall grapher `(:fasl ,(fullname grain))))
+(defun fasl-grains-for-name (fullname)
+  (cons (make-grain 'fasl-grain :fullname `(:fasl ,fullname))
+        (if *use-cfasls*
+            (list (make-grain 'cfasl-grain :fullname `(:cfasl ,fullname)))
+            nil)))
 
 (defun cfasl-for-fasl (fasl-grain)
   (check-type fasl-grain fasl-grain)
-  (second (computation-outputs (grain-computation fasl-grain))))
+  (if *use-cfasls*
+    (second (computation-outputs (grain-computation fasl-grain)))
+    fasl-grain))
+
+(defun load-command-for (grapher spec)
+  ;; What to do to load a given dependency -
+  ;; returns a command in the command language, and a grain.
+  (with-dependency (:type type) spec
+     (let ((grain (funcall grapher spec)))
+       (unless (typep grain type)
+         (error "Expected a grain of type ~S for ~S, instead got ~S"
+                type spec grain))
+       (values `(:load ,spec) grain))))
 
 
-;;; What to do to load a given dependency
-(define-combinator-interpreter load-command-for #'load-command-for-atom)
-
-(defun load-command-for (environment spec)
-  (load-command-for-interpreter environment spec))
-
-(defun load-command-for-atom (grapher atom)
-  (let* ((grain (funcall grapher atom)))
-    (check-type grain lisp-grain)
-    (ensure-graph-for-grain-compilation grapher grain)
-    `(:load (:fasl ,(fullname grain)))))
-
-(define-load-command-for :lisp (grapher name)
-  (let* ((grain (funcall grapher name)))
-    (check-type grain lisp-grain)
-    `(:load (:lisp ,(fullname grain)))))
-
-(define-load-command-for :compile (grapher name)
-  (let* ((grain (funcall grapher name)))
-    (check-type grain lisp-grain)
-    (ensure-graph-for-grain-compilation grapher grain)
-    `(:load (,(compile-time-fasl-type) ,(fullname grain)))))
+#|
+In more complex cases, we probably want to
+(1) output to a stream of commands, while
+(2) sending fullnames for grains, and getting back grains that have been
+ already output to a duplicates-removed, type-checked stream of grains.
+|#
