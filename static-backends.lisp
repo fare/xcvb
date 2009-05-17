@@ -19,12 +19,21 @@
 (defun load-command-for* (spec)
   (load-command-for #'graph-for* spec))
 
-(defgeneric graph-for-atom (atom))
+(defun graph-for-atom (grapher atom)
+  (declare (ignore grapher))
+  (graph-for-atom* atom))
 
-(defmethod graph-for-atom ((name string))
+(defgeneric graph-for-atom* (atom))
+
+(defmethod graph-for-atom* ((name string))
   (graph-for-lisp-module name))
 
-(defmethod graph-for-atom ((grain build-grain))
+(define-graph-for :build (env name)
+  (declare (ignore env))
+  (graph-for-build-grain (registered-grain (canonicalize-fullname name))))
+
+(defun graph-for-build-grain (grain)
+  (check-type grain build-grain)
   (handle-lisp-dependencies grain)
   (let* (;;; Build pre-image if needed
          (pre-image
@@ -55,7 +64,7 @@
           (make-grain 'image-grain
             :fullname `(:image ,name)))
          (dependency-grains
-          (mapcar #'graph-for-compiled dependencies)))
+          (mapcar #'graph-for* dependencies)))
     (make-computation 'concrete-computation
       :outputs (list grain)
       :inputs dependency-grains
@@ -70,35 +79,41 @@
 (defun graph-for-lisp-module (name)
   (resolve-module-name name *build*))
 
-(define-graph-for :lisp (lisp)
+(define-graph-for :lisp (env lisp)
   "Lisp file to load without compiling it"
+  (declare (ignore env))
   (check-type lisp lisp-grain)
   lisp)
 
-(define-graph-for :asdf (system-name)
+(define-graph-for :asdf (env system-name)
+  (declare (ignore env))
   (make-phony-grain
    :name `(:asdf ,system-name)
    :dependencies nil)) ;;TODO: make corresponding computation?
 
-(define-graph-for :fasl (lisp)
-  (first (graph-for-fasls lisp)))
+(define-graph-for :fasl (env lisp-name)
+  (declare (ignore env))
+  (first (graph-for-fasls lisp-name)))
 
-(define-graph-for :cfasl (lisp)
-  (second (graph-for-fasls lisp)))
+(define-graph-for :cfasl (env lisp-name)
+  (declare (ignore env))
+  (second (graph-for-fasls lisp-name)))
 
-(defun graph-for-fasls (lisp)
-  (check-type lisp lisp-grain)
-  (let* ((fullname (fullname lisp))
-         (dependencies (compile-dependencies lisp))
-         (inputs (mapcar #'graph-for* dependencies))
-         (outputs (fasl-grains-for-name fullname)))
-    (make-computation
-     'concrete-computation
-     :outputs outputs
-     :inputs inputs
-     :command
-     `(:lisp
-       (:image ,*lisp-image-name*)
-       ,@(mapcar #'(lambda (x) `(:load ,(fullname x))) dependencies)
-       (:compile-lisp ,fullname)))
-    outputs))
+(defun graph-for-fasls (fullname)
+  (check-type fullname string)
+  (let ((lisp (resolve-absolute-module-name fullname)))
+    (check-type lisp lisp-grain)
+    (handle-lisp-dependencies lisp)
+    (let* ((dependencies (compile-dependencies lisp))
+           (inputs (mapcar #'graph-for* dependencies))
+           (outputs (fasl-grains-for-name fullname)))
+      (make-computation
+       'concrete-computation
+       :outputs outputs
+       :inputs inputs
+       :command
+       `(:lisp
+         (:image ,*lisp-image-name*)
+         ,@(mapcar #'load-command-for* dependencies)
+         (:compile-lisp ,fullname)))
+      outputs)))

@@ -37,12 +37,17 @@ Negatives are stored as NIL. Positives as grains.")
 (defgeneric compute-fullname (grain))
 
 (defun canonicalize-fullname (name)
-  "This function prepends a #\/ to the beginning of the module's fullname,
-if there isn't one there already, and strips any tailing #\/"
+  "This function makes sure the fullname is canonical:
+* prepends a #\/ to the beginning of the module's fullname if there isn't one there already
+* strips any tailing #\/"
+  ;; should also:
+  ;; * bork if it isn't a portablish-pathname
+  ;; * remove extraneous #\/'s
   (when (eql #\/ (last-char name))
     (setf name (subseq name 0 (1- (length name)))))
   (unless (eql #\/ (first-char name))
     (setf name (strcat "/" name)))
+  (validate-fullname name)
   name)
 
 #|
@@ -55,43 +60,53 @@ if there isn't one there already, and strips any tailing #\/"
   (validate-fullname (slot-value grain 'fullname)))
 
 (defun valid-fullname-p (name)
-  (ignore-errors (portable-pathname-from-string name :allow-relative nil)))
+  (ignore-errors (equal name (portable-pathname-output (portable-pathname-from-string name)))))
 
 (defun validate-fullname (name)
   (unless (valid-fullname-p name)
-    (error "Invalid grain fullname ~A" name)))
+    (error "Invalid grain fullname ~A" name))
+  name)
 
-(defmethod compute-fullname ((build build-grain))
-  (if (specified-fullname build)
-    (setf (fullname build) (canonicalize-fullname (specified-fullname build))
-          (grain-parent build) nil
-          (grain-relative-name build) nil)
-    (call-next-method)))
+(defmethod compute-fullname ((grain build-grain))
+  (if (specified-fullname grain)
+    (setf (fullname grain) (canonicalize-fullname (specified-fullname grain))
+          (grain-parent grain) nil
+          (grain-relative-name grain) nil)
+    (compute-inherited-fullname grain :build-p t))
+  (values))
 
 (defmethod compute-fullname ((grain lisp-grain))
-  (loop :with truename = (truename (grain-pathname grain))
-        :with directory = (pathname-directory truename)
-        :with subnames = ()
-        :for (dir . rdir) :on (reverse directory) :do
-          (cond
-            ((stringp dir)
-             (push dir subnames)
-             ;;(DBG :cf grain subnames)
-             (let ((ancestor (probe-file-grain
-                              (make-pathname :name "BUILD" :type "lisp"
-                                             :directory (reverse rdir))
-                              :build-p t)))
-               (when ancestor
-                 (setf (grain-parent grain)
-                       ancestor
-                       (grain-relative-name grain)
-                       (join-strings "/" subnames)
-                       (fullname grain)
-                       (strcat (fullname ancestor) "/" (grain-relative-name grain)))
-                 ;;(DBG :cf2 ancestor (grain-relative-name grain) (slot-value grain 'fullname))
-                 (return))))
-            (t
-             (error "grain ~A is lacking an explicit or implicit fullname" (grain-pathname grain))))))
+  (compute-inherited-fullname grain :build-p nil))
+
+(defun compute-inherited-fullname (grain &key build-p)
+  (check-type grain lisp-grain)
+  (let* ((truename (truename (grain-pathname grain)))
+         (host (pathname-host truename))
+         (device (pathname-device truename))
+         (rdirectory (reverse (pathname-directory truename))))
+    (labels ((err ()
+               (error "grain ~A is lacking an explicit or implicit fullname"
+                      (grain-pathname grain)))
+             (maybe-inherit-from (rdir subnames)
+               (let ((ancestor (probe-file-grain
+                                (make-pathname :host host :device device
+                                               :name "BUILD" :type "lisp"
+                                               :directory (reverse rdir))
+                                :build-p t)))
+                 (if ancestor
+                     (let ((relname (join-strings "/" subnames)))
+                       (setf (grain-parent grain) ancestor
+                             (grain-relative-name grain) relname
+                             (fullname grain) (strcat (fullname ancestor) "/" relname)))
+                     (recurse rdir subnames))))
+             (recurse (rdir subnames)
+               (let ((dir (car rdir)))
+                 (if (stringp dir)
+                   (maybe-inherit-from (cdr rdir) (cons dir subnames))
+                   (err)))))
+      (if build-p
+        (recurse rdirectory nil)
+        (maybe-inherit-from rdirectory (list (pathname-name truename)))))))
 
 (defun build-grain-for (grain)
   (etypecase grain
@@ -113,6 +128,8 @@ if there isn't one there already, and strips any tailing #\/"
 
 (defun resolve-absolute-module-name (name)
   "Resolve absolute NAME into an appropriate grain, if any"
+  (unless (absolute-portablish-namestring-p name)
+    (error "~S isn't a valid module name" name))
   (loop :for p = (length name) then (position #\/ name :from-end t :end p)
         :for prefix = (if (and p (plusp p))
                         (subseq name 0 p)

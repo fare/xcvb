@@ -25,4 +25,5 @@
               ;;:depends-on ("pkgdcl")
               :components
               ((:file "utilities")
-               (:file "search-path")))))
+               (:file "search-path")
+               (:file "static-backends" :depends-on ("search-path"))))))

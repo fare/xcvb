@@ -14,7 +14,11 @@ Modeled after the asdf function coerce-name"
      (t (simply-error 'syntax-error "~@<invalid asdf system designator ~A~@:>" name)))))
 
 (defun normalize-dependency (dep grain)
-  (flet ((n (x) (resolve-module-name x grain))
+  (flet ((n (x) (let ((grain (resolve-module-name x grain)))
+                  (unless (typep grain 'lisp-grain)
+                    (error "Couldn't resolve ~S to a valid module from grain ~S"
+                           x (fullname grain)))
+                  (fullname grain)))
          (err () (error "unrecognized dependency ~S" dep)))
     (cond
       ((stringp dep)

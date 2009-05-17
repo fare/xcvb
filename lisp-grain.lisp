@@ -64,10 +64,13 @@
              (mapcar (lambda (dep) (normalize-dependency dep grain)) deps)))
       (with-slots (compile-depends-on load-depends-on depends-on
                    compile-dependencies load-dependencies) grain
-        (setf compile-dependencies
-              (normalize (append (mapcar #'compiled-dependency depends-on) compile-depends-on)))
-        (setf load-depends-on
-              (normalize (append depends-on load-depends-on)))))
+        (let ((common-dependencies (normalize depends-on)))
+          (setf compile-dependencies
+                (append (mapcar #'compiled-dependency common-dependencies)
+                        (normalize compile-depends-on)))
+          (setf load-dependencies
+                (append common-dependencies
+                        (normalize load-depends-on))))))
     (handle-extension-forms grain))
   (values))
 
@@ -81,10 +84,6 @@
   ;;(format T "resolving ~@[build ~]: ~a~%" build-p path)
   (let ((grain (grain-from-file-declaration path :build-p build-p)))
     (compute-fullname grain)
-    (unless build-p
-      ;; BUILDs are scanned eagerly, their dependencies are processed on demand;
-      ;; other Lisp files are only scanned on demand, so their dependencies are processed eagerly.
-      (handle-lisp-dependencies grain))
     grain))
 
 (defun %grain-from-relative-name (name build)

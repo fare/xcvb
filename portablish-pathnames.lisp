@@ -45,8 +45,8 @@ of the directory of the given pathname"
 
 (defun portable-pathname-string-component-p (x)
   (and (stringp x)
-       (not (zerop (length x)))
-       (every #'portable-pathname-string-component-char-p x)))
+       (every #'portable-pathname-string-component-char-p x)
+       (not (member x '("" "." "..") :test 'equal))))
 
 (defun portable-pathname-type-component-p (x)
   (and (portable-pathname-string-component-p x)
@@ -166,3 +166,12 @@ erroring out if some source of non-portability is found"
   (etypecase name
     (pathname (pathname-absolute-p name))
     (string (portablish-namestring-absolute-p name))))
+
+(defun absolute-portablish-namestring-p (namestring)
+  (and (portablish-namestring-p namestring)
+       (portablish-namestring-absolute-p namestring)))
+
+(defun portablish-namestring-p (x)
+  (and (stringp x)
+       (ignore-errors (portable-pathname-from-string x))
+       t))

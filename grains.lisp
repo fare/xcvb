@@ -46,7 +46,12 @@
   ()
   (:documentation "Active computational grain"))
 
-(defclass phony-grain (buildable-grain)
+(defclass named-grain (grain)
+  ((fullname
+    :initarg :fullname
+    :reader fullname)))
+
+(defclass phony-grain (buildable-grain named-grain)
   ((fullname
     :initarg :fullname))
   (:documentation "virtual grain used for side-effects"))
@@ -144,15 +149,15 @@ into an image that will be used for all future compile/load operations")
     :documentation "Relative portablish pathname of the executable to produce, if any"))
   (:documentation "BUILD.lisp file grain"))
 
-(defclass fasl-grain (file-grain)
+(defclass fasl-grain (file-grain named-grain)
   ()
   (:documentation "Lisp FASL file grain"))
 
-(defclass cfasl-grain (file-grain)
+(defclass cfasl-grain (file-grain named-grain)
   ()
   (:documentation "Lisp CFASL file grain"))
 
-(defclass image-grain (file-grain)
+(defclass image-grain (file-grain named-grain)
   ()
   (:documentation "Dumped Image"))
 
