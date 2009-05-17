@@ -1,7 +1,31 @@
 (in-package :xcvb)
 
-(defparameter *nodes* (make-hash-table :test 'equal)
-  "Grains in the graph, ")
+#|
+TODO: handle the fact that to load a BUILD,
+you don't want to load an image (unless we implement support for something like SB-HEAPDUMP),
+but a collection of fasls (or cfasls, depending) and dependencies.
+
+This in turn will necessitate refactoring of the load-command-for infrastructure.
+See dependencies-interpreter for details.
+
+Good news is, we can start implementing the Makefile backend even before we support that,
+and it will "just work". The limitation is that at this point,
+you can't directly depend on a build file --
+you HAVE to depend on individual lisp files.
+I should add some explicit error message about that --
+or bite the bullet and do the right thing.
+
+Add checks to detect and report circular dependencies!
+
+|#
+
+(defclass static-traversal ()
+  ((grain-names ;;; grain names in the stack of things we try to create -- to avoid circularities
+    :initarg :grain-names
+    :reader traversed-grain-names)
+   (dependencies ;;; dependencies discovered so far while examining the current computation
+    :initarg :dependencies
+    :reader traversed-dependencies)))
 
 (define-simple-dispatcher graph-for #'graph-for-atom)
 

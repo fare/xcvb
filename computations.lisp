@@ -3,6 +3,9 @@
 (defclass computation () ())
 (defclass computation-type () ())
 
+(defvar *computations* ()
+  "")
+
 ;;(defparameter *computations-inputing-grain*
 ;;  (make-hash-table :test 'equal)
 ;;  "hash mapping each grain to a list of computations that take said grain as input")
@@ -87,6 +90,7 @@
           for n from 0 do
           (setf (grain-computation target) computation
                 (grain-computation-index target) n))
+    (push computation *computations*)
     computation))
 
 (defun make-nop-computation (dependencies &optional targets)

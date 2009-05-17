@@ -1,5 +1,41 @@
 (in-package :xcvb)
 
+(defun write-makefile-prelude (&optional out)
+  (format out "~
+### This file was automatically created by XCVB ~A
+### DO NOT EDIT! Changes will be lost when xcvb overwrites this file.
+"
+          *xcvb-version*))
+
+(defun write-makefile (build-path
+                       &key
+                       (output-path (pathname-directory-pathname (grain-pathname build)))
+                       (makefile-name "xcvb.mk"))
+  "Write a Makefile to output-path with information about how to compile the specified BUILD."
+  (let* ((build-grain (probe-file-grain (truename build-path)))
+         (top-node (graph-for-build-grain build)))
+    ;... visited grains ...
+    ;... walk the computations ...
+    (with-open-file (out (merge-pathnames makefile-name output-path)
+                         :direction :output
+                         :if-exists :supersede)
+      (write-makefile-prelude out)
+      (dolist (computation *computations*)
+        (write-computation-to-makefile out computation))
+      ...))
+
+#|
+Pre-escaping [V5]
+-----------------
+
+I slashed the pre-escaping trick that sbrody used to allow for lisp files
+to use ``${FASL}`` as an extension that wouldn't be quoted for the ``Makefile``.
+We'll need to find some trick to do such things in a clean way,
+if we really want to do them.
+|#
+
+;;;;;;;;;;;;;;;;;;;; Previous backend ...
+
 (defparameter *build-requires-p* nil
   "Flag to specify if the build grain's build-requires slot has been set --
 and therefore whether or not to have a build-stage1.image

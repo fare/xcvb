@@ -14,6 +14,8 @@
 Negatives are stored as NIL. Positives as grains.")
 
 (defun probe-file-grain (path &key build-p)
+  (unless (absolute-pathname-p path)
+    (setf path (truename path)))
   (let ((string (namestring path)))
     (multiple-value-bind (cached found)
         (gethash string *pathname-grain-cache*)
@@ -150,5 +152,5 @@ Negatives are stored as NIL. Positives as grains.")
     (build-registry-conflict
      (error "Trying to use component ~S for conflicted build name ~S"
             name (fullname build)))
-    (t ;; some entry that isn't a build -- ignore
+    (t ;; some entry that isn't a build -- ignore. Or should we error out or at least warn?
      nil)))

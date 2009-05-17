@@ -31,15 +31,16 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "computations" :depends-on ("grains" "lisp-invocation"))
      (:file "portablish-pathnames" :depends-on ("utilities"))
      (:file "registry" :depends-on ("portablish-pathnames" "grains"))
-     (:file "names" :depends-on ("registry"))
-     (:file "search-path" :depends-on ("registry" "specials"))
-     (:file "dependencies-interpreter" :depends-on ("grains" "names" "specials"))
      (:file "lisp-grain" :depends-on ("registry"))
+     (:file "names" :depends-on ("registry" "lisp-grain"))
+     (:file "search-path" :depends-on ("registry" "specials"))
+     (:file "dependencies-interpreter" :depends-on ("names" "specials"))
      (:file "string-escape" :depends-on ("utilities"))
+     (:file "static-backends" :depends-on
+            ("specials" "lisp-grain" "dependencies-interpreter"))
 
      ;;; These files need to be (re)-written:
-     (:file "static-backends" :depends-on
-            ("specials" "string-escape" "lisp-grain" "dependencies-interpreter"))
+     ;;(:file "makefile-backend" :depends-on ("static-backends" "string-escape"))
 
      ;;; These files are not meaningful anymore, need to be re-written in the new framework:
      ;;(:file "extensions" :depends-on ("pkgdcl"))

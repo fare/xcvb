@@ -8,44 +8,38 @@ Future improvements planned for XCVB.
 
 .. contents::
 ..
-    1  Roadmap [V1]
-    2  Module Naming [V1]
-      2.1  Module reference [V1]
-      2.2  Search Path [V1] (done)
-      2.3  Automatically install modules from the Internet [V5]
+    1  Current Developments
+    2  Roadmap [V1]
     3  Usability Issues [V1]
       3.1  Lack of Manual [V1]
       3.2  Migration from ASDF [V1]
       3.3  Configurability of the build image [V1]
-      3.4  Generalized Staged Images [V2]
-      3.5  In-image loading [V1]
-      3.6  ASDF backend [V1]
+      3.4  In-image loading [V1]
+      3.5  ASDF backend [V1]
+      3.6  Generalized Staged Images [V2]
       3.7  Command-line interface [V3]
     4  Features [V1]
-      4.1   Abstract Away Paths [V2]
-      4.2   Multiple BUILD.lisp files [V1]
+      4.1   Multiple BUILD.lisp files [V1]
+      4.2   Abstract Away Paths [V2]
       4.3   Initialization and Finalization [V2]
-      4.4   Executables [V1]
+      4.4   Executables [V2]
       4.5   Tests [V2]
       4.6   Dependency grovelling [V2]
-      4.7   Revert [V1]
+      4.7   Revert [V2]
       4.8   Bootstrap [V3]
       4.9   Same source, multiple compilers [V4]
       4.10  Correctly handling C libraries [V4]
       4.11  Dynamic compilation [V4]
       4.12  Bug hunting [V5]
     5  The semantics of dependencies [V1]
-      5.1  FASL vs CFASL [V2]
-      5.2  Data files [V1]
+      5.1  Data files [V1]
+      5.2  FASL vs CFASL [V2]
       5.3  Computed Lisp files [V2]
       5.4  Tests [V2]
       5.5  Crypto Check [V3]
       5.6  Template Instantiations [V5]
     6  Internals [V1]
-      6.1  Distinguish target nodes and operation nodes [V1]
-      6.2  Use of Namestrings [V1]
-      6.3  Error handling [V4]
-      6.4  Pre-escaping [V5]
+      6.1  Error handling [V4]
     7  Higher-level description [V1]
       7.1  XCVB's Architecture
       7.2  Grains and Types
@@ -81,8 +75,37 @@ Future improvements planned for XCVB.
       9.1  Syntax Extensions [V3]
       9.2  Automatic Package management [V5]
       9.3  Better Namespace Management [V5]
-      9.4  Packaging and Distribution [V5]
-      9.5  More bibliography [V5]
+      9.4  Hooks into the Module Naming Resolution [V5]
+      9.5  Packaging and Distribution [V5]
+      9.6  More bibliography [V5]
+
+
+Current Developments
+====================
+
+A complete rewrite is underway.
+We've got a static backend that creates a graph.
+We most urgently need to:
+
+ * have some general framework for dependency traversal context,
+   that allows lisp commands to generate zero to many dependencies
+   while visited by a computation, accumulating computations, etc.
+
+ * remove limitation about not being to depend directly on a BUILD.
+
+ * write a Makefile backend.
+
+ * announce a new preview edition.
+
+ * update the migration code.
+
+ * add support for arbitrary shell commands.
+
+ * add some support for generated Lisp files.
+
+ * apply XCVB to QRes and/or QPX.
+
+ * revise documentation, including this very file.
 
 
 Roadmap [V1]
@@ -118,44 +141,6 @@ Things go here that have really low priority.
 As things get done, they should be moved
 from the ``TODO`` document to the appropriate documentation
 (at this moment, either ``README`` or ``INTERNALS``).
-
-
-Module Naming [V1]
-==================
-
-Before we proceed to the point where we can reliably support
-compilation of a project that spans over multiple BUILDs,
-we need to settle on the way that we name modules.
-Depending on how the naming happens,
-we may need more or fewer brittle levels of indirection.
-
-Module reference [V1]
----------------------
-
-The algorithm for identifying a module from the name specified
-in some dependency declaration is as follows:
-
-  1- The module is looked up under the current ``BUILD``
-
-  2- Each parent of the current ``BUILD`` is looked up, until we reach a toplevel ``BUILD``.
-
-  3- Each of the paths in the global search path is looked up, in order
-     (from first to last in a Lisp list, from left to right in a shell variable).
-
-  4- If the path is not found, a hook function may be called,
-     that may attempt to download and install the module.
-
-  5- If the hook function fails or there is no hook functions,
-     then the identification fails and the build aborts.
-
-
-Automatically install modules from the Internet [V5]
-----------------------------------------------------
-
-An extension to the module search mechanism may automatically
-download and install modules from the Internet when they are not found in the search path.
-This would happen whenever one tries to build a module
-that depends on a yet to be installed other module.
 
 
 Usability Issues [V1]
@@ -213,14 +198,6 @@ For a simple example, see ``doc/exscribe-compilation.lisp.example``.
 It's there already, but we need to document how this works.
 
 
-Generalized Staged Images [V2]
-------------------------------
-
-Instead of ad-hoc bootstrap images, provide a general mechanism
-for building images used to build further images,
-and use it for the initial image.
-
-
 In-image loading [V1]
 ---------------------
 
@@ -254,6 +231,14 @@ Add support for ``:load-source`` dependencies.
 Add a test suite for the ASDF backend.
 
 
+Generalized Staged Images [V2]
+------------------------------
+
+Instead of ad-hoc bootstrap images, provide a general mechanism
+for building images used to build further images,
+and use it for the initial image.
+
+
 Command-line interface [V3]
 ---------------------------
 
@@ -275,6 +260,22 @@ This section describes features that have to be added to XCVB.
 They modify the underlying build model.
 
 
+Multiple BUILD.lisp files [V1]
+------------------------------
+
+Allow the build-requires slot to work with multiple BUILD.lisp files.
+Right now, only the top-most BUILD.lisp file's build-requires slot
+is properly handled, the rest are ignored.
+
+To add this functionality, the makefile-generator will need to write
+a makefile that dumps multiple intermediate cores
+-- one for each BUILD.lisp's build-requires slot (if present) --
+and also has multiple ${CWBRLRUN} macros
+so that compilation will happen with the correct core at each step of the way.
+The asd-generator will similarly need to be changed
+to have one asdf module for each BUILD.lisp's build-requires slot (if present).
+
+
 Abstract Away Paths [V2]
 ------------------------
 
@@ -287,24 +288,6 @@ Map actual paths to and from variablized strings, i.e. have
 ``${FOO}/bar/${GAH}`` in your path; it will search for files there,
 and output ``${FOO}/bar/${GAH}/xcvb/BUILD.lisp``
 in the ``Makefile`` (instead of the full expansion).
-
-
-Multiple BUILD.lisp files [V1]
-------------------------------
-
-Have a search path mechanism that allows XCVB
-to automatically find and register existing BUILD.lisp files.
-
-Allow the build-requires slot to work with multiple BUILD.lisp files.
-Right now, only the top-most BUILD.lisp file's build-requires slot
-is properly handled, the rest are ignored.
-To add this functionality, the makefile-generator will need to write
-a makefile that dumps multiple intermediate cores
--- one for each BUILD.lisp's build-requires slot (if present) --
-and also has multiple ${CWBRLRUN} macros
-so that compilation will happen with the correct core at each step of the way.
-The asd-generator will similarly need to be changed
-to have one asdf module for each BUILD.lisp's build-requires slot (if present).
 
 
 Initialization and Finalization [V2]
@@ -335,7 +318,7 @@ After the file is compiled, one may want to
   * more generally update meta-data
 
 
-Executables [V1]
+Executables [V2]
 ----------------
 
 When creating a standalone executable, some initializers and finalizers may have to be run as above.
@@ -377,7 +360,7 @@ between ``:compile-toplevel`` and ``:load-toplevel`` side-effects to
 the evaluation environment.
 
 
-Revert [V1]
+Revert [V2]
 -----------
 
 We want a function to easily revert
@@ -476,6 +459,15 @@ some of which having been found and fixed bug not others.
 The semantics of dependencies [V1]
 ==================================
 
+Data files [V1]
+---------------
+
+Allow a module to depend on an auxiliary data file.
+That file will not be compiled or loaded into the Lisp image,
+but will just be used for tracking
+when the file that depends on it needs to be recompiled.
+
+
 FASL vs CFASL [V2]
 ------------------
 
@@ -493,15 +485,6 @@ And so, if building a propagation network for recompilation,
 the list of dependencies itself is to be part of
 the network that triggers updates to a compilation,
 not just the individual dependencies listed.
-
-
-Data files [V1]
----------------
-
-Allow a module to depend on an auxiliary data file.
-That file will not be compiled or loaded into the Lisp image,
-but will just be used for tracking
-when the file that depends on it needs to be recompiled.
 
 
 Computed Lisp files [V2]
@@ -591,31 +574,6 @@ as the need for such appears.
 Internals [V1]
 ==============
 
-Distinguish target nodes and operation nodes [V1]
--------------------------------------------------
-
-An operation can create multiple targets.
-A target can depend on a combination of multiple operations.
-See how to make Mae Make deal with such.
-
-
-Use of Namestrings [V1]
------------------------
-
-Currently, the implementation of fullnames is based on namestrings,
-but that isn't portable and may cause confusion
-when builder and buildee interpret some namestrings differently.
-Throughout the source code there are comments that say ";NUN".
-These are intended to document the use of non-portable unix namestrings.
-
-We should eventually make that stuff portable,
-using some existing library for dealing with namestrings sensibly,
-mostly bypassing the unreliable CL pathnames.
-Stelian Ionescu may be working on something like that soon for zeta-streams.
-In the meantime, we'll use our own library portablish-pathnames
-to get rid of these non-portable things.
-
-
 Error handling [V4]
 -------------------
 
@@ -625,14 +583,6 @@ using a condition defined specifically for that error.
 We should also provide a nicer way of presenting errors to the end-user.
 Maybe there should also be some library for that.
 
-
-Pre-escaping [V5]
------------------
-
-I slashed the pre-escaping trick that sbrody used to allow for lisp files
-to use ``${FASL}`` as an extension that wouldn't be quoted for the ``Makefile``.
-We'll need to find some trick to do such things in a clean way,
-if we really want to do them.
 
 
 Higher-level description [V1]
@@ -1328,6 +1278,17 @@ See Flatt, 'Composable and Compilable Macros', 2002.
 http://www.cs.utah.edu/plt/publications/macromod.pdf
 (The R6RS's library system emphatically got phase separation wrong.
 Don't repeat their mistake.)
+
+
+Hooks into the Module Naming Resolution [V5]
+--------------------------------------------
+
+So as to support compilation of a project that spans over multiple BUILDs,
+a module naming system was implemented.
+
+When a module is not found, a hook function may be called,
+that allows for arbitrary computed modules, most notably including
+modules automatically downloaded and installed on demand from the internet.
 
 
 Packaging and Distribution [V5]

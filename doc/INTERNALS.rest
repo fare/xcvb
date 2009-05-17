@@ -118,9 +118,31 @@ portablish-pathnames.lisp
 -------------------------
 
 Abstraction layer to ensure that XCVB uses reasonably portable names when naming modules.
-Internally, XCVB will use the "``/``" character as a pathname directory separator,
-in a way that is guaranteed to work even if the OS-dependent separator is different.
+
+Everywhere that hierarchical module names are involved,
+XCVB uses the "``/``" character as a pathname directory separator,
+in a way that is guaranteed to work portably, however things may vary depending on
+Lisp implementation, Operating system, pathname host and device.
 Also, XCVB will only accept module names where all characters are valid: ``[-_.,A-Za-z0-9]``.
+
+
+Use of Namestrings [V1]
+-----------------------
+
+Currently, the implementation of fullnames is based on namestrings,
+but that isn't portable and may cause confusion
+when builder and buildee interpret some namestrings differently.
+Throughout the source code there are comments that say ";NUN".
+These are intended to document the use of non-portable unix namestrings.
+
+We should eventually make that stuff portable,
+using some existing library for dealing with namestrings sensibly,
+mostly bypassing the unreliable CL pathnames.
+Stelian Ionescu may be working on something like that soon for zeta-streams.
+In the meantime, we'll use our own library portablish-pathnames
+to get rid of these non-portable things.
+
+
 
 
 names.lisp

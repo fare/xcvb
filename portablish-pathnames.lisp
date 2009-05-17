@@ -159,6 +159,10 @@ erroring out if some source of non-portability is found"
   (let ((directory (pathname-directory path)))
     (and (consp directory) (eq (car directory) :absolute))))
 
+(defun absolute-pathname-p (path)
+  (and (pathnamep path)
+       (pathname-absolute-p path)))
+
 (defun portablish-namestring-absolute-p (namestring)
   (eql (first-char namestring) #\/))
 

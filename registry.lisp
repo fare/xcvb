@@ -19,12 +19,15 @@ then enriched as we build the graph from the main BUILD file.")
 (defun (setf registered-grain) (grain name)
   (setf (gethash name *grains*) grain))
 
-(defun make-grain (class &rest args &key fullname &allow-other-keys)
+(defun call-with-grain-registration (fullname function &rest args)
   (let ((previous (registered-grain fullname)))
     (or previous
-        (let ((grain (apply #'make-instance class args)))
+        (let ((grain (apply function args)))
           (setf (registered-grain fullname) grain)
           grain))))
+
+(defun make-grain (class &rest args &key fullname &allow-other-keys)
+  (call-with-grain-registration fullname #'make-instance class args))
 
 ;;; Special magic for build entries in the registry
 

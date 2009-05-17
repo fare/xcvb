@@ -2,6 +2,12 @@
 
 (in-package :xcvb)
 
+(defun xcvb-setup-dependencies ()
+  (mapcar (lambda (x)
+            `(:load-source
+              ,(merge-pathnames x *xcvb-lisp-directory*)))
+          *xcvb-setup-dependencies*))
+
 (defun usage (&optional (out *standard-output*))
   (format out "~&Usage: xcvb FILE.lisp~%  ~
 	where FILE.lisp configures xcvb and starts computation.~%  ~

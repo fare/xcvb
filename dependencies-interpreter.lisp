@@ -90,15 +90,40 @@ in the normalized dependency mini-language"
     (second (computation-outputs (grain-computation fasl-grain)))
     fasl-grain))
 
-(defun load-command-for (grapher spec)
+(define-simple-dispatcher load-command-for #'load-command-for-atom)
+
+(defun load-command-for-atom (env spec)
+  (declare (ignore env))
+  (error "Invalid dependency ~S" spec))
+
+(defun load-command-for (environment spec)
   ;; What to do to load a given dependency -
   ;; returns a command in the command language, and a grain.
-  (with-dependency (:type type) spec
-     (let ((grain (funcall grapher spec)))
-       (unless (typep grain type)
-         (error "Expected a grain of type ~S for ~S, instead got ~S"
-                type spec grain))
-       (values `(:load ,spec) grain))))
+  (load-command-for-dispatcher environment spec))
+
+(define-load-command-for :lisp (env name)
+  (simple-load-command-for env :lisp name))
+(define-load-command-for :fasl (env name)
+  (simple-load-command-for env :lisp name))
+(define-load-command-for :cfasl (env name)
+  (simple-load-command-for env :lisp name))
+
+(defun simple-load-command-for (env type name)
+  (with-dependency (:type grain-type) spec
+    (let ((grain (graph-for-dependency environment spec)))
+      (unless (typep grain grain-type)
+        (error "Expected a grain of type ~S for ~S, instead got ~S"
+               type spec grain))
+      (issue-dependency env grain)
+      (issue-load-command env `(:load (,type ,name))))))
+
+(define-load-command-for :build (env name)
+  (dolist (dep (load-dependencies 
+  `(:load (:cfasl ,name)))
+
+      `(:load ,spec))))
+
+
 
 
 #|

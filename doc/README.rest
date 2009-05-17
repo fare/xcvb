@@ -25,7 +25,11 @@ enforced locally-declared dependencies.
       2.3  Starting a new XCVB project
       2.4  Compiling with XCVB
       2.5  Compile-time side-effects
-      2.6  Further Limitations
+    3  Combining Multiple Projects
+      3.1  Module Full Names
+      3.2  Module Relative Names
+      3.3  Search Path
+    4  Current Limitations
 
 
 About XCVB
@@ -61,11 +65,11 @@ The home page of the project is at:
 
 	http://common-lisp.net/project/xcvb/
 
-You can checkout our public repository with:
+You can checkout our public repository with::
 
 	git clone http://common-lisp.net/project/xcvb/xcvb.git
 
-Or if you are a project member, you can obtain write access using:
+Or if you are a project member, you can obtain write access using::
 
 	git clone ssh://USER@common-lisp.net/project/xcvb/public_html/xcvb.git
 
@@ -74,7 +78,7 @@ You can also browse the repository at:
 	http://github.com/fare/xcvb/tree/master
 
 To use the latest working prototype, you should checkout
-the properly tagged code in a branch::
+the properly tagged code in a branch (after cloning as above)::
 
 	git pull http://common-lisp.net/project/xcvb/xcvb.git v0.1-prototype:v0.1-prototype
 	git checkout v0.1-prototype
@@ -116,12 +120,14 @@ specific to the target on which XCVB was run
 Francois-Rene Rideau restarted work on it
 and released an initial semi-usable prototype
 in mid December 2008, where the above hacks were automated away.
+A paper about the prototype was presented at ILC'09.
 
-ILC'09 has passed, and
+Francois-Rene Rideau undertook a complete rewrite of XCVB
+to make its architecture more general.
 We hope to have a complete release with example and documentation
-ready for showing at ILC'09 by March 2009.
+ready for showing by June 2009.
 
-Now is time to extend and refine the existing functionality,
+Then will be time to extend and refine the existing functionality,
 refactor the internals,
 stabilize the API,
 implement more features,
@@ -224,13 +230,13 @@ currently specified in an ugly way as dependencies of the build image.
 The ``BUILD.lisp`` file for Exscribe is as follows::
 
 	#+xcvb
-	(module
-	  (:fullname "exscribe"
-	   :load-depends-on ("exscribe" "exscribe-html" "exscribe-txt" "exscribe-typeset"))
-	  (:set :this-module :build-requires
-	    	((:asdf "cl-launch")
-		 (:asdf "fare-utils") (:asdf "fare-matcher") (:asdf "scribble")
-		 (:asdf "cl-typesetting"))))
+        (module
+          (:fullname "fare.tunes.org/exscribe"
+           :build-requires ((:asdf "cl-launch") (:asdf "fare-utils")
+                            (:asdf "fare-matcher") (:asdf "scribble")
+                            (:asdf "cl-typesetting"))
+           :depends-on ("exscribe" "exscribe-html" "exscribe-txt" "exscribe-typeset")
+           :build-image t))
 
 You don't need to specify all your files in the ``BUILD.lisp`` module form,
 only those containing the functions you really care about,
@@ -299,14 +305,12 @@ Nicknames are also allowed, and the same ``BUILD.lisp`` could declare
 the nickname ``quux`` and the same file would then be accessible
 under the shorter name ``quux/baz/toto``.
 
-
-Module Relative Names
----------------------
-
-When a module form refers to another module, it may use a short name.
-The algorithm by which a name reference is resolved to a full name is as follows:
-
-  ... (TODO: document the algorithm) ...
+Note that everywhere that hierarchical module names are involved,
+XCVB uses the "``/``" character as a pathname directory separator,
+in a way that is guaranteed to work portably, however things may vary depending on
+Lisp implementation, Operating system, pathname host and device.
+Also, XCVB will only accept module names where all characters are valid: ``[-_.,A-Za-z0-9]``.
+Finally, XCVB assumes that lisp files have type ``lisp`` as far as pathnames are considered.
 
 
 Search Path
@@ -352,11 +356,41 @@ if one ``BUILD.lisp`` appears in a hierarchy
 that appears earlier in the search path, then it takes precedence;
 if the previous rule doesn't disambiguate a name, then
 said name will be marked as a conflict and
-will be available for use during the build.
+will be unavailable for use during the build.
+To avoid gratuitous conflicts,
+subdirectories named ``_darcs`` or ``.svn``
+are conspicuously not searched.
 
 Note to people migrating from ASDF:
 this more or less corresponds
 to the ``asdf:*central-registry*`` special variable.
+However, whereas ASDF relies on lazy dereference of symlinks
+and doesn't descend into subdirectories,
+XCVB eagerly scans subdirectories and registers available builds.
+XCVB works with or without symlinks.
+
+
+
+Module Name Resolution
+----------------------
+
+When a module form refers to another module, it may use a short name.
+The algorithm by which a name reference is resolved to a full name is as follows.
+
+First, names that start with a ``/`` character are absolute names,
+and always refer to the global module namespace.
+When resolving an absolute name,
+the registered BUILD with the longest matching path prefix is identified.
+If it is not found, or if there are several conflicting
+BUILD files with that same fullname, then an error is raised.
+Otherwise, the rest of the name after stripping the prefix is used as
+a pathname relative to the identified BUILD.
+
+Second, names that are not absolute are relative names.
+Attempt is successively made to resolve them
+relative to the current BUILD and each of its ancestors.
+Failing that, they are resolved as absolute names as above.
+
 
 
 Current Limitations
