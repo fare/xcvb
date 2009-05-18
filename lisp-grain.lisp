@@ -94,6 +94,8 @@
                (portable-pathname-from-string name :allow-absolute nil)
                (grain-pathname build)))))
 
+
+;;; Ain't this superseded by resolve-module-name???
 (defun grain-from-fullname (name)
   (setf name (canonicalize-fullname name))
   (or (registered-grain name)
@@ -109,20 +111,6 @@
                       (return it)))))
             :finally (return nil))))
 
-(defvar *build-grain* nil
-  "Current BUILD.lisp grain being considered")
-
-(defun grain-from-name (name &optional
-                        (build-grain *build-grain*))
-  "This function takes the name of a module, and the current build grain,
-   and returns the correct module with that given name.
-    * It first tries to find a grain with fullname <(fullname build-grain)/name>
-    * Failing that, it tries name as a fullname"
-    (or (and build-grain (grain-from-fullname (strcat (fullname build-grain) "/" name)))
-        (grain-from-fullname name)
-        (simply-error 'grain-not-found
-                      "The grain with name ~S cannot be found" name)))
-
 (defun build-pre-image-name (build-grain)
   (check-type build-grain build-grain)
   (let ((image (build-pre-image build-grain)))
@@ -131,7 +119,6 @@
       ((eql t) (merge-pathnames
                 (portable-pathname-from-string (fullname build-grain))
                 (portable-pathname-from-string "pre-image/"))))))
-
 
 (defun build-image-name (build-grain)
   (check-type build-grain build-grain)

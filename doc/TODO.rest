@@ -231,6 +231,26 @@ Add support for ``:load-source`` dependencies.
 Add a test suite for the ASDF backend.
 
 
+Conditional Build [V1]
+----------------------
+
+XCVB needs to be able to handle conditional compilation of some files.
+
+A simple way to do it, that we should support for [V1]
+would be to use conditional reading with #+ and #-
+like people currently do with ASDF.
+Because the builder and buildee are separate, this means that
+XCVB must somehow extract the features of the buildee
+(by running the target lisp) before it reads any of the files.
+
+However, that approach is a hack that doesn't scale to larger builds
+where the same file would be compiled many times using different compilers
+and feature sets.
+At some point before [V3], we'll want to have a specialized language
+to specify conditional dependencies.
+mudballs has something that we should look into.
+
+
 Generalized Staged Images [V2]
 ------------------------------
 

@@ -35,9 +35,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "names" :depends-on ("registry" "lisp-grain"))
      (:file "search-path" :depends-on ("registry" "specials"))
      (:file "dependencies-interpreter" :depends-on ("names" "specials"))
-     (:file "string-escape" :depends-on ("utilities"))
      (:file "static-backends" :depends-on
             ("specials" "lisp-grain" "dependencies-interpreter"))
+     (:file "string-escape" :depends-on ("utilities"))
 
      ;;; These files need to be (re)-written:
      ;;(:file "makefile-backend" :depends-on ("static-backends" "string-escape"))

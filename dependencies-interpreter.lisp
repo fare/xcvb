@@ -78,10 +78,14 @@ in the normalized dependency mini-language"
 (defun compile-time-fasl-type ()
   (if *use-cfasls* :cfasl :fasl))
 
-(defun fasl-grains-for-name (fullname)
-  (cons (make-grain 'fasl-grain :fullname `(:fasl ,fullname))
+(defun fasl-grains-for-name (fullname load-dependencies compile-dependencies)
+  (cons (make-grain 'fasl-grain
+                    :fullname `(:fasl ,fullname)
+                    :load-dependencies load-dependencies)
         (if *use-cfasls*
-            (list (make-grain 'cfasl-grain :fullname `(:cfasl ,fullname)))
+            (list (make-grain 'cfasl-grain
+                              :fullname `(:cfasl ,fullname)
+                              :load-dependencies compile-dependencies))
             nil)))
 
 (defun cfasl-for-fasl (fasl-grain)
@@ -96,35 +100,45 @@ in the normalized dependency mini-language"
   (declare (ignore env))
   (error "Invalid dependency ~S" spec))
 
-(defun load-command-for (environment spec)
-  ;; What to do to load a given dependency -
-  ;; returns a command in the command language, and a grain.
-  (load-command-for-dispatcher environment spec))
+(defun load-command-for (env spec)
+  (unless (lisp-command-issued-p env `(:load ,spec))
+    (load-command-for-dispatcher env spec)))
 
 (define-load-command-for :lisp (env name)
-  (simple-load-command-for env :lisp name))
+  (simple-load-command-for env :lisp name name))
 (define-load-command-for :fasl (env name)
-  (simple-load-command-for env :lisp name))
+  (simple-load-command-for env :fasl name `(:fasl ,name)))
 (define-load-command-for :cfasl (env name)
-  (simple-load-command-for env :lisp name))
+  (simple-load-command-for env :cfasl name `(:cfasl ,name)))
 
-(defun simple-load-command-for (env type name)
-  (with-dependency (:type grain-type) spec
-    (let ((grain (graph-for-dependency environment spec)))
-      (unless (typep grain grain-type)
+(defun call-with-dependency-grain (environment dep fun)
+  (let* ((grain (graph-for environment dep)))
+    (with-dependency (:type type) dep
+      (unless (typep grain type)
         (error "Expected a grain of type ~S for ~S, instead got ~S"
-               type spec grain))
-      (issue-dependency env grain)
-      (issue-load-command env `(:load (,type ,name))))))
+               type dep grain))
+      (funcall fun grain))))
+
+(defgeneric issue-dependency (env grain))
+(defgeneric issue-load-command (env command))
+
+(defun simple-load-command-for (env type name fullname)
+  (call-with-dependency-grain
+   env fullname
+   (lambda (grain)
+     (load-commands-for-dependencies env grain)
+     (issue-dependency env grain)
+     (issue-load-command env `(:load (,type ,name))))))
 
 (define-load-command-for :build (env name)
-  (dolist (dep (load-dependencies 
-  `(:load (:cfasl ,name)))
+  (call-with-dependency-grain
+   env `(:build ,name)
+   (lambda (grain)
+     (load-commands-for-dependencies env grain))))
 
-      `(:load ,spec))))
-
-
-
+(defun load-commands-for-dependencies (env grain)
+  (dolist (dep (load-dependencies grain))
+    (load-command-for env dep)))
 
 #|
 In more complex cases, we probably want to

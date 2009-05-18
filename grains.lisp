@@ -150,11 +150,15 @@ into an image that will be used for all future compile/load operations")
   (:documentation "BUILD.lisp file grain"))
 
 (defclass fasl-grain (file-grain named-grain)
-  ()
+  ((load-dependencies
+    :initarg :load-dependencies
+    :reader load-dependencies))
   (:documentation "Lisp FASL file grain"))
 
 (defclass cfasl-grain (file-grain named-grain)
-  ()
+  ((load-dependencies
+    :initarg :load-dependencies
+    :reader load-dependencies))
   (:documentation "Lisp CFASL file grain"))
 
 (defclass image-grain (file-grain named-grain)
@@ -164,6 +168,7 @@ into an image that will be used for all future compile/load operations")
 
 ;------>8------>8------>8------>8------>8------>8------>8------>8------>8------
 
+#|
 (defgeneric direct-dependencies (grain)
   (:documentation "List of all the direct grain dependencies"))
 
@@ -173,7 +178,6 @@ into an image that will be used for all future compile/load operations")
 (defmethod all-dependencies (grain)
   (all-descendents-f grain #'direct-dependencies))
 
-#|
 (def grain lisp-grain (file-grain)
   :filename "%.lisp"
   :documentation "LISP file grain")

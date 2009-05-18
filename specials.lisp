@@ -44,9 +44,3 @@
 
 (defvar *lisp-allow-debugger* nil
   "Should we allow interactive debugging of failed build attempts?")
-
-(defvar *build* nil
-  "current build")
-
-;;(defvar *operating-mode* :loading
-;;  "current operating mode: :LOADING, :COMPILING")

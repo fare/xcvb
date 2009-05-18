@@ -27,7 +27,7 @@ then enriched as we build the graph from the main BUILD file.")
           grain))))
 
 (defun make-grain (class &rest args &key fullname &allow-other-keys)
-  (call-with-grain-registration fullname #'make-instance class args))
+  (apply #'call-with-grain-registration fullname #'make-instance class args))
 
 ;;; Special magic for build entries in the registry
 

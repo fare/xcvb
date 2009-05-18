@@ -67,20 +67,22 @@ The home page of the project is at:
 
 You can checkout our public repository with::
 
-	git clone http://common-lisp.net/project/xcvb/xcvb.git
+	git clone http://common-lisp.net/project/xcvb/git/xcvb.git
 
 Or if you are a project member, you can obtain write access using::
 
-	git clone ssh://USER@common-lisp.net/project/xcvb/public_html/xcvb.git
+	git clone ssh://USER@common-lisp.net/project/xcvb/public_html/git/xcvb.git
 
-You can also browse the repository at:
+You can also browse the repository at either of these:
+
+	http://common-lisp.net/gitweb?p=projects/xcvb/xcvb.git;a=summary
 
 	http://github.com/fare/xcvb/tree/master
 
 To use the latest working prototype, you should checkout
 the properly tagged code in a branch (after cloning as above)::
 
-	git pull http://common-lisp.net/project/xcvb/xcvb.git v0.1-prototype:v0.1-prototype
+	git pull http://common-lisp.net/project/xcvb/git/xcvb.git v0.1-prototype:v0.1-prototype
 	git checkout v0.1-prototype
 
 
@@ -103,6 +105,7 @@ You will need the following pieces of software to get XCVB running:
 
   * Closer to MOP:
 	http://common-lisp.net/project/closer/closer-mop.html
+
 
 Timeline
 --------

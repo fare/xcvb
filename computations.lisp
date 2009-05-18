@@ -4,7 +4,7 @@
 (defclass computation-type () ())
 
 (defvar *computations* ()
-  "")
+  "A list of all the computations created")
 
 ;;(defparameter *computations-inputing-grain*
 ;;  (make-hash-table :test 'equal)
@@ -88,6 +88,8 @@
   (let ((computation (apply #'make-instance class keys)))
     (loop for target in outputs
           for n from 0 do
+          (when (slot-boundp target 'computation)
+            (error "Grain ~S already is the output of an existing computation!" target))
           (setf (grain-computation target) computation
                 (grain-computation-index target) n))
     (push computation *computations*)

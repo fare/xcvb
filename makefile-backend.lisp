@@ -5,7 +5,22 @@
 ### This file was automatically created by XCVB ~A
 ### DO NOT EDIT! Changes will be lost when xcvb overwrites this file.
 "
-          *xcvb-version*))
+          *xcvb-version*)
+
+#|
+TODO:
+issue names pathnames relative to variables defined for each BUILD.lisp,
+e.g. CL_PPCRE_ROOT = /usr/share/common-lisp/source/cl-ppcre
+then use ${CL_PPCRE_ROOT}/lexer.lisp
+instead of /usr/share/common-lisp/source/cl-ppcre/util.lisp
+Beware: Makefile, shell and lisp each require proper quoting so that
+something be properly passed to the lower layer, especially if
+the filenames may contain spaces, as is often the case on a Mac.
+So that the Makefile command entry for a shell command would be:
+	sbcl --core ${IMAGE_ROOT}/cl-ppcre/pre.image --eval \
+	"(xcvb-driver:load-and-compile "${CL_PPRCE_ROOT}/util.lisp")
+
+)
 
 (defun write-makefile (build-path
                        &key
@@ -22,7 +37,9 @@
       (write-makefile-prelude out)
       (dolist (computation *computations*)
         (write-computation-to-makefile out computation))
-      ...))
+      ...)))
+
+
 
 #|
 Pre-escaping [V5]
