@@ -23,21 +23,25 @@ Send inquiries to the mailing-list if you need it to be updated.)
       1.5   utilities.lisp
       1.6   specials.lisp
       1.7   grains.lisp
-      1.8   portablish-pathnames.lisp
-      1.9   names.lisp
-      1.10  registry.lisp
-      1.11  search-path.lisp
-      1.12  lisp-grain.lisp
-      1.13  lisp-invocation.lisp
-      1.14  string-escape.lisp
-      1.15  asdf-extensions.lisp
-      1.16  extensions.lisp
-      1.17  xcvb.lisp
-      1.18  traverse.lisp
-      1.19  makefile-generator.lisp
-      1.20  asd-generator.lisp
-      1.21  asdf-converter.lisp
-      1.22  main.lisp
+      1.8   lisp-invocation.lisp
+      1.9   computations.lisp
+      1.10  portablish-pathnames.lisp
+      1.11  Use of Namestrings [V1]
+      1.12  names.lisp
+      1.13  registry.lisp
+      1.14  search-path.lisp
+      1.15  lisp-grain.lisp
+      1.16  fasl-grain.lisp
+      1.17  string-escape.lisp
+      1.18  asdf-dependencies.lisp
+      1.19  static-backends.lisp
+      1.20  extensions.lisp
+      1.21  xcvb.lisp
+      1.22  traverse.lisp
+      1.23  makefile-generator.lisp
+      1.24  asd-generator.lisp
+      1.25  asdf-converter.lisp
+      1.26  main.lisp
     2  Good places to extend XCVB
     3  Notes
       3.1  Fullnames
@@ -46,21 +50,37 @@ Send inquiries to the mailing-list if you need it to be updated.)
       3.4  TODO
 
 
-Files
-=====
+Current Files
+=============
+
+General TODO: once the API we actually need stabilizes, remove cruft.
 
 driver.lisp
 -----------
 
 A small collection of utilities to be compiled into buildee processes
-so as to provide an abstraction layer for XCVB.
+so as to provide an abstraction layer for XCVB to compile files.
 
 
 asdf-extensions.lisp
 --------------------
 
-This file adds a function in the asdf package
+ASDF-specific extensions to the driver.
+
+This file currently adds a function in the asdf package
 to determine whether or not an asdf system needs to be re-compiled.
+
+
+memoization.lisp
+----------------
+
+A simple library for memoizing function.
+
+Not actually used currently.
+I originally intended to use it for interning elements
+of some classes where all slots are read-only.
+
+TODO: move to some other CL library, e.g. fare-utils, or its own.
 
 
 pkgdcl.lisp
@@ -68,21 +88,28 @@ pkgdcl.lisp
 
 This file creates the XCVB package and exports the necessary symbols.
 
+TODO: before we release, edit this file and make sure that
+we export all those defined symbols that we want users to use,
+and only those symbols.
+
 
 macros.lisp
 -----------
 
 A collection of general-purpose macros.
-Most of them should be moved to a library that XCVB would depend upon.
+
+TODO: Most of them should be moved to a library that XCVB would depend upon.
 
 
 utilities.lisp
 --------------
 
 A collection of utility functions.
-Most of them should be moved to a library that XCVB would depend upon.
+Also defines many conditions.
 
-Also defines many conditions (TODO: move them to another file).
+TODO: move conditions to another file.
+
+TODO: Most utilities should be moved to a library that XCVB would depend upon.
 
 
 specials.lisp
@@ -96,22 +123,26 @@ grains.lisp
 -----------
 
 Definition of the main datastructures of XCVB and helper functions.
-Named grains after reading
+
+Grains are nodes in the planning graph representing
+files, phonies or transient states,
+and as far as the Makefile backend goes, correspond to Makefile targets.
+
+For other backends, grains may be a more general state,
+including things like "a running image where such libraries are loaded".
+They are named "grains" after reading
 'BUILD: A tool for maintaining consistency in modular systems'
 by Richard Elliot Robbins, 1985.
 ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
 
 
-lisp-invocation.lisp
---------------------
-
-Handles the invocation of the target lisp system.
-
-
 computations.lisp
 -----------------
 
-Computations from (set of) grains to (set of) grains.
+Computations are nodes in the planning graph
+representing computations that thake some grains as input
+and create some other grains as output.
+In the Makefile backend, they correspond to the Makefile rules.
 
 
 portablish-pathnames.lisp
@@ -125,32 +156,11 @@ in a way that is guaranteed to work portably, however things may vary depending 
 Lisp implementation, Operating system, pathname host and device.
 Also, XCVB will only accept module names where all characters are valid: ``[-_.,A-Za-z0-9]``.
 
-
-Use of Namestrings [V1]
------------------------
-
-Currently, the implementation of fullnames is based on namestrings,
-but that isn't portable and may cause confusion
-when builder and buildee interpret some namestrings differently.
-Throughout the source code there are comments that say ";NUN".
-These are intended to document the use of non-portable unix namestrings.
-
-We should eventually make that stuff portable,
-using some existing library for dealing with namestrings sensibly,
+We might eventually be using some existing library for dealing with namestrings sensibly,
 mostly bypassing the unreliable CL pathnames.
 Stelian Ionescu may be working on something like that soon for zeta-streams.
 In the meantime, we'll use our own library portablish-pathnames
 to get rid of these non-portable things.
-
-
-
-
-names.lisp
-----------
-
-Handles the mapping from file to fullname,
-including recursing in the case that the fullname is
-inherited from a BUILD.lisp up the filesystem tree.
 
 
 registry.lisp
@@ -160,12 +170,6 @@ Handles the mapping from fullname to grain,
 and conflicts when multiple BUILDs claim the same name.
 
 
-search-path.lisp
-----------------
-
-Handles the search path.
-
-
 lisp-grain.lisp
 ---------------
 
@@ -173,10 +177,32 @@ Handles parsing module forms in lisp grains,
 including the naming of other modules within a module form.
 
 
-fasl-grain.lisp
----------------
+names.lisp
+----------
 
-Handles the compiling of lisp grains into fasl grains.
+Handles the mapping from file to fullname and fullname to file.
+This includes recursing in the case that the fullname is
+inherited from a BUILD.lisp up the filesystem tree.
+
+
+search-path.lisp
+----------------
+
+Handles the search path where XCVB goes looking for available BUILDs.
+Shell variable ``XCVB_PATH`` or Lisp variable ``xcvb:*search-path*``.
+
+
+dependencies-interpreter.lisp
+-----------------------------
+
+Support for making sense of the XCVB dependency mini-language,
+independently from the backend being used.
+
+
+static-backends.lisp
+--------------------
+
+Builds a static graph, for use with GNU Make, ASDF, and other static backends.
 
 
 string-escape.lisp
@@ -186,16 +212,29 @@ Handles escaping strings, for use in shell invocations and/or
 ``Makefile`` commands.
 
 
-asdf-dependencies.lisp
-----------------------
-
-Support for dependencies upon ASDF systems.
-
-
-static-backends.lisp
+lisp-invocation.lisp
 --------------------
 
-Builds a static graph, for use with GNU Make, ASDF, and other static backends.
+Handles the invocation of the target lisp system,
+abstracting away the differences between implementations.
+
+
+main.lisp
+---------
+
+The main entry file.
+
+TODO: after the refactoring, add some proper command-line interface.
+
+
+Past or Future Files
+====================
+
+makefile-backend.lisp
+---------------------
+
+This will be our new makefile backend,
+iterating over computations to create Makefile rules.
 
 
 extensions.lisp
@@ -212,75 +251,6 @@ that can be used to specify that function
 in the extension forms part of a module declaration.
 The extension functions from a module form are applied
 right after the module form has been parsed into a module object.
-
-
-xcvb.lisp
----------
-
-OBSOLETE: this file is a remnant from XCVB 0.11 and
-will be replaced by other files.
-It still contains the code that used to construct the dependency graph.
-
-The main entry point into this file is through the functions
-create-dependency-graph and create-dump-image-graph.
-Both of these take a pathspec for the source file
-whose dependency graph is being created.
-They will read the module form from the top of the source file,
-and create a module object to represent it.
-Then a lisp-image-node will be created
-to represent a lisp image with the fasl for the given source-file loaded.
-The lisp-image-node will have one compile-dependency:
-the fasl-node for the given source file.
-It then uses the function create-dependency-node
-to create nodes of the proper type for each of that file's dependencies.
-The function create-dependency-node destructures
-the dependency list from the module for the file
-and uses the generic function create-dependency-node-from-type
-to create a dependency-graph-node of the proper type
-for each of the node's dependencies.
-This process will repeat recursively
-until the whole dependency graph is created.
-If you add a new type of dependency-graph-node,
-it is important to create a new method on create-dependency-node-from-type
-so that there is a way to specify that type of dependency
-in a module declaration.
-
-
-traverse.lisp
--------------
-
-OBSOLETE: will be replaced as I refactor the grain API.
-
-This file contains the function traverse,
-as composed from a collection of methods.
-It provides a couple of different ways
-of topologically sorting the dependency graph.
-
-It probably should be refactored to be automatically deduced
-from a higher-level description of the operators underlying
-the creation of the graph.
-
-
-makefile-generator.lisp
------------------------
-
-OUT-OF-DATE: should be rewritten as part of our refactoring.
-
-This file contains the code to take a dependency graph
-and write a Makefile that can be used by make
-to compile the system specified by the graph.
-The entry point to this file should be the write-makefile function.
-This function takes the path to a lisp source file,
-and will construct a dependency graph for that file,
-then write a makefile in the directory specifed by output-path
-that will be able to compile the system.
-The generated makefile starts by using the specified lisp executable
-(as specified in compiler-options.lisp)
-to dump an image with XCVB loaded,
-along with any other files/systems that are specified
-in the build-requires slot of the module for the BUILD.lisp file
-that is associated with the source file whose dependency graph
-is being written to the makefile.
 
 
 asd-generator.lisp
@@ -325,14 +295,6 @@ and create or update a BUILD.lisp and update all source files
 to insert a module statement,
 keeping any manual rules from a previously added module statement
 but otherwise overriding the main data.
-
-
-main.lisp
----------
-
-The main entry file.
-
-TODO: after the refactoring, add some proper command-line interface.
 
 
 
@@ -454,6 +416,7 @@ So, if we ever port XCVB to anything else than Unix,
 the correct way will be to grow Windows (and JVM, Genera) support in IOLib.
 See my rant "Who's responsible for that moving part?":
 http://fare.livejournal.com/139755.html
+
 
 TODO
 ----

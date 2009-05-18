@@ -16,8 +16,9 @@ Future improvements planned for XCVB.
       3.3  Configurability of the build image [V1]
       3.4  In-image loading [V1]
       3.5  ASDF backend [V1]
-      3.6  Generalized Staged Images [V2]
-      3.7  Command-line interface [V3]
+      3.6  Conditional Build [V1]
+      3.7  Generalized Staged Images [V2]
+      3.8  Command-line interface [V3]
     4  Features [V1]
       4.1   Multiple BUILD.lisp files [V1]
       4.2   Abstract Away Paths [V2]
@@ -87,25 +88,19 @@ A complete rewrite is underway.
 We've got a static backend that creates a graph.
 We most urgently need to:
 
- * have some general framework for dependency traversal context,
-   that allows lisp commands to generate zero to many dependencies
-   while visited by a computation, accumulating computations, etc.
+ * Write a Makefile backend.
 
- * remove limitation about not being to depend directly on a BUILD.
+ * Announce a new preview edition.
 
- * write a Makefile backend.
+ * Update the migration code.
 
- * announce a new preview edition.
+ * Add support for arbitrary shell commands.
 
- * update the migration code.
+ * Add some support for generated Lisp files.
 
- * add support for arbitrary shell commands.
+ * Apply XCVB to some actual big projects at ITA.
 
- * add some support for generated Lisp files.
-
- * apply XCVB to QRes and/or QPX.
-
- * revise documentation, including this very file.
+ * Revise documentation, including this very file.
 
 
 Roadmap [V1]

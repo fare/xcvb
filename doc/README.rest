@@ -27,8 +27,8 @@ enforced locally-declared dependencies.
       2.5  Compile-time side-effects
     3  Combining Multiple Projects
       3.1  Module Full Names
-      3.2  Module Relative Names
-      3.3  Search Path
+      3.2  Search Path
+      3.3  Module Name Resolution
     4  Current Limitations
 
 

@@ -161,3 +161,10 @@ Add checks to detect and report circular dependencies!
            ,@(traversed-lisp-commands env)
            (:compile-lisp ,fullname)))
         outputs))))
+
+#|
+Note:
+* Whenever we build an image, it is implicit that we load the driver first.
+* :IMAGE NIL might mean that we use the standard image then load the driver,
+ or that we first dump a simple image with just the driver loaded.
+|#

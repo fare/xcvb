@@ -103,7 +103,6 @@
      #:compile-time-fasl-type
      #:cfasl-for-fasl
      #:load-command-for
-     #:*build*
 
      ;; Converting ASDF systems.
      #:asdf-to-xcvb
@@ -111,11 +110,6 @@
      ;; Conditions
      #:no-build-file-found
      #:dependency-cycle))
-
-(cl:defpackage :xcvb-static-backend
-    ;;(:nickname :xsb)
-  (:use :cl :xcvb))
-
 
 (cl:defpackage :xcvb-user
   (:use :common-lisp :xcvb-driver :xcvb))
