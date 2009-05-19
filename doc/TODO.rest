@@ -39,7 +39,7 @@ Future improvements planned for XCVB.
       5.4  Tests [V2]
       5.5  Crypto Check [V3]
       5.6  Template Instantiations [V5]
-    6  Internals [V1]
+    6  Internals [V4]
       6.1  Error handling [V4]
     7  Higher-level description [V1]
       7.1  XCVB's Architecture
@@ -92,7 +92,11 @@ We most urgently need to:
 
  * Announce a new preview edition.
 
- * Update the migration code.
+ * Update the migration code from ASDF.
+
+ * Support BUILDs that actually override given ASDFs, for incremental migration
+
+ * Re-implement ASDF backend.
 
  * Add support for arbitrary shell commands.
 
@@ -586,7 +590,7 @@ and include them as additional project dependencies
 as the need for such appears.
 
 
-Internals [V1]
+Internals [V4]
 ==============
 
 Error handling [V4]

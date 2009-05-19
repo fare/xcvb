@@ -21,6 +21,11 @@
 
 ;;; String functions
 
+(define-modify-macro funcallf (f &rest args) xfuncall)
+
+(defun xfuncall (x f &rest args)
+  (apply f x args))
+
 (defun strcat (&rest strings)
   "String concatenation function"
   (apply 'concatenate 'string strings))

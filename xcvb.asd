@@ -33,17 +33,17 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "lisp-grain" :depends-on ("registry"))
      (:file "names" :depends-on ("registry" "lisp-grain"))
      (:file "search-path" :depends-on ("registry" "specials"))
-     (:file "dependencies-interpreter" :depends-on ("names" "specials"))
+     (:file "dependencies-interpreter" :depends-on ("names" "specials" "computations"))
      (:file "static-backends" :depends-on
             ("specials" "lisp-grain" "dependencies-interpreter"))
      (:file "string-escape" :depends-on ("utilities"))
      (:file "lisp-invocation" :depends-on ("specials"))
 
      ;;; These files need to be (re)-written:
-     ;;(:file "makefile-backend" :depends-on ("static-backends" "string-escape"))
+     (:file "makefile-backend" :depends-on ("static-backends" "string-escape" "computations"))
 
      ;;; These files are not meaningful anymore, need to be re-written in the new framework:
      ;;(:file "extensions" :depends-on ("pkgdcl"))
      ;;(:file "asd-generator" :depends-on ("xcvb" "traverse"))
      ;;(:file "asdf-converter" :depends-on ("xcvb"))
-     (:file "main" :depends-on ("static-backends" "search-path"))))
+     (:file "main" :depends-on ("static-backends" "search-path" "computations"))))

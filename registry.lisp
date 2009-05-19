@@ -13,6 +13,9 @@ nickname, or SEXP representing a computed entity.
 Initially populated with all BUILD.lisp files from the search path,
 then enriched as we build the graph from the main BUILD file.")
 
+(defparameter *superseded-asdf*
+  (make-hash-table :test 'equalp))
+
 (defun registered-grain (name)
   (gethash name *grains*))
 
@@ -62,8 +65,7 @@ for each of its registered names."
         (register-build-named name build-grain root))))
   (values))
 
-(defun register-build-named (name build-grain root)
-  "Register under NAME pathname BUILD found in user-specified ROOT."
+(defun merge-build (previous-build new-build name root)
   ;; Detect ambiguities.
   ;; If the name has already been registered, then
   ;; * if the previous entry is from a previous root, it has precedence
@@ -72,22 +74,32 @@ for each of its registered names."
   ;;  if/when it is used.
   ;; Note: to do that in a more functional way, have some mechanism
   ;; that applies a modify-function to a gethash value, allowing (values NIL NIL) to specify remhash.
-  (let ((previous-build (registered-grain name)))
-    (assert (typep previous-build '(or null build-registry-conflict build-grain)))
-    (cond
-      ((null previous-build)
-       ;; we're the first entry with that name. Bingo!
-       (setf (registered-grain name) build-grain))
-      ((equal (bre-root previous-build) root)
-       ;; There was a previous entry in same root:
-       ;; there's an ambiguity, let's register a conflict!
-       (setf (registered-grain name)
-             (make-instance 'build-registry-conflict
-               :fullname name
-               :pathnames (cons (grain-pathname build-grain) (brc-pathnames previous-build))
-               :root root)))
-      (t
-       ;; There was a previous entry in a previous root,
-       ;; the previous entry takes precedence -- do nothing.
-       )))
-  (values))
+  (check-type previous-build (or null build-registry-conflict build-grain))
+  (cond
+    ((null previous-build)
+     ;; we're the first entry with that name. Bingo!
+     new-build)
+    ((equal (bre-root previous-build) root)
+     ;; There was a previous entry in same root:
+     ;; there's an ambiguity, so that's a conflict!
+     (make-instance 'build-registry-conflict
+                    :fullname name
+                    :pathnames (cons (grain-pathname new-build) (brc-pathnames previous-build))
+                    :root root))
+    (t
+     ;; There was a previous entry in a previous root,
+     ;; the previous entry takes precedence -- do nothing.
+     previous-build)))
+
+(defun register-build-named (name build-grain root)
+  "Register under NAME pathname BUILD found in user-specified ROOT."
+  (funcallf (registered-grain name) #'merge-build build-grain name root))
+
+(defun register-asdf-overrides (root)
+  (loop :for build :being :the :hash-values :of *grains*
+        :when (and (typep build 'build-grain)
+                   (eq root (bre-root build)))
+        :do (dolist (system (supersedes-asdf build))
+              (let ((name (coerce-asdf-system-name system)))
+                (funcallf (gethash name *superseded-asdf*)
+                          #'merge-build build `(:asdf ,name))))))
