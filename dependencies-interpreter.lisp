@@ -119,6 +119,15 @@ in the normalized dependency mini-language"
                type dep grain))
       (funcall fun grain))))
 
+;;; TODO: We probably need a better interface, so that
+;;; the following aspects be handled in a generic way
+;;; * the fact that we don't want to load the same dependency twice
+;;; * the fact that we may want to "upgrade" some cfasl's to fasl's
+;;;   -- or not, because that gets tricky since we want to preserve
+;;;   the order of loads, and trickier still if for whatever reason
+;;;   the dependencies of the fasl are not an upgrade from the
+;;;   dependencies of the cfasl
+;;;   -- that condition may be tested and an error issued otherwise.
 (defgeneric issue-dependency (env grain))
 (defgeneric issue-load-command (env command))
 

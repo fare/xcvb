@@ -88,15 +88,31 @@ A complete rewrite is underway.
 We've got a static backend that creates a graph.
 We most urgently need to:
 
- * Write a Makefile backend.
+ * Make the Makefile backend fully functional:
 
- * Announce a new preview edition.
+   = use Makefile variables as path prefix for most everything.
+
+   = give user control as to where generated objects go vs source code.
+
+   = correctly handle loading of xcvb driver into image
+
+   = extend the driver to do the right thing
+
+   = have image targets depend on asdf systems with something like
+    image: $(shell asdf-systems-up-to-date-p system1 system2 || echo force) other-deps...
+
+   = issue .PHONY: statement for force and other things.
+
+ * When we've surpassed the prototype, announce a new preview edition.
 
  * Update the migration code from ASDF.
+   Support recursive migration of dependencies up to some point that the user may specify
+   (i.e. for every transitive asdf system dependency, stopping at given ones, migrate system).
 
- * Support BUILDs that actually override given ASDFs, for incremental migration
+ * Support BUILDs that actually override given ASDFs, for incremental migration.
+   Optionally issue a warning when a BUILD depends on an ASDF that has (later) been migrated.
 
- * Re-implement ASDF backend.
+ * Re-implement ASDF backend, so ASDF users can use XCVB BUILDs.
 
  * Add support for arbitrary shell commands.
 
@@ -485,25 +501,6 @@ Allow a module to depend on an auxiliary data file.
 That file will not be compiled or loaded into the Lisp image,
 but will just be used for tracking
 when the file that depends on it needs to be recompiled.
-
-
-FASL vs CFASL [V2]
-------------------
-
-Allow a module to depend on the cfasl of a file if it is available,
-or the fasl of the file if there are no cfasls.
-There is already a cfasl-or-fasl-node for this purpose
--- but the actual functionality hasn't been implemented yet.
-
-Note that when a CFASL file itself hasn't changed,
-but one its dependencies (or the list of dependencies itself) has changed,
-then one may have to recompile all files that depend on it.
-This is taken into account by digesting not just the direct dependencies,
-all the transitive dependencies loaded before compilation.
-And so, if building a propagation network for recompilation,
-the list of dependencies itself is to be part of
-the network that triggers updates to a compilation,
-not just the individual dependencies listed.
 
 
 Computed Lisp files [V2]
@@ -909,6 +906,16 @@ a condition is raised, and
 the build session may be aborted,
 or the required grains may be computed
 before the operation may be restarted.
+
+Note that when an object file itself hasn't changed as a result of a computation,
+but one its dependencies (or the list of dependencies itself) has changed,
+then one may have to recompile all files that depend on it.
+This is taken into account by digesting not just the direct dependencies,
+all the transitive dependencies loaded before the computation.
+And so, if building a propagation network for recompilation,
+the list of dependencies itself is to be part of
+the network that triggers updates to a compilation,
+not just the individual dependencies listed.
 
 
 Operators

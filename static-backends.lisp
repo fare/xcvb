@@ -1,22 +1,15 @@
 (in-package :xcvb)
 
 #|
-TODO: handle the fact that to load a BUILD,
-you don't want to load an image (unless we implement support for something like SB-HEAPDUMP),
-but a collection of fasls (or cfasls, depending) and dependencies.
+TODO:
+* when a BUILD is specified, we don't load an image
+ but a collection of fasls (or cfasls, depending) and dependencies.
+ But with time, we could instead support SB-HEAPDUMP for that.
 
-This in turn will necessitate refactoring of the load-command-for infrastructure.
-See dependencies-interpreter for details.
-
-Good news is, we can start implementing the Makefile backend even before we support that,
-and it will "just work". The limitation is that at this point,
-you can't directly depend on a build file --
-you HAVE to depend on individual lisp files.
-I should add some explicit error message about that --
-or bite the bullet and do the right thing.
-
-Add checks to detect and report circular dependencies!
-
+Note: (TODO in every backend)
+* Whenever we build an image, it is implicit that we load the driver first.
+* :IMAGE NIL might mean that we use the standard image then load the driver,
+ or that we first dump a simple image with just the driver loaded.
 |#
 
 (defclass static-traversal ()
@@ -163,10 +156,3 @@ Add checks to detect and report circular dependencies!
            ,@(traversed-lisp-commands env)
            (:compile-lisp ,fullname)))
         outputs))))
-
-#|
-Note:
-* Whenever we build an image, it is implicit that we load the driver first.
-* :IMAGE NIL might mean that we use the standard image then load the driver,
- or that we first dump a simple image with just the driver loaded.
-|#

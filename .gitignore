@@ -6,6 +6,7 @@
 .#*
 *.lisp-expr
 configure.mk
+xcvb.mk
 foo
 bar
 baz

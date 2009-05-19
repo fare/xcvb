@@ -101,10 +101,11 @@
 	  (lisp-path *lisp-executable-pathname*)
 	  (lisp-flags :default)
 	  (image-path *lisp-image-pathname*)
+          load
 	  eval
 	  arguments
 	  (debugger *lisp-allow-debugger*))
-  (with-slots (name flags disable-debugger eval-flag
+  (with-slots (name flags disable-debugger load-flag eval-flag
 	       image-flag image-executable-p standalone-executable
 	       arguments-end argument-control)
       (get-lisp-implementation implementation-type)
@@ -120,6 +121,7 @@
 	 lisp-flags)
      (unless debugger
        disable-debugger)
+     (mapcan (lambda (x) (list load-flag x)) (if (listp load) load (list load)))
      (when eval
        (list eval-flag eval))
      (when arguments

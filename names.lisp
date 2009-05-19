@@ -120,7 +120,7 @@ Negatives are stored as NIL. Positives as grains.")
   (if (portablish-pathname-absolute-p name)
     (resolve-absolute-module-name name)
     (loop :for b = (build-grain-for grain) :then (grain-parent b)
-          :for g = (and b (resolve-module-name-at name b))
+          :for g = (and b (resolve-absolute-module-name (strcat (fullname b) "/" name)))
           :while b
           :when (typep g 'grain) :do (return g)
           :finally (return (resolve-absolute-module-name (canonicalize-fullname name))))))

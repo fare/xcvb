@@ -268,12 +268,12 @@ See how this is done in the above-mentionned example file.
 Compile-time side-effects
 -------------------------
 
-If you use the CFASL option (only available for SBCL at the moment),
-only CFASLs of dependencies are loaded at compile-time,
+When someone uses the CFASL option
+only CFASLs of dependencies are (by default) loaded at compile-time,
 and any defun, defvar or other side-effect used by a macro
 must be effected at the ``:compile-toplevel``.
 
-Moreover, if the CFASL option isn't used,
+Moreover, when the CFASL option isn't used,
 then FASLs of dependencies are loaded at compile-time,
 and the same side-effects need to be available at ``:load-toplevel``.
 
@@ -281,6 +281,19 @@ Therefore, any ``defun``, ``defvar`` or other side-effect used by a macro
 needs be be enclosed in an ``(eval-when (:compile-toplevel :load-toplevel :execute) ...)``.
 (Actually the ``:execute`` is not necessary in code you write manually,
 but you probably want to include it in any macro that generates an ``eval-when``).
+
+Note that CFASLs are only available for SBCL at the moment,
+but there are plans for Clozure CL to support it if and when XCVB takes off.
+
+You can force the use of a FASL instead of a CFASL by explicitly specifying
+a ``:compile-depends-on (... (:fasl "foo") ...)``
+instead of the ``:compile-depends-on (... (:compile "foo") ...)``
+implicit in saying ``:depends-on (... "foo" ...)``
+which would when CFASLs are enable be transformed into a ``... (:cfasl "foo") ...``.
+However currently nothing is made to prevent both the FASL and CFASL to be loaded,
+in any order implicit in the transitive dependencies of a module,
+which can cause interesting surprises if any compile-time side effects
+are not idempotent.
 
 
 Combining Multiple Projects
