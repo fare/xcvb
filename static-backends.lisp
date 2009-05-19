@@ -83,38 +83,39 @@ Add checks to detect and report circular dependencies!
   (resolve-absolute-module-name name))
 
 (define-graph-for :build (env name)
-  (graph-for-build env name))
+  (graph-for-build-named env name))
 
-(defmethod graph-for-build ((env static-traversal) name)
-  (let ((grain (registered-grain name)))
-    (check-type grain build-grain)
-    (handle-lisp-dependencies grain)
-    (let* (;;; Build pre-image if needed
-           (pre-image
-            (when (build-requires grain)
-              (graph-for-image-grain
-               env
-               (build-pre-image-name grain)
-               (build-requires grain))))
-           (*lisp-image-name*
-            (if pre-image
-                (fullname pre-image)
-                *lisp-image-name*)))
-      ;; build post-image if needed
-      (let* ((post-image-name (build-image-name grain)))
-        (if post-image-name
+(defun graph-for-build-named (env name)
+  (graph-for-build env (registered-grain name)))
+
+(defmethod graph-for-build ((env static-traversal) (grain build-grain))
+  (handle-lisp-dependencies grain)
+  (let* (;;; Build pre-image if needed
+         (pre-image
+          (when (build-requires grain)
             (graph-for-image-grain
              env
-             post-image-name
-             (load-dependencies grain))
-            (make-phony-grain
-             :name `(:build ,(fullname grain))
-             :dependencies (graph-for*
-                            env
-                            (remove-duplicates
-                             (append (compile-dependencies grain)
-                                     (load-dependencies grain))
-                             :test #'equal))))))))
+             (build-pre-image-name grain)
+             (build-requires grain))))
+         (*lisp-image-name*
+          (if pre-image
+              (fullname pre-image)
+              *lisp-image-name*)))
+    ;; build post-image if needed
+    (let* ((post-image-name (build-image-name grain)))
+      (if post-image-name
+          (graph-for-image-grain
+           env
+           post-image-name
+           (load-dependencies grain))
+          (make-phony-grain
+           :name `(:build ,(fullname grain))
+           :dependencies (graph-for*
+                          env
+                          (remove-duplicates
+                           (append (compile-dependencies grain)
+                                   (load-dependencies grain))
+                           :test #'equal)))))))
 
 
 (defun graph-for-image-grain (env name dependencies)
@@ -127,7 +128,7 @@ Add checks to detect and report circular dependencies!
       `(:lisp
         (:image ,*lisp-image-name*)
         ,@(traversed-lisp-commands env)
-        (:save-image ,name)))
+        (:save-image (:image ,name))))
     grain))
 
 (define-graph-for :asdf (env system-name)
@@ -144,9 +145,10 @@ Add checks to detect and report circular dependencies!
 
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
-  (let ((lisp (resolve-absolute-module-name fullname)))
+  (let ((lisp (graph-for env fullname)))
     (check-type lisp lisp-grain)
     (handle-lisp-dependencies lisp)
+    (issue-dependency env lisp)
     (let ((load-dependencies (load-dependencies lisp))
           (compile-dependencies (compile-dependencies lisp)))
       (load-command-for* env compile-dependencies)

@@ -8,6 +8,15 @@
               ,(merge-pathnames x *xcvb-lisp-directory*)))
           *xcvb-setup-dependencies*))
 
+(defun reset-variables ()
+  (setf *grains* (make-hash-table :test 'equal)
+        *computations* nil
+        *target-system-features* nil
+        *search-path-searched-p* nil
+        *pathname-grain-cache* (make-hash-table :test 'equal))
+  (values))
+
+
 (defun usage (&optional (out *standard-output*))
   (format out "~&Usage: xcvb FILE.lisp~%  ~
 	where FILE.lisp configures xcvb and starts computation.~%  ~
