@@ -145,7 +145,7 @@ Documentation
 -------------
 
 ``README.rest``
-	This file describes how to currently use xcvb.
+	This file describes how to currently use XCVB.
 	As you can see, XCVB is not ready yet;
 	however, development is underway, and things here
 	should eventually be greatly simplified.
@@ -161,7 +161,7 @@ Documentation
 	The many items to improve XCVB in the future.
 
 ``doc/configure.mk.example``
-	example file to copy into ``configure.mk`` (in the main xcvb directory) and edit,
+	example file to copy into ``configure.mk`` (in the main XCVB directory) and edit,
 	so as to be able to create the ``xcvb`` executable.
 
 ``doc/exscribe-migration.lisp.example``
@@ -187,7 +187,7 @@ to achieve some of the same benefits with existing technology.
 Using XCVB
 ==========
 
-You may want to checkout the latest xcvb from git.
+You may want to checkout the latest XCVB from git.
 We'll tag stable releases when there are some.
 
 

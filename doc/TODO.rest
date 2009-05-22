@@ -90,18 +90,19 @@ We most urgently need to:
 
  * Make the Makefile backend fully functional:
 
-   = use Makefile variables as path prefix for most everything.
+    * use Makefile variables as path prefix for most everything.
 
-   = give user control as to where generated objects go vs source code.
+    * give user control as to where generated objects go vs source code.
 
-   = correctly handle loading of xcvb driver into image
+    * correctly handle loading of XCVB driver into image
 
-   = extend the driver to do the right thing
+    * extend the driver to do the right thing
 
-   = have image targets depend on asdf systems with something like
-    image: $(shell asdf-systems-up-to-date-p system1 system2 || echo force) other-deps...
+    * have image targets depend on asdf systems with something like::
 
-   = issue .PHONY: statement for force and other things.
+	foo.image: $(shell { [ -f foo.image ] && asdf-systems-up-to-date-p foo.image } || echo force) other-deps...
+
+    * issue ``.PHONY:`` statement for force and other things.
 
  * When we've surpassed the prototype, announce a new preview edition.
 
@@ -216,7 +217,7 @@ It's there already, but we need to document how this works.
 In-image loading [V1]
 ---------------------
 
-Provide support for xcvb to be able to handle
+Provide support for XCVB to be able to handle
 compiling and loading a system into the given lisp image
 (instead of relying on a generated ``Makefile`` or ``*.asd`` file --
 or possibly by using either as a backend).
@@ -470,7 +471,7 @@ and request the loading of some system.
 
 The thin layer will collect the information about the running system
 and about objects already loaded in it, as well as the additional systems required,
-then invoke (with fork+exec) an xcvb process that will build any additional file
+then invoke (with fork+exec) an XCVB process that will build any additional file
 and print a form to be evaluated by the calling process so it may be suitably enhanced.
 
 
@@ -491,6 +492,34 @@ or when several bugs were introduced in a series of changesets,
 some of which having been found and fixed bug not others.
 
 
+Ideas from jknight
+==================
+
+Ideas from discussion w/ jknight:
+
+ * allow python-like hierarchical installation paths instead of named BUILD.lisp
+   (Isn't that already possible? Just have a top-level BUILD.lisp fullname'd "/" somewhere!)
+   (The point was probably that we can avoid eager search if only we can agree on
+   some naming hierarchy for both "module names" and filesystem relative paths.)
+
+ * allow pre-built installation paths that are self-describing enough to make it work.
+
+ * extending XCVB: allow people to export a procedural interface as in "rebuild me"
+   rather than only a declarative interface "conform to my crazy internal graph representation".
+
+ * Makefile already doesn't like spaces in names (except implicit names from current path).
+
+ * allow xcvb.mk to be usable without XCVB.
+
+ * --object-directory=object option
+
+ * autotools: the output goes into the directory it is run from by default.
+
+ * option to only create relative pathnames
+
+ * do away with all calls to truename?
+
+
 The semantics of dependencies [V1]
 ==================================
 
@@ -509,7 +538,7 @@ Computed Lisp files [V2]
 Allow source files to be dynamically computed,
 including the computation of its dependencies.
 
-For the Make backend, this means that xcvb and make
+For the Make backend, this means that ``xcvb`` and ``make``
 shall be called recursively called by the rule for the object target
 after the Lisp file has been created.
 
@@ -603,6 +632,10 @@ Maybe there should also be some library for that.
 
 Higher-level description [V1]
 =============================
+
+This should be cleaned up and moved to
+the INTERNALS.rest document at some point.
+
 
 XCVB's Architecture
 -------------------
@@ -785,21 +818,21 @@ The plan is dynamic if it new nodes need to be created
 during a given session.
 
 
-Operations
-^^^^^^^^^^
+Computations
+^^^^^^^^^^^^
 
-Operations are nodes in the build graph,
+Computations are nodes in the build graph,
 that join together a set of input grains to a set of the output grains.
 
-An operation specifies a computation whereby the output grains
+A computation node represents an actual computation whereby the output grains
 can be computed from the input grains when the latter are available.
 
 The computation may involve creating processes or talking to existing processes;
 these processes will change state, including being born and dying,
-as they operate the specified commands,
+as they run the specified commands,
 creating output grains as they consume input grains.
 
-For caching purposes, an operation also specifies how to compute a buildhash
+For caching purposes, a computation also specifies how to compute a buildhash
 identifying each of the outputs of the operation
 from the buildhashes of inputs.
 
