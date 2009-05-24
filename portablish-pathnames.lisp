@@ -179,3 +179,13 @@ erroring out if some source of non-portability is found"
   (and (stringp x)
        (ignore-errors (portable-pathname-from-string x))
        t))
+
+(defun ensure-absolute-pathname (x)
+  (let ((path (pathname x)))
+    (cond
+      ((absolute-pathname-p path)
+       path)
+      ((absolute-pathname-p *default-pathname-defaults*)
+       (merge-pathnames path))
+      (t
+       (merge-pathnames path (truename *default-pathname-defaults*))))))

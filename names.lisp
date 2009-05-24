@@ -14,9 +14,8 @@
 Negatives are stored as NIL. Positives as grains.")
 
 (defun probe-file-grain (path &key build-p)
-  (unless (absolute-pathname-p path)
-    (setf path (truename path)))
-  (let ((string (namestring path)))
+  (let* ((path (ensure-absolute-pathname path))
+         (string (namestring path)))
     (multiple-value-bind (cached found)
         (gethash string *pathname-grain-cache*)
       (if found
@@ -82,10 +81,10 @@ Negatives are stored as NIL. Positives as grains.")
 
 (defun compute-inherited-fullname (grain &key build-p)
   (check-type grain lisp-grain)
-  (let* ((truename (truename (grain-pathname grain)))
-         (host (pathname-host truename))
-         (device (pathname-device truename))
-         (rdirectory (reverse (pathname-directory truename))))
+  (let* ((pathname (ensure-absolute-pathname (grain-pathname grain)))
+         (host (pathname-host pathname))
+         (device (pathname-device pathname))
+         (rdirectory (reverse (pathname-directory pathname))))
     (labels ((err ()
                (error "grain ~A is lacking an explicit or implicit fullname"
                       (grain-pathname grain)))
@@ -108,7 +107,7 @@ Negatives are stored as NIL. Positives as grains.")
                    (err)))))
       (if build-p
         (recurse rdirectory nil)
-        (maybe-inherit-from rdirectory (list (pathname-name truename)))))))
+        (maybe-inherit-from rdirectory (list (pathname-name pathname)))))))
 
 (defun build-grain-for (grain)
   (etypecase grain

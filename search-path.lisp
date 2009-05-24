@@ -13,11 +13,13 @@
    #p"/usr/share/common-lisp/modules/"))
 
 (defun verify-path-element (element)
-  (let ((truepath (ignore-errors (truename (ensure-pathname-is-directory element)))))
-    (or truepath
-	(progn
-	  (format *error-output* "~&Discarding invalid path element ~S~%" element)
-	  nil))))
+  (let* ((absolute-path (ensure-absolute-pathname element)))
+    (cond
+      ((ignore-errors (truename (ensure-pathname-is-directory absolute-path)))
+       absolute-path)
+      (t
+       (format *error-output* "~&Discarding invalid path element ~S~%" element)
+       nil))))
 
 (defun expand-search-path-string (string &optional (previous-path *search-path*))
   (cond
@@ -71,7 +73,10 @@
 	      :when v :collect v)))
 
 (defun pathname-newest-version-p (x)
-  (equal (truename x) (truename (make-pathname :version :newest :defaults x))))
+  (or
+   (member (pathname-version x) '(nil :newest :unspecific))
+   (and (integerp (pathname-version x))
+        (equal (truename x) (truename (make-pathname :version :newest :defaults x))))))
 
 (defun pathname-is-BUILD.lisp-p (x)
   (and (equal (pathname-name x) "BUILD")
@@ -85,14 +90,16 @@
   (loop :for d :in (pathname-directory x)
         :thereis (member d *archive-directory-names* :test #'equal)))
 
+(defvar +all-builds-path+
+  (make-pathname :directory '(:relative :wild-inferiors)
+                 :name "BUILD"
+                 :type "lisp"
+                 :version :newest))
+
 (defun map-build-files-under (root fn)
   "Call FN for all BUILD files under ROOT"
-  (let* ((builds
-          (make-pathname :directory '(:relative :wild-inferiors)
-                         :name "BUILD"
-                         :type "lisp"
-                         :version :newest))
-         (builds (directory (merge-pathnames builds root)))
+  (let* ((builds (directory (merge-pathnames +all-builds-path+ root)
+                            #+sbcl #+sbcl :resolve-symlinks nil))
          (builds (remove-if #'in-archive-directory-p builds))
          #+(or) ;; uncomment it for depth first traversal
          (builds (sort builds #'<
