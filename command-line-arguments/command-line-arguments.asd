@@ -15,7 +15,8 @@
   :licence "MIT"
   :description "small library to deal with command-line arguments"
   :long-description "A library to abstract away the parsing of Unix-style command-line arguments"
-  :depends-on (#| :cl-launch |#)
+  :depends-on (:cl-launch)
   :components
   ((:file "pkgdcl")
-   (:file "command-line-arguments" :depends-on ("pkgdcl"))))
+   (:file "get-command-line-arguments" :depends-on ("pkgdcl"))
+   (:file "parse-command-line-arguments" :depends-on ("get-command-line-arguments"))))

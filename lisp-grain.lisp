@@ -116,9 +116,11 @@
   (let ((image (build-pre-image build-grain)))
     (etypecase image
       (string image)
-      ((eql t) (merge-pathnames
-                (portable-pathname-from-string (fullname build-grain))
-                (portable-pathname-from-string "pre-image/"))))))
+      ((eql t) (portable-pathname-output
+                (merge-pathnames
+                 (portable-pathname-from-string "pre-image/")
+                 (portable-pathname-from-string (fullname build-grain)))
+                :allow-relative nil)))))
 
 (defun build-image-name (build-grain)
   (check-type build-grain build-grain)
@@ -127,3 +129,18 @@
       (null nil)
       (string image)
       ((eql t) (fullname build-grain)))))
+
+(defun make-asdf-grain (&key name implementation)
+  (make-instance
+   'asdf-grain
+   :implementation implementation
+   :name name
+   :fullname `(:asdf ,name)))
+
+(defmethod load-dependencies ((grain asdf-grain))
+  nil)
+(defmethod compile-dependencies ((grain asdf-grain))
+  nil)
+
+(defun asdf-grain-p (x)
+  (typep x 'asdf-grain))

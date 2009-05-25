@@ -96,6 +96,12 @@
   :quit-format "(unix:unix-exit ~A)"
   :dump-format "(extensions:save-lisp ~S)")
 
+(defun ensure-path-executable (x)
+  (if (and (stringp x)
+           (not (eql (first-char x) "/")))
+    (strcat "./" x)
+    x))
+
 (defun lisp-invocation-arglist
     (&key (implementation-type *lisp-implementation-type*)
 	  (lisp-path *lisp-executable-pathname*)
@@ -111,11 +117,14 @@
       (get-lisp-implementation implementation-type)
     (append
      (when (or (null image-path) (not image-executable-p))
-       (list (or lisp-path name)))
+       (list (or (ensure-path-executable lisp-path) name)))
      (when (and image-path (not image-executable-p))
        (list image-flag))
      (when image-path
-       (list image-path))
+       (list
+        (if image-executable-p
+          (ensure-path-executable image-path)
+          image-path)))
      (if (eq lisp-flags :default)
 	 flags
 	 lisp-flags)

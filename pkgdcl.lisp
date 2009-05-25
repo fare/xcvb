@@ -3,7 +3,7 @@
  (:description "package for XCVB"))
 
 (cl:defpackage :xcvb
-  (:use :cl :xcvb-driver :closer-mop :memoization)
+  (:use :cl :xcvb-driver :closer-mop :memoization :command-line-arguments)
   (:import-from :cl-launch #:DBG)
   (:export
 

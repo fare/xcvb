@@ -28,7 +28,7 @@ Note: (TODO in every backend)
   (pushnew grain (traversed-dependencies-r env)))
 
 (defmethod issue-load-command ((env static-traversal) command)
-  (push command (traversed-lisp-commands-r env)))
+  (pushnew command (traversed-lisp-commands-r env) :test 'equal))
 
 (defmethod traversed-dependencies ((env static-traversal))
   (reverse (traversed-dependencies-r env)))
@@ -47,13 +47,13 @@ Note: (TODO in every backend)
          (current-grains (reverse current-grains-r))
          (circularity (member spec current-grains :test 'equal)))
     (when circularity
-      (error "Circularity in the dependencies:~%~{ ~S~%~}" circularity))
+      (error "circularity in the dependencies:~%~{ ~S~%~}" circularity))
     (call-with-grain-registration
      spec
      #'(lambda ()
          (graph-for-dispatcher
           (make-instance 'static-traversal
-                         :grain-names (cons spec current-grains-r))
+                 :grain-names (cons spec current-grains-r))
           spec)))))
 
 (defun graph-for* (env specs)
@@ -83,7 +83,7 @@ Note: (TODO in every backend)
 
 (defmethod graph-for-build ((env static-traversal) (grain build-grain))
   (handle-lisp-dependencies grain)
-  (let* (;;; Build pre-image if needed
+  (let* (;;; Build pre-image if needed...
          (pre-image
           (when (build-requires grain)
             (graph-for-image-grain
@@ -94,7 +94,9 @@ Note: (TODO in every backend)
           (if pre-image
               (fullname pre-image)
               *lisp-image-name*)))
-    ;; build post-image if needed
+    ;; hack: clear environment. TODO: recurse thru graph-for for the pre-image
+    (setf (slot-value env 'dependencies-r) nil
+          (slot-value env 'lisp-commands-r) nil)
     (let* ((post-image-name (build-image-name grain)))
       (if post-image-name
           (graph-for-image-grain
@@ -120,15 +122,15 @@ Note: (TODO in every backend)
       :command
       `(:lisp
         (:image ,*lisp-image-name*)
-        ,@(traversed-lisp-commands env)
-        (:save-image (:image ,name))))
+        (:create-image
+         (:image ,name)
+         ,@(traversed-lisp-commands env))))
     grain))
 
 (define-graph-for :asdf (env system-name)
   (declare (ignore env))
-  (make-phony-grain
-   :name `(:asdf ,system-name)
-   :dependencies nil)) ;;TODO: make corresponding computation?
+  (make-asdf-grain :name system-name
+                   :implementation *lisp-implementation-type*))
 
 (define-graph-for :fasl (env lisp-name)
   (first (graph-for-fasls env lisp-name)))

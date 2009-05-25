@@ -11,6 +11,7 @@ Modeled after the asdf function coerce-name"
      #+asdf (asdf:component (asdf:component-name name))
      (symbol (symbol-name name))
      (string name)
+     (asdf-grain (asdf-grain-system-name name))
      (t (simply-error 'syntax-error "~@<invalid asdf system designator ~A~@:>" name)))))
 
 (defun normalize-dependency (dep grain)
@@ -101,15 +102,20 @@ in the normalized dependency mini-language"
   (error "Invalid dependency ~S" spec))
 
 (defun load-command-for (env spec)
-  (unless (lisp-command-issued-p env `(:load ,spec))
-    (load-command-for-dispatcher env spec)))
+  (load-command-for-dispatcher env spec))
 
 (define-load-command-for :lisp (env name)
-  (simple-load-command-for env :lisp name name))
+  (simple-load-command-for
+   env `(:load-file ,name) name))
 (define-load-command-for :fasl (env name)
-  (simple-load-command-for env :fasl name `(:fasl ,name)))
+  (simple-load-command-for
+   env `(:load-file (:fasl ,name)) `(:fasl ,name)))
 (define-load-command-for :cfasl (env name)
-  (simple-load-command-for env :cfasl name `(:cfasl ,name)))
+  (simple-load-command-for
+   env `(:load-file (:cfasl ,name)) `(:cfasl ,name)))
+(define-load-command-for :asdf (env name)
+  (simple-load-command-for
+   env `(:load-asdf ,name) `(:asdf ,name)))
 
 (defun call-with-dependency-grain (environment dep fun)
   (let* ((grain (graph-for environment dep)))
@@ -131,13 +137,13 @@ in the normalized dependency mini-language"
 (defgeneric issue-dependency (env grain))
 (defgeneric issue-load-command (env command))
 
-(defun simple-load-command-for (env type name fullname)
+(defun simple-load-command-for (env command fullname)
   (call-with-dependency-grain
    env fullname
    (lambda (grain)
      (load-commands-for-dependencies env grain)
      (issue-dependency env grain)
-     (issue-load-command env `(:load (,type ,name))))))
+     (issue-load-command env command))))
 
 (define-load-command-for :build (env name)
   (call-with-dependency-grain

@@ -165,6 +165,15 @@ into an image that will be used for all future compile/load operations")
   ()
   (:documentation "Dumped Image"))
 
+(defclass asdf-grain (named-grain)
+  ((name
+    :initarg :name
+    :reader asdf-grain-system-name)
+   (implementation
+    :initarg :implementation
+    :reader asdf-grain-implementation))
+  (:documentation "Dumped Image"))
+
 
 ;------>8------>8------>8------>8------>8------>8------>8------>8------>8------
 

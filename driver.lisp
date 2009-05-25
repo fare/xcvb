@@ -55,10 +55,7 @@ This is designed to abstract away the implementation specific quit forms."
   #-(or cmu clisp sbcl clozure gcl allegro ecl lispworks)
   (error "xcvb driver: Quitting not implemented"))
 
-(defun load* (dependencies)
-  (map nil #'load dependencies))
-
-
+#|
 (defvar *show-compiler-notes* nil "Should we show compiler notes about optimization?")
 
 #+sbcl
@@ -79,15 +76,56 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defmacro with-controlled-compiler-notes (() &body body)
   `(call-with-controlled-compiler-notes #'(lambda () ,@body)))
+|#
 
-(defun lcq (dependencies source object &rest args)
-  "load dependencies, compile source to object, quit"
-  (load* dependencies)
-  (with-controlled-compiler-notes ()
-    (apply #'compile-file source :output-file object
-           ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-           args))
-  (quit))
+(defun print-backtrace (out)
+  nil
+  #+sbcl (sb-debug:backtrace nil out))
+
+(defun call-with-exit-on-error (thunk)
+  (let ((stderr *error-output*))
+    (handler-bind ((error
+                    #'(lambda (error)
+                        (format stderr "~&~S~%" error)
+                        (print-backtrace stderr)
+                        (format stderr "~&~S~%" error)
+                        (quit 99))))
+      (funcall thunk))))
+
+(defmacro with-exit-on-error (() &body body)
+  `(call-with-exit-on-error (lambda () ,@body)))
+
+(defmacro run (&rest commands)
+  `(with-exit-on-error ()
+    ;;(with-controlled-compiler-notes ()
+     (do-run ',commands);;)
+     (quit)))
+
+(defun do-run (commands)
+  (map () #'run-command commands))
+
+(defun run-command (command)
+  (apply (function-for-command (car command))
+         (cdr command)))
+
+(defun function-for-command (head)
+  (ecase head
+    (:load-file
+     (lambda (x) (load x)))
+    #+asdf
+    (:load-asdf
+     (lambda (x) (asdf:oos 'asdf:load-op x)))
+    (:compile
+     (lambda (source fasl &optional cfasl)
+       (apply #'compile-file source
+              :output-file fasl
+              ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+              (when cfasl
+                `(:cfasl ,cfasl)))))
+    (:create-image
+     (lambda (spec &rest dependencies)
+       (destructuring-bind (image &key standalone package) spec
+         (create-image image dependencies :standalone standalone :package package))))))
 
 (defun do-resume ()
   (when *restart* (funcall *restart*))
@@ -144,7 +182,7 @@ This is designed to abstract away the implementation specific quit forms."
 
 #-ecl
 (defun create-image (image dependencies &rest flags)
-  (load* dependencies)
+  (apply #'do-run dependencies)
   (apply #'dump-image image flags))
 
 #+ecl
@@ -152,10 +190,9 @@ This is designed to abstract away the implementation specific quit forms."
   (let ((epilogue-code
           `(progn
             ,(if standalone '(resume) '(si::top-level)))))
-    (c::builder :program (parse-namestring dump)
-		:lisp-files dependencies
-		:epilogue-code epilogue-code))
-  (quit))
+    (c::builder :program (parse-namestring image)
+		:lisp-files (mapcar #'second dependencies)
+		:epilogue-code epilogue-code)))
 
-(export '(finish-outputs quit load* lcq resume restart dump-image create-image
-          with-controlled-compiler-notes *show-compiler-notes*))
+(export '(finish-outputs quit resume restart run))
+;;(export '(with-controlled-compiler-notes *show-compiler-notes*))

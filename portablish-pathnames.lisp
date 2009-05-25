@@ -117,6 +117,9 @@ erroring out if some source of non-portability is found"
 	  (t
 	   (error "Non-portable pathname type ~S" type)))))))
 
+(defun portablish-namestring (pathname)
+  (portable-pathname-output pathname))
+
 (defun portable-pathname-from-string (string &key
 					     (start 0) (end (length string))
 					     (allow-absolute t) (allow-relative t))
