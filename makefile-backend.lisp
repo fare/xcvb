@@ -1,22 +1,27 @@
 (in-package :xcvb)
 
+(defvar +fasl-pathname+ (make-pathname :type "fasl"))
+(defvar +cfasl-pathname+ (make-pathname :type "cfasl"))
+(defvar +image-pathname+ (make-pathname :type "image"))
+
+(defvar *makefile-target-directories* ())
+
+
 (defun write-makefile-prelude (&optional stream)
   (format stream "~
 ### This file was automatically created by XCVB ~A
-### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.
-
-"
+### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.~2%"
           *xcvb-version*))
 
-;; TODO:
-;; * a setup step that does a mkdir -p for all the object directories
-;; * a "basic image" step that creates the initial image
-;;  and depends on the mkdir step.
+;; TODO: clean
 ;; * a clean-xcvb target that removes the object directory
 (defun write-makefile-conclusion (&optional stream)
   (format stream "
-.PHONY: force
-"))
+ensure-xcvb-object-directories:
+	mkdir -p ~A
+
+.PHONY: force ensure-xcvb-object-directories~2%"
+          (shell-tokens-to-Makefile *makefile-target-directories*)))
 
 (defun write-makefile (fullname
                        &key
@@ -27,7 +32,8 @@
          (output-path (or output-path (grain-pathname build)))
          (makefile-path (ensure-absolute-pathname (merge-pathnames makefile-name output-path)))
          (makefile-dir (pathname-directory-pathname makefile-path))
-         (*default-pathname-defaults* makefile-dir))
+         (*default-pathname-defaults* makefile-dir)
+         (*makefile-target-directories* nil))
     (graph-for-build (make-instance 'static-traversal) build)
     (with-open-file (out makefile-path
                          :direction :output
@@ -52,14 +58,28 @@
 (define-dependency-pathname :lisp (env name)
   (dependency-pathname-for-atom env name))
 
-(defvar +fasl-pathname+ (make-pathname :type "fasl"))
-(defvar +cfasl-pathname+ (make-pathname :type "cfasl"))
-(defvar +image-pathname+ (make-pathname :type "image"))
+
+(defun ensure-makefile-will-make-pathname (env namestring)
+  (declare (ignore env))
+  (unless (member namestring *makefile-target-directories* :test 'equal)
+    (labels ((f (end)
+               (let ((p (position #\/ namestring :from-end t :end end)))
+                 (when p
+                   (let ((dir (subseq namestring 0 p)))
+                     (if end
+                       (setf *makefile-target-directories*
+                             (remove dir *makefile-target-directories* :test 'equal))
+                       (pushnew dir *makefile-target-directories* :test 'equal)))
+                   (f p)))))
+      (f nil)))
+  (values))
 
 (defun object-namestring (env name merge)
-  (declare (ignore env))
-  (strcat "obj"
-          (portablish-namestring (merge-pathnames merge name))))
+  (let ((pathname
+         (strcat "obj"
+                 (portablish-namestring (merge-pathnames merge name)))))
+    (ensure-makefile-will-make-pathname env pathname)
+    pathname))
 
 (define-dependency-pathname :fasl (env name)
   (object-namestring env name +fasl-pathname+))
@@ -124,7 +144,8 @@
     (format s ")")))
 
 (defmethod grain-pathname-text ((grain file-grain))
-  (escape-shell-token-for-Makefile (dependency-pathname (fullname grain))))
+  (let ((pathname (dependency-pathname (fullname grain))))
+    (values (escape-shell-token-for-Makefile pathname) pathname)))
 
 (defmethod grain-pathname-text ((grain asdf-grain))
   nil)
@@ -138,7 +159,7 @@
            (other-outputs (rest outputs)))
       (dolist (o other-outputs)
         (format stream "~&~A: ~A~%" (grain-pathname-text o) target))
-      (format stream "~&~A:~{~@[ ~A~]~}~@[~A~]~%"
+      (format stream "~&~A:~{~@[ ~A~]~}~@[~A~] ensure-xcvb-object-directories~%"
               target
               (mapcar #'grain-pathname-text inputs)
               (asdf-dependency-text first-output inputs))
@@ -161,7 +182,7 @@
     (let* ((image-pathname (dependency-pathname (fullname output)))
            (pathname-text (escape-shell-token-for-Makefile image-pathname))))
     (with-output-to-string (s)
-      (format s " $(shell { [ -x ~A ] && " pathname-text)
+      (format s " $(shell { [ -f ~A ] && " pathname-text)
       (shell-tokens-to-Makefile
        (lisp-invocation-arglist
         :image-path image-pathname

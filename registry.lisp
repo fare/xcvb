@@ -52,6 +52,10 @@ then enriched as we build the graph from the main BUILD file.")
 
 ;;; Registering a build
 
+(defun supersedes-asdf-name (x)
+  `(:supersedes-asdf ,(coerce-asdf-system-name x)))
+
+
 (defun register-build-file (build root)
   "Registers build file BUILD (given as pathname)
 as having found under root path ROOT (another pathname),
@@ -61,9 +65,13 @@ for each of its registered names."
          (fullname (when build-grain (fullname build-grain))))
     (when fullname
       (setf (bre-root build-grain) root)
-      (dolist (name (cons fullname (nicknames build-grain)))
+      (dolist (name (append (list fullname)
+                            (nicknames build-grain)
+                            (mapcar #'supersedes-asdf-name
+                                    (supersedes-asdf build-grain))))
         (register-build-named name build-grain root))))
   (values))
+
 
 (defun merge-build (previous-build new-build name root)
   ;; Detect ambiguities.
@@ -94,12 +102,3 @@ for each of its registered names."
 (defun register-build-named (name build-grain root)
   "Register under NAME pathname BUILD found in user-specified ROOT."
   (funcallf (registered-grain name) #'merge-build build-grain name root))
-
-(defun register-asdf-overrides (root)
-  (loop :for build :being :the :hash-values :of *grains*
-        :when (and (typep build 'build-grain)
-                   (eq root (bre-root build)))
-        :do (dolist (system (supersedes-asdf build))
-              (let ((name (coerce-asdf-system-name system)))
-                (funcallf (gethash name *superseded-asdf*)
-                          #'merge-build build `(:asdf ,name))))))

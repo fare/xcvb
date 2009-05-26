@@ -110,8 +110,7 @@
   (setf *search-path-searched-p* t)
   (finalize-search-path)
   (dolist (root *search-path*)
-    (map-build-files-under root #'(lambda (x) (register-build-file x root)))
-    (register-asdf-overrides root)))
+    (map-build-files-under root #'(lambda (x) (register-build-file x root)))))
 
 (defun ensure-search-path-searched ()
   (unless *search-path-searched-p*

@@ -2,18 +2,6 @@
 
 ;;; Recognizer for current trivial dependency language
 
-(defun coerce-asdf-system-name (name)
-  "This function take the name of an asdf-system, and
-converts it to a string representation that can universally be used to refer to that system.
-Modeled after the asdf function coerce-name"
-  (string-downcase
-   (typecase name
-     #+asdf (asdf:component (asdf:component-name name))
-     (symbol (symbol-name name))
-     (string name)
-     (asdf-grain (asdf-grain-system-name name))
-     (t (simply-error 'syntax-error "~@<invalid asdf system designator ~A~@:>" name)))))
-
 (defun normalize-dependency (dep grain)
   (flet ((n (x) (let ((grain (resolve-module-name x grain)))
                   (unless (typep grain 'lisp-grain)

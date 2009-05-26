@@ -1,7 +1,8 @@
 (in-package :xcvb)
 
 #|
-Note: (TODO in every backend)
+TODO: basic image
+* a "basic image" step that creates the initial image
 * Whenever we build an image, it is implicit that we load the driver first.
 * :IMAGE NIL might mean that we use the standard image then load the driver,
  or that we first dump a simple image with just the driver loaded.

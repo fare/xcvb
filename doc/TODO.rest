@@ -91,8 +91,6 @@ We most urgently need to:
 
  * Make the Makefile backend fully functional:
 
-    * create object directories as required (log from makefile, add a target)
-
     * create a one initial image that has ASDF and XCVB-DRIVER loaded?
       For the sake ASDF, we need a setup file.
       Defaults in:
