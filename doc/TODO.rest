@@ -8,9 +8,9 @@ Future improvements planned for XCVB.
 
 .. contents::
 ..
-    1  Current Developments
-    2  Roadmap [V1]
-    3  Usability Issues [V1]
+    1   Current Developments
+    2   Roadmap [V1]
+    3   Usability Issues [V1]
       3.1  Lack of Manual [V1]
       3.2  Migration from ASDF [V1]
       3.3  Configurability of the build image [V1]
@@ -19,66 +19,67 @@ Future improvements planned for XCVB.
       3.6  Conditional Build [V1]
       3.7  Generalized Staged Images [V2]
       3.8  Command-line interface [V3]
-    4  Features [V1]
+    4   Features [V1]
       4.1   Multiple BUILD.lisp files [V1]
-      4.2   Abstract Away Paths [V2]
-      4.3   Initialization and Finalization [V2]
-      4.4   Executables [V2]
-      4.5   Tests [V2]
-      4.6   Dependency grovelling [V2]
-      4.7   Revert [V2]
-      4.8   Bootstrap [V3]
-      4.9   Same source, multiple compilers [V4]
-      4.10  Correctly handling C libraries [V4]
-      4.11  Dynamic compilation [V4]
-      4.12  Bug hunting [V5]
-    5  The semantics of dependencies [V1]
-      5.1  Data files [V1]
-      5.2  FASL vs CFASL [V2]
-      5.3  Computed Lisp files [V2]
-      5.4  Tests [V2]
-      5.5  Crypto Check [V3]
-      5.6  Template Instantiations [V5]
-    6  Internals [V4]
-      6.1  Error handling [V4]
-    7  Higher-level description [V1]
-      7.1  XCVB's Architecture
-      7.2  Grains and Types
-        7.2.1  Initial, Final and in-between
-        7.2.2  Persistent vs Transient
-        7.2.3  Intention vs Extension
-        7.2.4  Generated modules
-      7.3  Plans
-        7.3.1  Build Graph
-        7.3.2  Operations
-        7.3.3  Actionable operations
-        7.3.4  Complete plan
-        7.3.5  Plan transformation
-        7.3.6  Reference model
-        7.3.7  Dependencies
-      7.4  Operators
-        7.4.1  Abstracting Operations
-        7.4.2  Generating computation and hashes
-        7.4.3  Graph building
-    8  Advanced Build Issues [V3]
-      8.1   Read the classics [V3]
-      8.2   distclc [V3]
-      8.3   clcache [V3]
-      8.4   XCVB as its own backend [V3]
-      8.5   Push for better control of file source location [V3]
-      8.6   Push for better control of in-file source location [V4]
-      8.7   Push for more determinism in Lisp compilers [V5]
-      8.8   Push for First-class PCLSRing in Lisp compilers [V5]
-      8.9   Support dependencies for modules written in other languages [V4]
-      8.10  Mixing and Matching compilers [V5]
-      8.11  Constraint-based goal language [V6]
-    9  A Real Module System [V3]
-      9.1  Syntax Extensions [V3]
-      9.2  Automatic Package management [V5]
-      9.3  Better Namespace Management [V5]
-      9.4  Hooks into the Module Naming Resolution [V5]
-      9.5  Packaging and Distribution [V5]
-      9.6  More bibliography [V5]
+      4.2   Improve Makefile backend [V2]
+      4.3   Abstract Away Paths [V2]
+      4.4   Initialization and Finalization [V2]
+      4.5   Executables [V2]
+      4.6   Tests [V2]
+      4.7   Dependency grovelling [V2]
+      4.8   Revert [V2]
+      4.9   Bootstrap [V3]
+      4.10  Same source, multiple compilers [V4]
+      4.11  Correctly handling C libraries [V4]
+      4.12  Dynamic compilation [V4]
+      4.13  Bug hunting [V5]
+    5   Ideas from jknight
+    6   The semantics of dependencies [V1]
+      6.1  Data files [V1]
+      6.2  Computed Lisp files [V2]
+      6.3  Tests [V2]
+      6.4  Crypto Check [V3]
+      6.5  Template Instantiations [V5]
+    7   Internals [V4]
+      7.1  Error handling [V4]
+    8   Higher-level description [V1]
+      8.1  XCVB's Architecture
+      8.2  Grains and Types
+        8.2.1  Initial, Final and in-between
+        8.2.2  Persistent vs Transient
+        8.2.3  Intention vs Extension
+        8.2.4  Generated modules
+      8.3  Plans
+        8.3.1  Build Graph
+        8.3.2  Computations
+        8.3.3  Actionable operations
+        8.3.4  Complete plan
+        8.3.5  Plan transformation
+        8.3.6  Reference model
+        8.3.7  Dependencies
+      8.4  Operators
+        8.4.1  Abstracting Operations
+        8.4.2  Generating computation and hashes
+        8.4.3  Graph building
+    9   Advanced Build Issues [V3]
+      9.1   Read the classics [V3]
+      9.2   distclc [V3]
+      9.3   clcache [V3]
+      9.4   XCVB as its own backend [V3]
+      9.5   Push for better control of file source location [V3]
+      9.6   Push for better control of in-file source location [V4]
+      9.7   Push for more determinism in Lisp compilers [V5]
+      9.8   Push for First-class PCLSRing in Lisp compilers [V5]
+      9.9   Support dependencies for modules written in other languages [V4]
+      9.10  Mixing and Matching compilers [V5]
+      9.11  Constraint-based goal language [V6]
+    10  A Real Module System [V3]
+      10.1  Syntax Extensions [V3]
+      10.2  Automatic Package management [V5]
+      10.3  Better Namespace Management [V5]
+      10.4  Hooks into the Module Naming Resolution [V5]
+      10.5  Packaging and Distribution [V5]
+      10.6  More bibliography [V5]
 
 
 Current Developments
@@ -90,21 +91,17 @@ We most urgently need to:
 
  * Make the Makefile backend fully functional:
 
-    * use Makefile variables as path prefix for most everything.
+    * create object directories as required (log from makefile, add a target)
 
-    * give user control as to where generated objects go vs source code.
+    * create a one initial image that has ASDF and XCVB-DRIVER loaded?
+      For the sake ASDF, we need a setup file.
+      Defaults in:
+        * ./target-image-setup.lisp
+      	* ~/.config/xcvb/target-image-setup.lisp
+        * $PREFIX_ETC/xcvb/target-image-setup.lisp
 
-    * correctly handle loading of XCVB driver into image
-
-    * extend the driver to do the right thing
-
-    * have image targets depend on asdf systems with something like::
-
-	foo.image: $(shell { [ -f foo.image ] && asdf-systems-up-to-date-p foo.image } || echo force) other-deps...
-
-    * issue ``.PHONY:`` statement for force and other things.
-
- * When we've surpassed the prototype, announce a new preview edition.
+ * When we've surpassed the v0.1-prototype, create another branch,
+   and announce a new preview edition.
 
  * Update the migration code from ASDF.
    Support recursive migration of dependencies up to some point that the user may specify
@@ -310,6 +307,22 @@ and also has multiple ${CWBRLRUN} macros
 so that compilation will happen with the correct core at each step of the way.
 The asd-generator will similarly need to be changed
 to have one asdf module for each BUILD.lisp's build-requires slot (if present).
+
+
+Improve Makefile backend [V2]
+-----------------------------
+
+Create and document the following small features:
+
+  * give user control as to where generated objects go vs source code.
+
+  * use Makefile variables as path prefix for most everything?
+
+  * use a map file that maps virtual names to path locations?
+    This will be required in a distributed build, anyway!
+    Use logical pathnames for that! Logical host XSRC: ?
+    But then, we might need to include parts of portablish-pathnames
+    with the driver...
 
 
 Abstract Away Paths [V2]

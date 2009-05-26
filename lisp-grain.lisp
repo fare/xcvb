@@ -144,3 +144,6 @@
 
 (defun asdf-grain-p (x)
   (typep x 'asdf-grain))
+
+(defun image-grain-p (x)
+  (typep x 'image-grain))

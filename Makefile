@@ -15,7 +15,7 @@ endif
 
 include configure.mk
 
-export INSTALL_LISP
+export INSTALL_XCVB
 
 LISP_INSTALL_FILES := driver.lisp asdf-extensions.lisp
 
@@ -24,7 +24,7 @@ define CL_LAUNCH_MODE_standalone
 	--output ${INSTALL_BIN}/$1 --dump !
 endef
 define CL_LAUNCH_MODE_image
-	--output ${INSTALL_BIN}/$1 --dump ${IMAGE_DIR}/$1.image
+	--output ${INSTALL_BIN}/$1 --dump ${INSTALL_IMAGE}/$1.image
 endef
 define CL_LAUNCH_MODE_fasls
 	--output ${INSTALL_BIN}/$1
@@ -33,7 +33,9 @@ endef
 
 
 ## Creating executable
-xcvb:
+xcvb: ${INSTALL_BIN}/xcvb
+
+${INSTALL_BIN}/xcvb: configure.mk $(wildcard *.lisp */*.lisp *.asd */*.asd)
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
 	--system xcvb --restart xcvb::main \
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
@@ -43,7 +45,7 @@ xcvb:
 
 ## Installing Lisp files needed at runtime
 lisp-install:
-	rsync -av ${LISP_INSTALL_FILES} ${INSTALL_LISP}/
+	rsync -av ${LISP_INSTALL_FILES} ${INSTALL_XCVB}/
 
 ## Janitoring
 tidy:

@@ -3,7 +3,7 @@
 ;; I don't know a good way to ensure this bit gets incremented at the right time...
 ;; It would be better to have some version number automatically extracted from
 ;; the date, plus a hash obtained from git, and/or from xcvb's own digesting mechanism.
-(defparameter *xcvb-version* "0.205")
+(defparameter *xcvb-version* "0.206")
 
 (defvar *lisp-implementation-type* :sbcl
   "Type of Lisp implementation for the target system")
@@ -37,6 +37,8 @@
 ;;; The variable is set in configure.mk and exported by the Makefile.
 ;;; Ideally, the form would be evaluated when you dump the image,
 ;;; not when you compile the FASL.
+;;; TODO: make that not depend on an environment variable,
+;;; and/or make the dependency explicit in a way that XCVB is aware of.
 (defvar *xcvb-lisp-directory*
   (pathname (strcat (cl-launch:getenv "INSTALL_LISP") "/"))
   "Directory pathname for the location where XCVB Lisp files are installed")

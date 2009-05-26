@@ -15,39 +15,36 @@ Send inquiries to the mailing-list if you need it to be updated.)
 
 .. contents::
 ..
-    1  Files
+    1  Current Files
       1.1   driver.lisp
-      1.2   asdf-extensions.lisp
+      1.2   memoization.lisp
       1.3   pkgdcl.lisp
       1.4   macros.lisp
       1.5   utilities.lisp
       1.6   specials.lisp
       1.7   grains.lisp
-      1.8   lisp-invocation.lisp
-      1.9   computations.lisp
-      1.10  portablish-pathnames.lisp
-      1.11  Use of Namestrings [V1]
+      1.8   computations.lisp
+      1.9   portablish-pathnames.lisp
+      1.10  registry.lisp
+      1.11  lisp-grain.lisp
       1.12  names.lisp
-      1.13  registry.lisp
-      1.14  search-path.lisp
-      1.15  lisp-grain.lisp
-      1.16  fasl-grain.lisp
-      1.17  string-escape.lisp
-      1.18  asdf-dependencies.lisp
-      1.19  static-backends.lisp
-      1.20  extensions.lisp
-      1.21  xcvb.lisp
-      1.22  traverse.lisp
-      1.23  makefile-generator.lisp
-      1.24  asd-generator.lisp
-      1.25  asdf-converter.lisp
-      1.26  main.lisp
-    2  Good places to extend XCVB
-    3  Notes
-      3.1  Fullnames
-      3.2  Eager vs Lazy Module Scanning
-      3.3  Random Remarks
-      3.4  TODO
+      1.13  search-path.lisp
+      1.14  dependencies-interpreter.lisp
+      1.15  static-backends.lisp
+      1.16  string-escape.lisp
+      1.17  lisp-invocation.lisp
+      1.18  main.lisp
+    2  Past or Future Files
+      2.1  makefile-backend.lisp
+      2.2  extensions.lisp
+      2.3  asd-generator.lisp
+      2.4  asdf-converter.lisp
+    3  Good places to extend XCVB
+    4  Notes
+      4.1  Fullnames
+      4.2  Eager vs Lazy Module Scanning
+      4.3  Random Remarks
+      4.4  TODO
 
 
 Current Files
@@ -61,14 +58,12 @@ driver.lisp
 A small collection of utilities to be compiled into buildee processes
 so as to provide an abstraction layer for XCVB to compile files.
 
+Assuming ASDF is already loaded, the driver will also include
+ASDF-specific extensions, including the ability to load ASDF systems
+and to determine whether or not ASDF systems need to be re-compiled.
 
-asdf-extensions.lisp
---------------------
-
-ASDF-specific extensions to the driver.
-
-This file currently adds a function in the asdf package
-to determine whether or not an asdf system needs to be re-compiled.
+Therefore, you must make sure to load ASDF *before* the driver
+if you want the XCVB to properly support ASDF in the target system.
 
 
 memoization.lisp

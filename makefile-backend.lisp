@@ -1,13 +1,22 @@
 (in-package :xcvb)
-;; that's what i have so far
 
 (defun write-makefile-prelude (&optional stream)
   (format stream "~
 ### This file was automatically created by XCVB ~A
-### DO NOT EDIT! Changes will be lost when xcvb overwrites this file.
+### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.
 
 "
           *xcvb-version*))
+
+;; TODO:
+;; * a setup step that does a mkdir -p for all the object directories
+;; * a "basic image" step that creates the initial image
+;;  and depends on the mkdir step.
+;; * a clean-xcvb target that removes the object directory
+(defun write-makefile-conclusion (&optional stream)
+  (format stream "
+.PHONY: force
+"))
 
 (defun write-makefile (fullname
                        &key
@@ -25,7 +34,8 @@
                          :if-exists :supersede)
       (write-makefile-prelude out)
       (dolist (computation *computations*)
-        (write-computation-to-makefile out computation)))))
+        (write-computation-to-makefile out computation))
+      (write-makefile-conclusion out))))
 
 
 ;;; dependency-pathname: extract Makefile-printable pathname from dependency spec
@@ -114,41 +124,53 @@
     (format s ")")))
 
 (defmethod grain-pathname-text ((grain file-grain))
-  (dependency-pathname (fullname grain)))
+  (escape-shell-token-for-Makefile (dependency-pathname (fullname grain))))
 
 (defmethod grain-pathname-text ((grain asdf-grain))
-  "") ;;; TODO: have a $(shell ... || echo force) for all asdf systems at once
+  nil)
 
 (defun write-computation-to-makefile (stream computation)
   (with-accessors ((command computation-command)
                    (inputs computation-inputs)
                    (outputs computation-outputs)) computation
-    (let ((first-output (grain-pathname-text (first outputs)))
-          (other-outputs (rest outputs)))
+    (let* ((first-output (first outputs))
+           (target (grain-pathname-text first-output))
+           (other-outputs (rest outputs)))
       (dolist (o other-outputs)
-        (format stream "~&~A: ~A~%" (grain-pathname-text o) first-output))
-      (format stream "~&~A: ~{~A~^ ~}~@[~A~]~%"
-              first-output
+        (format stream "~&~A: ~A~%" (grain-pathname-text o) target))
+      (format stream "~&~A:~{~@[ ~A~]~}~@[~A~]~%"
+              target
               (mapcar #'grain-pathname-text inputs)
-              (asdf-dependency-text inputs))
+              (asdf-dependency-text first-output inputs))
       (format stream "~C~A~2%"
               #\Tab (Makefile-command-for-computation nil command)))))
 
-;;; TODO: should only be done for images,
-;;; testing the existence of the image, then rebuilding the image if needed.
-;;; It doesn't make sense to try to beat ASDF at its own game:
-;;; if you really want proper dependencies, you'll migrate from ASDF to XCVB
-;;; anyway.
-(defun asdf-dependency-text (inputs)
-  (let ((asdf-grains (remove-if-not #'asdf-grain-p inputs)))
-    (when asdf-grains
-      (with-output-to-string (s)
-        (dolist (grain-group (group-grains-by-implementation asdf-grains))
-          (format s " $(shell xcvb asdf-up-to-date-p ~
-			--implementation ~(~A~) --~{ ~A~} || echo force)"
-                  (asdf-grain-implementation (first grain-group))
-                  (mapcar #'asdf-grain-system-name grain-group)))))))
+;;; This is only done for images, not for individual files.
+;;; For finer granularity, we could possibly define for each ASDF system
+;;; (and implementation) a variable
+;;; ASDF_CL_PPCRE_UP_TO_DATE := $(shell ...)
+;;; but that would require more work.
+;;; Also, it doesn't make sense to try to beat ASDF at its own game:
+;;; if you really want proper dependencies,
+;;; you'll migrate from ASDF to XCVB anyway.
+(defun asdf-dependency-text (output inputs)
+  (with-nesting ()
+    (when (image-grain-p output))
+    (let ((asdf-grains (remove-if-not #'asdf-grain-p inputs))))
+    (when asdf-grains)
+    (let* ((image-pathname (dependency-pathname (fullname output)))
+           (pathname-text (escape-shell-token-for-Makefile image-pathname))))
+    (with-output-to-string (s)
+      (format s " $(shell { [ -x ~A ] && " pathname-text)
+      (shell-tokens-to-Makefile
+       (lisp-invocation-arglist
+        :image-path image-pathname
+        :eval "(xcvb-driver::asdf-systems-up-to-date-p)")
+       s)
+      (format s " } || echo force)"))))
 
+#|
+;; This should be generalized and moved to some generic file
 (defun group-grains-by-implementation (asdf-grains)
     (loop :while asdf-grains :collect
       (loop
@@ -160,3 +182,4 @@
         :finally (progn
                    (setf asdf-grains out)
                    (return in)))))
+|#

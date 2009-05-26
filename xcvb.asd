@@ -21,7 +21,6 @@ deterministic separate compilation and enforced locally-declared dependencies."
                             :command-line-arguments #|:iolib|#)
     :components
     ((:file "driver")
-     (:file "asdf-extensions" :depends-on ("driver"))
      (:file "memoization")
      (:file "pkgdcl" :depends-on ("driver" "memoization"))
      (:file "macros" :depends-on ("pkgdcl"))

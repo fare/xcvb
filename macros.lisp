@@ -54,3 +54,8 @@ Otherwise, signal an error."
        (flet ,(mapcar #'(lambda (c v) `(,c (x) (push x ,v))) collectors vars)
          ,@body
          (values ,@(mapcar #'(lambda (v) `(nreverse ,v)) vars))))))
+
+
+(defmacro with-nesting (() &rest things)
+  (reduce #'(lambda (outer inner) (append outer (list inner)))
+          things :from-end t))

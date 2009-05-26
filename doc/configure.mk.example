@@ -5,6 +5,52 @@
 ## commenting out or deleting those that don't.
 ##
 
+## Prefix from which to deduce various default locations
+PREFIX = /usr/local
+#PREFIX = /usr
+#PREFIX = /home/USER/.local
+
+
+#### Where to install executables?
+INSTALL_BIN = ${PREFIX}/bin
+#INSTALL_BIN := /usr/bin
+#INSTALL_BIN := /home/USER/bin
+
+
+### Where to find run-time configuration?
+INSTALL_ETC = ${PREFIX}/etc
+#INSTALL_ETC := /etc
+#INSTALL_ETC := /home/USER/.config
+
+
+### Where to put shared stuff? [Only used indirectly below]
+INSTALL_SHARE = ${PREFIX}/share
+#INSTALL_SHARE := /usr/share
+#INSTALL_ETC := /home/USER/.local/share
+
+### Where to put manual pages? [Don't have any of them yet!]
+##INSTALL_MAN = ${INSTALL_SHARE}/man
+##INSTALL_MAN1 = ${INSTALL_MAN}/man1
+
+
+### Image directory for lisp images.
+## Make sure the directory exists and you can write to it:
+## mkdir -p ${INSTALL_IMAGE} ; chown ${USER}.${GROUP} ${INSTALL_IMAGE}
+INSTALL_IMAGE = ${PREFIX}/lib/common-lisp/images
+#INSTALL_IMAGE := /usr/lib/common-lisp/images
+#INSTALL_IMAGE := /home/USER/.local/lib/common-lisp/images
+
+
+#### Where to install Lisp files?
+INSTALL_LISP = ${INSTALL_SHARE}/common-lisp
+#INSTALL_LISP := /usr/share/common-lisp
+#INSTALL_LISP := /home/USER/.local/share/common-lisp
+
+#### Where to install the XCVB driver files?
+INSTALL_XCVB = ${INSTALL_LISP}/xcvb
+#INSTALL_XCVB := /usr/share/common-lisp/xcvb
+#INSTALL_XCVB := /home/USER/.local/share/common-lisp/xcvb
+
 
 #### Where to find cl-launch?
 ##
@@ -15,6 +61,7 @@ CL_LAUNCH := cl-launch
 # CL_LAUNCH := /usr/bin/cl-launch
 # CL_LAUNCH := /usr/local/bin/cl-launch
 # CL_LAUNCH := /home/USER/bin/cl-launch
+# CL_LAUNCH := ${INSTALL_BIN}/cl-launch
 
 
 #### What options to pass to cl-launch?
@@ -31,20 +78,20 @@ CL_LAUNCH_FLAGS :=
 ##
 ##
 ## If you need to specify one or several paths where .asd files reside
-## that are needed by xcvb, use one or several --path flags
-## DEFAULT: nothing
+## that are needed by XCVB, use one or several --path flags
+## DEFAULT: nothing (assume your /etc/sbclrc or ~/.sbclrc or equivalent does it)
+#CL_LAUNCH_FLAGS += --path ${INSTALL_LISP}/systems/
 #CL_LAUNCH_FLAGS += --path /usr/share/common-lisp/systems/
-#CL_LAUNCH_FLAGS += --path /usr/local/common-lisp/systems/
-#CL_LAUNCH_FLAGS += --path /home/USER/lib/lisp-systems/
+#CL_LAUNCH_FLAGS += --path /home/USER/.local/share/common-lisp/systems/
 ##
 ##
 ## If you want to make sure that cl-launch uses installed include files
 ## (respectively, doesn't), use --include /a/b/c (respectively, --no-include)
 ## This matters in image and fasls modes, not in standalone mode (see below).
 #CL_LAUNCH_FLAGS += --no-include
+#CL_LAUNCH_FLAGS += --include ${INSTALL_LISP}/cl-launch
 #CL_LAUNCH_FLAGS += --include /usr/share/common-lisp/cl-launch
-#CL_LAUNCH_FLAGS += --include /usr/local/common-lisp/cl-launch
-#CL_LAUNCH_FLAGS += --include /home/USER/lib/cl-launch
+#CL_LAUNCH_FLAGS += --include /home/USER/.local/share/common-lisp/cl-launch
 ##
 ## Verbose output to debug XCVB compilation
 #CL_LAUNCH_FLAGS += --verbose
@@ -65,22 +112,3 @@ CL_LAUNCH_FLAGS :=
 #CL_LAUNCH_MODE := standalone
 ##
 ##
-## Image directory for lisp images.
-## Make sure the directory exists and you can write to it:
-## mkdir -p ${IMAGE_DIR} ; chown ${USER}.${GROUP} ${IMAGE_DIR}
-#IMAGE_DIR := /usr/share/common-lisp/images
-#IMAGE_DIR := /home/fare/lib/images
-
-
-#### Where to install executables?
-##
-#INSTALL_BIN := /usr/local/bin
-#INSTALL_BIN := /home/fare/bin
-#INSTALL_BIN := /usr/bin
-
-
-#### Where to install Lisp files?
-##
-#INSTALL_LISP := /usr/local/lib/xcvb
-#INSTALL_LISP := /home/fare/lib/xcvb
-#INSTALL_LISP := /usr/share/common-lisp/source/xcvb

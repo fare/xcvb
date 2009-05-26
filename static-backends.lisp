@@ -1,11 +1,6 @@
 (in-package :xcvb)
 
 #|
-TODO:
-* when a BUILD is specified, we don't load an image
- but a collection of fasls (or cfasls, depending) and dependencies.
- But with time, we could instead support SB-HEAPDUMP for that.
-
 Note: (TODO in every backend)
 * Whenever we build an image, it is implicit that we load the driver first.
 * :IMAGE NIL might mean that we use the standard image then load the driver,

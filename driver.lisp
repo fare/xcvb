@@ -3,10 +3,11 @@
 (in-package :cl)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (declaim (optimize (speed 2) (safety 3) (compilation-speed 0) #-gcl (debug 3)
+  (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) #-gcl (debug 3)
 ;;     	   #+sbcl (sb-ext:inhibit-warnings 3)
            #+sbcl (sb-c::merge-tail-calls 3) ;-- this plus debug 1 (or sb-c::insert-debug-catch 0 ???) should ensure all tail calls are optimized, says jsnell
 	   #+cmu (ext:inhibit-warnings 3)))
+  #+sbcl (proclaim '(sb-ext:muffle-conditions sb-ext:compiler-note))
   #+gcl ;;; If using GCL, do some safety checks
   (when (or #-ansi-cl t)
     (format *error-output*
@@ -24,7 +25,6 @@
   #+gcl (setf compiler::*compiler-default-type* (pathname "")
               compiler::*lsp-ext* "")
   #+ecl (require 'cmp)
-
   ;;;; Ensure package hygiene
   (unless (find-package :xcvb-driver)
     (if (find-package :common-lisp)
@@ -193,6 +193,39 @@ This is designed to abstract away the implementation specific quit forms."
     (c::builder :program (parse-namestring image)
 		:lisp-files (mapcar #'second dependencies)
 		:epilogue-code epilogue-code)))
+
+#+asdf
+(defun asdf-system-up-to-date-p (operation-class system &rest args)
+  "Takes a name of an asdf system (or the system itself) and a asdf operation
+and returns a boolean indicating whether or not anything needs to be done
+in order to perform the given operation on the given system.
+This returns whether or not the operation has already been performed,
+and none of the source files in the system have changed since then"
+  (let* ((op (apply #'make-instance operation-class
+		    :original-initargs args args))
+	 (asdf::*verbose-out*
+	  (if (getf args :verbose t)
+            *trace-output*
+            (make-broadcast-stream)))
+	 (system (if (typep system 'asdf:component)
+                     system
+                     (asdf:find-system system)))
+	 (steps (asdf::traverse op system)))
+    ;(format T "~%that system is ~:[out-of-date~;up-to-date~]" (null steps))
+    (null steps)))
+
+#+asdf
+(defun asdf-system-loaded-up-to-date-p (system)
+  (asdf-system-up-to-date-p 'asdf:load-op system))
+
+#+asdf
+(defun asdf-systems-up-to-date-p (&rest systems)
+  "Takes a list of names of asdf systems, and
+exits lisp with a status code indicating
+whether or not all of those systems were up-to-date or not."
+  (quit
+   (if (every #'asdf-system-loaded-up-to-date-p systems)
+     0 1)))
 
 (export '(finish-outputs quit resume restart run))
 ;;(export '(with-controlled-compiler-notes *show-compiler-notes*))
