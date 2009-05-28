@@ -40,8 +40,9 @@ Status
 
 Bottom line:
 XCVB isn't yet ready as a full replacement for ASDF.
-But it is already working and useful
-in the simple case with a single big project.
+
+A working and useful prototype (branch v0.1-prototype)
+can handle in the simple case with a single big project.
 
 The basic functionality is already working:
 you can either write an XCVB project or
@@ -56,6 +57,12 @@ What isn't working yet is compiling several projects together,
 converting multiple ASDF projects,
 handling the harder cases,
 etc.
+
+Following a complete rewrite, a new release is soon to come
+(ETA June 2009) that will handle these cases and much more.
+We've got a static backend that creates a graph,
+and a Makefile backend that creates a Makefile out of it.
+
 
 
 Home page
@@ -126,9 +133,10 @@ in mid December 2008, where the above hacks were automated away.
 A paper about the prototype was presented at ILC'09.
 
 Francois-Rene Rideau undertook a complete rewrite of XCVB
-to make its architecture more general.
+to make its architecture more general,
+building on the good and bad lessons of the prototype.
 We hope to have a complete release with example and documentation
-ready for showing by June 2009.
+ready for general use by the end of June 2009.
 
 Then will be time to extend and refine the existing functionality,
 refactor the internals,
@@ -150,9 +158,13 @@ Documentation
 	however, development is underway, and things here
 	should eventually be greatly simplified.
 
-``xcvb.rest`` ``ilc09-xcvb.rest``
+``xcvb.rest`` ``ilc09-xcvb.rest`` ``ilc09-xcvb-slides.rest``
 	These files should provide with an overview of the project,
 	its intended benefits, rationale and general design.
+
+``ilc09-xcvb-paper.tex`` ``xcvb.bib`` ``sigplanconf.cls``
+	These source files compile to a PDF for the demonstration
+        that was presented at ILC'2009 for XCVB.
 
 ``INTERNALS.rest``
 	This file describes the internals of XCVB.
@@ -172,16 +184,14 @@ Documentation
 	example file you can run (see on top of it)
 	to compile the migrated exscribe with XCVB.
 
-``setup.lisp.example``
-	untested example of customization you might want to adapt XCVB to your project.
-
 
 Alternative
 -----------
 
 Until XCVB is ready for general use,
 you may want to use ASDF-DEPENDENCY-GROVEL and POIU
-to achieve some of the same benefits with existing technology.
+to achieve some of the same benefits with existing technology,
+where dependency analysis or build time are important.
 
 
 Using XCVB

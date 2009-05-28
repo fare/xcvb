@@ -48,6 +48,14 @@
       (when rest
         (princ separator out)))))
 
+(defun string-prefix<= (x y)
+  (check-type x string)
+  (check-type y string)
+  (and (<= (length x) (length y))
+       (string= x y :end2 (length x))))
+
+
+
 ;;; List functions
 (defun proper-list-p (x)
   "Returns T if X is a proper list, NIL if it isn't. Checks for circularity"
@@ -235,7 +243,6 @@ Did you mix up the ordering?" f))
 
 (defun betweenp (min max n)
   (<= min n max))
-
 
 ;;; Simple Dispatcher
 

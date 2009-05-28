@@ -1,3 +1,6 @@
+;;; THIS FILE IS UNUSED, PROBABLY OBSOLETE, AND OUGHT TO DIE.
+;;; Maybe recycle half-baked ideas from it before to delete it -- prior to v1.0
+
 ;;; If we end up with ASDF-like "operations", here's what we'll do...
 
 (in-package :xcvb)

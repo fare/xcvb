@@ -2,12 +2,6 @@
 
 (in-package :xcvb)
 
-(defun xcvb-setup-dependencies ()
-  (mapcar (lambda (x)
-            `(:load-source
-              ,(merge-pathnames x *xcvb-lisp-directory*)))
-          *xcvb-setup-dependencies*))
-
 (defun reset-variables ()
   (setf *grains* (make-hash-table :test 'equal)
         *computations* nil

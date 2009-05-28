@@ -86,18 +86,30 @@ Current Developments
 ====================
 
 A complete rewrite is underway.
-We've got a static backend that creates a graph.
+A new release is soon to come (ETA: June 2009).
+We've got a static backend that creates a graph,
+and a Makefile backend that creates a Makefile out of it.
 We most urgently need to:
 
  * Make the Makefile backend fully functional:
 
-    * create a one initial image that has ASDF and XCVB-DRIVER loaded?
-      For the sake ASDF, we need a setup file.
+    * For the sake ASDF, we need a setup file to be loaded before the xcvb driver.
       Defaults in:
+      
         * ./target-image-setup.lisp
       	* ~/.config/xcvb/target-image-setup.lisp
         * $PREFIX_ETC/xcvb/target-image-setup.lisp
 
+    * ensure-xcvb-object-directories should be replaced by ${XCVB_EOD},
+      which is defined once at the beginning by::
+      
+        XCVB_EOD :=
+        ifneq ($(wildcard ...),...)
+          XCVB_EOD := ensure-xcvb-object-directories
+        endif
+
+ * Add some command-line interface to xcvb, including a REPL
+ 
  * When we've surpassed the v0.1-prototype, create another branch,
    and announce a new preview edition.
 

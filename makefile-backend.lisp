@@ -1,3 +1,8 @@
+#+xcvb
+(module
+  (:author ("Francois-Rene Rideau" "Stas Boukarev")
+   :maintainer "Francois-Rene Rideau"))
+
 (in-package :xcvb)
 
 (defvar +fasl-pathname+ (make-pathname :type "fasl"))
@@ -5,6 +10,7 @@
 (defvar +image-pathname+ (make-pathname :type "image"))
 
 (defvar *makefile-target-directories* ())
+(defvar *makefile-phonies* ())
 
 
 (defun write-makefile-prelude (&optional stream)
@@ -20,8 +26,9 @@
 ensure-xcvb-object-directories:
 	mkdir -p ~A
 
-.PHONY: force ensure-xcvb-object-directories~2%"
-          (shell-tokens-to-Makefile *makefile-target-directories*)))
+.PHONY: force ensure-xcvb-object-directories~{ ~A~}~2%"
+          (shell-tokens-to-Makefile *makefile-target-directories*)
+          *makefile-phonies*))
 
 (defun write-makefile (fullname
                        &key
@@ -33,7 +40,8 @@ ensure-xcvb-object-directories:
          (makefile-path (ensure-absolute-pathname (merge-pathnames makefile-name output-path)))
          (makefile-dir (pathname-directory-pathname makefile-path))
          (*default-pathname-defaults* makefile-dir)
-         (*makefile-target-directories* nil))
+         (*makefile-target-directories* nil)
+         (*makefile-phonies* nil))
     (graph-for-build (make-instance 'static-traversal) build)
     (with-open-file (out makefile-path
                          :direction :output
@@ -53,7 +61,7 @@ ensure-xcvb-object-directories:
 
 (defun dependency-pathname-for-atom (env name)
   (declare (ignore env))
-  (enough-namestring (grain-pathname (registered-grain name))))
+  (enough-namestring (grain-pathname (resolve-absolute-module-name name))))
 
 (define-dependency-pathname :lisp (env name)
   (dependency-pathname-for-atom env name))
@@ -77,7 +85,7 @@ ensure-xcvb-object-directories:
 (defun object-namestring (env name merge)
   (let ((pathname
          (strcat "obj"
-                 (portablish-namestring (merge-pathnames merge name)))))
+                 (portable-namestring (merge-pathnames merge name)))))
     (ensure-makefile-will-make-pathname env pathname)
     pathname))
 
@@ -127,12 +135,13 @@ ensure-xcvb-object-directories:
   (values))
 
 (defun Makefile-command-for-computation (str computation-command)
-  (destructuring-bind (lisp (&key image) &rest commands) computation-command
+  (destructuring-bind (lisp (&key image load) &rest commands) computation-command
     (unless (eq lisp :lisp)
       (error ":lisp required"))
     (shell-tokens-to-Makefile
      (lisp-invocation-arglist
-      :image-path (when image (dependency-pathname image))
+      :image-path (if image (dependency-pathname image) *lisp-image-pathname*)
+      :load (mapcar #'dependency-pathname load)
       :eval (lisp-commands-to-shell-token commands))
      str)))
 
@@ -150,6 +159,12 @@ ensure-xcvb-object-directories:
 (defmethod grain-pathname-text ((grain asdf-grain))
   nil)
 
+(defmethod grain-pathname-text ((grain phony-grain))
+  (let ((n (normalize-name-for-makefile (princ-to-string (fullname grain)))))
+    (pushnew n *makefile-phonies* :test 'equal)
+    (DBG :gpt n *makefile-phonies*)
+    n))
+
 (defun write-computation-to-makefile (stream computation)
   (with-accessors ((command computation-command)
                    (inputs computation-inputs)
@@ -163,8 +178,10 @@ ensure-xcvb-object-directories:
               target
               (mapcar #'grain-pathname-text inputs)
               (asdf-dependency-text first-output inputs))
-      (format stream "~C~A~2%"
-              #\Tab (Makefile-command-for-computation nil command)))))
+      (when command
+        (format stream "~C~A~%"
+              #\Tab (Makefile-command-for-computation nil command)))
+      (terpri stream))))
 
 ;;; This is only done for images, not for individual files.
 ;;; For finer granularity, we could possibly define for each ASDF system

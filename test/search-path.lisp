@@ -10,18 +10,21 @@
   (subpathname *test-dir* "test/mock/d/"))
 
 
-(let ((*break-on-signals* 'error))
-  (setf *search-path* (list *mock-d-directory* *mock-directory*))
+(reset-variables)
 
-  #+debug (format t "SP: ~W~%" *search-path*)
-  (finalize-search-path)
+(setf *search-path* (list *mock-d-directory* *mock-directory* *test-dir*))
 
-  #+debug (format t "SP: ~W~%" *search-path*)
-  (setf *grains* (make-hash-table :test 'equal))
-  (search-search-path)
+(search-search-path)
 
-  #+debug (format t "~W~%" (hash-table->alist *grains*))
+#+debug (format t "SP: ~W~%" *search-path*)
+(finalize-search-path)
 
-  (assert (typep (registered-grain "/b") 'build-registry-conflict))
-  (assert (equal (fullname (grain-parent (registered-grain "/c/x"))) "/c"))
-  (assert (typep (registered-grain "/d") 'build-grain)))
+#+debug (format t "SP: ~W~%" *search-path*)
+(setf *grains* (make-hash-table :test 'equal))
+(search-search-path)
+
+#+debug (format t "~W~%" (hash-table->alist *grains*))
+
+(assert (typep (registered-grain "/b") 'build-registry-conflict))
+(assert (equal (fullname (grain-parent (registered-grain "/c/x"))) "/c"))
+(assert (typep (registered-grain "/d") 'build-grain))

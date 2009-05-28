@@ -137,16 +137,16 @@
 system specified by this BUILD.lisp file.
 These dependencies will be loaded first thing
 into an image that will be used for all future compile/load operations")
-   (build-pre-image
+   #|(build-pre-image
     :initarg :build-pre-image
     :accessor build-pre-image
     :initform t
-    :documentation "Relative portablish pathname of an image to build for requirements")
+    :documentation "Relative portable pathname of an image to build for requirements")|#
    (build-image
     :initarg :build-image
     :accessor build-image
-    :initform t
-    :documentation "Relative portablish pathname of the executable to produce, if any"))
+    :initform nil
+    :documentation "Should we build a Lisp image with that BUILD loaded?"))
   (:documentation "BUILD.lisp file grain"))
 
 (defclass fasl-grain (file-grain named-grain)

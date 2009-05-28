@@ -26,4 +26,5 @@
               :components
               ((:file "utilities")
                (:file "search-path")
-               (:file "static-backends" :depends-on ("search-path"))))))
+               (:file "static-backends" :depends-on ("search-path"))
+               (:file "makefile-backend" :depends-on ("search-path"))))))

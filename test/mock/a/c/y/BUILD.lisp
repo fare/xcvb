@@ -1,1 +1,3 @@
-#+xcvb (module ())
+#+xcvb
+(module
+  (:build-requires ((:asdf "b"))))

@@ -65,6 +65,11 @@ erroring out if some source of non-portability is found"
 		 (write-string c out)
 		 (write-char #\/ out))))
       (cond
+        ((null directory) ;; accept the previous representation, not the latter
+         (setf directory '(:relative)))
+        ((equal directory '(:relative))
+         (error "Invalid directory (:relative)")))
+      (cond
 	((member directory '(:wild :unspecific nil))
 	 (error "Cannot portably stringify directory ~S" directory))
 	((stringp directory)
@@ -117,7 +122,7 @@ erroring out if some source of non-portability is found"
 	  (t
 	   (error "Non-portable pathname type ~S" type)))))))
 
-(defun portablish-namestring (pathname)
+(defun portable-namestring (pathname)
   (portable-pathname-output pathname))
 
 (defun portable-pathname-from-string (string &key
@@ -166,19 +171,19 @@ erroring out if some source of non-portability is found"
   (and (pathnamep path)
        (pathname-absolute-p path)))
 
-(defun portablish-namestring-absolute-p (namestring)
+(defun portable-namestring-absolute-p (namestring)
   (eql (first-char namestring) #\/))
 
-(defun portablish-pathname-absolute-p (name)
+(defun portable-pathname-absolute-p (name)
   (etypecase name
     (pathname (pathname-absolute-p name))
-    (string (portablish-namestring-absolute-p name))))
+    (string (portable-namestring-absolute-p name))))
 
-(defun absolute-portablish-namestring-p (namestring)
-  (and (portablish-namestring-p namestring)
-       (portablish-namestring-absolute-p namestring)))
+(defun absolute-portable-namestring-p (namestring)
+  (and (portable-namestring-p namestring)
+       (portable-namestring-absolute-p namestring)))
 
-(defun portablish-namestring-p (x)
+(defun portable-namestring-p (x)
   (and (stringp x)
        (ignore-errors (portable-pathname-from-string x))
        t))

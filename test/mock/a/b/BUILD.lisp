@@ -1,1 +1,4 @@
-#+xcvb (module (:fullname "b"))
+#+xcvb
+(module
+ (:fullname "b"
+  :supersedes-asdf ("xcvb-test-b")))

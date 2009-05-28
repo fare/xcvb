@@ -9,11 +9,11 @@ This happens when the compile and load dependencies
 are all the same files, in the same order,
 with the compile dependencies depending on compile-time effects of the files,
 and the load dependencies depending on load-time effects of the files."
-  (and (= (length (compile-depends-on module))
-          (length (load-depends-on module)))
+  (and (= (length (slot-value module 'compile-depends-on))
+          (length (slot-value module 'load-depends-on)))
        (loop
-         :for comp-dep :in (compile-depends-on module)
-         :for load-dep :in (load-depends-on module)
+         :for comp-dep :in (slot-value module 'compile-depends-on)
+         :for load-dep :in (slot-value module 'load-depends-on)
          :always (and (consp comp-dep)
                       (eql (first comp-dep) :compile)
                       (null (rest (rest comp-dep)))
@@ -33,14 +33,13 @@ top of a source file"
     (dolist (slot '(author maintainer version licence description long-description))
       (when (slot-boundp grain slot)
         (format out "~@[~%~7,0T:~(~A~) ~S~]" slot (slot-value grain slot))))
-    (if (equivalent-deps-p grain)
-        (format out "~@[~%~7,0T:depends-on (~%~14,7T~{~15,0T~S~^~%~})~]"
-                (load-depends-on grain))
-        (format out
-               "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~S~^~%~})~]~
-                ~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~S~^~%~})~]"
-               (compile-depends-on grain)
-               (load-depends-on grain)))
+    (with-slots (load-depends-on compile-depends-on depends-on) grain
+      (if (equivalent-deps-p grain)
+          (format out "~@[~%~7,0T:depends-on (~%~14,7T~{~15,0T~S~^~%~})~]" load-depends-on)
+          (format out
+                  "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~S~^~%~})~]~
+                   ~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~S~^~%~})~]"
+                  compile-depends-on load-depends-on)))
     (if (and (typep grain 'build-grain) (build-requires grain))
         (format out "~@[~%~7,0T:build-requires ~S)~]"
               (build-requires grain)))

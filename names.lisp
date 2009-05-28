@@ -42,7 +42,7 @@ Negatives are stored as NIL. Positives as grains.")
 * prepends a #\/ to the beginning of the module's fullname if there isn't one there already
 * strips any tailing #\/"
   ;; should also:
-  ;; * bork if it isn't a portablish-pathname
+  ;; * bork if it isn't a portable-pathname
   ;; * remove extraneous #\/'s
   (when (eql #\/ (last-char name))
     (setf name (subseq name 0 (1- (length name)))))
@@ -116,7 +116,7 @@ Negatives are stored as NIL. Positives as grains.")
 
 (defun resolve-module-name (name grain)
   "Resolve module NAME in the context of BUILD into an appropriate grain, if any"
-  (if (portablish-pathname-absolute-p name)
+  (if (portable-pathname-absolute-p name)
     (resolve-absolute-module-name name)
     (loop :for b = (build-grain-for grain) :then (grain-parent b)
           :for g = (and b (resolve-absolute-module-name (strcat (fullname b) "/" name)))
@@ -129,7 +129,7 @@ Negatives are stored as NIL. Positives as grains.")
 
 (defun resolve-absolute-module-name (name)
   "Resolve absolute NAME into an appropriate grain, if any"
-  (unless (absolute-portablish-namestring-p name)
+  (unless (absolute-portable-namestring-p name)
     (error "~S isn't a valid module name" name))
   (loop :for p = (length name) then (position #\/ name :from-end t :end p)
         :for prefix = (if (and p (plusp p))

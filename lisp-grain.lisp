@@ -113,21 +113,24 @@
 
 (defun build-pre-image-name (build-grain)
   (check-type build-grain build-grain)
-  (let ((image (build-pre-image build-grain)))
-    (etypecase image
-      (string image)
-      ((eql t) (portable-pathname-output
-                (merge-pathnames
-                 (portable-pathname-from-string "pre-image/")
-                 (portable-pathname-from-string (fullname build-grain)))
-                :allow-relative nil)))))
+  (let ((requires (build-requires build-grain))
+        required-build)
+    (cond
+      ((null requires) "/_")
+      ((and (consp requires)
+            (null (cdr requires))
+            (stringp (car requires))
+            (typep (setf required-build (resolve-module-name (car requires) build-grain)) 'build-grain))
+       ;; requiring exactly one other build... make its post image our pre-image
+       (fullname required-build))
+      (t (strcat "/_pre" (fullname build-grain))))))
 
 (defun build-image-name (build-grain)
   (check-type build-grain build-grain)
   (let ((image (build-image build-grain)))
     (etypecase image
       (null nil)
-      (string image)
+      ;;(string image)
       ((eql t) (fullname build-grain)))))
 
 (defun make-asdf-grain (&key name implementation)

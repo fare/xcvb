@@ -85,3 +85,6 @@ or escapes of the form (:makefile string) that won't be escaped."
 		(escape-shell-token tok out))
 	       (t
 		(error "Invalid token ~S" tok))))))
+
+(defun normalize-name-for-makefile (x)
+  (map 'base-string (lambda (c) (if (char-needs-shell-quoting-p c) #\_ c)) x))

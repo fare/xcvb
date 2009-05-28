@@ -9,6 +9,7 @@
   (list
    *default-pathname-defaults*
    (subpathname (user-homedir-pathname) "lisp/")
+   *xcvb-lisp-directory*
    #p"/usr/local/share/common-lisp/modules/"
    #p"/usr/share/common-lisp/modules/"))
 

@@ -1,5 +1,13 @@
 ;;; xcvb driver to be compiled in buildee images (largely copy-pasted from cl-launch)
 
+#+xcvb
+(module
+ (:author ("Francois-Rene Rideau")
+  :maintainer "Francois-Rene Rideau"
+  :licence "MIT" ;; MIT-style license. See LICENSE
+  :description "XCVB Driver"
+  :long-description "Driver code to be loaded in all buildee images for XCVB."))
+
 (in-package :cl)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
