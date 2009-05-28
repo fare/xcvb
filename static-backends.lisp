@@ -120,7 +120,6 @@
           (if pre-image
               (list pre-image)
               (graph-for* env *lisp-setup-dependencies*))))
-    (DBG :gfig name pre-image-name dependencies pre-image pre-dependencies)
     (load-command-for* env dependencies)
     (make-computation 'concrete-computation
       :outputs (list grain)

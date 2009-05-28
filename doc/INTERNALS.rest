@@ -33,12 +33,11 @@ Send inquiries to the mailing-list if you need it to be updated.)
       1.15  static-backends.lisp
       1.16  string-escape.lisp
       1.17  lisp-invocation.lisp
-      1.18  main.lisp
+      1.18  makefile-backend.lisp
+      1.19  main.lisp
     2  Past or Future Files
-      2.1  makefile-backend.lisp
-      2.2  extensions.lisp
-      2.3  asd-generator.lisp
-      2.4  asdf-converter.lisp
+      2.1  asd-generator.lisp
+      2.2  asdf-converter.lisp
     3  Good places to extend XCVB
     4  Notes
       4.1  Fullnames
@@ -214,6 +213,13 @@ Handles the invocation of the target lisp system,
 abstracting away the differences between implementations.
 
 
+makefile-backend.lisp
+---------------------
+
+This is our new makefile backend,
+iterating over computations to create Makefile rules.
+
+
 main.lisp
 ---------
 
@@ -224,29 +230,6 @@ TODO: after the refactoring, add some proper command-line interface.
 
 Past or Future Files
 ====================
-
-makefile-backend.lisp
----------------------
-
-This will be our new makefile backend,
-iterating over computations to create Makefile rules.
-
-
-extensions.lisp
----------------
-
-OBSOLETE: this file and associated functionality should be replaced
-by some proper build language, inspired by OMake(?).
-
-This file contains the defextension macro
-and a couple of pre-defined extensions.
-
-The defextension macro defines a function and specifies a keyword
-that can be used to specify that function
-in the extension forms part of a module declaration.
-The extension functions from a module form are applied
-right after the module form has been parsed into a module object.
-
 
 asd-generator.lisp
 ------------------
@@ -272,7 +255,7 @@ when providing backwards compatibility with ASDF projects.
 asdf-converter.lisp
 -------------------
 
-OUT-OF-DATE: should be rewritten as part of our refactoring.
+MAYBE OUT-OF-DATE: should be rewritten as part of our refactoring.
 
 This file contains the code to take an asdf system
 and write a BUILD.lisp file for it

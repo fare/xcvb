@@ -14,19 +14,25 @@
 
 
 (defun write-makefile-prelude (&optional stream)
-  (format stream "~
+  (let ((directories (join-strings " " (mapcar #'escape-string-for-Makefile *makefile-target-directories*))))
+    (format stream "~
 ### This file was automatically created by XCVB ~A
-### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.~2%"
-          *xcvb-version*))
+### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.
+
+XCVB_EOD :=
+ifneq ($(wildcard ~A),~A)
+  XCVB_EOD := xcvb-ensure-object-directories
+endif~2%"
+            *xcvb-version* directories directories)))
 
 ;; TODO: clean
 ;; * a clean-xcvb target that removes the object directory
 (defun write-makefile-conclusion (&optional stream)
   (format stream "
-ensure-xcvb-object-directories:
+xcvb-ensure-object-directories:
 	mkdir -p ~A
 
-.PHONY: force ensure-xcvb-object-directories~{ ~A~}~2%"
+.PHONY: force xcvb-ensure-object-directories~{ ~A~}~2%"
           (shell-tokens-to-Makefile *makefile-target-directories*)
           *makefile-phonies*))
 
@@ -43,13 +49,16 @@ ensure-xcvb-object-directories:
          (*makefile-target-directories* nil)
          (*makefile-phonies* nil))
     (graph-for-build (make-instance 'static-traversal) build)
-    (with-open-file (out makefile-path
-                         :direction :output
-                         :if-exists :supersede)
-      (write-makefile-prelude out)
-      (dolist (computation *computations*)
-        (write-computation-to-makefile out computation))
-      (write-makefile-conclusion out))))
+    (let ((body
+           (with-output-to-string (s)
+             (dolist (computation *computations*)
+               (write-computation-to-makefile s computation)))))
+      (with-open-file (out makefile-path
+                           :direction :output
+                           :if-exists :supersede)
+        (write-makefile-prelude out)
+        (princ body out)
+        (write-makefile-conclusion out)))))
 
 
 ;;; dependency-pathname: extract Makefile-printable pathname from dependency spec
@@ -69,17 +78,12 @@ ensure-xcvb-object-directories:
 
 (defun ensure-makefile-will-make-pathname (env namestring)
   (declare (ignore env))
-  (unless (member namestring *makefile-target-directories* :test 'equal)
-    (labels ((f (end)
-               (let ((p (position #\/ namestring :from-end t :end end)))
-                 (when p
-                   (let ((dir (subseq namestring 0 p)))
-                     (if end
-                       (setf *makefile-target-directories*
-                             (remove dir *makefile-target-directories* :test 'equal))
-                       (pushnew dir *makefile-target-directories* :test 'equal)))
-                   (f p)))))
-      (f nil)))
+  (let* ((p (position #\/ namestring :from-end t :end nil))
+         (dir (subseq namestring 0 p)))
+    (unless (find-if (lambda (d) (portable-namestring-prefix<= dir d)) *makefile-target-directories*)
+      (setf *makefile-target-directories*
+            (remove-if (lambda (d) (portable-namestring-prefix<= d dir)) *makefile-target-directories*))
+      (push dir *makefile-target-directories*)))
   (values))
 
 (defun object-namestring (env name merge)
@@ -162,7 +166,6 @@ ensure-xcvb-object-directories:
 (defmethod grain-pathname-text ((grain phony-grain))
   (let ((n (normalize-name-for-makefile (princ-to-string (fullname grain)))))
     (pushnew n *makefile-phonies* :test 'equal)
-    (DBG :gpt n *makefile-phonies*)
     n))
 
 (defun write-computation-to-makefile (stream computation)
@@ -174,7 +177,7 @@ ensure-xcvb-object-directories:
            (other-outputs (rest outputs)))
       (dolist (o other-outputs)
         (format stream "~&~A: ~A~%" (grain-pathname-text o) target))
-      (format stream "~&~A:~{~@[ ~A~]~}~@[~A~] ensure-xcvb-object-directories~%"
+      (format stream "~&~A:~{~@[ ~A~]~}~@[~A~] ${XCVB_EOD}~%"
               target
               (mapcar #'grain-pathname-text inputs)
               (asdf-dependency-text first-output inputs))

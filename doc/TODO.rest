@@ -19,20 +19,19 @@ Future improvements planned for XCVB.
       3.6  Conditional Build [V1]
       3.7  Generalized Staged Images [V2]
       3.8  Command-line interface [V3]
-    4   Features [V1]
-      4.1   Multiple BUILD.lisp files [V1]
-      4.2   Improve Makefile backend [V2]
-      4.3   Abstract Away Paths [V2]
-      4.4   Initialization and Finalization [V2]
-      4.5   Executables [V2]
-      4.6   Tests [V2]
-      4.7   Dependency grovelling [V2]
-      4.8   Revert [V2]
-      4.9   Bootstrap [V3]
-      4.10  Same source, multiple compilers [V4]
-      4.11  Correctly handling C libraries [V4]
-      4.12  Dynamic compilation [V4]
-      4.13  Bug hunting [V5]
+    4   Features [V2]
+      4.1   Improve Makefile backend [V2]
+      4.2   Abstract Away Paths [V2]
+      4.3   Initialization and Finalization [V2]
+      4.4   Executables [V2]
+      4.5   Tests [V2]
+      4.6   Dependency grovelling [V2]
+      4.7   Revert [V2]
+      4.8   Bootstrap [V3]
+      4.9   Same source, multiple compilers [V4]
+      4.10  Correctly handling C libraries [V4]
+      4.11  Dynamic compilation [V4]
+      4.12  Bug hunting [V5]
     5   Ideas from jknight
     6   The semantics of dependencies [V1]
       6.1  Data files [V1]
@@ -95,21 +94,13 @@ We most urgently need to:
 
     * For the sake ASDF, we need a setup file to be loaded before the xcvb driver.
       Defaults in:
-      
+
         * ./target-image-setup.lisp
       	* ~/.config/xcvb/target-image-setup.lisp
         * $PREFIX_ETC/xcvb/target-image-setup.lisp
 
-    * ensure-xcvb-object-directories should be replaced by ${XCVB_EOD},
-      which is defined once at the beginning by::
-      
-        XCVB_EOD :=
-        ifneq ($(wildcard ...),...)
-          XCVB_EOD := ensure-xcvb-object-directories
-        endif
-
  * Add some command-line interface to xcvb, including a REPL
- 
+
  * When we've surpassed the v0.1-prototype, create another branch,
    and announce a new preview edition.
 
@@ -296,27 +287,11 @@ The command-line should allow to express all the common usage patterns.
 These patterns will be discovered as we build V1 and V2.
 
 
-Features [V1]
+Features [V2]
 =============
 
 This section describes features that have to be added to XCVB.
 They modify the underlying build model.
-
-
-Multiple BUILD.lisp files [V1]
-------------------------------
-
-Allow the build-requires slot to work with multiple BUILD.lisp files.
-Right now, only the top-most BUILD.lisp file's build-requires slot
-is properly handled, the rest are ignored.
-
-To add this functionality, the makefile-generator will need to write
-a makefile that dumps multiple intermediate cores
--- one for each BUILD.lisp's build-requires slot (if present) --
-and also has multiple ${CWBRLRUN} macros
-so that compilation will happen with the correct core at each step of the way.
-The asd-generator will similarly need to be changed
-to have one asdf module for each BUILD.lisp's build-requires slot (if present).
 
 
 Improve Makefile backend [V2]

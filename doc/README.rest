@@ -53,13 +53,13 @@ in a way that enforces declared dependencies.
 You may even compile in parallel with ``make -j``
 which on a SMP machine may be faster than ASDF.
 
-What isn't working yet is compiling several projects together,
-converting multiple ASDF projects,
-handling the harder cases,
+Following a complete rewrite, a new release is soon to come
+(ETA June 2009).
+Unlike the v0.1-prototype, it will handle
+the compilation of a project made of the aggregation of several BUILDs,
+the incremental conversion of converting multiple ASDF projects,
 etc.
 
-Following a complete rewrite, a new release is soon to come
-(ETA June 2009) that will handle these cases and much more.
 We've got a static backend that creates a graph,
 and a Makefile backend that creates a Makefile out of it.
 
