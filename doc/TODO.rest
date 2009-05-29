@@ -99,6 +99,11 @@ We most urgently need to:
       	* ~/.config/xcvb/target-image-setup.lisp
         * $PREFIX_ETC/xcvb/target-image-setup.lisp
 
+ * Somehow handle inheritance (or not) of build-requires
+
+ * Have a second pass in registry, only registering nicknames and asdf supersedes
+   for builds that have no conflict on their fullname.
+
  * Add some command-line interface to xcvb, including a REPL
 
  * When we've surpassed the v0.1-prototype, create another branch,
@@ -107,9 +112,6 @@ We most urgently need to:
  * Update the migration code from ASDF.
    Support recursive migration of dependencies up to some point that the user may specify
    (i.e. for every transitive asdf system dependency, stopping at given ones, migrate system).
-
- * Support BUILDs that actually override given ASDFs, for incremental migration.
-   Optionally issue a warning when a BUILD depends on an ASDF that has (later) been migrated.
 
  * Re-implement ASDF backend, so ASDF users can use XCVB BUILDs.
 

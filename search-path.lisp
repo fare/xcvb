@@ -14,9 +14,9 @@
    #p"/usr/share/common-lisp/modules/"))
 
 (defun verify-path-element (element)
-  (let* ((absolute-path (ensure-absolute-pathname element)))
+  (let* ((absolute-path (ensure-absolute-pathname (ensure-pathname-is-directory element))))
     (cond
-      ((ignore-errors (truename (ensure-pathname-is-directory absolute-path)))
+      ((ignore-errors (truename absolute-path))
        absolute-path)
       (t
        (format *error-output* "~&Discarding invalid path element ~S~%" element)

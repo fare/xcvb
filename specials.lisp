@@ -5,7 +5,7 @@
 ;; I don't know a good way to ensure this bit gets incremented at the right time...
 ;; It would be better to have some version number automatically extracted from
 ;; the date, plus a hash obtained from git, and/or from xcvb's own digesting mechanism.
-(defparameter *xcvb-version* "0.208")
+(defparameter *xcvb-version* "0.300")
 
 (defvar *lisp-implementation-type* :sbcl
   "Type of Lisp implementation for the target system")
@@ -25,8 +25,11 @@
 (defvar *use-cfasls* (eq *lisp-implementation-type* :sbcl)
   "Should we assume the target Lisp supports CFASL?")
 
-(defparameter *lisp-setup-dependencies*
+(defparameter +xcvb-setup-dependencies+
   '((:lisp "/xcvb/driver"))
+  "Special Lisp dependencies to load into the initial buildee image for XCVB")
+
+(defparameter *lisp-setup-dependencies* +xcvb-setup-dependencies+
   "Special Lisp dependencies to load into the initial buildee image")
 
 (defvar *xcvb-verbosity* 5

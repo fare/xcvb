@@ -17,7 +17,7 @@ include configure.mk
 
 export INSTALL_XCVB
 
-LISP_INSTALL_FILES := driver.lisp asdf-extensions.lisp
+LISP_INSTALL_FILES := driver.lisp BUILD.lisp
 
 ## cl-launch mode: standalone executable, script+image or script+fasls?
 define CL_LAUNCH_MODE_standalone

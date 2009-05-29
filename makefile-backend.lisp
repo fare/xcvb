@@ -13,6 +13,29 @@
 (defvar *makefile-phonies* ())
 
 
+(defun write-makefile (fullname &key output-path)
+  "Write a Makefile to output-path with information about how to compile the specified BUILD."
+  (let* ((build (registered-grain fullname))
+         (default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
+         (output-path (if output-path (merge-pathnames output-path default-output-path) default-output-path))
+         (makefile-path (ensure-absolute-pathname output-path))
+         (makefile-dir (pathname-directory-pathname makefile-path))
+         (*default-pathname-defaults* makefile-dir)
+         (*makefile-target-directories* nil)
+         (*makefile-phonies* nil))
+    (graph-for-build-grain (make-instance 'static-traversal) build)
+    (let ((body
+           (with-output-to-string (s)
+             (dolist (computation *computations*)
+               (write-computation-to-makefile s computation)))))
+      (with-open-file (out makefile-path
+                           :direction :output
+                           :if-exists :supersede)
+        (write-makefile-prelude out)
+        (princ body out)
+        (write-makefile-conclusion out)))))
+
+
 (defun write-makefile-prelude (&optional stream)
   (let ((directories (join-strings " " (mapcar #'escape-string-for-Makefile *makefile-target-directories*))))
     (format stream "~
@@ -36,33 +59,8 @@ xcvb-ensure-object-directories:
           (shell-tokens-to-Makefile *makefile-target-directories*)
           *makefile-phonies*))
 
-(defun write-makefile (fullname
-                       &key
-                       output-path
-                       (makefile-name "xcvb.mk"))
-  "Write a Makefile to output-path with information about how to compile the specified BUILD."
-  (let* ((build (registered-grain fullname))
-         (output-path (or output-path (grain-pathname build)))
-         (makefile-path (ensure-absolute-pathname (merge-pathnames makefile-name output-path)))
-         (makefile-dir (pathname-directory-pathname makefile-path))
-         (*default-pathname-defaults* makefile-dir)
-         (*makefile-target-directories* nil)
-         (*makefile-phonies* nil))
-    (graph-for-build (make-instance 'static-traversal) build)
-    (let ((body
-           (with-output-to-string (s)
-             (dolist (computation *computations*)
-               (write-computation-to-makefile s computation)))))
-      (with-open-file (out makefile-path
-                           :direction :output
-                           :if-exists :supersede)
-        (write-makefile-prelude out)
-        (princ body out)
-        (write-makefile-conclusion out)))))
-
 
 ;;; dependency-pathname: extract Makefile-printable pathname from dependency spec
-
 (define-simple-dispatcher dependency-pathname #'dependency-pathname-for-atom)
 
 (defun dependency-pathname (clause)
@@ -75,6 +73,9 @@ xcvb-ensure-object-directories:
 (define-dependency-pathname :lisp (env name)
   (dependency-pathname-for-atom env name))
 
+(define-dependency-pathname :file (env name)
+  (declare (ignore env))
+  name)
 
 (defun ensure-makefile-will-make-pathname (env namestring)
   (declare (ignore env))
@@ -129,7 +130,7 @@ xcvb-ensure-object-directories:
 
 (define-text-for-lisp-command :create-image (str spec &rest dependencies)
   (destructuring-bind (&key image standalone package) spec
-    (format str "(:create-image ~S "
+    (format str "(:create-image ~S"
             (append (list (dependency-pathname `(:image ,image)))
                     (when standalone '(:standalone t))
                     (when package `(:package ,package))))
@@ -155,6 +156,8 @@ xcvb-ensure-object-directories:
     (dolist (c commands)
       (text-for-lisp-command s c))
     (format s ")")))
+
+(defgeneric grain-pathname-text (grain))
 
 (defmethod grain-pathname-text ((grain file-grain))
   (let ((pathname (dependency-pathname (fullname grain))))
@@ -202,13 +205,14 @@ xcvb-ensure-object-directories:
     (let* ((image-pathname (dependency-pathname (fullname output)))
            (pathname-text (escape-shell-token-for-Makefile image-pathname))))
     (with-output-to-string (s)
-      (format s " $(shell { [ -f ~A ] && " pathname-text)
+      (format s " $(shell [ -f ~A ] && " pathname-text)
       (shell-tokens-to-Makefile
        (lisp-invocation-arglist
         :image-path image-pathname
-        :eval "(xcvb-driver::asdf-systems-up-to-date-p)")
+        :eval (format nil "(xcvb-driver::asdf-systems-up-to-date~{ ~S~})"
+                      (mapcar #'asdf-grain-system-name asdf-grains)))
        s)
-      (format s " } || echo force)"))))
+      (format s " || echo force)"))))
 
 #|
 ;; This should be generalized and moved to some generic file

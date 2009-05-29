@@ -105,9 +105,9 @@
     :initform nil
     :initarg :load-depends-on)
    (compile-dependencies
-    :accessor compile-dependencies)
+    :reader compile-dependencies)
    (load-dependencies
-    :accessor load-dependencies)
+    :reader load-dependencies)
    (extension-forms
     :initarg :extension-forms
     :accessor grain-extension-forms
@@ -131,12 +131,14 @@
     :documentation "A list of ASDF systems superseded by this module")
    (build-requires
     :initarg :build-requires
-    :accessor build-requires
     :initform nil
     :documentation "A list of dependencies that apply to all files in the
 system specified by this BUILD.lisp file.
 These dependencies will be loaded first thing
 into an image that will be used for all future compile/load operations")
+   (build-dependencies
+    :reader build-dependencies
+    :documentation "A normalized version of the above")
    #|(build-pre-image
     :initarg :build-pre-image
     :accessor build-pre-image
@@ -162,7 +164,9 @@ into an image that will be used for all future compile/load operations")
   (:documentation "Lisp CFASL file grain"))
 
 (defclass image-grain (file-grain named-grain)
-  ()
+  ((included
+    :initarg :included
+    :reader image-included))
   (:documentation "Dumped Image"))
 
 (defclass asdf-grain (named-grain)

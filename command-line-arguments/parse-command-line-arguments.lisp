@@ -8,6 +8,8 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#+xcvb (module (:depends-on ("get-command-line-arguments")))
+
 (in-package :command-line-arguments)
 
 

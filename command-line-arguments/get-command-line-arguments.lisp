@@ -8,6 +8,8 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#+xcvb (module (:depends-on ((:asdf "cl-launch") "pkgdcl")))
+
 (in-package :command-line-arguments)
 
 (defun get-command-line-arguments ()

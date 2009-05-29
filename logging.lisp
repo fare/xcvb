@@ -2,4 +2,4 @@
 
 (defun log-format (required-verbosity format &rest args)
   (when (>= *xcvb-verbosity* required-verbosity)
-    (apply #'format format *error-output* args)))
+    (apply #'format *error-output* format args)))

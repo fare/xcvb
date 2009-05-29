@@ -1,35 +1,73 @@
 (in-package :xcvb)
 
+(defgeneric dependency-already-included-p (env grain))
+(defgeneric issue-dependency (env grain))
+(defgeneric issue-load-command (env command))
+(defgeneric traversed-dependencies (env))
+(defgeneric traversed-lisp-commands (env))
+(defgeneric lisp-command-issued-p (env command))
+(defgeneric graph-for (env spec))
+(defgeneric graph-for-atom (env atom))
+(defgeneric graph-for-build-grain (env grain))
+(defgeneric graph-for-fasls (env fullname))
+
 ;;; Recognizer for current trivial dependency language
 
+(defvar *asdf-systems-warned* ())
+
 (defun normalize-dependency (dep grain)
-  (flet ((n (x) (let ((grain (resolve-module-name x grain)))
-                  (unless (typep grain 'lisp-grain)
-                    (error "Couldn't resolve ~S to a valid module from grain ~S"
-                           x (fullname grain)))
-                  (fullname grain)))
-         (err () (error "unrecognized dependency ~S" dep)))
+  (labels ((g (x) (let ((grain (resolve-module-name x grain)))
+                    (unless (lisp-grain-p grain)
+                      (error "Couldn't resolve ~S to a valid module from grain ~S"
+                             x (fullname grain)))
+                    grain))
+           (n (x) (fullname (g x)))
+           (err () (error "unrecognized dependency ~S" dep)))
     (cond
       ((stringp dep)
-       (list :fasl (n dep)))
+       (let* ((g (g dep))
+              (n (fullname g)))
+         (if (build-grain-p g)
+             `(:build ,n)
+             `(:fasl ,n))))
       ((and (list-of-length-p 2 dep)
             (stringp (second dep)))
        (let ((f (first dep))
              (x (second dep)))
          (case f
            ((:lisp :fasl :cfasl) (list f (n x)))
+           ((:build :compile-build)
+            (let ((g (g x)))
+              (check-type g build-grain)
+              `(,f ,(fullname g))))
            (:compile (list (compile-time-fasl-type) (n x)))
-           (:asdf (list :asdf (coerce-asdf-system-name x)))
+           (:asdf
+            (let* ((n (coerce-asdf-system-name x))
+                   (superseding (registered-grain `(:supersedes-asdf ,n))))
+              (etypecase superseding
+                (null
+                 `(:asdf ,n))
+                (build-grain
+                 (let ((nn (fullname superseding)))
+                   (unless (member nn *asdf-systems-warned* :test 'equal)
+                     (push nn *asdf-systems-warned*)
+                     (log-format 5 "~&Declared dependency on ASDF system :~A~%     was superseded by BUILD ~S~%" n nn))
+                   `(:build ,nn)))
+                (build-registry-conflict
+                 (error "Trying to use ASDF system :~A claimed by conflicting builds ~S"
+                        n superseding)))))
            (t (err)))))
       (t (err)))))
 
 
 ;;; Matcher for the normalized dependency language
-(defvar +dependency-type+
+(defparameter +dependency-type+
   '((:lisp . lisp-grain)
     (:fasl . fasl-grain)
     (:cfasl . cfasl-grain)
-    (:asdf . asdf-grain))
+    (:asdf . asdf-grain)
+    (:build . t)
+    (:compiled-build . t))
   "what type for grains corresponding to a given dependency tag")
 
 (defun deconstruct-dependency (dep k)
@@ -62,7 +100,8 @@ in the normalized dependency mini-language"
   (with-dependency (:head h :name x) dep
     (ecase h
       (:fasl (list (compile-time-fasl-type) x))
-      ((:lisp :cfasl :asdf) dep))))
+      (:build `(:compile-build ,x))
+      ((:lisp :cfasl :asdf :compile-build) dep))))
 
 (defun compile-time-fasl-type ()
   (if *use-cfasls* :cfasl :fasl))
@@ -102,8 +141,7 @@ in the normalized dependency mini-language"
   (simple-load-command-for
    env `(:load-file (:cfasl ,name)) `(:cfasl ,name)))
 (define-load-command-for :asdf (env name)
-  (simple-load-command-for
-   env `(:load-asdf ,name) `(:asdf ,name)))
+  (simple-load-command-for env `(:load-asdf ,name) `(:asdf ,name)))
 
 (defun call-with-dependency-grain (environment dep fun)
   (let* ((grain (graph-for environment dep)))
@@ -129,18 +167,35 @@ in the normalized dependency mini-language"
   (call-with-dependency-grain
    env fullname
    (lambda (grain)
-     (load-commands-for-dependencies env grain)
-     (issue-dependency env grain)
-     (issue-load-command env command))))
+     (unless (dependency-already-included-p env grain)
+       (load-commands-for-dependencies env grain)
+       (issue-dependency env grain)
+       (issue-load-command env command)))))
 
 (define-load-command-for :build (env name)
-  (call-with-dependency-grain
-   env `(:build ,name)
-   (lambda (grain)
-     (load-commands-for-dependencies env grain))))
+  (let ((build (registered-grain name)))
+    (check-type build build-grain)
+    (handle-lisp-dependencies build)
+    (load-commands-for-build-dependencies env build)
+    (load-commands-for-dependencies env build)))
+
+(define-load-command-for :compile-build (env name)
+  (let ((build (registered-grain name)))
+    (check-type build build-grain)
+    (handle-lisp-dependencies build)
+    (load-commands-for-build-dependencies env build)
+    (load-commands-for-compile-dependencies env build)))
 
 (defun load-commands-for-dependencies (env grain)
   (dolist (dep (load-dependencies grain))
+    (load-command-for env dep)))
+
+(defun load-commands-for-compile-dependencies (env grain)
+  (dolist (dep (compile-dependencies grain))
+    (load-command-for env dep)))
+
+(defun load-commands-for-build-dependencies (env grain)
+  (dolist (dep (build-dependencies grain))
     (load-command-for env dep)))
 
 #|

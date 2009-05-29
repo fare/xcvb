@@ -70,18 +70,20 @@
                         (normalize compile-depends-on)))
           (setf load-dependencies
                 (append common-dependencies
-                        (normalize load-depends-on))))))
+                        (normalize load-depends-on)))))
+      (when (build-grain-p grain)
+        (with-slots (build-requires build-dependencies) grain
+          (setf build-dependencies (normalize build-requires)))))
     (handle-extension-forms grain))
   (values))
 
 (defun handle-extension-forms (grain)
-  (declare (ignore grain))
-  ;; TODO: move that to extensions.lisp, etc.
+  (when (grain-extension-forms grain)
+    (error "Unsupported extension forms in grain ~S" (fullname grain)))
   nil)
 
 (defun make-grain-from-file (path &key build-p)
   "Takes a PATH to a lisp file, and returns the corresponding grain."
-  ;;(format T "resolving ~@[build ~]: ~a~%" build-p path)
   (let ((grain (grain-from-file-declaration path :build-p build-p)))
     (compute-fullname grain)
     grain))
@@ -104,7 +106,7 @@
             :while pos :do
               (let* ((prefix (subseq name 0 pos))
                      (build (registered-grain prefix)))
-                (when (typep build 'build-grain)
+                (when (build-grain-p build)
                   (let ((it (%grain-from-relative-name (subseq name (1+ pos)) build)))
                     (when it
                       (setf (registered-grain name) it)
@@ -113,16 +115,16 @@
 
 (defun build-pre-image-name (build-grain)
   (check-type build-grain build-grain)
-  (let ((requires (build-requires build-grain))
-        required-build)
+  (handle-lisp-dependencies build-grain)
+  (let ((dependencies (build-dependencies build-grain)))
     (cond
-      ((null requires) "/_")
-      ((and (consp requires)
-            (null (cdr requires))
-            (stringp (car requires))
-            (typep (setf required-build (resolve-module-name (car requires) build-grain)) 'build-grain))
+      ((null dependencies) "/_")
+      ((and (consp dependencies)
+            (null (cdr dependencies))
+            (consp (car dependencies))
+            (eq :build (caar dependencies)))
        ;; requiring exactly one other build... make its post image our pre-image
-       (fullname required-build))
+       (cadar dependencies))
       (t (strcat "/_pre" (fullname build-grain))))))
 
 (defun build-image-name (build-grain)
@@ -144,6 +146,12 @@
   nil)
 (defmethod compile-dependencies ((grain asdf-grain))
   nil)
+
+(defun lisp-grain-p (x)
+  (typep x 'lisp-grain))
+
+(defun build-grain-p (x)
+  (typep x 'build-grain))
 
 (defun asdf-grain-p (x)
   (typep x 'asdf-grain))

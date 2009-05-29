@@ -1,3 +1,4 @@
 #+xcvb
 (module
-  (:build-requires ((:asdf "b"))))
+  (:build-requires ((:asdf "command-line-arguments") (:asdf "fare-utils"))
+   :depends-on ("gah")))

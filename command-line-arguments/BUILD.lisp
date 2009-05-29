@@ -19,6 +19,5 @@
   :licence "MIT"
   :description "small library to deal with command-line arguments"
   :long-description "A library to abstract away the parsing of Unix-style command-line arguments"
-  :build-requires ((:asdf "cl-launch"))
-  :depends-on ("command-line-arguments")
+  :depends-on ("parse-command-line-arguments" "get-command-line-arguments")
   :build-image nil))

@@ -8,15 +8,22 @@
    (dependencies-r ;;; dependencies discovered so far while examining the current computation
     :initform nil
     :accessor traversed-dependencies-r)
+   (included-dependencies ;;; dependencies included in the current image
+    :accessor included-dependencies)
    (lisp-commands-r ;;; lisp commands issued so far to run the current compilation.
     :initform nil
     :accessor traversed-lisp-commands-r)))
 
+(defmethod dependency-already-included-p ((env static-traversal) grain)
+  (or (member grain (included-dependencies env))
+      (member grain (traversed-dependencies-r env))))
 
 (defmethod issue-dependency ((env static-traversal) grain)
-  (pushnew grain (traversed-dependencies-r env)))
+  ;;; TODO: avoid dependencies that are already in the base image!
+  (push grain (traversed-dependencies-r env)))
 
 (defmethod issue-load-command ((env static-traversal) command)
+  ;;; TODO: avoid dependencies that are already in the base image!
   (pushnew command (traversed-lisp-commands-r env) :test 'equal))
 
 (defmethod traversed-dependencies ((env static-traversal))
@@ -47,7 +54,10 @@
           spec)))))
 
 (defun graph-for* (env specs)
-  (mapcar #'(lambda (spec) (graph-for env spec)) specs))
+  (remove-duplicates
+   (mapcar #'(lambda (spec) (graph-for env spec))
+           (remove-duplicates specs :from-end t :test 'equal))
+   :from-end t))
 
 (defun graph-for-compiled (env spec)
   (graph-for env (compiled-dependency spec)))
@@ -55,8 +65,6 @@
 (defun load-command-for* (env specs)
   (dolist (spec specs)
     (load-command-for env spec)))
-
-(defgeneric graph-for-atom (env atom))
 
 (defmethod graph-for-atom (env (name string))
   (declare (ignore env))
@@ -71,10 +79,13 @@
 (define-graph-for :build (env name)
   (graph-for-build-named env name))
 
-(defun graph-for-build-named (env name)
-  (graph-for-build env (registered-grain name)))
+(define-graph-for :compile-build (env name)
+  (graph-for-build-named env name))
 
-(defmethod graph-for-build ((env static-traversal) (grain build-grain))
+(defun graph-for-build-named (env name)
+  (graph-for-build-grain env (registered-grain name)))
+
+(defmethod graph-for-build-grain ((env static-traversal) (grain build-grain))
   (handle-lisp-dependencies grain)
   (let ((post-image-name (build-image-name grain)))
     (if post-image-name
@@ -82,12 +93,7 @@
         (make-phony-grain
          :name `(:build ,(fullname grain))
          :dependencies (graph-for*
-                        env
-                        (remove-duplicates
-                         (append
-                          (compile-dependencies grain)
-                          (load-dependencies grain))
-                         :test #'equal))))))
+                        env (append (compile-dependencies grain) (load-dependencies grain)))))))
 
 (define-graph-for :image (env name)
   (cond
@@ -97,8 +103,9 @@
      (let* ((build-name (subseq name 5))
             (build (registered-grain build-name)))
        (check-type build build-grain)
+       (handle-lisp-dependencies build)
        (graph-for-image-grain
-        env name "/_" (build-requires build))))
+        env name "/_" (build-dependencies build))))
     (t
      (let* ((build (registered-grain name)))
        (check-type build build-grain)
@@ -111,42 +118,45 @@
     (graph-for env `(:image ,(build-pre-image-name build)))))
 
 (defun graph-for-image-grain (env name pre-image-name dependencies)
-  (let* ((grain
-          (make-grain 'image-grain :fullname `(:image ,name)))
-         (pre-image
-          (when pre-image-name
-            (graph-for env `(:image ,pre-image-name))))
-         (pre-dependencies
-          (if pre-image
-              (list pre-image)
-              (graph-for* env *lisp-setup-dependencies*))))
-    (load-command-for* env dependencies)
-    (make-computation 'concrete-computation
-      :outputs (list grain)
-      :inputs (append pre-dependencies (traversed-dependencies env))
-      :command
-      `(:lisp
-        ,(if pre-image-name
-             `(:image ,(fullname pre-image))
-             `(:load ,(mapcar #'fullname pre-dependencies)))
-        (:create-image
-         (:image ,name)
-         ,@(traversed-lisp-commands env))))
-    grain))
+  (with-nesting ()
+    (let ((pre-image
+           (when pre-image-name
+             (graph-for env `(:image ,pre-image-name))))))
+    (progn
+      (when pre-image-name
+        (check-type pre-image image-grain)
+        (setf (included-dependencies env) (image-included pre-image))))
+    (let ((pre-dependencies
+           (if pre-image
+             (list pre-image)
+             (graph-for* env *lisp-setup-dependencies*)))))
+    (progn
+      (load-command-for* env dependencies))
+    (let* ((dependencies
+            (append pre-dependencies (traversed-dependencies env)))
+           (included
+            (if pre-image
+                (append (image-included pre-image) dependencies)
+                dependencies))
+           (grain
+            (make-grain 'image-grain :fullname `(:image ,name) :included included)))
+      (make-computation 'concrete-computation
+        :outputs (list grain)
+        :inputs dependencies
+        :command
+        `(:lisp
+          ,(if pre-image-name
+               `(:image ,(fullname pre-image))
+               `(:load ,(mapcar #'fullname pre-dependencies)))
+          (:create-image
+           (:image ,name)
+           ,@(traversed-lisp-commands env))))
+      grain)))
 
 (define-graph-for :asdf (env system-name)
-  (let ((superseding (registered-grain `(:supersedes-asdf ,system-name))))
-    (etypecase superseding
-      (null
-       (make-asdf-grain :name system-name
-                        :implementation *lisp-implementation-type*))
-      (build-grain
-       (log-format 5 "Grain ~S declared a dependency on ASDF system :~A but superseding it with ~S"
-                   (fullname (first (traversed-grain-names-r env))) system-name (fullname superseding))
-       (graph-for-build env superseding))
-      (build-registry-conflict
-       (error "Trying to use ASDF system :~A claimed by conflicting builds ~S"
-              system-name superseding)))))
+  (declare (ignore env))
+  (make-asdf-grain :name system-name
+                   :implementation *lisp-implementation-type*))
 
 (define-graph-for :fasl (env lisp-name)
   (first (graph-for-fasls env lisp-name)))
@@ -163,6 +173,7 @@
     (let ((load-dependencies (load-dependencies lisp))
           (compile-dependencies (compile-dependencies lisp))
           (pre-image (pre-image-for env lisp)))
+      (setf (included-dependencies env) (image-included pre-image))
       (load-command-for* env compile-dependencies)
       (let ((outputs (fasl-grains-for-name fullname load-dependencies compile-dependencies)))
         (make-computation

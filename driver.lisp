@@ -1,4 +1,4 @@
-;;; xcvb driver to be compiled in buildee images (largely copy-pasted from cl-launch)
+;;; XCVB driver to be compiled in buildee images (largely copy-pasted from cl-launch)
 
 #+xcvb
 (module
@@ -11,7 +11,7 @@
 (in-package :cl)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) #-gcl (debug 3)
+  (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 2)
 ;;     	   #+sbcl (sb-ext:inhibit-warnings 3)
            #+sbcl (sb-c::merge-tail-calls 3) ;-- this plus debug 1 (or sb-c::insert-debug-catch 0 ???) should ensure all tail calls are optimized, says jsnell
 	   #+cmu (ext:inhibit-warnings 3)))
@@ -63,77 +63,22 @@ This is designed to abstract away the implementation specific quit forms."
   #-(or cmu clisp sbcl clozure gcl allegro ecl lispworks)
   (error "xcvb driver: Quitting not implemented"))
 
-#|
-(defvar *show-compiler-notes* nil "Should we show compiler notes about optimization?")
-
-#+sbcl
-(defun call-with-controlled-compiler-notes (thunk)
-  "If *SHOW-COMPILER-NOTES* is false, suppress any
-   simple-compiler-note messages during compilation."
-  (if *show-compiler-notes*
-    (funcall thunk)
-    (handler-bind ((sb-c::simple-compiler-note
-                    #'(lambda (condition)
-                        (muffle-warning condition))))
-      (funcall thunk))))
-
-#-sbcl
-(defun call-with-controlled-compiler-notes (thunk)
-  "This doesn't do anything in non-SBCL dialects."
-  (funcall thunk))
-
-(defmacro with-controlled-compiler-notes (() &body body)
-  `(call-with-controlled-compiler-notes #'(lambda () ,@body)))
-|#
-
 (defun print-backtrace (out)
   nil
-  #+sbcl (sb-debug:backtrace nil out))
+  #+sbcl (sb-debug:backtrace most-positive-fixnum out))
 
 (defun call-with-exit-on-error (thunk)
   (let ((stderr *error-output*))
     (handler-bind ((error
                     #'(lambda (error)
-                        (format stderr "~&~S~%" error)
+                        (format stderr "~&~A~%" error)
                         (print-backtrace stderr)
-                        (format stderr "~&~S~%" error)
+                        (format stderr "~&~A~%" error)
                         (quit 99))))
       (funcall thunk))))
 
 (defmacro with-exit-on-error (() &body body)
   `(call-with-exit-on-error (lambda () ,@body)))
-
-(defmacro run (&rest commands)
-  `(with-exit-on-error ()
-    ;;(with-controlled-compiler-notes ()
-     (do-run ',commands);;)
-     (quit)))
-
-(defun do-run (commands)
-  (map () #'run-command commands))
-
-(defun run-command (command)
-  (apply (function-for-command (car command))
-         (cdr command)))
-
-(defun function-for-command (head)
-  (ecase head
-    (:load-file
-     (lambda (x) (load x)))
-    #+asdf
-    (:load-asdf
-     (lambda (x) (asdf:oos 'asdf:load-op x)))
-    (:compile
-     (lambda (source fasl &optional cfasl)
-       (apply #'compile-file source
-              :output-file fasl
-              ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-              (when cfasl
-                `(:cfasl ,cfasl)))))
-    (:create-image
-     (lambda (spec &rest dependencies)
-       (destructuring-bind (image &key standalone package) spec
-         (create-image image dependencies :standalone standalone :package package))))))
 
 (defun do-resume ()
   (when *restart* (funcall *restart*))
@@ -143,9 +88,9 @@ This is designed to abstract away the implementation specific quit forms."
   (do-resume))
 
 #-ecl
-(defun dump-image (filename &key standalone (package :cl-user))
-  (declare (ignorable filename standalone package))
-  (setf *package* (find-package package))
+(defun dump-image (filename &key standalone package)
+  (declare (ignorable filename standalone))
+  (setf *package* (find-package (or package :cl-user)))
   #+clisp
   (apply #'ext:saveinitmem filename
    :quiet t
@@ -188,9 +133,24 @@ This is designed to abstract away the implementation specific quit forms."
   #-(or clisp sbcl cmu clozure allegro gcl lispworks)
   (%abort 11 "XCVB-Driver doesn't supports image dumping with this Lisp implementation.~%"))
 
+(declaim (ftype function function-for-command))
+
+(defun run-command (command)
+  (apply (function-for-command (car command))
+         (cdr command)))
+
+(defun do-run (commands)
+  (map () #'run-command commands))
+
+(defmacro run (&rest commands)
+  `(with-exit-on-error ()
+    ;;(with-controlled-compiler-notes ()
+     (do-run ',commands);;)
+     (quit 0)))
+
 #-ecl
 (defun create-image (image dependencies &rest flags)
-  (apply #'do-run dependencies)
+  (do-run dependencies)
   (apply #'dump-image image flags))
 
 #+ecl
@@ -201,6 +161,26 @@ This is designed to abstract away the implementation specific quit forms."
     (c::builder :program (parse-namestring image)
 		:lisp-files (mapcar #'second dependencies)
 		:epilogue-code epilogue-code)))
+
+(defun function-for-command (head)
+  (ecase head
+    (:load-file
+     (lambda (x) (load x)))
+    #+asdf
+    (:load-asdf
+     (lambda (x) (asdf:oos 'asdf:load-op x)))
+    (:compile
+     (lambda (source fasl &key cfasl)
+       (let ((*default-pathname-defaults* (truename *default-pathname-defaults*)))
+         (apply #'compile-file source
+                :output-file (merge-pathnames fasl)
+                ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+                (when cfasl
+                  `(:emit-cfasl ,cfasl))))))
+    (:create-image
+     (lambda (spec &rest dependencies)
+       (destructuring-bind (image &key standalone package) spec
+         (create-image image dependencies :standalone standalone :package package))))))
 
 #+asdf
 (defun asdf-system-up-to-date-p (operation-class system &rest args)
@@ -227,13 +207,22 @@ and none of the source files in the system have changed since then"
   (asdf-system-up-to-date-p 'asdf:load-op system))
 
 #+asdf
-(defun asdf-systems-up-to-date-p (&rest systems)
+(defun asdf-systems-up-to-date-p (systems)
   "Takes a list of names of asdf systems, and
 exits lisp with a status code indicating
 whether or not all of those systems were up-to-date or not."
-  (quit
-   (if (every #'asdf-system-loaded-up-to-date-p systems)
-     0 1)))
+  (every #'asdf-system-loaded-up-to-date-p systems))
 
-(export '(finish-outputs quit resume restart run))
-;;(export '(with-controlled-compiler-notes *show-compiler-notes*))
+(defun shell-boolean (x)
+  (quit 
+   (if x 0 1)))
+
+#+asdf
+(defun asdf-systems-up-to-date (&rest systems)
+  "Are all the loaded systems up to date?"
+  (with-exit-on-error ()
+    (shell-boolean (apply #'asdf-systems-up-to-date-p systems))))
+
+(export '(finish-outputs quit resume restart run with-exit-on-error))
+
+;;;(format t "~&XCVB driver loaded~%")

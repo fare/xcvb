@@ -28,7 +28,7 @@ and the load dependencies depending on load-time effects of the files."
 top of a source file"
   (with-output-to-string (out)
     (format out "#+xcvb~%(module (")
-    (when (typep grain 'build-grain)
+    (when (build-grain-p grain)
       (format out "~@[~%~7,0T:fullname ~S~]" (fullname grain)))
     (dolist (slot '(author maintainer version licence description long-description))
       (when (slot-boundp grain slot)
@@ -40,9 +40,9 @@ top of a source file"
                   "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~S~^~%~})~]~
                    ~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~S~^~%~})~]"
                   compile-depends-on load-depends-on)))
-    (if (and (typep grain 'build-grain) (build-requires grain))
+    (if (and (build-grain-p grain) (slot-value grain 'build-requires))
         (format out "~@[~%~7,0T:build-requires ~S)~]"
-              (build-requires grain)))
+              (slot-value grain 'build-requires)))
     (format out ")")
     (format out "~@[~%~{~7,0T~S~^~%~}~]" (grain-extension-forms grain))
     (format out ")")))
@@ -85,7 +85,7 @@ form if there is one (but leaving the extension forms)."
                        (parse-module-declaration
                         first-form
                         :path filename
-                        :build-p (typep module 'build-grain))))
+                        :build-p (build-grain-p module))))
                 (file-position in first-form-position))
 	    (format out "~a~%~%" (module-string module)))
 	  (skip-whitespace in)

@@ -271,7 +271,7 @@ Did you mix up the ordering?" f))
        (defmacro ,definer-name (symbol formals &body body)
          `(,',registrar-name ',symbol
                              #'(lambda (x) (,@(argument-number-checker formals) x))
-                             #'(lambda ,formals ,@body)))
+                             (defun ,(fintern t "~A-~A" ',name symbol) ,formals ,@body)))
        (defun ,dispatcher-name (environment expression)
          (simple-dispatcher
           ,atom-interpreter
