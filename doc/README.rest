@@ -16,13 +16,13 @@ enforced locally-declared dependencies.
       1.1  Status
       1.2  Home page
       1.3  Dependencies
-      1.4  Timeline
-      1.5  Documentation
+      1.4  Documentation
+      1.5  Timeline
       1.6  Alternative
     2  Using XCVB
       2.1  Building XCVB
-      2.2  Converting your ASDF system
-      2.3  Starting a new XCVB project
+      2.2  Starting a new XCVB project
+      2.3  Converting your ASDF system
       2.4  Compiling with XCVB
       2.5  Compile-time side-effects
     3  Combining Multiple Projects
@@ -39,30 +39,27 @@ Status
 ------
 
 Bottom line:
-XCVB isn't yet ready as a full replacement for ASDF.
+XCVB isn't yet ready as a full replacement for ASDF,
+but is already available for the adventurous.
 
-A working and useful prototype (branch v0.1-prototype)
-can handle in the simple case with a single big project.
+The current version (in git master branch)
+can handle the basic case,
+though it is neither feature-rich nor user-friendly.
 
-The basic functionality is already working:
-you can either write an XCVB project or
-automatically convert an existing ASDF project;
-XCVB will then create a ``Makefile``
-whereby your project can be compiled
+You can either write your project directly as an XCVB build
+or automatically convert an existing ASDF project.
+XCVB will then help you create a ``Makefile``
+for your project, whereby it can be compiled
 in a way that enforces declared dependencies.
 You may even compile in parallel with ``make -j``
 which on a SMP machine may be faster than ASDF.
 
-Following a complete rewrite, a new release is soon to come
-(ETA June 2009).
-Unlike the v0.1-prototype, it will handle
-the compilation of a project made of the aggregation of several BUILDs,
-the incremental conversion of converting multiple ASDF projects,
-etc.
+XCVB builds can depend on other builds and/or on ASDF systems.
+ASDF systems can be superseded by migrated XCVB builds when available,
+for better dependency management.
 
-We've got a static backend that creates a graph,
-and a Makefile backend that creates a Makefile out of it.
-
+Hopefully a version 1.0 will be released this summer
+that can seriously replace ASDF and provide a migration path.
 
 
 Home page
@@ -86,12 +83,6 @@ You can also browse the repository at either of these:
 
 	http://github.com/fare/xcvb/tree/master
 
-To use the latest working prototype, you should checkout
-the properly tagged code in a branch (after cloning as above)::
-
-	git pull http://common-lisp.net/project/xcvb/git/xcvb.git v0.1-prototype:v0.1-prototype
-	git checkout v0.1-prototype
-
 
 Dependencies
 ------------
@@ -104,14 +95,49 @@ You will need the following pieces of software to get XCVB running:
   * If you want CFASL, you may need this patch to SBCL until it has been merged upstream:
 	http://repo.or.cz/w/sbcl/jsnell.git?a=treediff;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master
 
-  * cl-launch:
+  * cl-launch 2.14 or later:
 	http://cliki.net/CL-Launch
 
-  * asdf-dependency-grovel:
+  * asdf-dependency-grovel 1.0 or later:
 	http://cliki.net/asdf-dependency-grovel
 
   * Closer to MOP:
 	http://common-lisp.net/project/closer/closer-mop.html
+
+
+Documentation
+-------------
+
+``doc/README.rest``
+	This file describes how to currently use XCVB.
+	As you can see, XCVB is not ready yet;
+	however, development is underway, and things here
+	should eventually be greatly simplified.
+
+``doc/xcvb.rest`` ``doc/ilc09-xcvb.rest`` ``doc/ilc09-xcvb-slides.rest``
+	These files should provide with an overview of the project,
+	its intended benefits, rationale and general design.
+
+``doc/ilc09-xcvb-paper.tex`` ``doc/xcvb.bib`` ``doc/sigplanconf.cls``
+	These source files compile to a PDF for the demonstration
+        that was presented at ILC'2009 for XCVB.
+
+``doc/INTERNALS.rest``
+	This file describes the internals of XCVB.
+
+``doc/TODO.rest``
+	The many items to improve XCVB in the future.
+
+``doc/configure.mk.example``
+	example file to copy into ``configure.mk`` (in the main XCVB directory) and edit,
+	so as to be able to create the ``xcvb`` executable.
+
+``doc/exscribe-migration.lisp.example``
+	example file you can run (see on top of it) to migrate exscribe
+	from ASDF to XCVB.
+
+``test/mock/a/c/Makefile``
+	example for how to integrate XCVB in your Makefile.
 
 
 Timeline
@@ -131,10 +157,16 @@ Francois-Rene Rideau restarted work on it
 and released an initial semi-usable prototype
 in mid December 2008, where the above hacks were automated away.
 A paper about the prototype was presented at ILC'09.
+The prototype can be retrieved in a git branch::
 
-Francois-Rene Rideau undertook a complete rewrite of XCVB
+	git pull http://common-lisp.net/project/xcvb/git/xcvb.git v0.1-prototype:v0.1-prototype
+	git checkout v0.1-prototype
+
+Francois-Rene Rideau then undertook a complete rewrite of XCVB
 to make its architecture more general,
-building on the good and bad lessons of the prototype.
+building on the lessons of the prototype,
+recycling good ideas and focusing on issues previously raised.
+A semi-usable product was published in May 2009.
 We hope to have a complete release with example and documentation
 ready for general use by the end of June 2009.
 
@@ -149,42 +181,6 @@ if you're interested in learning about our progress
 or in influencing our design.
 
 
-Documentation
--------------
-
-``README.rest``
-	This file describes how to currently use XCVB.
-	As you can see, XCVB is not ready yet;
-	however, development is underway, and things here
-	should eventually be greatly simplified.
-
-``xcvb.rest`` ``ilc09-xcvb.rest`` ``ilc09-xcvb-slides.rest``
-	These files should provide with an overview of the project,
-	its intended benefits, rationale and general design.
-
-``ilc09-xcvb-paper.tex`` ``xcvb.bib`` ``sigplanconf.cls``
-	These source files compile to a PDF for the demonstration
-        that was presented at ILC'2009 for XCVB.
-
-``INTERNALS.rest``
-	This file describes the internals of XCVB.
-
-``TODO.rest``
-	The many items to improve XCVB in the future.
-
-``doc/configure.mk.example``
-	example file to copy into ``configure.mk`` (in the main XCVB directory) and edit,
-	so as to be able to create the ``xcvb`` executable.
-
-``doc/exscribe-migration.lisp.example``
-	example file you can run (see on top of it) to migrate exscribe
-	from ASDF to XCVB.
-
-``doc/exscribe-compilation.lisp.example``
-	example file you can run (see on top of it)
-	to compile the migrated exscribe with XCVB.
-
-
 Alternative
 -----------
 
@@ -192,6 +188,7 @@ Until XCVB is ready for general use,
 you may want to use ASDF-DEPENDENCY-GROVEL and POIU
 to achieve some of the same benefits with existing technology,
 where dependency analysis or build time are important.
+
 
 
 Using XCVB
@@ -207,17 +204,6 @@ Building XCVB
 Install the dependencies as listed above, then
 create and edit your own ``configure.mk`` from ``doc/configure.mk.example``
 and finally ``make``.
-
-
-Converting your ASDF system
----------------------------
-
-First, you need to use ASDF-TO-XCVB
-to convert your existing ASDF system(s)
-into a XCVB build based on the ``.asd`` files.
-
-For a simple example, no further documentation yet, see:
-	``doc/exscribe-migration.lisp.example``.
 
 
 Starting a new XCVB project
@@ -256,23 +242,34 @@ only those containing the functions you really care about,
 since the dependencies will be automatically identified and loaded.
 
 
+Converting your ASDF system
+---------------------------
+
+A simple example that used to to work with our ``v0.1-prototype`` is in
+	``doc/exscribe-migration.lisp.example``.
+
+We are otherwise still working to make conversion easier.
+
+
 Compiling with XCVB
 -------------------
 
-To compile, you currently need to give ``xcvb`` a command file,
-that is a simple Lisp file in that calls the proper XCVB functions.
-See ``exscribe-compilation.lisp.example``.
+To compile, you currently need to use ``xcvb`` as part of a larger ``Makefile``
+that will invoke ``xcvb`` and include its output.
+See the example in ``test/mock/a/c/Makefile``.
 
-You also typically need a setup file that amongst other things
+Notably, you typically need a setup file that amongst other things
 may load ASDF (if it's not already loaded by your implementation),
 customize the ``asdf:*central-registry*``
 and otherwise ``proclaim`` the desired optimization settings.
 
-The setup file is specified in the command file
-as a dependency to the staged build image,
-before any ASDF library that you may want to explicitly include
-or that XCVB will automatically insert from the dependencies.
-See how this is done in the above-mentionned example file.
+Note how the above example leverages the ``cl-launch`` configuration
+already relied upon while configuring ``xcvb`` itself.
+
+The setup file is specified in argument ``--setup`` to ``xcvb make-makefile``.
+It must be the name of a Lisp module following usual XCVB naming conventions,
+e.g. ``/foo/setup`` for file ``setup.lisp``
+under a BUILD the fullname of which is ``/foo``.
 
 
 Compile-time side-effects

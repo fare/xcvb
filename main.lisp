@@ -12,8 +12,7 @@
   (initialize-search-path)
   (values))
 
-
-(defparameter *xcvb-commands*
+(defparameter +xcvb-commands+
   '((("help" "-?" "--help" "-h" "-H" nil) program-help "Output this help message")
     (("make-makefile" "mkmk" "mm") make-makefile "Create some Makefile")
     (("load") load-command "Load a Lisp file")
@@ -24,7 +23,7 @@
   (declare (ignore args))
   (format t "~&Usage: xcvb COMMAND ARGS~%  ~
 	  where COMMAND is one of the following:~%   ~{ ~A~}~%"
-          (mapcar #'caar *xcvb-commands*)))
+          (mapcar #'caar +xcvb-commands+)))
 
 (defparameter +make-makefile-option-spec+
  '((("xcvb-path" #\x) :type string :optional t)
@@ -64,9 +63,10 @@
   (unless (null args)
     (error "repl doesn't take any argument"))
   #-(or sbcl) (error "REPL unimplemented")
-  (throw :repl))
+  (throw :repl nil))
 
 (defun repl ()
+  #+sbcl (sb-ext:enable-debugger)
   #+sbcl (sb-impl::toplevel-repl nil)
   #-(or sbcl) (error "REPL unimplemented"))
 
@@ -85,7 +85,7 @@
 
 (defun interpret-command-line (args)
   (let* ((command (pop args))
-         (fun (second (assoc command *xcvb-commands* :test #'member-equalp))))
+         (fun (second (assoc command +xcvb-commands+ :test #'member-equalp))))
     (if fun
         (funcall fun args)
         (errexit 2 "~&Invalid XCVB command ~S -- try xcvb help~%" command))))

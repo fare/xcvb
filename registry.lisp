@@ -63,15 +63,18 @@ for each of its registered names."
   ;;(format *error-output* "~&Found build file ~S in ~S~%" build root)
   (let* ((build-grain (make-grain-from-file build :build-p t))
          (fullname (when build-grain (fullname build-grain))))
-    (when fullname
+    (when (and fullname (not (slot-boundp build-grain 'root)))
       (setf (bre-root build-grain) root)
-      (dolist (name (append (list fullname)
-                            (nicknames build-grain)
-                            (mapcar #'supersedes-asdf-name
-                                    (supersedes-asdf build-grain))))
-        (register-build-named name build-grain root))))
+      (register-build-named fullname build-grain root)))
   (values))
 
+(defun register-build-nicknames-under (root)
+  (dolist (b (remove-duplicates
+              (loop :for b :being :the :hash-values :of *grains*
+                :when (and (build-grain-p b) (equal (bre-root b) root)) :collect b)))
+    (dolist (name (append (nicknames b)
+                          (mapcar #'supersedes-asdf-name (supersedes-asdf b))))
+      (register-build-named name b root))))
 
 (defun merge-build (previous-build new-build name root)
   ;; Detect ambiguities.

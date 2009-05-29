@@ -221,7 +221,7 @@ whether or not all of those systems were up-to-date or not."
 (defun asdf-systems-up-to-date (&rest systems)
   "Are all the loaded systems up to date?"
   (with-exit-on-error ()
-    (shell-boolean (apply #'asdf-systems-up-to-date-p systems))))
+    (shell-boolean (asdf-systems-up-to-date-p systems))))
 
 (export '(finish-outputs quit resume restart run with-exit-on-error))
 

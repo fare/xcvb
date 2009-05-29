@@ -90,28 +90,12 @@ We've got a static backend that creates a graph,
 and a Makefile backend that creates a Makefile out of it.
 We most urgently need to:
 
- * Make the Makefile backend fully functional:
-
-    * For the sake ASDF, we need a setup file to be loaded before the xcvb driver.
-      Defaults in:
-
-        * ./target-image-setup.lisp
-      	* ~/.config/xcvb/target-image-setup.lisp
-        * $PREFIX_ETC/xcvb/target-image-setup.lisp
-
- * Somehow handle inheritance (or not) of build-requires
-
- * Have a second pass in registry, only registering nicknames and asdf supersedes
-   for builds that have no conflict on their fullname.
-
- * Add some command-line interface to xcvb, including a REPL
-
- * When we've surpassed the v0.1-prototype, create another branch,
-   and announce a new preview edition.
-
  * Update the migration code from ASDF.
    Support recursive migration of dependencies up to some point that the user may specify
    (i.e. for every transitive asdf system dependency, stopping at given ones, migrate system).
+   Support replacing :asdf dependencies by superseding :build dependencies.
+
+ * Have a test suite for XCVB that includes automated migration.
 
  * Re-implement ASDF backend, so ASDF users can use XCVB BUILDs.
 
@@ -197,6 +181,8 @@ i.e. the system should be able to scan existing XCVB builds in a search path
 and maintain a table of which ASDF systems
 have been superseded by which available BUILD.
 
+Add a command-line interface to migration.
+
 
 Configurability of the build image [V1]
 ---------------------------------------
@@ -209,9 +195,9 @@ and possibly proclaim the desired optimization settings.
 Typically, this is done by a file called setup.lisp
 loaded into the initial staged build image.
 
-For a simple example, see ``doc/exscribe-compilation.lisp.example``.
-
 It's there already, but we need to document how this works.
+
+For an example, see the Makefile ``test/mock/a/c/Makefile``.
 
 
 In-image loading [V1]
@@ -267,7 +253,7 @@ to specify conditional dependencies.
 mudballs has something that we should look into.
 
 
-Generalized Staged Images [V2]
+Generalized Staged Images [V1]
 ------------------------------
 
 Instead of ad-hoc bootstrap images, provide a general mechanism
@@ -275,7 +261,7 @@ for building images used to build further images,
 and use it for the initial image.
 
 
-Command-line interface [V3]
+Command-line interface [V1]
 ---------------------------
 
 It should be possible to invoke and control XCVB fully from the shell command line

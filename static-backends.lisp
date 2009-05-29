@@ -104,8 +104,14 @@
             (build (registered-grain build-name)))
        (check-type build build-grain)
        (handle-lisp-dependencies build)
-       (graph-for-image-grain
-        env name "/_" (build-dependencies build))))
+       (let ((dependencies (build-dependencies build)))
+         (if (and (consp dependencies)
+                  (consp (car dependencies))
+                  (eq :build (caar dependencies)))
+             ;; if the build dependency is a build, use its post-image as pre-image!
+             (graph-for-image-grain env name (cadar dependencies) (cdr (build-dependencies build)))
+             ;; otherwise, start from the common pre-image
+             (graph-for-image-grain env name "/_" (build-dependencies build))))))
     (t
      (let* ((build (registered-grain name)))
        (check-type build build-grain)
