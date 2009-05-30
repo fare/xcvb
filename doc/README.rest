@@ -24,12 +24,14 @@ enforced locally-declared dependencies.
       2.2  Starting a new XCVB project
       2.3  Converting your ASDF system
       2.4  Compiling with XCVB
-      2.5  Compile-time side-effects
-    3  Combining Multiple Projects
-      3.1  Module Full Names
-      3.2  Search Path
-      3.3  Module Name Resolution
-    4  Current Limitations
+    3  Restrictions on your Lisp Code
+      3.1  Compile-time side-effects
+      3.2  Optimization settings
+    4  Combining Multiple Projects
+      4.1  Module Full Names
+      4.2  Search Path
+      4.3  Module Name Resolution
+    5  Current Limitations
 
 
 About XCVB
@@ -39,8 +41,8 @@ Status
 ------
 
 Bottom line:
-XCVB isn't yet ready as a full replacement for ASDF,
-but is already available for the adventurous.
+XCVB isn't yet ready as a full replacement for ASDF for the Lisp masses,
+but is already available as such for the adventurous.
 
 The current version (in git master branch)
 can handle the basic case,
@@ -109,10 +111,7 @@ Documentation
 -------------
 
 ``doc/README.rest``
-	This file describes how to currently use XCVB.
-	As you can see, XCVB is not ready yet;
-	however, development is underway, and things here
-	should eventually be greatly simplified.
+	The present file describes how to currently use XCVB.
 
 ``doc/xcvb.rest`` ``doc/ilc09-xcvb.rest`` ``doc/ilc09-xcvb-slides.rest``
 	These files should provide with an overview of the project,
@@ -123,10 +122,12 @@ Documentation
         that was presented at ILC'2009 for XCVB.
 
 ``doc/INTERNALS.rest``
-	This file describes the internals of XCVB.
+	This file is an introduction to the internals of XCVB
+        for hackers interested in debugging or extending it.
 
 ``doc/TODO.rest``
-	The many items to improve XCVB in the future.
+	The many prioritized TO DO items on our plate to improve XCVB.
+        Some already implemented items should be moved to current documentation.
 
 ``doc/configure.mk.example``
 	example file to copy into ``configure.mk`` (in the main XCVB directory) and edit,
@@ -134,7 +135,7 @@ Documentation
 
 ``doc/exscribe-migration.lisp.example``
 	example file you can run (see on top of it) to migrate exscribe
-	from ASDF to XCVB.
+	from ASDF to XCVB. Somewhat out of date.
 
 ``test/mock/a/c/Makefile``
 	example for how to integrate XCVB in your Makefile.
@@ -261,7 +262,7 @@ See the example in ``test/mock/a/c/Makefile``.
 Notably, you typically need a setup file that amongst other things
 may load ASDF (if it's not already loaded by your implementation),
 customize the ``asdf:*central-registry*``
-and otherwise ``proclaim`` the desired optimization settings.
+and otherwise ``proclaim`` your desired default optimization settings.
 
 Note how the above example leverages the ``cl-launch`` configuration
 already relied upon while configuring ``xcvb`` itself.
@@ -271,6 +272,9 @@ It must be the name of a Lisp module following usual XCVB naming conventions,
 e.g. ``/foo/setup`` for file ``setup.lisp``
 under a BUILD the fullname of which is ``/foo``.
 
+
+Restrictions on your Lisp Code
+==============================
 
 Compile-time side-effects
 -------------------------
@@ -303,6 +307,23 @@ which can cause interesting surprises if any compile-time side effects
 are not idempotent.
 
 
+Optimization settings
+---------------------
+
+Amongst compile-time side-effects, a notable one is the optimization settings.
+A default may to be set in your initial Lisp image setup,
+as explained in section _`Compiling with XCVB`.
+Modules that want to change from the default specified for the whole compilation
+should explicitly ``declaim`` it.
+You may define some macro that does that for you,
+that you will call at the beginning of relevant files.
+A module may change the default for subsequent modules that explicitly depend on them
+by using a ``(eval-when (:compile-toplevel :load-toplevel) (proclaim ...))``.
+Unless of course overridden by a further explicitly depended-upon module
+that uses the same trick.
+
+
+
 Combining Multiple Projects
 ===========================
 
@@ -317,12 +338,12 @@ Thus each hierarchy of XCVB files contains a top-level ``BUILD.lisp`` file.
 This file contains a module declaration with a ``:fullname`` initializer
 that specifies a prefix name for all modules in the hierarchy.
 E.g. if your directory ``/foo/bar/`` has a file ``BUILD.lisp``
-containing the specification ``:fullname "com.example.lisp/quux"``
+containing the specification ``:fullname "lisp.example.com/quux"``
 then all files under this file hierarchy will be considered as being under
-the hierarchy ``com.example.lisp/quux`` within the global module namespace,
+the hierarchy ``lisp.example.com/quux`` within the global module namespace,
 unless overridden by a lower ``BUILD.lisp``.
 Thus, a file ``/foo/bar/baz/toto.lisp`` would inherit the fullname
-``com.example.lisp/quux/baz/toto``.
+``lisp.example.com/quux/baz/toto``.
 
 Nicknames are also allowed, and the same ``BUILD.lisp`` could declare
 the nickname ``quux`` and the same file would then be accessible

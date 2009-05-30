@@ -15,7 +15,7 @@
 
 (defun write-makefile (fullname &key output-path)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
-  (let* ((build (registered-grain fullname))
+  (let* ((build (registered-build fullname))
          (default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
          (output-path (if output-path (merge-pathnames output-path default-output-path) default-output-path))
          (makefile-path (ensure-absolute-pathname output-path))
@@ -60,20 +60,20 @@ xcvb-ensure-object-directories:
           *makefile-phonies*))
 
 
-;;; dependency-pathname: extract Makefile-printable pathname from dependency spec
-(define-simple-dispatcher dependency-pathname #'dependency-pathname-for-atom)
+;;; dependency-namestring: extract Makefile-printable pathname from dependency spec
+(define-simple-dispatcher dependency-namestring #'dependency-namestring-for-atom)
 
-(defun dependency-pathname (clause)
-  (dependency-pathname-dispatcher nil clause))
+(defun dependency-namestring (clause)
+  (dependency-namestring-dispatcher nil clause))
 
-(defun dependency-pathname-for-atom (env name)
+(defun dependency-namestring-for-atom (env name)
   (declare (ignore env))
   (enough-namestring (grain-pathname (resolve-absolute-module-name name))))
 
-(define-dependency-pathname :lisp (env name)
-  (dependency-pathname-for-atom env name))
+(define-dependency-namestring :lisp (env name)
+  (dependency-namestring-for-atom env name))
 
-(define-dependency-pathname :file (env name)
+(define-dependency-namestring :file (env name)
   (declare (ignore env))
   name)
 
@@ -87,21 +87,34 @@ xcvb-ensure-object-directories:
       (push dir *makefile-target-directories*)))
   (values))
 
-(defun object-namestring (env name merge)
-  (let ((pathname
-         (strcat "obj"
-                 (portable-namestring (merge-pathnames merge name)))))
-    (ensure-makefile-will-make-pathname env pathname)
-    pathname))
+(defun object-namestring (env name &optional merge)
+  (let* ((pathname (portable-pathname-from-string name))
+         (merged (if merge (merge-pathnames merge pathname) pathname))
+         (namestring (strcat "obj" (portable-namestring merged))))
+    (ensure-makefile-will-make-pathname env namestring)
+    namestring))
 
-(define-dependency-pathname :fasl (env name)
+(define-dependency-namestring :fasl (env name)
   (object-namestring env name +fasl-pathname+))
 
-(define-dependency-pathname :cfasl (env name)
+(define-dependency-namestring :cfasl (env name)
   (object-namestring env name +cfasl-pathname+))
 
-(define-dependency-pathname :image (env name)
+(define-dependency-namestring :image (env name)
   (object-namestring env name +image-pathname+))
+
+(define-dependency-namestring :object (env name)
+  (object-namestring env name))
+
+(define-dependency-namestring :source (env name &key in)
+  (declare (ignore env))
+  (enough-namestring
+   (merge-pathnames (portable-pathname-from-string name)
+                    (grain-pathname (registered-build in)))))
+
+(define-dependency-namestring :path (env name)
+  (declare (ignore env))
+  name)
 
 (define-simple-dispatcher text-for-lisp-command #'text-for-lisp-command-atom)
 
@@ -113,7 +126,7 @@ xcvb-ensure-object-directories:
   (text-for-lisp-command-dispatcher str clause))
 
 (define-text-for-lisp-command :load-file (str dep)
-  (format str "(:load-file ~S)" (dependency-pathname dep))
+  (format str "(:load-file ~S)" (dependency-namestring dep))
   (values))
 
 (define-text-for-lisp-command :load-asdf (str name)
@@ -122,16 +135,16 @@ xcvb-ensure-object-directories:
 
 (define-text-for-lisp-command :compile-lisp (str name)
   (format str "(:compile ~S ~S~@[ :cfasl ~S~])"
-          (dependency-pathname name)
-          (dependency-pathname `(:fasl ,name))
+          (dependency-namestring name)
+          (dependency-namestring `(:fasl ,name))
           (when *use-cfasls*
-            (dependency-pathname `(:cfasl ,name))))
+            (dependency-namestring `(:cfasl ,name))))
   (values))
 
 (define-text-for-lisp-command :create-image (str spec &rest dependencies)
   (destructuring-bind (&key image standalone package) spec
     (format str "(:create-image ~S"
-            (append (list (dependency-pathname `(:image ,image)))
+            (append (list (dependency-namestring `(:image ,image)))
                     (when standalone '(:standalone t))
                     (when package `(:package ,package))))
     (dolist (dep dependencies)
@@ -145,8 +158,8 @@ xcvb-ensure-object-directories:
       (error ":lisp required"))
     (shell-tokens-to-Makefile
      (lisp-invocation-arglist
-      :image-path (if image (dependency-pathname image) *lisp-image-pathname*)
-      :load (mapcar #'dependency-pathname load)
+      :image-path (if image (dependency-namestring image) *lisp-image-pathname*)
+      :load (mapcar #'dependency-namestring load)
       :eval (lisp-commands-to-shell-token commands))
      str)))
 
@@ -160,7 +173,7 @@ xcvb-ensure-object-directories:
 (defgeneric grain-pathname-text (grain))
 
 (defmethod grain-pathname-text ((grain file-grain))
-  (let ((pathname (dependency-pathname (fullname grain))))
+  (let ((pathname (dependency-namestring (fullname grain))))
     (values (escape-shell-token-for-Makefile pathname) pathname)))
 
 (defmethod grain-pathname-text ((grain asdf-grain))
@@ -202,7 +215,7 @@ xcvb-ensure-object-directories:
     (when (image-grain-p output))
     (let ((asdf-grains (remove-if-not #'asdf-grain-p inputs))))
     (when asdf-grains)
-    (let* ((image-pathname (dependency-pathname (fullname output)))
+    (let* ((image-pathname (dependency-namestring (fullname output)))
            (pathname-text (escape-shell-token-for-Makefile image-pathname))))
     (with-output-to-string (s)
       (format s " $(shell [ -f ~A ] && " pathname-text)

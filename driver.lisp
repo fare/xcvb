@@ -133,7 +133,8 @@ This is designed to abstract away the implementation specific quit forms."
   #-(or clisp sbcl cmu clozure allegro gcl lispworks)
   (%abort 11 "XCVB-Driver doesn't supports image dumping with this Lisp implementation.~%"))
 
-(declaim (ftype function function-for-command))
+(defun function-for-command (designator)
+  (fdefinition (intern (string head) :xcvb-driver)))
 
 (defun run-command (command)
   (apply (function-for-command (car command))
@@ -149,12 +150,12 @@ This is designed to abstract away the implementation specific quit forms."
      (quit 0)))
 
 #-ecl
-(defun create-image (image dependencies &rest flags)
+(defun do-create-image (image dependencies &rest flags)
   (do-run dependencies)
   (apply #'dump-image image flags))
 
 #+ecl
-(defun create-image (image dependencies &key standalone)
+(defun do-create-image (image dependencies &key standalone)
   (let ((epilogue-code
           `(progn
             ,(if standalone '(resume) '(si::top-level)))))
@@ -162,25 +163,25 @@ This is designed to abstract away the implementation specific quit forms."
 		:lisp-files (mapcar #'second dependencies)
 		:epilogue-code epilogue-code)))
 
-(defun function-for-command (head)
-  (ecase head
-    (:load-file
-     (lambda (x) (load x)))
-    #+asdf
-    (:load-asdf
-     (lambda (x) (asdf:oos 'asdf:load-op x)))
-    (:compile
-     (lambda (source fasl &key cfasl)
-       (let ((*default-pathname-defaults* (truename *default-pathname-defaults*)))
-         (apply #'compile-file source
-                :output-file (merge-pathnames fasl)
-                ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-                (when cfasl
-                  `(:emit-cfasl ,cfasl))))))
-    (:create-image
-     (lambda (spec &rest dependencies)
-       (destructuring-bind (image &key standalone package) spec
-         (create-image image dependencies :standalone standalone :package package))))))
+(defun load-file (x)
+  (load x))
+
+#+asdf
+(defun load-asdf (x)
+  (asdf:oos 'asdf:load-op x))
+
+(defun compile-lisp (source fasl &key cfasl)
+  (let ((*default-pathname-defaults* (truename *default-pathname-defaults*)))
+    (apply #'compile-file source
+           :output-file (merge-pathnames fasl)
+           ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+           (when cfasl
+             `(:emit-cfasl ,cfasl)))))
+
+(defun create-image (spec &rest dependencies)
+  (destructuring-bind (image &key standalone package) spec
+    (do-create-image image dependencies
+                     :standalone standalone :package package)))
 
 #+asdf
 (defun asdf-system-up-to-date-p (operation-class system &rest args)

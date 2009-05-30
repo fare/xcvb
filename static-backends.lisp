@@ -83,7 +83,7 @@
   (graph-for-build-named env name))
 
 (defun graph-for-build-named (env name)
-  (graph-for-build-grain env (registered-grain name)))
+  (graph-for-build-grain env (registered-build name)))
 
 (defmethod graph-for-build-grain ((env static-traversal) (grain build-grain))
   (handle-lisp-dependencies grain)
@@ -101,8 +101,7 @@
      (graph-for-image-grain env name nil nil))
     ((string-prefix<= "/_pre/" name)
      (let* ((build-name (subseq name 5))
-            (build (registered-grain build-name)))
-       (check-type build build-grain)
+            (build (registered-build build-name)))
        (handle-lisp-dependencies build)
        (let ((dependencies (build-dependencies build)))
          (if (and (consp dependencies)
@@ -113,8 +112,7 @@
              ;; otherwise, start from the common pre-image
              (graph-for-image-grain env name "/_" (build-dependencies build))))))
     (t
-     (let* ((build (registered-grain name)))
-       (check-type build build-grain)
+     (let* ((build (registered-build name)))
        (graph-for-image-grain
         env name (build-pre-image-name build) (load-dependencies build))))))
 
@@ -145,7 +143,9 @@
                 (append (image-included pre-image) dependencies)
                 dependencies))
            (grain
-            (make-grain 'image-grain :fullname `(:image ,name) :included included)))
+            (make-grain 'image-grain
+                        :fullname `(:image ,name)
+                        :included included)))
       (make-computation 'concrete-computation
         :outputs (list grain)
         :inputs dependencies

@@ -127,6 +127,35 @@ Negatives are stored as NIL. Positives as grains.")
 (defun module-subpathname (path name)
   (subpathname (merge-pathnames +lisp-path+ path) name))
 
+(defun walk-build-ancestry (name description build-walker)
+  "Resolve absolute NAME into an appropriate grain, if any"
+  (unless (absolute-portable-namestring-p name)
+    (error "~S isn't a valid ~A" name description))
+  (loop
+    :for p = (length name) then (position #\/ name :from-end t :end p)
+    :for prefix = (if (and p (plusp p))
+                      (subseq name 0 p)
+                      (return nil))
+    :for suffix = nil then (subseq name (1+ p))
+    :for build = (if prefix (registered-grain prefix)) :do
+    (typecase build
+      (build-grain
+       (funcall build-walker build suffix))
+      (build-registry-conflict
+       (error "Trying to use conflicted build name ~S while resolving ~A ~S"
+              prefix description suffix))))
+  nil)
+
+(defun resolve-absolute-module-name (name)
+  "Resolve absolute NAME into an appropriate grain, if any"
+  (walk-build-ancestry
+   name "module name"
+   (lambda (build suffix)
+     (let ((grain (resolve-module-name-at suffix build)))
+       (when (typep grain 'grain)
+         (return-from resolve-absolute-module-name grain))))))
+
+#|
 (defun resolve-absolute-module-name (name)
   "Resolve absolute NAME into an appropriate grain, if any"
   (unless (absolute-portable-namestring-p name)
@@ -135,21 +164,21 @@ Negatives are stored as NIL. Positives as grains.")
         :for prefix = (if (and p (plusp p))
                         (subseq name 0 p)
                         (return nil))
-        :for postfix = nil then (subseq name (1+ p))
+        :for suffix = nil then (subseq name (1+ p))
         :for build = (if prefix (registered-grain prefix))
-        :for grain = (resolve-module-name-at postfix build)
+        :for grain = (resolve-module-name-at suffix build)
         :when (typep grain 'grain) :do (return grain)))
+|#
 
 (defun resolve-module-name-at (name build)
-  (typecase build
-    (null ;; no entry -- look further
-     nil)
-    (build-grain
-     (if name
-       (probe-file-grain (module-subpathname (grain-pathname build) name))
-       build))
-    (build-registry-conflict
-     (error "Trying to use component ~S for conflicted build name ~S"
-            name (fullname build)))
-    (t ;; some entry that isn't a build -- ignore. Or should we error out or at least warn?
-     nil)))
+  (check-type build build-grain)
+  (if name
+      (probe-file-grain (module-subpathname (grain-pathname build) name))
+      build))
+
+(defun resolve-build-relative-name (name)
+  "Resolve absolute NAME into a build and relative name"
+  (walk-build-ancestry
+   name "build-relative filename"
+   (lambda (build suffix)
+     (return-from resolve-build-relative-name (values build suffix)))))

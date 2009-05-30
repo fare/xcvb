@@ -15,50 +15,106 @@
 
 (defvar *asdf-systems-warned* ())
 
-(defun normalize-dependency (dep grain)
-  (labels ((g (x) (let ((grain (resolve-module-name x grain)))
-                    (unless (lisp-grain-p grain)
-                      (error "Couldn't resolve ~S to a valid module from grain ~S"
-                             x (fullname grain)))
-                    grain))
-           (n (x) (fullname (g x)))
-           (err () (error "unrecognized dependency ~S" dep)))
-    (cond
-      ((stringp dep)
-       (let* ((g (g dep))
-              (n (fullname g)))
-         (if (build-grain-p g)
-             `(:build ,n)
-             `(:fasl ,n))))
-      ((and (list-of-length-p 2 dep)
-            (stringp (second dep)))
-       (let ((f (first dep))
-             (x (second dep)))
-         (case f
-           ((:lisp :fasl :cfasl) (list f (n x)))
-           ((:build :compile-build)
-            (let ((g (g x)))
-              (check-type g build-grain)
-              `(,f ,(fullname g))))
-           (:compile (list (compile-time-fasl-type) (n x)))
-           (:asdf
-            (let* ((n (coerce-asdf-system-name x))
-                   (superseding (registered-grain `(:supersedes-asdf ,n))))
-              (etypecase superseding
-                (null
-                 `(:asdf ,n))
-                (build-grain
-                 (let ((nn (fullname superseding)))
-                   (unless (member nn *asdf-systems-warned* :test 'equal)
-                     (push nn *asdf-systems-warned*)
-                     (log-format 5 "~&Declared dependency on ASDF system :~A~%     was superseded by BUILD ~S~%" n nn))
-                   `(:build ,nn)))
-                (build-registry-conflict
-                 (error "Trying to use ASDF system :~A claimed by conflicting builds ~S"
-                        n superseding)))))
-           (t (err)))))
-      (t (err)))))
+(defun lisp-grain-from (name grain)
+  (let ((grain (resolve-module-name name grain)))
+    (unless (lisp-grain-p grain)
+      (error "Couldn't resolve ~S to a valid module from grain ~S"
+             name (fullname grain)))
+    grain))
 
+(defun lisp-fullname-from (name grain)
+  (fullname (lisp-grain-from name grain)))
+
+(defun unrecognized-dependency (dep)
+  (error "unrecognized dependency ~S" dep))
+
+(defun normalize-dependency (dep grain)
+  (normalize-dependency-dispatcher grain dep))
+
+(define-simple-dispatcher normalize-dependency #'normalize-dependency-atom)
+
+(defun normalize-dependency-atom (grain name)
+  (let* ((g (lisp-grain-from name grain))
+         (n (fullname g)))
+    (if (build-grain-p g)
+        `(:build ,n)
+        `(:fasl ,n))))
+
+(defun normalize-dependency-lisp* (type grain name)
+  `(,type ,(lisp-fullname-from name grain)))
+(define-normalize-dependency :lisp (grain name)
+  (normalize-dependency-lisp* :lisp grain name))
+(define-normalize-dependency :fasl (grain name)
+  (normalize-dependency-lisp* :fasl grain name))
+(define-normalize-dependency :cfasl (grain name)
+  (normalize-dependency-lisp* :cfasl grain name))
+
+(defun normalize-dependency-build* (type grain name)
+  (let ((g (lisp-grain-from name grain)))
+    (check-type g build-grain)
+    `(,type ,(fullname g))))
+
+(define-normalize-dependency :build (grain name)
+  (normalize-dependency-build* :build grain name))
+(define-normalize-dependency :compile-build (grain name)
+  (normalize-dependency-build* :compile-build grain name))
+
+(define-normalize-dependency :compile (grain name)
+  (let ((g (lisp-grain-from name grain)))
+    (check-type g lisp-grain)
+    (let ((n (fullname g)))
+      (if (build-grain-p g)
+        `(:compile-build ,n)
+        `(,(compile-time-fasl-type) ,n)))))
+
+(define-normalize-dependency :asdf (grain name)
+  (declare (ignore grain))
+  (let* ((n (coerce-asdf-system-name name))
+         (superseding (registered-grain `(:supersedes-asdf ,n))))
+    (etypecase superseding
+      (null
+       `(:asdf ,n))
+      (build-grain
+       (let ((nn (fullname superseding)))
+         (unless (member nn *asdf-systems-warned* :test 'equal)
+           (push nn *asdf-systems-warned*)
+           (log-format 5 "~&Declared dependency on ASDF system :~A~%     was superseded by BUILD ~S~%" n nn))
+         `(:build ,nn)))
+      (build-registry-conflict
+       (error "Trying to use ASDF system :~A claimed by conflicting builds ~S"
+              n superseding)))))
+
+(define-normalize-dependency :source (grain name &key in)
+  "File named relatively to a build"
+  (let ((path (portable-pathname-from-string name)))
+    (if (absolute-pathname-p path)
+        (multiple-value-bind (build suffix)
+            (resolve-build-relative-name name)
+          (if build
+              `(:source ,suffix :in ,(fullname build))
+              (error "Couldn't find in a build to which ~S is relative" name)))
+        (let ((build (if in
+                         (registered-build in)
+                         (build-grain-for grain))))
+        `(:source ,name :in ,(fullname build))))))
+
+(define-normalize-dependency :object (grain name)
+  "File named relatively to a object directory"
+  `(:object
+    ,(portable-namestring
+      (merge-pathnames
+       (portable-pathname-from-string name)
+       (portable-pathname-from-string (fullname grain))))))
+
+(define-normalize-dependency :file (grain name)
+  "File named relatively to the filesystem"
+  `(:file ,(namestring
+            (ensure-absolute-pathname
+             (merge-pathnames
+              name
+              (pathname-directory-pathname
+               (grain-pathname
+                (build-grain-for grain))))))))
 
 ;;; Matcher for the normalized dependency language
 (defparameter +dependency-type+
@@ -67,7 +123,10 @@
     (:cfasl . cfasl-grain)
     (:asdf . asdf-grain)
     (:build . t)
-    (:compiled-build . t))
+    (:compiled-build . t)
+    (:source . t)
+    (:object . t)
+    (:file . t))
   "what type for grains corresponding to a given dependency tag")
 
 (defun deconstruct-dependency (dep k)
@@ -173,15 +232,13 @@ in the normalized dependency mini-language"
        (issue-load-command env command)))))
 
 (define-load-command-for :build (env name)
-  (let ((build (registered-grain name)))
-    (check-type build build-grain)
+  (let ((build (registered-build name)))
     (handle-lisp-dependencies build)
     (load-commands-for-build-dependencies env build)
     (load-commands-for-dependencies env build)))
 
 (define-load-command-for :compile-build (env name)
-  (let ((build (registered-grain name)))
-    (check-type build build-grain)
+  (let ((build (registered-build name)))
     (handle-lisp-dependencies build)
     (load-commands-for-build-dependencies env build)
     (load-commands-for-compile-dependencies env build)))

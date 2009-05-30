@@ -22,6 +22,11 @@ then enriched as we build the graph from the main BUILD file.")
 (defun (setf registered-grain) (grain name)
   (setf (gethash name *grains*) grain))
 
+(defun registered-build (name)
+  (let ((grain (registered-grain name)))
+    (check-type grain build-grain)
+    grain))
+
 (defun call-with-grain-registration (fullname function &rest args)
   (let ((previous (registered-grain fullname)))
     (or previous

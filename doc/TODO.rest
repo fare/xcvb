@@ -8,17 +8,17 @@ Future improvements planned for XCVB.
 
 .. contents::
 ..
-    1   Current Developments
-    2   Roadmap [V1]
+    1   Current Developments [V1]
+    2   Roadmap [Done]
     3   Usability Issues [V1]
-      3.1  Lack of Manual [V1]
-      3.2  Migration from ASDF [V1]
-      3.3  Configurability of the build image [V1]
-      3.4  In-image loading [V1]
-      3.5  ASDF backend [V1]
-      3.6  Conditional Build [V1]
-      3.7  Generalized Staged Images [V2]
-      3.8  Command-line interface [V3]
+      3.1  Migration from ASDF [V1]
+      3.2  In-image loading [V1]
+      3.3  ASDF backend [V1]
+      3.4  Conditional Build [V1]
+      3.5  Lack of Manual [V1]
+      3.6  Generalized Staged Images [Done]
+      3.7  Command-line interface [Done]
+      3.8  Configurability of the build image [Done]
     4   Features [V2]
       4.1   Improve Makefile backend [V2]
       4.2   Abstract Away Paths [V2]
@@ -32,7 +32,7 @@ Future improvements planned for XCVB.
       4.10  Correctly handling C libraries [V4]
       4.11  Dynamic compilation [V4]
       4.12  Bug hunting [V5]
-    5   Ideas from jknight
+    5   Ideas from jknight [V2]
     6   The semantics of dependencies [V1]
       6.1  Data files [V1]
       6.2  Computed Lisp files [V2]
@@ -41,7 +41,7 @@ Future improvements planned for XCVB.
       6.5  Template Instantiations [V5]
     7   Internals [V4]
       7.1  Error handling [V4]
-    8   Higher-level description [V1]
+    8   Higher-level description [Done]
       8.1  XCVB's Architecture
       8.2  Grains and Types
         8.2.1  Initial, Final and in-between
@@ -81,8 +81,8 @@ Future improvements planned for XCVB.
       10.6  More bibliography [V5]
 
 
-Current Developments
-====================
+Current Developments [V1]
+=========================
 
 A complete rewrite is underway.
 A new release is soon to come (ETA: June 2009).
@@ -108,8 +108,8 @@ We most urgently need to:
  * Revise documentation, including this very file.
 
 
-Roadmap [V1]
-============
+Roadmap [Done]
+==============
 
 Improvements required for XCVB version 1 are marked [V1].
 These correspond to a system suitable to automatically replace ASDF,
@@ -151,15 +151,6 @@ i.e. things that do not modify the deep semantic model of XCVB,
 but are necessary to make it usable.
 
 
-Lack of Manual [V1]
--------------------
-
-Document all there is to know to use XCVB in README.rest.
-If README grows too big, create a separate MANUAL.rest.
-
-There should be both a tutorial and an API specification.
-
-
 Migration from ASDF [V1]
 ------------------------
 
@@ -182,22 +173,6 @@ and maintain a table of which ASDF systems
 have been superseded by which available BUILD.
 
 Add a command-line interface to migration.
-
-
-Configurability of the build image [V1]
----------------------------------------
-
-The user needs to be able to specify files to be loaded
-and/or forms to be evaluated in the initial build image.
-Most notably he needs to be able to customize his ``asdf:*central-registry*``
-and possibly proclaim the desired optimization settings.
-
-Typically, this is done by a file called setup.lisp
-loaded into the initial staged build image.
-
-It's there already, but we need to document how this works.
-
-For an example, see the Makefile ``test/mock/a/c/Makefile``.
 
 
 In-image loading [V1]
@@ -253,16 +228,27 @@ to specify conditional dependencies.
 mudballs has something that we should look into.
 
 
-Generalized Staged Images [V1]
-------------------------------
+Lack of Manual [V1]
+-------------------
+
+Document all there is to know to use XCVB in README.rest.
+If README grows too big, create a separate MANUAL.rest.
+
+There should be both a tutorial and an API specification.
+
+
+Generalized Staged Images [Done]
+--------------------------------
 
 Instead of ad-hoc bootstrap images, provide a general mechanism
 for building images used to build further images,
 and use it for the initial image.
 
+Done, needs to be documented.
 
-Command-line interface [V1]
----------------------------
+
+Command-line interface [Done]
+-----------------------------
 
 It should be possible to invoke and control XCVB fully from the shell command line
 (and/or from a carefully constructed ``Makefile``)
@@ -273,6 +259,25 @@ The XCVB command-line should obey the usual unix command interpreter syntax::
 
 The command-line should allow to express all the common usage patterns.
 These patterns will be discovered as we build V1 and V2.
+
+Done, needs to be made self-documented,
+and extended as more features become available.
+
+
+Configurability of the build image [Done]
+-----------------------------------------
+
+The user needs to be able to specify files to be loaded
+and/or forms to be evaluated in the initial build image.
+Most notably he needs to be able to customize his ``asdf:*central-registry*``
+and possibly proclaim the desired optimization settings.
+
+Typically, this is done by a file called setup.lisp
+loaded into the initial staged build image.
+
+It's there already, but we need to document how this works.
+
+For an example, see the Makefile ``test/mock/a/c/Makefile``.
 
 
 Features [V2]
@@ -478,32 +483,38 @@ or when several bugs were introduced in a series of changesets,
 some of which having been found and fixed bug not others.
 
 
-Ideas from jknight
-==================
+Ideas from jknight [V2]
+=======================
 
 Ideas from discussion w/ jknight:
 
  * allow python-like hierarchical installation paths instead of named BUILD.lisp
    (Isn't that already possible? Just have a top-level BUILD.lisp fullname'd "/" somewhere!)
    (The point was probably that we can avoid eager search if only we can agree on
-   some naming hierarchy for both "module names" and filesystem relative paths.)
+   some naming hierarchy for both "module names" and filesystem relative paths.) [Done]
 
- * allow pre-built installation paths that are self-describing enough to make it work.
+ * allow pre-built installation paths that are self-describing enough to make it work. [Done?]
 
  * extending XCVB: allow people to export a procedural interface as in "rebuild me"
-   rather than only a declarative interface "conform to my crazy internal graph representation".
+   rather than only a declarative interface "conform to my crazy internal graph representation". [V2]
 
- * Makefile already doesn't like spaces in names (except implicit names from current path).
+ * Makefile already doesn't like spaces in names (except implicit names from current path),
+   so we must be using relative pathnames inside the Makefile by default. [Done]
 
- * allow xcvb.mk to be usable without XCVB.
+ * allow xcvb.mk to be usable without the XCVB binary, for bootstrap purposes. [Done]
 
- * --object-directory=object option
+ * Must allow path-independent inclusion of foreign libraries (as -ljpeg in gcc)
+   in portable xcvb.mk output [V2].
 
- * autotools: the output goes into the directory it is run from by default.
+ * --object-directory=object option [V2]
 
- * option to only create relative pathnames
+ * Allow output to go in different directory from the source, with sensible defaults.
+   For instance, with autotools, the output by default goes
+   into the directory from which it is run. [V2]
 
- * do away with all calls to truename?
+ * option to only create relative pathname. [V2]
+
+ * do away with all calls to truename. [Done]
 
 
 The semantics of dependencies [V1]
@@ -616,8 +627,8 @@ Maybe there should also be some library for that.
 
 
 
-Higher-level description [V1]
-=============================
+Higher-level description [Done]
+===============================
 
 This should be cleaned up and moved to
 the INTERNALS.rest document at some point.

@@ -19,7 +19,8 @@
       ((ignore-errors (truename absolute-path))
        absolute-path)
       (t
-       (format *error-output* "~&Discarding invalid path element ~S~%" element)
+       (format *error-output* "~&Discarding invalid path element ~S~%"
+               (namestring element))
        nil))))
 
 (defun expand-search-path-string (string &optional (previous-path *search-path*))
