@@ -63,8 +63,11 @@ xcvb-ensure-object-directories:
 ;;; dependency-namestring: extract Makefile-printable pathname from dependency spec
 (define-simple-dispatcher dependency-namestring #'dependency-namestring-for-atom)
 
-(defun dependency-namestring (clause)
-  (dependency-namestring-dispatcher nil clause))
+(defun dependency-namestring (fullname)
+  ;; TODO: double check that a namestring is only used by one fullname,
+  ;; using a table to record namestring => fullname mappings
+  ;; maybe also have a table the other way to cache these computations?
+  (dependency-namestring-dispatcher nil fullname))
 
 (defun dependency-namestring-for-atom (env name)
   (declare (ignore env))

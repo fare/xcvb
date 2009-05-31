@@ -127,8 +127,10 @@ Negatives are stored as NIL. Positives as grains.")
 (defun module-subpathname (path name)
   (subpathname (merge-pathnames +lisp-path+ path) name))
 
-(defun walk-build-ancestry (name description build-walker)
-  "Resolve absolute NAME into an appropriate grain, if any"
+(defun walk-build-ancestry (name description build-handler)
+  "Call BUILD-HANDLER on each BUILD the fullname of which is a prefix of NAME,
+with the SUFFIX from that fullname to NAME as second argument, in order
+of decreasing fullname length"
   (unless (absolute-portable-namestring-p name)
     (error "~S isn't a valid ~A" name description))
   (loop
@@ -140,7 +142,7 @@ Negatives are stored as NIL. Positives as grains.")
     :for build = (if prefix (registered-grain prefix)) :do
     (typecase build
       (build-grain
-       (funcall build-walker build suffix))
+       (funcall build-handler build suffix))
       (build-registry-conflict
        (error "Trying to use conflicted build name ~S while resolving ~A ~S"
               prefix description suffix))))
@@ -154,21 +156,6 @@ Negatives are stored as NIL. Positives as grains.")
      (let ((grain (resolve-module-name-at suffix build)))
        (when (typep grain 'grain)
          (return-from resolve-absolute-module-name grain))))))
-
-#|
-(defun resolve-absolute-module-name (name)
-  "Resolve absolute NAME into an appropriate grain, if any"
-  (unless (absolute-portable-namestring-p name)
-    (error "~S isn't a valid module name" name))
-  (loop :for p = (length name) then (position #\/ name :from-end t :end p)
-        :for prefix = (if (and p (plusp p))
-                        (subseq name 0 p)
-                        (return nil))
-        :for suffix = nil then (subseq name (1+ p))
-        :for build = (if prefix (registered-grain prefix))
-        :for grain = (resolve-module-name-at suffix build)
-        :when (typep grain 'grain) :do (return grain)))
-|#
 
 (defun resolve-module-name-at (name build)
   (check-type build build-grain)

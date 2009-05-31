@@ -179,19 +179,39 @@ In-image loading [V1]
 ---------------------
 
 Provide support for XCVB to be able to handle
-compiling and loading a system into the given lisp image
-(instead of relying on a generated ``Makefile`` or ``*.asd`` file --
-or possibly by using either as a backend).
+compiling and loading a system into the current Lisp image.
 
-Note that this is also necessary for extensions to XCVB itself,
+This support is to be provided by a small and simple build ``/xcvb/master``.
+
+For better determinism, in-image loading will by default
+delegate all compilation to some slave sub-process using the
+best supported backend (which would probably be the make backend);
+when done compiling, the slave would communicate to the master process
+a list of files to load.
+
+Optionally, the master would maintain a cryptographic hash-table
+of modules already loaded, and the slave would avoid asking to load
+previously-loaded files. Of course, in-image loading in general,
+and this "optimization" in particular, are not guaranteed to work,
+because the side-effects of loading a file can require pre-conditions
+that are violated by the loading of previous versions of the software
+and/or of other modules that modified the semantics of objects defined
+in said previous versions.
+
+Notable issues are when a variable that used to be special or constant
+in a previous version is no more such in the newer version,
+when the signature of a generic function is changed,
+when some defstruct is modified while still in use,
+when the helpers of some functions in an active stack frame are redefined,
+etc.
+
+At least, XCVB will avoid issues like these during compilation;
+and another optional behaviour might include the automatic uninterning
+of symbols and/or renaming of packages that are to be reloaded.
+
+Note that in-image loading is also necessary for extensions to XCVB itself,
 whereby extensions are to be loaded in the current XCVB image.
-See the ``:load-into-xcvb`` extension (rename it!).
-
-As a crock, we may use the ASDF backend to provide this feature.
-Or we may just run-command a make, then unconditionally load
-all the dependencies for the required module.
-Or keep a hash-table of which modules have been loaded
-(with which content cryptohash).
+So the X of XCVB is a lie until such feature is implemented.
 
 
 ASDF backend [V1]
@@ -235,6 +255,17 @@ Document all there is to know to use XCVB in README.rest.
 If README grows too big, create a separate MANUAL.rest.
 
 There should be both a tutorial and an API specification.
+
+
+Producing Executables [V1]
+--------------------------
+
+In a first time [V1], ``cl-launch`` should be extended to accept
+an explicit initial image as input, and this can be used in a ``Makefile``
+to create an executable from an image produced by XCVB.
+
+In a second time [V2], XCVB should be extended to directly support
+all the relevant features from cl-launch.
 
 
 Generalized Staged Images [Done]
@@ -627,11 +658,11 @@ Maybe there should also be some library for that.
 
 
 
-Higher-level description [Done]
-===============================
+Higher-level description [V2]
+=============================
 
-This should be cleaned up and moved to
-the INTERNALS.rest document at some point.
+At some point, this section should be updated, cleaned up
+and moved to the INTERNALS.rest document.
 
 
 XCVB's Architecture
@@ -641,7 +672,7 @@ It's OK that we started with hand-coding the behaviour of XCVB in Lisp
 but eventually, we should have a domain-specific language to describe
 the structure of the dependency graph and the operations used to build it.
 
-For XCVB version 1, we want to cleanup the internals.
+For XCVB version 1, we want to cleanup the internals. [Done]
 
 For XCVB version 2, we want to have a sensible basic design
 for arbitrary Lisp code.
@@ -700,18 +731,23 @@ is sometimes copied into what will be a source grain in future sessions.
 Within a given build session, though, we will distinguish
 the initial grain
 (that may be the copy of a final grain from a previous session)
-from the final grian
+from the final grain
 (that may be copied as an initial grain for a next session).
 
 
 Persistent vs Transient
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Files are *persistent* grains. They are stored on disk.
-They can be trusted to be recovered from one session to the next.
-They cannot spontaneously compute.
+A *session* is a given run of XCVB.
 
-Processes are *transient* grains. They do the computations.
+Grains are *persistent* if their contents remain accessible from session to session.
+They are stored on disk or some other permanent media.
+Typically, persistent grains are files.
+Persistent grains cannot spontaneously compute.
+
+Grains are *transient* when their contents disappear between sessions.
+Typically, transient grains are processes.
+Transient grains do the computations.
 They can transform inputs into outputs, and in between maintain active state.
 They often are born and die within a session,
 and may not be trusted to survive until a next session
@@ -726,12 +762,12 @@ We must distinguish file path from file contents,
 process id and process state.
 
 File *contents* are pure extensional data,
-while file *paths* are intentional anchors.
+while file *names* are intentional anchors.
 Similarly, running *processes* are the intentional agents,
 whereas *process states* are the extensional states.
 
 In a given *session*,
-the mapping of source path (intention) to contents (extension)
+the mapping of name (intention) to contents (extension)
 is assumed to not change.
 Otherwise, an error condition is detected,
 and the build may be aborted or restarted as a new session.
@@ -763,10 +799,25 @@ from persistent data (e.g. by dumping an image),
 up to the desired equivalence.
 
 
-Generated modules
-^^^^^^^^^^^^^^^^^
+Names
+^^^^^
 
-Generated modules count as derived grains, not source,
+A grain can have many names.
+Its *fullname* is how it is named in the build graph.
+A file's *path* indicates where in the filesystem the grain is stored.
+Its *contenthash* is a cryptographic checksum of its contents.
+Its *buildhash* is a cryptographic checksum
+of the abstract computation used to compute the contents of the file
+and of the buildhashes of any inputs used during the computation.
+
+A cache mapping buildhash to contenthash and contenthash to contents
+can help save actual computation time in repeated or distributed builds.
+
+
+Generated "source" code
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Generated code files count as derived grains, not source,
 since they need not be part of the source archive
 and are not checked in to revision control system
 (unless they are indeed bootstrapped,
@@ -796,7 +847,7 @@ Build Graph
 
 The plan is a build graph
 that contains nodes that represent the intensional grains,
-and nodes that represent the intensional operations
+and nodes that represent the intensional computations
 that will derive output grains from input grains,
 from the initial ones up to the final ones.
 

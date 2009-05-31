@@ -1,3 +1,5 @@
+;;; TODO: rewrite this file according to the new XCVB internals
+
 (in-package :xcvb)
 
 (defvar *visited-nodes* nil

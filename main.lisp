@@ -3,6 +3,8 @@
 (in-package :xcvb)
 
 (defun reset-variables ()
+  ;; TODO: have some macro define notable variables
+  ;; so they will be reset here.
   (setf *grains* (make-hash-table :test 'equal)
         *computations* nil
         *target-system-features* nil
@@ -12,9 +14,14 @@
   (initialize-search-path)
   (values))
 
+;;; TODO: make every command self-documenting by integrating help and argument parsing.
+;;; The command-line-arguments library may have to be extended for that.
+;;; Also, some options are global
+
 (defparameter +xcvb-commands+
   '((("help" "-?" "--help" "-h" "-H" nil) program-help "Output this help message")
     (("make-makefile" "mkmk" "mm") make-makefile "Create some Makefile")
+    (("version" "-V" "--version") show-version "Show version")
     (("load") load-command "Load a Lisp file")
     (("eval") eval-command "Eval some Lisp form")
     (("repl") repl-command "Start a REPL")))
@@ -24,6 +31,10 @@
   (format t "~&Usage: xcvb COMMAND ARGS~%  ~
 	  where COMMAND is one of the following:~%   ~{ ~A~}~%"
           (mapcar #'caar +xcvb-commands+)))
+
+(defun show-version (args)
+  (declare (ignore args))
+  (format t "~&XCVB ~A~%" *xcvb-version*))
 
 (defparameter +make-makefile-option-spec+
  '((("xcvb-path" #\x) :type string :optional t)
