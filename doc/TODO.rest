@@ -99,13 +99,13 @@ We most urgently need to:
 
  * Re-implement ASDF backend, so ASDF users can use XCVB BUILDs.
 
- * Add support for arbitrary shell commands.
-
  * Add some support for generated Lisp files.
 
  * Apply XCVB to some actual big projects at ITA.
 
  * Revise documentation, including this very file.
+
+ * Add support for arbitrary shell commands?
 
 
 Roadmap [Done]

@@ -134,7 +134,7 @@ This is designed to abstract away the implementation specific quit forms."
   (%abort 11 "XCVB-Driver doesn't supports image dumping with this Lisp implementation.~%"))
 
 (defun function-for-command (designator)
-  (fdefinition (intern (string head) :xcvb-driver)))
+  (fdefinition (intern (string designator) :xcvb-driver)))
 
 (defun run-command (command)
   (apply (function-for-command (car command))
