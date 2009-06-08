@@ -137,7 +137,7 @@ xcvb-ensure-object-directories:
   (values))
 
 (define-text-for-lisp-command :compile-lisp (str name)
-  (format str "(:compile ~S ~S~@[ :cfasl ~S~])"
+  (format str "(:compile-lisp ~S ~S~@[ :cfasl ~S~])"
           (dependency-namestring name)
           (dependency-namestring `(:fasl ,name))
           (when *use-cfasls*

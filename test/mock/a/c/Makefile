@@ -19,7 +19,7 @@ endif
 
 setup.lisp:
 	( ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_launcher ; \
-	  ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -iw "\`(setf asdf:*central-registry*',asdf:*central-registry*)" \
+	  ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -i "(let ((*package* (find-package :cl-launch))) (format t \"~S~%\" \`(setf asdf:*central-registry*',asdf:*central-registry*)))" \
 	) > $@
 
 .PHONY: force all default
