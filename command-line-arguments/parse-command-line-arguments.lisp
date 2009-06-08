@@ -13,9 +13,15 @@
 (in-package :command-line-arguments)
 
 
-(defvar *command-line-arguments* nil)		;command-line arguments: a list of strings
-(defvar *command-line-options* nil)		;command-line options as parsed into a plist
-(defvar *command-line-option-specification* nil);the (prepared) specification for how to parse command-line options
+(defvar *command-line-arguments* nil
+  "a list of strings, the arguments passed to the program on its command-line,
+or what's currently left of them as they are processed")
+
+(defvar *command-line-options* nil
+  "command-line options as parsed into a plist")
+
+(defvar *command-line-option-specification* nil
+  "the (prepared) specification for how to parse command-line options")
 
 ;; A raw specification is a list of individual option specifications.
 ;; An individual option specification is:
@@ -35,23 +41,27 @@
 ;; :optional for allowing the option to have no parameter
 ;;  for a list, it allows the final list to be empty.
 
-;;  As of 12/29/2008, the rest of these are never used. - DLW 12/29/2008
-
 ;; :action for specifying an action to do when the option is found
 ;;  an action may be a symbol to set, a function to call, nil to do nothing,
 ;;  or a keyword to push on the option plist.
 ;;  default action is to make a keyword from the first name.
 
-;; NOTE: This looks like it does not work. - DLW 12/29/80
-;; :list The value is a plist with keywords :initial-contents and :symbol. The :type must be integer or string.
+;; :list The value is a plist with keywords :initial-contents and :symbol.
+;;  The :type must be integer or string.
 ;;  :symbol is a special variable and :initial-contents is a list.
 ;;  While the options are being processed, the special variable is bound to the
 ;;  initial contents, reversed.
-;;  At the end of option processing, XXXX this does not work, the finalizer
-;;     is called on no args, but a one-arg function is provided.
+;;  At the end of option processing, the finalizer reverses the list.
 
 ;; :negation  Creates string called "no-XXX", or "disable-XXX" if the original name
 ;;  is "enable-XXX".
+
+;; A *prepared* specification is an EQUAL-hash-table that maps option names to
+;; a simple-vector #(action type optional) that specifies what to do when the option
+;; is encountered in the command-line. It also includes three special entries for
+;; keywords :local-symbol :local-values :finalizers that specify the local symbols
+;; to bind when parsing options for this specification, the values to which to bind them,
+;; and a list of finalizers to run after the parsing is done.
 
 (defun make-option-action (p name &key (action nil actionp) list optional &allow-other-keys)
 
@@ -323,6 +333,7 @@
      '("--all" "--no-verbose" "--file" "foo" "-f" "-v" "-v"
        "-x" "--disable-qpx-cache"
        "--no-port" "--port" "3" "--port=4"
+       "--path" "/foo" "--path" "/bar"
        "--" "--foo" "bar" "baz"))
   (write arguments :pretty nil) (terpri)
   (write options :pretty nil) (terpri)
