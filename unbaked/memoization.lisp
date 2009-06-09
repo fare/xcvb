@@ -56,3 +56,6 @@ with a hash-table H, being called with arguments ARGS"
                   (,name (&rest ,args) (compute-memoized-function #',fun ,h ,args)))
            (apply #',name ,args))))))
 
+
+(define-memo-function make-the (class &rest args)
+  (apply #'make-instance (find-class class) args))

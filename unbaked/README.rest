@@ -1,0 +1,67 @@
+.. ; -*- mode:rst; -*-
+
+===================================
+Reservoir of unbaked ideas for XCVB
+===================================
+
+This directory contains files with unbaked ideas.
+These files must go, but it's not always clear yet where they should go:
+somewhere inside XCVB to offer a new feature,
+out in the wild world to live a life of adventure, or
+directly into the dust bin of computer history.
+
+.. contents::
+..
+    1  memoization.lisp
+    2  asd-generator.lisp
+    3  operations.lisp
+
+
+memoization.lisp
+----------------
+
+A simple library for memoizing function.
+
+This library is not actually used in XCVB.
+I originally intended to use it for interning elements
+of some classes where all slots are read-only.
+
+TODO: move to some other CL library, e.g. fare-utils, or its own.
+
+
+asd-generator.lisp
+------------------
+
+OUT-OF-DATE: should be rewritten as part of our refactoring.
+
+This file contains the code from our v0.1-prototype
+that used to take a dependency graph in the old format
+and write an asd file that can be used by asdf
+to compile the system specified by the graph.
+The entry point for this file was the write-asd-file function.
+The generated asd file would have one asdf module
+to load all the files/systems in the build-requires slot
+of the global build-module,
+and another module -- which depends on the first module --
+for all the other files/systems.
+
+The conversion to ASDF is lossy and the Makefile target
+should be preferred for development purposes,
+but the ASDF target should be good enough for deployment purposes
+when providing backwards compatibility with ASDF projects.
+
+
+operations.lisp
+---------------
+
+Vague ideas about how to possibly organize XCVB
+around higher-level "operations" that would be abstract functions
+describing how to build the graph, instead of "computations"
+that are actual graph nodes.
+This was inspired by the desire to have operations as in
+defsystem, ASDF, Robbins' BUILD, or Pitman's "Large Systems".
+
+In practice, this seems to have been completely superseded by
+the "dependencies" language as specified in ``dependencies-interpreter.lisp``
+and its backends in ``static-backends.lisp``.
+

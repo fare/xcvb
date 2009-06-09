@@ -53,6 +53,13 @@ or what's currently left of them as they are processed")
 ;;  initial contents, reversed.
 ;;  At the end of option processing, the finalizer reverses the list.
 
+;; TODO: add this feature, useful for verbose flags.
+;; :count The value is a plist with keywords :initial-value and :symbol.
+;;  A counter is initialized with initial-value (by default 0),
+;;  incremented each time the option is invoked, decremented each time.
+;;  Alternatively, if the option is given a numeric argument, the counter
+;;  is set to the provided argument value.
+
 ;; :negation  Creates string called "no-XXX", or "disable-XXX" if the original name
 ;;  is "enable-XXX".
 

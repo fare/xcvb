@@ -17,33 +17,32 @@ Send inquiries to the mailing-list if you need it to be updated.)
 ..
     1  Current Files
       1.1   driver.lisp
-      1.2   memoization.lisp
-      1.3   pkgdcl.lisp
-      1.4   macros.lisp
-      1.5   utilities.lisp
-      1.6   specials.lisp
-      1.7   grains.lisp
-      1.8   computations.lisp
-      1.9   portablish-pathnames.lisp
-      1.10  registry.lisp
-      1.11  lisp-grain.lisp
-      1.12  names.lisp
-      1.13  search-path.lisp
-      1.14  dependencies-interpreter.lisp
-      1.15  static-backends.lisp
-      1.16  string-escape.lisp
-      1.17  lisp-invocation.lisp
-      1.18  makefile-backend.lisp
+      1.2   pkgdcl.lisp
+      1.3   macros.lisp
+      1.4   utilities.lisp
+      1.5   specials.lisp
+      1.6   grains.lisp
+      1.7   computations.lisp
+      1.8   portablish-pathnames.lisp
+      1.9   registry.lisp
+      1.10  lisp-grain.lisp
+      1.11  names.lisp
+      1.12  search-path.lisp
+      1.13  dependencies-interpreter.lisp
+      1.14  static-backends.lisp
+      1.15  string-escape.lisp
+      1.16  lisp-invocation.lisp
+      1.17  makefile-backend.lisp
+      1.18  asdf-converter.lisp
       1.19  main.lisp
-    2  Past or Future Files
-      2.1  asd-generator.lisp
-      2.2  asdf-converter.lisp
-    3  Good places to extend XCVB
-    4  Notes
-      4.1  Fullnames
-      4.2  Eager vs Lazy Module Scanning
-      4.3  Random Remarks
-      4.4  TODO
+    2  Good places to extend XCVB
+      2.1  Enriching the dependency language
+      2.2  Dynamic XCVB extensions
+    3  Notes
+      3.1  Fullnames
+      3.2  Eager vs Lazy Module Scanning
+      3.3  Filesystem Access
+      3.4  TODO
 
 
 Current Files
@@ -63,18 +62,6 @@ and to determine whether or not ASDF systems need to be re-compiled.
 
 Therefore, you must make sure to load ASDF *before* the driver
 if you want the XCVB to properly support ASDF in the target system.
-
-
-memoization.lisp
-----------------
-
-A simple library for memoizing function.
-
-Not actually used currently.
-I originally intended to use it for interning elements
-of some classes where all slots are read-only.
-
-TODO: move to some other CL library, e.g. fare-utils, or its own.
 
 
 pkgdcl.lisp
@@ -220,38 +207,6 @@ This is our new makefile backend,
 iterating over computations to create Makefile rules.
 
 
-main.lisp
----------
-
-The main entry file.
-
-TODO: after the refactoring, add some proper command-line interface.
-
-
-Past or Future Files
-====================
-
-asd-generator.lisp
-------------------
-
-OUT-OF-DATE: should be rewritten as part of our refactoring.
-
-This file contains the code to take a dependency graph
-and write an asd file that can be used by asdf
-to compile the system specified by the graph.
-The entry point for this file should be the write-asd-file function.
-The generated asd file will have one asdf module
-to load all the files/systems in the build-requires slot
-of the global build-module,
-and another module -- which depends on the first module --
-for all the other files/systems.
-
-The conversion to ASDF is lossy and the Makefile target
-should be preferred for development purposes,
-but the ASDF target should be good enough for deployment purposes
-when providing backwards compatibility with ASDF projects.
-
-
 asdf-converter.lisp
 -------------------
 
@@ -275,18 +230,48 @@ keeping any manual rules from a previously added module statement
 but otherwise overriding the main data.
 
 
+main.lisp
+---------
+
+The main entry file.
+
+TODO: make the command-line interface self-documenting.
+Add support for ASDF to XCVB migration from this interface.
+
 
 Good places to extend XCVB
 ==========================
 
-(1) The generic function create-dependency-node-from-type allows you
-to specify a keyword that can be put in a dependency list in a module form.
-The create-dependency-node-from-type method
-with an eql specifier on that keyword
-should create the appropriate dependency-graph-node.
+Enriching the dependency language
+---------------------------------
 
-(2) The defextension macro allows you to define a function that can be
-called via a keyword in the appropriate place in a module declaration.
+To extend our dependency language, edit ``dependencies-interpreter.lisp``.
+The first thing you'll need is a way to normalize a user-specified dependency
+into something that isn't relative to the grain in which the dependency appears.
+Then, you'll need to add functions in ``static-backends``
+to handle graph nodes for grains that correspond to your normalized names.
+You may add more backend-independent functions in
+``dependencies-interpreter.lisp``.
+Backend-independent means that your code will hopefully still work
+when non-Makefile backends are added in the future.
+Finally, you'll need to enrich ``makefile-backend.lisp``
+with some support to output those graph nodes.
+Along the way, you may have to modify more files,
+maybe create an additional one for your feature.
+
+
+Dynamic XCVB extensions
+-----------------------
+
+We have reserved a place for "extension forms" in the module syntax,
+but we don't have any serious infrastructure for taking advantage of it yet.
+
+Hence the "X" of "XCVB" is mostly a lie at this time.
+Unless by "extensible" we trivially mean that
+it's free software written in a dynamic language so
+users can extend it in whatever way they want, whenever they want.
+Furthermore, some of the internals are indeed made to be extended,
+by using the ``define-simple-dispatcher`` infrastructure.
 
 
 Notes
@@ -380,16 +365,21 @@ Attila Lendvai notably favors the eager approach
 (which was also my initial reflex).
 
 
-Random Remarks
---------------
+Filesystem Access
+-----------------
 
-On the choice of IOLib vs CL-FAD to access files,
-I decided that fixing CL-FAD is an uphill battle whereas extending IOLib isn't (so far):
-to fix CL-FAD, I need to fix it once per implementation,
-with a growing number of implementations and interactions with many system-dependent variants;
-to fix IOLib, I need to fix it once per OS,
-with a dwindling number of relevant OSes, and
-with implementation interactions already handled by CFFI.
+We currently use standard CL functions such as DIRECTORY to find BUILD files.
+
+We don't use CL-FAD because it is broken,
+and fixing it is an uphill battle that requires code for each implementation,
+each time with many system-dependent variants.
+
+If we ever require deeper access to the filesystem
+(e.g. to manipulate timestamps, symlinks, etc.),
+we should be using IOLib.
+IOLib is not perfect, but to fix it you only need code for each OS,
+and there is a dwindling number of relevant OSes;
+implementation interactions are already handled by CFFI.
 So, if we ever port XCVB to anything else than Unix,
 the correct way will be to grow Windows (and JVM, Genera) support in IOLib.
 See my rant "Who's responsible for that moving part?":
@@ -400,5 +390,3 @@ TODO
 ----
 
 For issues and TODO items, see TODO.rest.
-
-

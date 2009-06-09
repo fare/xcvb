@@ -325,9 +325,6 @@ Did you mix up the ordering?" f))
       (add1 x))
     (nreverse r)))
 
-(define-memo-function make-the (class &rest args)
-  (apply #'make-instance class args))
-
 
 ;;; hash tables
 

@@ -21,10 +21,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
                             :command-line-arguments #|:iolib|#)
     :components
     ((:file "driver")
-     (:file "memoization")
-     (:file "pkgdcl" :depends-on ("driver" "memoization"))
+     (:file "pkgdcl" :depends-on ("driver"))
      (:file "macros" :depends-on ("pkgdcl"))
-     (:file "utilities" :depends-on ("macros" "memoization"))
+     (:file "utilities" :depends-on ("macros"))
      (:file "specials" :depends-on ("utilities"))
      (:file "logging" :depends-on ("specials"))
      (:file "grains" :depends-on ("utilities"))
@@ -41,12 +40,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "lisp-invocation" :depends-on ("specials"))
      (:file "makefile-backend" :depends-on ("static-backends" "string-escape" "computations"))
 
-     ;;; These files need to be (re)-written:
-     ;;...
-
      ;;; These files are not meaningful anymore, need to be re-written in the new framework:
      ;;(:file "asd-generator" :depends-on (...)
 
-     ;;; These files may need some work before the release
+     ;;; These files may need some work before we officially release
      (:file "asdf-converter" :depends-on ("lisp-grain"))
      (:file "main" :depends-on ("static-backends" "search-path" "computations"))))

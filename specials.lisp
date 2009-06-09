@@ -5,7 +5,7 @@
 ;; I don't know a good way to ensure this bit gets incremented at the right time...
 ;; It would be better to have some version number automatically extracted from
 ;; the date, plus a hash obtained from git, and/or from xcvb's own digesting mechanism.
-(defparameter *xcvb-version* "0.304")
+(defparameter *xcvb-version* "0.305")
 
 (defvar *lisp-implementation-type* :sbcl
   "Type of Lisp implementation for the target system")
