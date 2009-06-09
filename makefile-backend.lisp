@@ -1,7 +1,8 @@
 #+xcvb
 (module
   (:author ("Francois-Rene Rideau" "Stas Boukarev")
-   :maintainer "Francois-Rene Rideau"))
+   :maintainer "Francois-Rene Rideau"
+   :depends-on ("static-backends" "string-escape" "computations")))
 
 (in-package :xcvb)
 

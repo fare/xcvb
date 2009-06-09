@@ -20,6 +20,6 @@
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
   :build-requires ((:asdf "cl-launch") (:asdf "asdf-dependency-grovel")
-                   (:asdf "closer-mop"))
+                   (:asdf "closer-mop") "command-line-arguments")
   :depends-on ("main")
   :build-image t))

@@ -1,3 +1,5 @@
+#+xcvb (module (:depends-on ("names" "specials" "computations")))
+
 (in-package :xcvb)
 
 (defgeneric dependency-already-included-p (env grain))

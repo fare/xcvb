@@ -1,3 +1,5 @@
+#+xcvb (module (:depends-on ("lisp-grain")))
+
 (in-package :xcvb)
 
 (defun equivalent-deps-p (module)

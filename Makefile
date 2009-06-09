@@ -31,11 +31,29 @@ define CL_LAUNCH_MODE_fasls
 endef
 
 
+## These are used to boostrap xcvb with xcvb.
+## See test/mock/a/c/Makefile for details and comments.
+xcvb.mk: setup.lisp
+	xcvb make-makefile --setup /xcvb/setup --build /xcvb
+
+ifeq ($(wildcard xcvb.mk),xcvb.mk)
+  include xcvb.mk
+endif
+
+setup.lisp:
+	( ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_launcher ; \
+	  ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -i "(let ((*package* (find-package :cl-launch))) (format t \"~S~%\" \`(setf asdf:*central-registry*',asdf:*central-registry*)))" \
+	) > $@
+
+
+
+
 
 ## Creating executable
 xcvb: ${INSTALL_BIN}/xcvb
 
 ${INSTALL_BIN}/xcvb: configure.mk $(wildcard *.lisp */*.lisp *.asd */*.asd)
+	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
 	--system xcvb --restart xcvb::main \
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)

@@ -1,3 +1,5 @@
+#+xcvb (module (:depends-on ("specials")))
+
 (in-package :xcvb)
 
 (defun log-format (required-verbosity format &rest args)

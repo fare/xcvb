@@ -1,4 +1,8 @@
 ;;; Lisp implementations
+#+xcvb
+(module
+  (:depends-on ("specials")))
+
 
 (in-package :xcvb)
 

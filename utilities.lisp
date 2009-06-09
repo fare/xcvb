@@ -1,3 +1,5 @@
+#+xcvb (module (:depends-on ("macros")))
+
 (in-package :xcvb)
 
 ;;; Conditions
@@ -87,6 +89,7 @@
 ;;; Parsing Common Lisp formals
 ;; over-engineering alert: this is only useful if some kind of portable
 ;; user-friendly error message facility is grown out of it. Not the case now.
+(eval-when (:compile-toplevel :load-toplevel :execute)
 
 (defvar +lambda-formals-keywords+ '(&optional &rest &key &allow-other-keys &aux)) ;; &body &environment
 
@@ -242,7 +245,7 @@ Did you mix up the ordering?" f))
         (t (list '= n-mandatory))))))
 
 (defun betweenp (min max n)
-  (<= min n max))
+  (<= min n max)))
 
 ;;; Simple Dispatcher
 

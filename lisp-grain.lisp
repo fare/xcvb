@@ -1,5 +1,5 @@
 ;;;;; Syntax and Semantics of Lisp grains, including BUILD.lisp files
-
+#+xcvb (module (:depends-on ("registry")))
 (in-package :xcvb)
 
 ;;; Module forms

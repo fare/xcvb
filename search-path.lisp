@@ -1,5 +1,5 @@
 ;;; Handle the Search Path for XCVB modules.
-
+#+xcvb (module (:depends-on ("registry" "specials")))
 (in-package :xcvb)
 
 (defvar *search-path-searched-p* nil

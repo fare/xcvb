@@ -1,3 +1,5 @@
+#+xcvb (module (:depends-on ("grains")))
+
 (in-package :xcvb)
 
 (defclass computation () ())

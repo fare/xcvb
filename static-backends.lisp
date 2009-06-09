@@ -1,3 +1,5 @@
+#+xcvb (module (:depends-on
+		("specials" "lisp-grain" "dependencies-interpreter" "logging")))
 (in-package :xcvb)
 
 (defclass static-traversal (simple-print-object-mixin)

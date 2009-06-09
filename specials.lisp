@@ -1,3 +1,5 @@
+#+xcvb (module (:depends-on ("utilities")))
+
 (in-package :xcvb)
 
 ;; User-visible special variables.

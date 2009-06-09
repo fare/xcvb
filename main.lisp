@@ -1,4 +1,5 @@
 ;;; Shell command-line interface for XCVB
+#+xcvb (module (:depends-on ("static-backends" "search-path" "computations")))
 
 (in-package :xcvb)
 

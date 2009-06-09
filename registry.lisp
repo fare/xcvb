@@ -1,4 +1,5 @@
 ;;;;; Registry mapping names to grains, particularly BUILD files.
+#+xcvb (module (:depends-on ("portablish-pathnames" "grains")))
 
 (in-package :xcvb)
 
@@ -77,7 +78,7 @@ for each of its registered names."
   (dolist (b (remove-duplicates
               (loop :for b :being :the :hash-values :of *grains*
                 :when (and (build-grain-p b) (equal (bre-root b) root)) :collect b)))
-    (dolist (name (append (nicknames b)
+    (dolist (name (append (mapcar #'canonicalize-fullname (nicknames b))
                           (mapcar #'supersedes-asdf-name (supersedes-asdf b))))
       (register-build-named name b root))))
 

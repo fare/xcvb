@@ -1,3 +1,5 @@
+#+xcvb (module (:depends-on ("pkgdcl")))
+
 ;;; Macros for XCVB
 
 (in-package :xcvb)
