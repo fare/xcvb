@@ -16,9 +16,10 @@ Future improvements planned for XCVB.
       3.3  ASDF backend [V1]
       3.4  Conditional Build [V1]
       3.5  Lack of Manual [V1]
-      3.6  Generalized Staged Images [Done]
-      3.7  Command-line interface [Done]
-      3.8  Configurability of the build image [Done]
+      3.6  Producing Executables [V1]
+      3.7  Generalized Staged Images [Done]
+      3.8  Command-line interface [Done]
+      3.9  Configurability of the build image [Done]
     4   Features [V2]
       4.1   Improve Makefile backend [V2]
       4.2   Abstract Away Paths [V2]
@@ -41,13 +42,14 @@ Future improvements planned for XCVB.
       6.5  Template Instantiations [V5]
     7   Internals [V4]
       7.1  Error handling [V4]
-    8   Higher-level description [Done]
+    8   Higher-level description [V2]
       8.1  XCVB's Architecture
       8.2  Grains and Types
         8.2.1  Initial, Final and in-between
         8.2.2  Persistent vs Transient
         8.2.3  Intention vs Extension
-        8.2.4  Generated modules
+        8.2.4  Names
+        8.2.5  Generated "source" code
       8.3  Plans
         8.3.1  Build Graph
         8.3.2  Computations
@@ -1401,17 +1403,20 @@ modules automatically downloaded and installed on demand from the internet.
 Packaging and Distribution [V5]
 -------------------------------
 
-At some point, we may want to extend XCVB to handle
+At some point in a relatively distant future,
+we may want to extend XCVB to handle
 the automatic packaging and distribution of Lisp-based projects.
 
 See ASDF-INSTALL, clbuild, mudballs, etc.
 
-See Haskell Cabal and Hackage, Caml Hump,
+See Haskell Cabal and Hackage, Caml Hump, PLaneT,
 Ruby gems, Python eggs, Chicken eggs, Java beans, etc.
 
 When extending the system to include the management of packages for distribution,
 be sure that you play well with whichever Operating System's packaging software:
 http://www.b-list.org/weblog/2008/dec/14/packaging/
+
+See also on other CL forums if anything serious is brewing.
 
 
 More bibliography [V5]

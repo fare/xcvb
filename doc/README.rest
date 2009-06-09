@@ -45,11 +45,12 @@ XCVB isn't yet ready as a full replacement for ASDF for the Lisp masses,
 but is already available as such for the adventurous.
 
 The current version (in git master branch)
-can handle the basic case,
+can handle the basic case
 though it is neither feature-rich nor user-friendly.
 
 You can either write your project directly as an XCVB build
-or automatically convert an existing ASDF project.
+or automatically convert an existing ASDF project
+(no ASDF extension supported yet).
 XCVB will then help you create a ``Makefile``
 for your project, whereby it can be compiled
 in a way that enforces declared dependencies.
@@ -135,7 +136,7 @@ Documentation
 
 ``doc/exscribe-migration.lisp.example``
 	example file you can run (see on top of it) to migrate exscribe
-	from ASDF to XCVB. Somewhat out of date.
+	from ASDF to XCVB. Somewhat out of date. TODO: update it.
 
 ``test/mock/a/c/Makefile``
 	example for how to integrate XCVB in your Makefile.
@@ -190,6 +191,7 @@ you may want to use ASDF-DEPENDENCY-GROVEL and POIU
 to achieve some of the same benefits with existing technology,
 where dependency analysis or build time are important.
 
+Another interesting alternative to ASDF is mudballs.
 
 
 Using XCVB
