@@ -8,6 +8,9 @@
 
 (in-package :memoization)
 
+;;; One may want to provide customized equality predicates and hashing functions for arguments,
+;;; but that is not provided by CL hashing primitives.
+
 (defun compute-memoized-function (f h args)
   "the basic helper for computing with a memoized function F,
 with a hash-table H, being called with arguments ARGS"
@@ -57,5 +60,25 @@ with a hash-table H, being called with arguments ARGS"
            (apply #',name ,args))))))
 
 
-(define-memo-function make-the (class &rest args)
-  (apply #'make-instance (find-class class) args))
+#|
+;;; I wanted to provide a library function:
+(define-memo-function make-the (class &rest keys)
+  (apply #'make-instance (find-class class) keys))
+
+;;; But there is no portable way to normalize initialization key list:
+;;; not only do you have to sort the keys (which can be done portably as below,
+;;; assuming they are all keywords), you first have to merge default initform's
+;;; for slots -- and because in practice make-instance and shared-initialize
+;;; methods are allowed to do things before, after and around the initform's
+;;; depending on provided keys, you cannot do that in a portable way at all.
+;;;
+;;; In conclusion, if programmers want to have classes with objects that are
+;;; interned in a table that ensures that two objects are EQ if their keys
+;;; verify some equality predicate, they have to develop their own protocol.
+;;; Things get even murkier when the creation of some object is requested,
+;;; but an object already exists that has a similar keys, yet with other
+;;; properties not covered by key equality that differ from the previously
+;;; interned object. How are the two objects to be reconciled? This also
+;;; requires application-dependent semantics that the protocol must allow
+;;; the programmer to specify.
+|#

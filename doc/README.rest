@@ -92,20 +92,34 @@ Dependencies
 
 You will need the following pieces of software to get XCVB running:
 
-  * a Lisp implementation. We test with SBCL using the CFASL patch:
-	http://cliki.net/SBCL
+  * a Lisp implementation. We test with SBCL:
+	- homepage: http://sbcl.sourceforge.net/
+	- CLiki page: http://cliki.net/SBCL
+        - get it from: http://sbcl.sourceforge.net/platform-table.html
 
-  * If you want CFASL, you may need this patch to SBCL until it has been merged upstream:
-	http://repo.or.cz/w/sbcl/jsnell.git?a=treediff;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master
+  * If you want CFASL, you may need to recompile SBCL from source with this patch, until it has been merged upstream:
+	- homepage: http://repo.or.cz/w/sbcl/jsnell.git?a=treediff;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master
+        - getting it:
+		``wget http://repo.or.cz/w/sbcl/jsnell.git?a=treediff_plain;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master``
 
   * cl-launch 2.14 or later:
-	http://cliki.net/CL-Launch
+	- homepage: http://cliki.net/CL-Launch
+	- getting it:
+		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
+        - getting it, if you're a project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/public_html/git/cl-launch.git``
 
   * asdf-dependency-grovel 1.0 or later:
-	http://cliki.net/asdf-dependency-grovel
+	- homepage: http://cliki.net/asdf-dependency-grovel
+	- getting it:
+		``git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
+        - getting it, if you're a project member:
+		``git clone ssh://USER@common-lisp.net/project/xcvb/public_html/git/asdf-dependency-grovel.git``
 
   * Closer to MOP:
-	http://common-lisp.net/project/closer/closer-mop.html
+	- homepage: http://common-lisp.net/project/closer/closer-mop.html
+        - getting it:
+		``darcs get http://www.common-lisp.net/project/closer/darcs/closer-mop``
 
 
 Documentation
