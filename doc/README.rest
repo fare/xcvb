@@ -102,14 +102,14 @@ You will need the following pieces of software to get XCVB running:
         - getting it:
 		``wget http://repo.or.cz/w/sbcl/jsnell.git?a=treediff_plain;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master``
 
-  * cl-launch 2.14 or later:
+  * cl-launch 2.15 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
         - getting it, if you're a project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/public_html/git/cl-launch.git``
 
-  * asdf-dependency-grovel 1.0 or later:
+  * asdf-dependency-grovel 1.0 with our local modifications:
 	- homepage: http://cliki.net/asdf-dependency-grovel
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``

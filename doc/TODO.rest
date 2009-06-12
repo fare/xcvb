@@ -99,13 +99,20 @@ We most urgently need to:
 
  * Have a test suite for XCVB that includes automated migration.
 
- * Re-implement ASDF backend, so ASDF users can use XCVB BUILDs.
-
  * Add some support for generated Lisp files.
 
  * Apply XCVB to some actual big projects at ITA.
 
+ * Quench warnings about undefined functions during file compilation,
+   but record them on the side. Reconcile them after image creation.
+   i.e. reimplement with-compilation-unit and with-qres-compilation,
+   except in a way that works with XCVB.
+
  * Revise documentation, including this very file.
+
+ * Add support for in-image backend.
+
+ * Re-implement ASDF backend, so ASDF users can use XCVB BUILDs.
 
  * Add support for arbitrary shell commands?
 
