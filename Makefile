@@ -17,6 +17,7 @@ include configure.mk
 
 export INSTALL_XCVB
 
+LISP_SOURCES := $(wildcard *.lisp */*.lisp *.asd */*.asd)
 LISP_INSTALL_FILES := driver.lisp BUILD.lisp
 
 ## cl-launch mode: standalone executable, script+image or script+fasls?
@@ -33,7 +34,7 @@ endef
 
 ## These are used to boostrap xcvb with xcvb.
 ## See test/mock/a/c/Makefile for details and comments.
-xcvb.mk: setup.lisp
+xcvb.mk: ${LISP_SOURCES} setup.lisp
 	xcvb make-makefile --setup /xcvb/setup --build /xcvb
 
 ifeq ($(wildcard xcvb.mk),xcvb.mk)
@@ -45,14 +46,14 @@ setup.lisp:
 	  ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -i "(let ((*package* (find-package :cl-launch))) (format t \"~S~%\" \`(setf asdf:*central-registry*',asdf:*central-registry*)))" \
 	) > $@
 
-
-
+xcvb-bootstrapped: obj/xcvb.image
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image --output $@ --init '(xcvb::main)'
 
 
 ## Creating executable
 xcvb: ${INSTALL_BIN}/xcvb
 
-${INSTALL_BIN}/xcvb: configure.mk $(wildcard *.lisp */*.lisp *.asd */*.asd)
+${INSTALL_BIN}/xcvb: configure.mk ${LISP_SOURCES}
 	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
 	--system xcvb --restart xcvb::main \
