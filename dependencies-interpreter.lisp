@@ -6,8 +6,8 @@
 (defgeneric issue-dependency (env grain))
 (defgeneric issue-load-command (env command))
 (defgeneric traversed-dependencies (env))
-(defgeneric traversed-lisp-commands (env))
-(defgeneric lisp-command-issued-p (env command))
+(defgeneric traversed-xcvb-driver-commands (env))
+(defgeneric xcvb-driver-command-issued-p (env command))
 (defgeneric graph-for (env spec))
 (defgeneric graph-for-atom (env atom))
 (defgeneric graph-for-build-grain (env grain))
@@ -105,7 +105,7 @@ a reference to the system was superseded by a BUILD file.")
         `(:source ,name :in ,(fullname build))))))
 
 (define-normalize-dependency :object (grain name)
-  "File named relatively to a object directory"
+  "File named relatively to the object directory"
   `(:object
     ,(portable-namestring
       (merge-pathnames

@@ -65,6 +65,10 @@
     :documentation "The truepath to the file that the module was declared in"))
   (:documentation "File grain"))
 
+(defclass data-file-grain (file-grain)
+  ()
+  (:documentation "Data file grain"))
+
 (defclass documented-grain (grain)
   ((author
     :initarg :author

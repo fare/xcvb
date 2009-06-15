@@ -120,24 +120,24 @@ xcvb-ensure-object-directories:
   (declare (ignore env))
   name)
 
-(define-simple-dispatcher text-for-lisp-command #'text-for-lisp-command-atom)
+(define-simple-dispatcher text-for-xcvb-driver-command #'text-for-xcvb-driver-command-atom)
 
-(defun text-for-lisp-command-atom (str foo)
+(defun text-for-xcvb-driver-command-atom (str foo)
   (declare (ignore str foo))
   (error "FOO"))
 
-(defun text-for-lisp-command (str clause)
-  (text-for-lisp-command-dispatcher str clause))
+(defun text-for-xcvb-driver-command (str clause)
+  (text-for-xcvb-driver-command-dispatcher str clause))
 
-(define-text-for-lisp-command :load-file (str dep)
+(define-text-for-xcvb-driver-command :load-file (str dep)
   (format str "(:load-file ~S)" (dependency-namestring dep))
   (values))
 
-(define-text-for-lisp-command :load-asdf (str name)
+(define-text-for-xcvb-driver-command :load-asdf (str name)
   (format str "(:load-asdf ~S)" name)
   (values))
 
-(define-text-for-lisp-command :compile-lisp (str name)
+(define-text-for-xcvb-driver-command :compile-lisp (str name)
   (format str "(:compile-lisp ~S ~S~@[ :cfasl ~S~])"
           (dependency-namestring name)
           (dependency-namestring `(:fasl ,name))
@@ -145,33 +145,33 @@ xcvb-ensure-object-directories:
             (dependency-namestring `(:cfasl ,name))))
   (values))
 
-(define-text-for-lisp-command :create-image (str spec &rest dependencies)
+(define-text-for-xcvb-driver-command :create-image (str spec &rest dependencies)
   (destructuring-bind (&key image standalone package) spec
     (format str "(:create-image ~S"
             (append (list (dependency-namestring `(:image ,image)))
                     (when standalone '(:standalone t))
                     (when package `(:package ,package))))
     (dolist (dep dependencies)
-      (text-for-lisp-command str dep))
+      (text-for-xcvb-driver-command str dep))
     (format str ")"))
   (values))
 
 (defun Makefile-command-for-computation (str computation-command)
   (destructuring-bind (lisp (&key image load) &rest commands) computation-command
-    (unless (eq lisp :lisp)
-      (error ":lisp required"))
+    (unless (eq lisp :xcvb-driver-command)
+      (error ":xcvb-driver-command required"))
     (shell-tokens-to-Makefile
      (lisp-invocation-arglist
       :image-path (if image (dependency-namestring image) *lisp-image-pathname*)
       :load (mapcar #'dependency-namestring load)
-      :eval (lisp-commands-to-shell-token commands))
+      :eval (xcvb-driver-commands-to-shell-token commands))
      str)))
 
-(defun lisp-commands-to-shell-token (commands)
+(defun xcvb-driver-commands-to-shell-token (commands)
   (with-output-to-string (s)
     (format s "(xcvb-driver:run ")
     (dolist (c commands)
-      (text-for-lisp-command s c))
+      (text-for-xcvb-driver-command s c))
     (format s ")")))
 
 (defgeneric grain-pathname-text (grain))

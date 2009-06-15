@@ -12,9 +12,9 @@
     :accessor traversed-dependencies-r)
    (included-dependencies ;;; dependencies included in the current image
     :accessor included-dependencies)
-   (lisp-commands-r ;;; lisp commands issued so far to run the current compilation.
+   (xcvb-driver-commands-r ;;; lisp commands issued so far to run the current compilation.
     :initform nil
-    :accessor traversed-lisp-commands-r)))
+    :accessor traversed-xcvb-driver-commands-r)))
 
 (defmethod dependency-already-included-p ((env static-traversal) grain)
   (or (member grain (included-dependencies env))
@@ -26,16 +26,16 @@
 
 (defmethod issue-load-command ((env static-traversal) command)
   ;;; TODO: avoid dependencies that are already in the base image!
-  (pushnew command (traversed-lisp-commands-r env) :test 'equal))
+  (pushnew command (traversed-xcvb-driver-commands-r env) :test 'equal))
 
 (defmethod traversed-dependencies ((env static-traversal))
   (reverse (traversed-dependencies-r env)))
 
-(defmethod traversed-lisp-commands ((env static-traversal))
-  (reverse (traversed-lisp-commands-r env)))
+(defmethod traversed-xcvb-driver-commands ((env static-traversal))
+  (reverse (traversed-xcvb-driver-commands-r env)))
 
-(defmethod lisp-command-issued-p ((env static-traversal) command)
-  (and (member command (traversed-lisp-commands-r env) :test 'equal)
+(defmethod xcvb-driver-command-issued-p ((env static-traversal) command)
+  (and (member command (traversed-xcvb-driver-commands-r env) :test 'equal)
        t))
 
 (define-simple-dispatcher graph-for #'graph-for-atom)
@@ -152,13 +152,13 @@
         :outputs (list grain)
         :inputs dependencies
         :command
-        `(:lisp
+        `(:xcvb-driver-command
           ,(if pre-image-name
                `(:image ,(fullname pre-image))
                `(:load ,(mapcar #'fullname pre-dependencies)))
           (:create-image
            (:image ,name)
-           ,@(traversed-lisp-commands env))))
+           ,@(traversed-xcvb-driver-commands env))))
       grain)))
 
 (define-graph-for :asdf (env system-name)
@@ -189,8 +189,8 @@
          :outputs outputs
          :inputs (cons pre-image (traversed-dependencies env))
          :command
-         `(:lisp
+         `(:xcvb-driver-command
            (:image ,(fullname pre-image))
-           ,@(traversed-lisp-commands env)
+           ,@(traversed-xcvb-driver-commands env)
            (:compile-lisp ,fullname)))
         outputs))))
