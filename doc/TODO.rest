@@ -86,22 +86,21 @@ Future improvements planned for XCVB.
 Current Developments [V1]
 =========================
 
-A complete rewrite is almost complete.
-A new release is soon to come (ETA: June 2009).
+Following a complete rewrite, a release is soon to come (ETA: late June 2009).
 We've got a Makefile backend with which we can recompile XCVB itself.
 We most urgently need to:
 
- * Add to the ``Makefile`` tests that the things expected from ``configure.mk`` are properly defined.
-
  * Add support for data dependencies, i.e.
    "compiling this fasl depends on file ``UnicodeData.txt``"
+
+ * Add support for arbitrary shell commands.
 
  * Add some support for generated Lisp files, i.e.
    "this Lisp file is the result of running some Lisp or shell command"
 
  * Add support for detecting the target Lisp's ``*features*``.
    This is necessary for reading ``#+`` statements in module forms.
-   In the Makefile, we probably should have ``xcvb.mk`` depend on
+   Consequently, in the Makefile, we probably should have ``xcvb.mk`` depend on
    the target Lisp implementation's binary.
 
  * Alternatively and/or optionally, copy mudballs's mechanism
@@ -117,7 +116,7 @@ We most urgently need to:
 
  * Quench warnings about undefined functions during file compilation,
    but record them on the side. Reconcile them after image creation.
-   i.e. reimplement with-compilation-unit and with-qres-compilation,
+   In other words, reimplement with-compilation-unit and with-qres-compilation,
    except in a way that works with XCVB.
 
  * Revise documentation, including this very file.
@@ -125,8 +124,6 @@ We most urgently need to:
  * Add support for in-image backend.
 
  * Re-implement ASDF backend, so ASDF users can use XCVB BUILDs.
-
- * Add support for arbitrary shell commands?
 
  * Make the bootstrapped XCVB the official version, install its image -- or a standalone dump.
 
