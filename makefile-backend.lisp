@@ -156,16 +156,29 @@ xcvb-ensure-object-directories:
     (format str ")"))
   (values))
 
+(define-simple-dispatcher Makefile-command-for-computation #'Makefile-command-for-computation-atom)
+
+(defun Makefile-command-for-computation-atom (str computation-command)
+  (declare (ignore str))
+  (error "Invalid command ~S" computation-command))
+
 (defun Makefile-command-for-computation (str computation-command)
-  (destructuring-bind (lisp (&key image load) &rest commands) computation-command
-    (unless (eq lisp :xcvb-driver-command)
-      (error ":xcvb-driver-command required"))
+  (Makefile-command-for-computation-dispatcher str computation-command))
+
+(define-Makefile-command-for-computation :xcvb-driver-command (str keys &rest commands)
+  (destructuring-bind (&key image load) keys
     (shell-tokens-to-Makefile
      (lisp-invocation-arglist
       :image-path (if image (dependency-namestring image) *lisp-image-pathname*)
       :load (mapcar #'dependency-namestring load)
       :eval (xcvb-driver-commands-to-shell-token commands))
      str)))
+
+(define-Makefile-command-for-computation :shell-command (str command)
+  (escape-string-for-Makefile command str))
+
+(define-Makefile-command-for-computation :exec-command (str &rest argv)
+  (shell-tokens-to-Makefile argv str))
 
 (defun xcvb-driver-commands-to-shell-token (commands)
   (with-output-to-string (s)

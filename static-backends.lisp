@@ -12,9 +12,9 @@
     :accessor traversed-dependencies-r)
    (included-dependencies ;;; dependencies included in the current image
     :accessor included-dependencies)
-   (xcvb-driver-commands-r ;;; lisp commands issued so far to run the current compilation.
+   (load-commands-r ;;; load commands issued so far to run the current compilation.
     :initform nil
-    :accessor traversed-xcvb-driver-commands-r)))
+    :accessor traversed-load-commands-r)))
 
 (defmethod dependency-already-included-p ((env static-traversal) grain)
   (or (member grain (included-dependencies env))
@@ -26,16 +26,16 @@
 
 (defmethod issue-load-command ((env static-traversal) command)
   ;;; TODO: avoid dependencies that are already in the base image!
-  (pushnew command (traversed-xcvb-driver-commands-r env) :test 'equal))
+  (pushnew command (traversed-load-commands-r env) :test 'equal))
 
 (defmethod traversed-dependencies ((env static-traversal))
   (reverse (traversed-dependencies-r env)))
 
-(defmethod traversed-xcvb-driver-commands ((env static-traversal))
-  (reverse (traversed-xcvb-driver-commands-r env)))
+(defmethod traversed-load-commands ((env static-traversal))
+  (reverse (traversed-load-commands-r env)))
 
-(defmethod xcvb-driver-command-issued-p ((env static-traversal) command)
-  (and (member command (traversed-xcvb-driver-commands-r env) :test 'equal)
+(defmethod load-command-issued-p ((env static-traversal) command)
+  (and (member command (traversed-load-commands-r env) :test 'equal)
        t))
 
 (define-simple-dispatcher graph-for #'graph-for-atom)
@@ -158,7 +158,7 @@
                `(:load ,(mapcar #'fullname pre-dependencies)))
           (:create-image
            (:image ,name)
-           ,@(traversed-xcvb-driver-commands env))))
+           ,@(traversed-load-commands env))))
       grain)))
 
 (define-graph-for :asdf (env system-name)
@@ -191,6 +191,6 @@
          :command
          `(:xcvb-driver-command
            (:image ,(fullname pre-image))
-           ,@(traversed-xcvb-driver-commands env)
+           ,@(traversed-load-commands env)
            (:compile-lisp ,fullname)))
         outputs))))
