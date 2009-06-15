@@ -15,6 +15,23 @@ endif
 
 include configure.mk
 
+## Check that the variables used by Makefile are defined in configure.mk.
+ifndef INSTALL_IMAGE
+  $(error Please define INSTALL_IMAGE in your configure.mk.)
+endif
+ifndef INSTALL_XCVB
+  $(error Please define INSTALL_XCVB in your configure.mk.)
+endif
+ifndef CL_LAUNCH
+  $(error Please define CL_LAUNCH in your configure.mk.)
+endif
+ifndef CL_LAUNCH_FLAGS
+  $(error Please define CL_LAUNCH_FLAGS in your configure.mk.)
+endif
+ifndef CL_LAUNCH_MODE
+  $(error Please define CL_LAUNCH_MODE in your configure.mk.)
+endif
+
 export INSTALL_XCVB
 
 LISP_SOURCES := $(wildcard *.lisp */*.lisp *.asd */*.asd)
@@ -30,7 +47,6 @@ endef
 define CL_LAUNCH_MODE_fasls
 	--output ${INSTALL_BIN}/$1
 endef
-
 
 ## These are used to boostrap xcvb with xcvb.
 ## See test/mock/a/c/Makefile for details and comments.
@@ -72,7 +88,7 @@ tidy:
 	cd doc ; rm -f *.aux *.out *.bbl *.dvi *.log *.blg
 
 clean: tidy
-	rm -f xcvb
+	rm -rf xcvb xcvb-bootstrapped obj
 	cd doc ; rm -f *.html *.pdf
 
 mrproper: clean
