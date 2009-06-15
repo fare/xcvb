@@ -45,7 +45,7 @@ XCVB isn't yet ready as a full replacement for ASDF for the Lisp masses,
 but is already available as such for the adventurous.
 
 The current version (in git master branch)
-can handle the basic case
+can handle the usual cases
 though it is neither feature-rich nor user-friendly.
 
 You can either write your project directly as an XCVB build
@@ -102,7 +102,7 @@ You will need the following pieces of software to get XCVB running:
         - getting it:
 		``wget http://repo.or.cz/w/sbcl/jsnell.git?a=treediff_plain;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master``
 
-  * cl-launch 2.15 or later:
+  * cl-launch 2.16 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
@@ -118,7 +118,7 @@ You will need the following pieces of software to get XCVB running:
 
   * Closer to MOP:
 	- homepage: http://common-lisp.net/project/closer/closer-mop.html
-        - getting it:
+	- getting it:
 		``darcs get http://www.common-lisp.net/project/closer/darcs/closer-mop``
 
 

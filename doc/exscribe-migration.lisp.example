@@ -1,7 +1,7 @@
 ;;;; -*- Lisp -*- ; Example on how I migrated Exscribe from ASDF to XCVB. ;;;;
 
 ;;; I ran the following command from the shell command-line:
-; xcvb doc/exscribe-migration.lisp.example
+; xcvb load doc/exscribe-migration.lisp.example
 
 (in-package :xcvb)
 

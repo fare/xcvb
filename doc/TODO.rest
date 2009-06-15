@@ -86,20 +86,32 @@ Future improvements planned for XCVB.
 Current Developments [V1]
 =========================
 
-A complete rewrite is underway.
+A complete rewrite is almost complete.
 A new release is soon to come (ETA: June 2009).
-We've got a static backend that creates a graph,
-and a Makefile backend that creates a Makefile out of it.
+We've got a Makefile backend with which we can recompile XCVB itself.
 We most urgently need to:
+
+ * Add to the ``Makefile`` tests that the things expected from ``configure.mk`` are properly defined.
+
+ * Add support for data dependencies, i.e.
+   "compiling this fasl depends on file ``UnicodeData.txt``"
+
+ * Add some support for generated Lisp files, i.e.
+   "this Lisp file is the result of running some Lisp or shell command"
+
+ * Add support for detecting the target Lisp's ``*features*``.
+   This is necessary for reading ``#+`` statements in module forms.
+   In the Makefile, we probably should have ``xcvb.mk`` depend on
+   the target Lisp implementation's binary.
+
+ * Alternatively and/or optionally, copy mudballs's mechanism
+   for implementation-dependent inclusion of files in BUILDs.
 
  * Update the migration code from ASDF.
    Support recursive migration of dependencies up to some point that the user may specify
    (i.e. for every transitive asdf system dependency, stopping at given ones, migrate system).
-   Support replacing :asdf dependencies by superseding :build dependencies.
 
  * Have a test suite for XCVB that includes automated migration.
-
- * Add some support for generated Lisp files.
 
  * Apply XCVB to some actual big projects at ITA.
 
@@ -115,6 +127,8 @@ We most urgently need to:
  * Re-implement ASDF backend, so ASDF users can use XCVB BUILDs.
 
  * Add support for arbitrary shell commands?
+
+ * Make the bootstrapped XCVB the official version, install its image -- or a standalone dump.
 
 
 Roadmap [Done]
