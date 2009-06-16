@@ -87,7 +87,7 @@
 
 (defun make-computation (class &rest keys &key inputs outputs command &allow-other-keys)
   (declare (ignore inputs command))
-  (let ((computation (apply #'make-instance class keys)))
+  (let ((computation (apply #'make-instance (or class 'concrete-computation) keys)))
     (loop for target in outputs
           for n from 0 do
           (when (slot-boundp target 'computation)
@@ -98,7 +98,7 @@
     computation))
 
 (defun make-nop-computation (dependencies &optional targets)
-  (make-computation 'concrete-computation
+  (make-computation ()
                     :inputs dependencies
                     :outputs targets
                     :command nil))

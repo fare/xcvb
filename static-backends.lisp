@@ -148,7 +148,7 @@
             (make-grain 'image-grain
                         :fullname `(:image ,name)
                         :included included)))
-      (make-computation 'concrete-computation
+      (make-computation ()
         :outputs (list grain)
         :inputs dependencies
         :command
