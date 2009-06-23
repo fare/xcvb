@@ -187,6 +187,17 @@
            ,@(traversed-load-commands env))))
       grain)))
 
+(define-graph-for :source (env name &key in)
+  (declare (ignore env))
+  (make-source-grain :name name :in in))
+
+(defun make-source-grain (&key name in)
+  (make-instance
+   'source-grain
+   :name name
+   :in in
+   :fullname `(:source ,name :in ,in)))
+
 (define-graph-for :asdf (env system-name)
   (declare (ignore env))
   (make-asdf-grain :name system-name

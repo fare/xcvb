@@ -149,8 +149,9 @@ a reference to the system was superseded by a BUILD file.")
 
 (defun deconstruct-dependency (dep k)
   (flet ((err () (error "malformed dependency ~S" dep)))
-    (unless (and (list-of-length-p 2 dep)
-                 (stringp (second dep)))
+    (unless (or (and (list-of-length-p 2 dep)
+		     (stringp (second dep)))
+		(eq :source (car dep)))
       (err))
     (let* ((head (first dep))
            (name (second dep))
@@ -219,6 +220,14 @@ in the normalized dependency mini-language"
    env `(:load-file (:cfasl ,name)) `(:cfasl ,name)))
 (define-load-command-for :asdf (env name)
   (simple-load-command-for env `(:load-asdf ,name) `(:asdf ,name)))
+
+(define-load-command-for :source (env name &key in)
+  ;; Suffices to know data file exists.  No need to issue load command.
+  (call-with-dependency-grain
+   env
+   `(:source ,name :in ,in)
+   (lambda (grain)
+     (issue-dependency env grain))))
 
 (defun call-with-dependency-grain (environment dep fun)
   (let* ((grain (graph-for environment dep)))

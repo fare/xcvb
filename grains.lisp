@@ -92,6 +92,17 @@
     :documentation "A detailed description of the file"))
   (:documentation "Documented grain"))
   
+(defclass source-grain (file-grain)
+  ((name
+    :initarg :name
+    :accessor source-grain-name)
+   (in
+    :initarg :in
+    :accessor source-grain-in)
+   (fullname :initarg :fullname)
+   )
+  (:documentation "Data file (source) grain."))
+
 (defclass documented-file-grain (file-grain documented-grain)
   ()
   (:documentation "documented file grain"))
