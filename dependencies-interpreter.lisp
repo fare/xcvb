@@ -46,6 +46,9 @@ a reference to the system was superseded by a BUILD file.")
 (defun normalize-dependency (dep grain)
   (normalize-dependency-dispatcher grain dep))
 
+(defun normalize-dependencies (deps grain)
+  (mapcar (lambda (dep) (normalize-dependency dep grain)) deps))
+
 (define-simple-dispatcher normalize-dependency #'normalize-dependency-atom)
 
 (defun normalize-dependency-atom (grain name)

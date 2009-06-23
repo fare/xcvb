@@ -1,5 +1,5 @@
 ;;;; XCVB module name resolution
-#+xcvb (module (:depends-on ("registry" "lisp-grain")))
+#+xcvb (module (:depends-on ("registry" "lisp-grain" "specials")))
 
 (in-package :xcvb)
 
@@ -9,25 +9,19 @@
 (defvar +lisp-path+
   (make-pathname :type "lisp"))
 
-(defvar *pathname-grain-cache*
-  (make-hash-table :test 'equal)
-  "Registry of known files, indexed by namestring.
-Negatives are stored as NIL. Positives as grains.")
-
 (defun probe-file-grain (path &key build-p)
   (let* ((path (ensure-absolute-pathname path))
          (string (namestring path)))
     (multiple-value-bind (cached found)
         (gethash string *pathname-grain-cache*)
       (if found
-        cached
-        (let* ((probed (probe-file path))
-               (module (when probed (make-grain-from-file probed :build-p build-p))))
-          (setf (gethash string *pathname-grain-cache*) module)
-          (when probed
-            (setf (gethash (namestring probed) *pathname-grain-cache*) module))
-          module)))))
-
+	  cached
+	  (let* ((probed (probe-file path))
+		 (module (when probed
+			     (make-grain-from-file probed :build-p build-p))))
+	    (setf (gethash string *pathname-grain-cache*) module)
+	    module)))))
+	
 (defmethod fullname ((module lisp-grain))
   (unless (slot-boundp module 'fullname)
     (compute-fullname module))

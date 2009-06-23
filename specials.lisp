@@ -57,3 +57,12 @@
 
 (defvar *lisp-allow-debugger* nil
   "Should we allow interactive debugging of failed build attempts?")
+
+;; *pathname-grain-cache* is used by code in lisp-grain.lisp and names.lisp.
+;; lisp-grain:handle-extension-form :generate inserts lisp grains of
+;; generated files into *pathname-grain-cache*.
+;; names:probe-file-grain looks up lisp grains in *pathname-grain-cache*.
+(defvar *pathname-grain-cache*
+  (make-hash-table :test 'equal)
+  "Registry of known files, indexed by namestring.
+Negatives are stored as NIL. Positives as grains.")

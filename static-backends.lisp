@@ -57,7 +57,9 @@
 
 (defun graph-for* (env specs)
   (remove-duplicates
-   (mapcar #'(lambda (spec) (graph-for env spec))
+   (mapcar #'(lambda (spec)
+	       (or (graph-for env spec)
+		   (error "Couldn't find grain for spec: ~S" spec)))
            (remove-duplicates specs :from-end t :test 'equal))
    :from-end t))
 
@@ -69,14 +71,35 @@
     (load-command-for env spec)))
 
 (defmethod graph-for-atom (env (name string))
-  (declare (ignore env))
-  (graph-for-lisp-module name))
+  (graph-for-lisp-module env name))
 
 (define-graph-for :lisp (env name)
   (graph-for-atom env name))
 
-(defun graph-for-lisp-module (name)
-  (resolve-absolute-module-name name))
+(defun graph-for-lisp-module (env name)
+  (let* ((grain (resolve-absolute-module-name name))
+	 (fullname (fullname grain))
+	 (generator (gethash fullname *generators*)))
+    (when (and generator
+	       (not (generator-computation generator)))
+      (setf (generator-computation generator) T)
+      (let ((dependencies (generator-dependencies generator))
+	    (targets (generator-targets generator)))
+	(unless dependencies
+	  (error "graph-for-lisp-module: Need dependencies to generate file ~S.~%" fullname))
+	(setf (included-dependencies env) NIL)
+	(mapcar (lambda (target) (slot-makunbound target 'computation)) targets)
+	(let ((pre-image (pre-image-for env grain)))
+	  (load-command-for* env dependencies)
+	  (make-computation
+	   ()
+	   :outputs targets
+	   :inputs (traversed-dependencies env)
+	   :command
+	   `(:xcvb-driver-command (:image ,(fullname pre-image))
+				  ,@(traversed-load-commands env)))
+	  )))
+  grain))
 
 (define-graph-for :build (env name)
   (graph-for-build-named env name))
@@ -148,6 +171,9 @@
             (make-grain 'image-grain
                         :fullname `(:image ,name)
                         :included included)))
+      (or (not pre-image-name)
+	  pre-image
+	  (error "pre-image is nil"))
       (make-computation ()
         :outputs (list grain)
         :inputs dependencies
@@ -185,7 +211,7 @@
       (load-command-for* env compile-dependencies)
       (let ((outputs (fasl-grains-for-name fullname load-dependencies compile-dependencies)))
         (make-computation
-         'concrete-computation
+         ()
          :outputs outputs
          :inputs (cons pre-image (traversed-dependencies env))
          :command

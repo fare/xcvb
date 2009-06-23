@@ -30,8 +30,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "computations" :depends-on ("grains"))
      (:file "portablish-pathnames" :depends-on ("utilities"))
      (:file "registry" :depends-on ("portablish-pathnames" "grains"))
-     (:file "lisp-grain" :depends-on ("registry"))
-     (:file "names" :depends-on ("registry" "lisp-grain"))
+     (:file "lisp-grain" :depends-on ("registry" "specials"))
+     (:file "names" :depends-on ("registry" "lisp-grain" "specials"))
      (:file "search-path" :depends-on ("registry" "specials"))
      (:file "dependencies-interpreter" :depends-on ("names" "specials" "computations"))
      (:file "static-backends" :depends-on

@@ -86,10 +86,10 @@
 |#
 
 (defun make-computation (class &rest keys &key inputs outputs command &allow-other-keys)
-  (declare (ignore inputs command))
+  (declare (ignore inputs command)) ;; INPUTS and COMMAND are included in KEYS.
   (let ((computation (apply #'make-instance (or class 'concrete-computation) keys)))
-    (loop for target in outputs
-          for n from 0 do
+    (loop :for target :in outputs
+          :for n :from 0 :do
           (when (slot-boundp target 'computation)
             (error "Grain ~S already is the output of an existing computation!" target))
           (setf (grain-computation target) computation

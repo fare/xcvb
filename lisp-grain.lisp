@@ -1,5 +1,5 @@
 ;;;;; Syntax and Semantics of Lisp grains, including BUILD.lisp files
-#+xcvb (module (:depends-on ("registry")))
+#+xcvb (module (:depends-on ("registry" "specials")))
 (in-package :xcvb)
 
 ;;; Module forms
@@ -53,6 +53,8 @@
        (listp (cdr form))
        (listp (cadr form))))
 
+(defun generate-form-p (form)
+  (eq :generate (car form)))
 
 ;;; Lisp Grains
 
@@ -60,8 +62,9 @@
 
 (defmethod handle-lisp-dependencies ((grain lisp-grain))
   (unless (slot-boundp grain 'load-dependencies) ;; Only do it once
+    (handle-extension-forms grain)
     (flet ((normalize (deps)
-             (mapcar (lambda (dep) (normalize-dependency dep grain)) deps)))
+	     (normalize-dependencies deps grain)))
       (with-slots (compile-depends-on load-depends-on depends-on
                    compile-dependencies load-dependencies) grain
         (let ((common-dependencies (normalize depends-on)))
@@ -73,14 +76,67 @@
                         (normalize load-depends-on)))))
       (when (build-grain-p grain)
         (with-slots (build-requires build-dependencies) grain
-          (setf build-dependencies (normalize build-requires)))))
-    (handle-extension-forms grain))
+          (setf build-dependencies (normalize build-requires))))))
   (values))
 
+;; Lisp grain extension form for generating Lisp files.
+
+(defclass generate-extension-form ()
+  ;; List of Lisp files to be generated.
+  ((generate
+    :initform nil
+    :initarg :generate)
+   ;; List of dependencies in order to generate Lisp files.
+   (generate-depends-on
+    :initform nil
+    :initarg :generate-depends-on)))
+
+(define-simple-dispatcher handle-extension-form #'handle-extension-form-atom)
+
+(defun handle-extension-form (grain extension-form)
+  (handle-extension-form-dispatcher grain extension-form))
+
+(defun handle-extension-form-atom (grain extension-form)
+  (declare (ignore grain))
+  (error "handle-extension-form-atom: Extension form ~a is invalid.  Only currently support :generate extension form."
+	 extension-form))
+
+(defparameter *generators* (make-hash-table :test 'equal))
+
+(defclass generator (simple-print-object-mixin)
+  ((target-grain :initarg :targets :reader generator-targets) ;; generated-grains
+   (dependencies :initarg :dependencies :reader generator-dependencies) ;; generated-to-generator
+   (computation :initform nil :accessor generator-computation))) ;; generated-computation
+  
+
+(define-handle-extension-form :generate (grain generate &key generate-depends-on)
+  (unless generate
+    (error "Files to be generated not specified."))
+  (unless generate-depends-on
+    (error "Generators not specified."))
+  (let* ((targets
+	  (mapcar (lambda (target)
+		    (destructuring-bind (type name &rest keys &key &allow-other-keys) target
+		      (unless (eq type :gen-lisp)
+			(error "Only know how to generate lisp modules."))
+		      (parse-module-declaration `(module ,keys)
+						:path (module-subpathname
+						       (grain-pathname grain) name))))
+		  generate))
+	 (generator
+	  (make-instance 'generator
+	    :targets targets
+	    :dependencies (normalize-dependencies generate-depends-on grain))))
+    (dolist (target targets)
+      (slot-makunbound target 'computation)
+      (setf (gethash (fullname target) *generators*) generator)
+      (setf (gethash (namestring (grain-pathname target)) *pathname-grain-cache*) target))))
+
 (defun handle-extension-forms (grain)
-  (when (grain-extension-forms grain)
-    (error "Unsupported extension forms in grain ~S" (fullname grain)))
-  nil)
+  (let ((extension-forms  (grain-extension-forms grain)))
+    (when extension-forms
+      (dolist (extension extension-forms)
+	(handle-extension-form grain extension)))))
 
 (defun make-grain-from-file (path &key build-p)
   "Takes a PATH to a lisp file, and returns the corresponding grain."
