@@ -95,8 +95,8 @@ We most urgently need to:
 
  * Add support for arbitrary shell commands.
 
- * Add some support for generated Lisp files, i.e.
-   "this Lisp file is the result of running some Lisp or shell command"
+ * Add support for filename expansion in shell commands, etc.,
+   in string-escape.lisp.
 
  * Add support for detecting the target Lisp's ``*features*``.
    This is necessary for reading ``#+`` statements in module forms.
@@ -119,7 +119,9 @@ We most urgently need to:
    In other words, reimplement with-compilation-unit and with-qres-compilation,
    except in a way that works with XCVB.
 
- * Revise documentation, including this very file.
+ * Revise documentation, including this very file. Notably document
+   support for extension rules, generated Lisp files, shell commands, etc.
+   e.g. "this Lisp file is the result of running some Lisp or shell command"
 
  * Add support for in-image backend.
 

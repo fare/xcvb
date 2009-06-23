@@ -86,6 +86,11 @@ You can also browse the repository at either of these:
 
 	http://github.com/fare/xcvb/tree/master
 
+We also have two mailing-lists, one reserved for announcements,
+``xcvb-announce`` http://www.common-lisp.net/mailman/listinfo/XCVB-announce
+and one open to general discussions,
+``xcvb-devel`` http://www.common-lisp.net/mailman/listinfo/xcvb-devel
+
 
 Dependencies
 ------------
