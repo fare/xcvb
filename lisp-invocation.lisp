@@ -102,7 +102,7 @@
 
 (defun ensure-path-executable (x)
   (if (and (stringp x)
-           (not (eql (first-char x) "/")))
+           (not (eql (first-char x) #\/)))
     (strcat "./" x)
     x))
 

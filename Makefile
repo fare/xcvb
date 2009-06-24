@@ -48,10 +48,13 @@ define CL_LAUNCH_MODE_fasls
 	--output ${INSTALL_BIN}/$1
 endef
 
-## These are used to boostrap xcvb with xcvb.
+LISP_BIN := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_binary_path)
+LISP_IMPL := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_implementation)
+
+## These are used to bootstrap xcvb with xcvb.
 ## See test/mock/a/c/Makefile for details and comments.
-xcvb.mk: ${LISP_SOURCES} setup.lisp
-	xcvb make-makefile --setup /xcvb/setup --build /xcvb
+xcvb.mk: ${LISP_SOURCES} setup.lisp ${LISP_BIN}
+	xcvb make-makefile --setup /xcvb/setup --build /xcvb --target-lisp-impl ${LISP_IMPL} --target-lisp-bin ${LISP_BIN}
 
 ifeq ($(wildcard xcvb.mk),xcvb.mk)
   include xcvb.mk

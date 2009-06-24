@@ -119,7 +119,9 @@ for this version of XCVB.")))
    (("setup" #\s) :type string :optional t)
    (("verbosity" #\v) :type integer :optional t)
    (("output-path" #\o) :type string :optional t)
-   (("build" #\b) :type string :optional nil)))
+   (("build" #\b) :type string :optional nil)
+   (("target-lisp-impl" #\i) :type string :optional t)  ;; 'i' for 'implementation'
+   (("target-lisp-bin" #\p) :type string :optional t))) ;; 'p' for 'path' of binary.
 
 (defun make-makefile (args)
   (multiple-value-bind (options arguments)
@@ -127,14 +129,19 @@ for this version of XCVB.")))
     (reset-variables)
     (when arguments
       (error "Invalid arguments to make-makefile"))
-    (destructuring-bind (&key xcvb-path setup verbosity output-path build)
-        options
+    (destructuring-bind (&key xcvb-path setup verbosity output-path
+        build target-lisp-impl target-lisp-bin) options
       (when xcvb-path
         (set-search-path! xcvb-path))
       (when setup
         (push `(:lisp ,setup) *lisp-setup-dependencies*))
       (when verbosity
         (setf *xcvb-verbosity* verbosity))
+      (when target-lisp-impl
+	(setf *lisp-implementation-type* (let ((*package* (find-package "KEYWORD")))
+					   (read-from-string target-lisp-impl))))
+      (when target-lisp-bin
+	(setf *lisp-executable-pathname* target-lisp-bin))
       (search-search-path)
       (write-makefile build :output-path output-path))))
 
