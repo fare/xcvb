@@ -16,6 +16,8 @@
 (defvar *lisp-executable-pathname* nil
   "Path to the Lisp implementation to use for the target system")
 
+(defvar *target-system-features* nil)
+
 (defvar *lisp-image-pathname* nil
   "What path to a Lisp image do we need invoke the target Lisp with?")
 

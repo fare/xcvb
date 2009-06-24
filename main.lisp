@@ -138,10 +138,21 @@ for this version of XCVB.")))
       (when verbosity
         (setf *xcvb-verbosity* verbosity))
       (when target-lisp-impl
-	(setf *lisp-implementation-type* (let ((*package* (find-package "KEYWORD")))
-					   (read-from-string target-lisp-impl))))
+	(setf *lisp-implementation-type* (find-symbol (string-upcase target-lisp-impl) (find-package :keyword))))
       (when target-lisp-bin
-	(setf *lisp-executable-pathname* target-lisp-bin))
+	(setf *lisp-executable-pathname* target-lisp-bin)
+	(ensure-directories-exist "obj/")
+	(asdf:run-shell-command
+	 (format nil
+	  "~A > obj/target-features.lisp-expr"
+	  (shell-tokens-to-string
+	   (lisp-invocation-arglist
+	    ;; Llet the user somehow provide additional features,
+	    ;; perhaps in a setup-features.lisp file
+	    :eval (format nil "(progn (write *features* :readably t) (terpri) ~A)"
+			  (format nil (slot-value
+				       (get-lisp-implementation
+					*lisp-implementation-type*) 'quit-format) 0)))))))
       (search-search-path)
       (write-makefile build :output-path output-path))))
 

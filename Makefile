@@ -51,6 +51,8 @@ endef
 LISP_BIN := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_binary_path)
 LISP_IMPL := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_implementation)
 
+obj/target-features.lisp-expr : xcvb.mk
+
 ## These are used to bootstrap xcvb with xcvb.
 ## See test/mock/a/c/Makefile for details and comments.
 xcvb.mk: ${LISP_SOURCES} setup.lisp ${LISP_BIN}

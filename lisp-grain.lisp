@@ -20,31 +20,27 @@
            :computation nil
            keys)))
 
-(defvar *target-system-features* nil)
-
 (defun target-system-features ()
   (unless *target-system-features*
     (setf *target-system-features* (compute-target-system-features)))
   *target-system-features*)
 
 (defun compute-target-system-features ()
-  ;; TODO: extract and use the *features* of the TARGET system.
-  ;; and mixin :xcvb-host-FOO for any feature FOO in the HOST system?
-  ;;(cons :xcvb *features*))
-  ;; In the meantime, just :xcvb to make things deterministic.
-  (list :xcvb))
+  (cons :xcvb (read-first-file-form "obj/target-features.lisp-expr")))
 
 (defun read-first-file-form (filepath)
   "Reads the first form from the top of a file"
   (with-standard-io-syntax ()
-    (let ((*features* (target-system-features))
-	  (*package* (find-package :xcvb-user))
+    (let ((*package* (find-package :xcvb-user))
 	  (*read-eval* nil))
       (with-open-file (in filepath)
         (read in)))))
 
 (defun grain-from-file-declaration (path &key build-p)
-  (parse-module-declaration (read-first-file-form path) :path path :build-p build-p))
+  (parse-module-declaration
+   (let ((*features* (target-system-features)))
+     (read-first-file-form path))
+   :path path :build-p build-p))
 
 (defun module-form-p (form)
   "Returns whether or not the given form is a valid xcvb:module form"
