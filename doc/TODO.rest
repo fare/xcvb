@@ -291,16 +291,16 @@ this means that XCVB must somehow extract the features of the buildee
 However, that approach is a hack with several drawbacks:
 
   * It doesn't scale to larger builds
-  where the same file would be compiled many times
-  using different compilers and feature sets.
+    where the same file would be compiled many times
+    using different compilers and feature sets.
 
   * It prevents us from using our "normal" way of naming lisp files
-  for the initial user-customization file from ``--setup``,
-  because we need to load such file for any customization of ``*features*``,
-  yet we currently need the target ``*features*`` before we may properly
-  use ``#+`` while reading and interning BUILD files during
-  ``(search-search-path)``,
-  as needs be done before we may resolve "normal" names.
+    for the initial user-customization file from ``--setup``,
+    because we need to load such file for any customization of ``*features*``,
+    yet we currently need the target ``*features*`` before we may properly
+    use ``#+`` while reading and interning BUILD files during
+    ``(search-search-path)``,
+    as needs be done before we may resolve "normal" names.
 
 At some point before [V3], we'll want to have a specialized language
 to specify conditional dependencies.

@@ -107,7 +107,7 @@ You will need the following pieces of software to get XCVB running:
         - getting it:
 		``wget http://repo.or.cz/w/sbcl/jsnell.git?a=treediff_plain;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master``
 
-  * cl-launch 2.16 or later:
+  * cl-launch 2.17 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
