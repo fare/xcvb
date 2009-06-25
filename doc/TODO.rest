@@ -6,6 +6,8 @@ TODO
 
 Future improvements planned for XCVB.
 
+See ``Current Developments [V1]`` for what are hot topics.
+
 .. contents::
 ..
     1   Current Developments [V1]
@@ -14,9 +16,9 @@ Future improvements planned for XCVB.
       3.1  Migration from ASDF [V1]
       3.2  In-image loading [V1]
       3.3  ASDF backend [V1]
-      3.4  Conditional Build [V1]
+      3.4  Conditional Build [V2]
       3.5  Lack of Manual [V1]
-      3.6  Producing Executables [V1]
+      3.6  Producing Executables [V2]
       3.7  Generalized Staged Images [Done]
       3.8  Command-line interface [Done]
       3.9  Configurability of the build image [Done]
@@ -34,12 +36,11 @@ Future improvements planned for XCVB.
       4.11  Dynamic compilation [V4]
       4.12  Bug hunting [V5]
     5   Ideas from jknight [V2]
-    6   The semantics of dependencies [V1]
-      6.1  Data files [V1]
-      6.2  Computed Lisp files [V2]
-      6.3  Tests [V2]
-      6.4  Crypto Check [V3]
-      6.5  Template Instantiations [V5]
+    6   The semantics of dependencies [V2]
+      6.1  Computed Lisp files [V2]
+      6.2  Tests [V2]
+      6.3  Crypto Check [V3]
+      6.4  Template Instantiations [V5]
     7   Internals [V4]
       7.1  Error handling [V4]
     8   Higher-level description [V2]
@@ -88,23 +89,13 @@ Current Developments [V1]
 
 Following a complete rewrite, a release is soon to come (ETA: late June 2009).
 We've got a Makefile backend with which we can recompile XCVB itself.
-We most urgently need to:
 
- * Add support for data dependencies, i.e.
-   "compiling this fasl depends on file ``UnicodeData.txt``"
+Here is the top of our TODO list at ITA:
 
- * Add support for arbitrary shell commands.
-
- * Add support for filename expansion in shell commands, etc.,
-   in string-escape.lisp.
-
- * Add support for detecting the target Lisp's ``*features*``.
-   This is necessary for reading ``#+`` statements in module forms.
-   Consequently, in the Makefile, we probably should have ``xcvb.mk`` depend on
+*  In the Makefile, we probably should have ``xcvb.mk`` depend on
    the target Lisp implementation's binary.
-
- * Alternatively and/or optionally, copy mudballs's mechanism
-   for implementation-dependent inclusion of files in BUILDs.
+   Maybe every target in the xcvb.mk should depend on xcvb.mk itself...
+   or if it's fast enough, maybe xcvb.mk should be systematically recomputed.
 
  * Update the migration code from ASDF.
    Support recursive migration of dependencies up to some point that the user may specify
@@ -120,14 +111,51 @@ We most urgently need to:
    except in a way that works with XCVB.
 
  * Revise documentation, including this very file. Notably document
-   support for extension rules, generated Lisp files, shell commands, etc.
+   support for extension rules, generated Lisp files, data dependencies, etc.
    e.g. "this Lisp file is the result of running some Lisp or shell command"
 
- * Add support for in-image backend.
 
- * Re-implement ASDF backend, so ASDF users can use XCVB BUILDs.
+Other top TODO items that are not on ITA's critical path include the following.
+They would be ideal for a non-ITA hacker to tackle,
+in a suggested order for a newbie to enter XCVB hacking:
 
- * Make the bootstrapped XCVB the official version, install its image -- or a standalone dump.
+ * Extend the ``command-line-arguments`` library to allow for self-documentation
+   of option specifications with ``:documentation`` keyword arguments to options,
+   that can be trivially used to generate help for command options and sub-command options
+   (think about ``svn`` or ``git`` calling conventions).
+   Use that to generate XCVB internal help.
+
+ * Add support for in-image backend (see `In-image loading [V1]`_).
+   May or may not benefit from the following,
+   by connecting a master Lisp process to a slave XCVB
+   itself executing ``make``.
+
+ * Implement a portable library for executing sub-programs,
+   that does at least what ``asdf:run-shell-program`` does,
+   but hopefully much more, like python's ``popen2.popen3``
+   or even like what SCSH provides.
+
+ * Add support for arbitrary shell commands, including support for
+   filename expansion in shell commands, etc., in ``string-escape.lisp``.
+   May or may not benefit from the previous.
+   Alternatively, document that any such things
+   should be done in the external ``Makefile`` for now.
+
+ * Add support for ``(:lisp-file path)`` dependencies,
+   and use that for the initial ``--setup``,
+   so we can use it to allow user customization of ``*features*``
+   before we ``(search-search-path)`` and intern BUILD files.
+   This is necessary for properly reading ``#+`` statements in module forms,
+
+ * Have a better mechanism for conditional builds (see `Conditional Build [V2]`_).
+
+ * Re-implement the ASDF backend (see `ASDF backend [V1]`_),
+   so ASDF users can use XCVB BUILDs.
+
+ * Make XCVB independent from ``cl-launch``
+   by implementing the missing functionality
+   (init forms, resume function,
+   minimal shell wrapping and/or standalone images).
 
 
 Roadmap [Done]
@@ -245,29 +273,51 @@ Nevertheless, we should in most cases be able to do
 a good enough job that with some additional discipline,
 a correct XCVB module should build with ASDF as a backend.
 
-Add support for ``:load-source`` dependencies.
-
 Add a test suite for the ASDF backend.
 
 
-Conditional Build [V1]
+Conditional Build [V2]
 ----------------------
 
 XCVB needs to be able to handle conditional compilation of some files.
 
-A simple way to do it, that we should support for [V1]
-would be to use conditional reading with #+ and #-
+Currently, we support conditional reading with ``#+`` and ``#-``
+using the features from the target system,
 like people currently do with ASDF.
-Because the builder and buildee are separate, this means that
-XCVB must somehow extract the features of the buildee
+Because the builder and buildee are separate,
+this means that XCVB must somehow extract the features of the buildee
 (by running the target lisp) before it reads any of the files.
 
-However, that approach is a hack that doesn't scale to larger builds
-where the same file would be compiled many times using different compilers
-and feature sets.
+However, that approach is a hack with several drawbacks:
+
+  * It doesn't scale to larger builds
+  where the same file would be compiled many times
+  using different compilers and feature sets.
+
+  * It prevents us from using our "normal" way of naming lisp files
+  for the initial user-customization file from ``--setup``,
+  because we need to load such file for any customization of ``*features*``,
+  yet we currently need the target ``*features*`` before we may properly
+  use ``#+`` while reading and interning BUILD files during
+  ``(search-search-path)``,
+  as needs be done before we may resolve "normal" names.
+
 At some point before [V3], we'll want to have a specialized language
 to specify conditional dependencies.
-mudballs has something that we should look into.
+mudballs has something that we may get inspiration from:
+``(:USOCKET (:FOR (:NOT (:LISPWORKS))))`` to conditionalize ``:USOCKET``.
+That doesn't directly fit the XCVB model, and I'd rather we use something like:
+``(:when (:featurep (:not :lispworks)) "usocket")`` or
+``(:when-feature (:not :lispworks) "usocket")`` or
+``(:unless-feature :lispworks "usocket")``.
+(Note that we could imaginably hack the reader
+to have ``#+`` and ``#-`` expand to that.)
+
+By mandating such syntax and/or hacking the reader,
+we may intern the BUILD files before any customization of ``*features*``,
+then resolve the name of the setup file,
+use that file and acquire the target ``*features*``,
+and finally process features during graph building.
 
 
 Lack of Manual [V1]
@@ -279,11 +329,11 @@ If README grows too big, create a separate MANUAL.rest.
 There should be both a tutorial and an API specification.
 
 
-Producing Executables [V1]
+Producing Executables [V2]
 --------------------------
 
-In a first time [V1], ``cl-launch`` should be extended to accept
-an explicit initial image as input, and this can be used in a ``Makefile``
+Currently, ``cl-launch`` accepts an explicit initial image as input,
+and this can be used in a ``Makefile``
 to create an executable from an image produced by XCVB.
 
 In a second time [V2], XCVB should be extended to directly support
@@ -570,17 +620,8 @@ Ideas from discussion w/ jknight:
  * do away with all calls to truename. [Done]
 
 
-The semantics of dependencies [V1]
+The semantics of dependencies [V2]
 ==================================
-
-Data files [V1]
----------------
-
-Allow a module to depend on an auxiliary data file.
-That file will not be compiled or loaded into the Lisp image,
-but will just be used for tracking
-when the file that depends on it needs to be recompiled.
-
 
 Computed Lisp files [V2]
 ------------------------
@@ -1429,8 +1470,9 @@ the automatic packaging and distribution of Lisp-based projects.
 
 See ASDF-INSTALL, clbuild, mudballs, etc.
 
-See Haskell Cabal and Hackage, Caml Hump, PLaneT,
-Ruby gems, Python eggs, Chicken eggs, Java beans, etc.
+See Haskell Cabal and Hackage, Caml Hump,
+PLaneT, Chicken eggs,
+Ruby gems, Python eggs, Java beans, etc.
 
 When extending the system to include the management of packages for distribution,
 be sure that you play well with whichever Operating System's packaging software:

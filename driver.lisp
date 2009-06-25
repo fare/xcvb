@@ -178,6 +178,12 @@ This is designed to abstract away the implementation specific quit forms."
            (when cfasl
              `(:emit-cfasl ,cfasl)))))
 
+(defun call (package symbol &rest args)
+  (apply (intern (string symbol) package) args))
+
+(defun eval-string (string)
+  (eval (read-from-string string)))
+
 (defun create-image (spec &rest dependencies)
   (destructuring-bind (image &key standalone package) spec
     (do-create-image image dependencies
