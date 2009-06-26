@@ -462,8 +462,7 @@ Current Limitations
 ===================
 
 If your build has any of the below complications,
-you're currently out of luck until an extension is written
-or unless you write such an extension yourself.
+then you'll have to manually migrate your ASDF to XCVB:
 
   * your build depends on data files.
 
@@ -471,3 +470,7 @@ or unless you write such an extension yourself.
 
   * your build otherwise uses some ASDF extension.
 
+Also, the way that XCVB handles
+data dependencies and Lisp file generation,
+while working, is fluctuating and not well documented at this point.
+Ask the authors for details.

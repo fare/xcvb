@@ -92,23 +92,19 @@ We've got a Makefile backend with which we can recompile XCVB itself.
 
 Here is the top of our TODO list at ITA:
 
-*  In the Makefile, we probably should have ``xcvb.mk`` depend on
-   the target Lisp implementation's binary.
-   Maybe every target in the xcvb.mk should depend on xcvb.mk itself...
-   or if it's fast enough, maybe xcvb.mk should be systematically recomputed.
-
  * Update the migration code from ASDF.
    Support recursive migration of dependencies up to some point that the user may specify
    (i.e. for every transitive asdf system dependency, stopping at given ones, migrate system).
 
- * Have a test suite for XCVB that includes automated migration.
+ * Have a test suite for XCVB that includes automated migration of some benchmark ASDF systems
+   (e.g. historical tarballs of well-known systems?)
 
  * Apply XCVB to some actual big projects at ITA.
 
  * Quench warnings about undefined functions during file compilation,
    but record them on the side. Reconcile them after image creation.
-   In other words, reimplement with-compilation-unit and with-qres-compilation,
-   except in a way that works with XCVB.
+   In other words, reimplement ``with-compilation-unit`` and ``with-qres-compilation``,
+   except in a way that works well with XCVB.
 
  * Revise documentation, including this very file. Notably document
    support for extension rules, generated Lisp files, data dependencies, etc.
@@ -124,6 +120,21 @@ in a suggested order for a newbie to enter XCVB hacking:
    that can be trivially used to generate help for command options and sub-command options
    (think about ``svn`` or ``git`` calling conventions).
    Use that to generate XCVB internal help.
+
+ * When identifying a file dependency,
+   make the distinction between ``:source``, ``:object`` or ``:file``
+   orthogonal to that between ``:lisp``, ``:fasl``, ``:image`` or ``:data``.
+
+ * When a generated file is described in a ``BUILD.lisp``,
+   have the file itself depend on ``BUILD.lisp``.
+   This is one more reason to distinguish
+   dependency on ``(:data (:source "foo/BUILD.lisp"))``
+   from dependency on ``(:build "foo")``.
+
+ * Also, in generated files, double-check that there isn't
+   an intermediate BUILD that short-circuits the name resolution.
+   e.g. if ``foo/bar.lisp`` is generated from a BUILD with fullname ``/quux``,
+   then there mustn't a BUILD with fullname ``/quux/foo`` that preempts that name.
 
  * Add support for in-image backend (see `In-image loading [V1]`_).
    May or may not benefit from the following,
@@ -157,6 +168,12 @@ in a suggested order for a newbie to enter XCVB hacking:
    (init forms, resume function,
    minimal shell wrapping and/or standalone images).
 
+Random ideas:
+
+*  Maybe every target in the xcvb.mk should depend on xcvb.mk itself...
+   or if it's fast enough, maybe xcvb.mk should be systematically recomputed.
+
+ * ...
 
 Roadmap [Done]
 ==============
@@ -327,6 +344,31 @@ Document all there is to know to use XCVB in README.rest.
 If README grows too big, create a separate MANUAL.rest.
 
 There should be both a tutorial and an API specification.
+
+Document or automate away things such as:
+
+  * What should be in the ``Makefile`` of a project that uses xcvb:
+
+     + what Make variables to configure and how to configure them
+
+     + what Lisp variables to setup and how to set them up,
+       especially if when still using ASDF.
+
+     + statements to ``include xcvb.mk``
+
+     + rules to make ``xcvb.mk`` itself, including dependencies
+
+         * could the dependency on the target Lisp implementation's binary
+           as well as on all BUILD.lisp files be automated?
+
+     + how to identify the top-level target of xcvb.mk
+
+     + how to use CL-Launch to build an executable from a xcvb-produced image.
+
+  * data dependencies.
+
+  * generated Lisp files.
+
 
 
 Producing Executables [V2]
@@ -1156,6 +1198,19 @@ Graph building
 
 A build starts with an initial request:
 an operator is called with a set of input parameters.
+
+
+Notes
+-----
+
+To preserve incremental compilation with a central dependency declaration,
+you could explode the central declaration.
+Each files at the time
+that you initialize when creating the ``xcvb.mk``
+and update (if needed) each time you re-compile a file.
+Each compiled file would have a corresponding dependencies file
+caching which dependencies were used during the compilation of it,
+stored in the ``obj/ directory and updated when it changed. Lots of infrastructure, but doable.
 
 
 
