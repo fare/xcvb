@@ -46,7 +46,8 @@ top of a source file"
         (format out "~@[~%~7,0T:build-requires ~S)~]"
               (slot-value grain 'build-requires)))
     (format out ")")
-    (format out "~@[~%~{~7,0T~S~^~%~}~]" (grain-extension-forms grain))
+    (format out "~@[~%~{~7,0T~S~^~%~}~]" (and (slot-boundp grain 'extension-forms)
+					      (grain-extension-forms grain)))
     (format out ")")))
 
 (defun read-comment-header (in)
@@ -159,7 +160,7 @@ form if there is one (but leaving the extension forms)."
                                       file-deps)
                               file-deps)
         :load-depends-on file-deps
-        :filepath (make-pathname
+	:pathname (make-pathname
                    :name "BUILD"
                    :type "lisp"
                    :defaults (asdf:component-pathname asdf-system))))))
@@ -186,16 +187,17 @@ form if there is one (but leaving the extension forms)."
                       (make-pathname :type nil :defaults filepath)
                       (grain-pathname build-grain))
                      :allow-absolute nil))))
-    (make-instance 'lisp-grain
-      :fullname fullname
-      :pathname filepath
-      :build-grain build-grain
-      :computation nil
-      :compile-depends-on (if *use-cfasls*
-                            (mapcar (lambda (dep) (list :compile dep))
-                                    dependencies)
-                            dependencies)
-      :load-depends-on dependencies)))
+    (let ((lisp-grain
+	   (make-instance 'lisp-grain
+	    :pathname filepath
+	    :computation nil
+	    :compile-depends-on (if *use-cfasls*
+				    (mapcar (lambda (dep) (list :compile dep))
+					    dependencies)
+				    dependencies)
+	    :load-depends-on dependencies)))
+      (setf (fullname lisp-grain) fullname)
+      lisp-grain)))
 
 
 (defvar *components-path* #p"/tmp/simplified-system-components.lisp-expr")
@@ -223,7 +225,9 @@ merge them into a single XCVB build,
 adding xcvb module declarations to the top of all the files in that build,
 and writing a corresponding BUILD.lisp file,
 so that the system can now be compiled with XCVB."
-
+  ;; Remove systems used by XCVB so that asdf-to-xcvb can work on them.
+  (dolist (sys systems)
+    (remhash (asdf::coerce-name sys) asdf::*defined-systems*))
   (dolist (sys systems-to-preload)
     (asdf:operate 'asdf:load-op sys))
   (eval
@@ -243,7 +247,7 @@ so that the system can now be compiled with XCVB."
   (eval
    `(asdf:defsystem :migrated-system
      ,@(with-open-file (s (cl-launch:apply-output-pathname-translations
-			   (merge-pathnames *components-path*)))
+			   (merge-pathnames components-path)))
 		       (cdar (read s)))))
   (let ((asdf-system (asdf:find-system :migrated-system)))
       (setf (slot-value asdf-system 'asdf::name) (asdf::coerce-name (first systems)))

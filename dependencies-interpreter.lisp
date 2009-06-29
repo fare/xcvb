@@ -199,8 +199,8 @@ in the normalized dependency mini-language"
       (:fasl (list (compile-time-fasl-type) x))
       (:build `(:compile-build ,x))
       ((:lisp :cfasl :asdf :compile-build) dep)
-      (:when `(:when ,(second dep) ,(mapcar #'compiled-dependency (cddr dep))))
-      (:cond `(:cond ,(mapcar (lambda (x) (cons (car x) (mapcar #'compiled-dependency (cdr x))))
+      (:when `(:when ,(second dep) ,@(mapcar #'compiled-dependency (cddr dep))))
+      (:cond `(:cond ,@(mapcar (lambda (x) (cons (car x) (mapcar #'compiled-dependency (cdr x))))
                               (cdr dep)))))))
 
 (defun compile-time-fasl-type ()
@@ -322,7 +322,7 @@ in the normalized dependency mini-language"
   (declare (ignore env))
   (unless (keywordp atom)
     (error "Invalid feature ~S" atom))
-  (member atom *target-system-features*))
+  (member atom (target-system-features)))
 
 (define-evaluate-featurep :and (env &rest feature-expressions)
   (loop :for feature-expression :in feature-expressions

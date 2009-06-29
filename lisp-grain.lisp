@@ -26,7 +26,7 @@
   *target-system-features*)
 
 (defun compute-target-system-features ()
-  (cons :xcvb (read-first-file-form "obj/target-features.lisp-expr")))
+  (read-first-file-form "obj/target-features.lisp-expr"))
 
 (defun read-first-file-form (filepath)
   "Reads the first form from the top of a file"
@@ -38,7 +38,7 @@
 
 (defun grain-from-file-declaration (path &key build-p)
   (parse-module-declaration
-   (let ((*features* (target-system-features)))
+   (let ((*features* (list :xcvb)))
      (read-first-file-form path))
    :path path :build-p build-p))
 

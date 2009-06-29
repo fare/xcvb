@@ -121,6 +121,21 @@ for this version of XCVB.")))
    (("target-lisp-impl" #\i) :type string :optional t)  ;; 'i' for 'implementation'
    (("target-lisp-bin" #\p) :type string :optional t))) ;; 'p' for 'path' of binary.
 
+;; Create obj/target-features.lisp-expr, which contains the target Lisp's *features*
+(defun make-target-features-lisp-expr ()
+  (ensure-directories-exist "obj/")
+  (asdf:run-shell-command
+   (format nil
+	   "~A > obj/target-features.lisp-expr"
+	   (shell-tokens-to-string
+	    (lisp-invocation-arglist
+	     ;; Let the user somehow provide additional features,
+	     ;; perhaps in a setup-features.lisp file
+	     :eval (format nil "(progn (write *features* :readably t) (terpri) ~A)"
+			   (format nil (slot-value
+					(get-lisp-implementation
+					 *lisp-implementation-type*) 'quit-format) 0)))))))
+
 (defun make-makefile (args)
   (multiple-value-bind (options arguments)
       (process-command-line-options +make-makefile-option-spec+ args)
@@ -139,18 +154,7 @@ for this version of XCVB.")))
 	(setf *lisp-implementation-type* (find-symbol (string-upcase target-lisp-impl) (find-package :keyword))))
       (when target-lisp-bin
 	(setf *lisp-executable-pathname* target-lisp-bin)
-	(ensure-directories-exist "obj/")
-	(asdf:run-shell-command
-	 (format nil
-	  "~A > obj/target-features.lisp-expr"
-	  (shell-tokens-to-string
-	   (lisp-invocation-arglist
-	    ;; Llet the user somehow provide additional features,
-	    ;; perhaps in a setup-features.lisp file
-	    :eval (format nil "(progn (write *features* :readably t) (terpri) ~A)"
-			  (format nil (slot-value
-				       (get-lisp-implementation
-					*lisp-implementation-type*) 'quit-format) 0)))))))
+	(make-target-features-lisp-expr))
       (search-search-path)
       (write-makefile build :output-path output-path))))
 

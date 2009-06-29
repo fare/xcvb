@@ -58,6 +58,10 @@ obj/target-features.lisp-expr : xcvb.mk
 xcvb.mk: ${LISP_SOURCES} setup.lisp ${LISP_BIN}
 	xcvb make-makefile --setup /xcvb/setup --build /xcvb --target-lisp-impl ${LISP_IMPL} --target-lisp-bin ${LISP_BIN}
 
+## TODO: In xcvb.mk, have xcvb.mk: <more dependencies> **/BUILD.lisp
+## TODO: In xcvb.mk, generated files should depend on the BUILD.lisp.
+## e.g. lists.lisp : /cl-unicode/BUILD.lisp
+
 ifeq ($(wildcard xcvb.mk),xcvb.mk)
   include xcvb.mk
 endif
