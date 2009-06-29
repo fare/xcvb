@@ -144,19 +144,14 @@ in a suggested order for a newbie to enter XCVB hacking:
  * Implement a portable library for executing sub-programs,
    that does at least what ``asdf:run-shell-program`` does,
    but hopefully much more, like python's ``popen2.popen3``
-   or even like what SCSH provides.
+   or even like what SCSH provides. It will eventually be used
+   by our standalone distributed build system.
 
  * Add support for arbitrary shell commands, including support for
    filename expansion in shell commands, etc., in ``string-escape.lisp``.
    May or may not benefit from the previous.
-   Alternatively, document that any such things
-   should be done in the external ``Makefile`` for now.
-
- * Add support for ``(:lisp-file path)`` dependencies,
-   and use that for the initial ``--setup``,
-   so we can use it to allow user customization of ``*features*``
-   before we ``(search-search-path)`` and intern BUILD files.
-   This is necessary for properly reading ``#+`` statements in module forms,
+   Alternatively, document how any such thing
+   may be done in the external ``Makefile`` for now.
 
  * Have a better mechanism for conditional builds (see `Conditional Build [V2]`_).
 
@@ -1210,7 +1205,7 @@ that you initialize when creating the ``xcvb.mk``
 and update (if needed) each time you re-compile a file.
 Each compiled file would have a corresponding dependencies file
 caching which dependencies were used during the compilation of it,
-stored in the ``obj/ directory and updated when it changed. Lots of infrastructure, but doable.
+stored in the ``obj/`` directory and updated when it changed. Lots of infrastructure, but doable.
 
 
 
