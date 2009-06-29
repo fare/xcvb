@@ -31,11 +31,11 @@ a reference to the system was superseded by a BUILD file.")
 
 
 (defun lisp-grain-from (name grain)
-  (let ((grain (resolve-module-name name grain)))
-    (unless (lisp-grain-p grain)
+  (let ((lisp-grain (resolve-module-name name grain)))
+    (unless (lisp-grain-p lisp-grain)
       (error "Couldn't resolve ~S to a valid module from grain ~S"
              name (fullname grain)))
-    grain))
+    lisp-grain))
 
 (defun lisp-fullname-from (name grain)
   (fullname (lisp-grain-from name grain)))
@@ -57,6 +57,18 @@ a reference to the system was superseded by a BUILD file.")
     (if (build-grain-p g)
         `(:build ,n)
         `(:fasl ,n))))
+
+(define-normalize-dependency :when (grain expression &rest dependencies)
+  ;; TODO: parse and make sure that expression is well-formed, which
+  ;; should issue an error message early if there user-provided code is wrong.
+  `(:when ,expression ,@(normalize-dependencies dependencies grain)))
+
+(define-normalize-dependency :cond (grain &rest cond-expressions)
+  ;; TODO: parse and make sure that expression is well-formed, which
+  ;; should issue an error message early if there user-provided code is wrong.
+  `(:cond ,@(mapcar (lambda (x) (cons (car x)
+                                      (normalize-dependencies (cdr x) grain)))
+                    cond-expressions)))
 
 (defun normalize-dependency-lisp* (type grain name)
   `(,type ,(lisp-fullname-from name grain)))
@@ -147,18 +159,25 @@ a reference to the system was superseded by a BUILD file.")
     (:file . t))
   "what type for grains corresponding to a given dependency tag")
 
+(defparameter +computing-dependencies+
+  '(:when :cond))
+
 (defun deconstruct-dependency (dep k)
   (flet ((err () (error "malformed dependency ~S" dep)))
-    (unless (or (and (list-of-length-p 2 dep)
-		     (stringp (second dep)))
-		(eq :source (car dep)))
-      (err))
+    (unless (consp dep) (err))
     (let* ((head (first dep))
-           (name (second dep))
-           (type (cdr (assoc head +dependency-type+))))
-      (unless type
-        (err))
-      (funcall k head name type))))
+           (computing (and (member head +computing-dependencies+) t)))
+      (if computing
+          (funcall k head nil t)
+          (progn
+            (unless (and (list-of-length-p 2 dep)
+                         (stringp (second dep)))
+              (err))
+            (let* ((name (second dep))
+                   (type (or computing (cdr (assoc head +dependency-type+)))))
+              (unless (or computing type)
+                (err))
+              (funcall k head name type)))))))
 
 (defmacro with-dependency ((&key head name type) expr &body body)
   (loop :for v :in (list head name type)
@@ -179,7 +198,10 @@ in the normalized dependency mini-language"
     (ecase h
       (:fasl (list (compile-time-fasl-type) x))
       (:build `(:compile-build ,x))
-      ((:lisp :cfasl :asdf :compile-build) dep))))
+      ((:lisp :cfasl :asdf :compile-build) dep)
+      (:when `(:when ,(second dep) ,(mapcar #'compiled-dependency (cddr dep))))
+      (:cond `(:cond ,(mapcar (lambda (x) (cons (car x) (mapcar #'compiled-dependency (cdr x))))
+                              (cdr dep)))))))
 
 (defun compile-time-fasl-type ()
   (if *use-cfasls* :cfasl :fasl))
@@ -269,6 +291,50 @@ in the normalized dependency mini-language"
 (defun load-commands-for-build-dependencies (env grain)
   (dolist (dep (build-dependencies grain))
     (load-command-for env dep)))
+
+(define-load-command-for :when (env expression &rest dependencies)
+  (when (evaluate-condition env expression)
+    (load-command-for* env dependencies)))
+
+(define-load-command-for :cond (env &rest cond-expressions)
+  (loop :for cond-expression :in cond-expressions
+        :when (evaluate-condition env (car cond-expression))
+        :do (return (load-command-for* env (cdr cond-expression)))))
+
+(define-simple-dispatcher evaluate-condition #'evaluate-condition-atom)
+
+(defun evaluate-condition (env expression)
+  (evaluate-condition-dispatcher env expression))
+
+(defun evaluate-condition-atom (env atom)
+  (declare (ignore env))
+  (error "Invalid condition ~S" atom))
+
+(define-evaluate-condition :featurep (env feature-expression)
+  (evaluate-featurep env feature-expression))
+
+(defun evaluate-featurep (env feature-expression)
+  (evaluate-featurep-dispatcher env feature-expression))
+
+(define-simple-dispatcher evaluate-featurep #'evaluate-featurep-atom)
+
+(defun evaluate-featurep-atom (env atom)
+  (declare (ignore env))
+  (unless (keywordp atom)
+    (error "Invalid feature ~S" atom))
+  (member atom *target-system-features*))
+
+(define-evaluate-featurep :and (env &rest feature-expressions)
+  (loop :for feature-expression :in feature-expressions
+        :always (evaluate-featurep env feature-expression)))
+
+(define-evaluate-featurep :or (env &rest feature-expressions)
+  (loop :for feature-expression :in feature-expressions
+        :thereis (evaluate-featurep env feature-expression)))
+
+(define-evaluate-featurep :not (env feature-expression)
+  (not (evaluate-featurep env feature-expression)))
+
 
 #|
 In more complex cases, we probably want to

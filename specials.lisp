@@ -8,7 +8,7 @@
 ;; time...  It would be better to have some version number automatically
 ;; extracted from the date, plus a hash obtained from git, and/or from xcvb's
 ;; own digesting mechanism.
-(defparameter *xcvb-version* "0.309")
+(defparameter *xcvb-version* "0.310")
 
 (defvar *lisp-implementation-type* nil
   "Type of Lisp implementation for the target system")

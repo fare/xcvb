@@ -12,14 +12,13 @@
 #+xcvb
 (module
  (:fullname "xcvb"
-  :author ("Francois-Rene Rideau" "Spencer Brody")
+  :author ("Francois-Rene Rideau" "Joyce Chen" "Spencer Brody")
   :maintainer "Francois-Rene Rideau"
   :licence "MIT" ;; MIT-style license. See LICENSE
   :description "XCVB"
   :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-  :build-requires ((:asdf "cl-launch") (:asdf "asdf-dependency-grovel")
-                   (:asdf "closer-mop") "command-line-arguments")
+  :build-requires ("cl-launch" "asdf-dependency-grovel" "closer-mop" "command-line-arguments")
   :depends-on ("main")
   :build-image t))
