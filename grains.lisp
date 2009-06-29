@@ -206,15 +206,6 @@ Modeled after the asdf function coerce-name"
 ;------>8------>8------>8------>8------>8------>8------>8------>8------>8------
 
 #|
-(defgeneric direct-dependencies (grain)
-  (:documentation "List of all the direct grain dependencies"))
-
-(defgeneric all-dependencies (grain)
-  (:documentation "List of all the transitive grain dependencies"))
-
-(defmethod all-dependencies (grain)
-  (all-descendents-f grain #'direct-dependencies))
-
 (def grain lisp-grain (file-grain)
   :filename "%.lisp"
   :documentation "LISP file grain")
@@ -226,7 +217,6 @@ Modeled after the asdf function coerce-name"
 (def grain cfasl-grain (file-grain)
   :filename "%.cfasl"
   :documentation "Lisp CFASL file grain")
-
 
 (def rule lisp-compile/cleanly
   :input ((lisp lisp-grain) &key
@@ -240,5 +230,4 @@ Modeled after the asdf function coerce-name"
              :implementation implementation
              :loaded dependencies)
             (compile-module (filename lisp) :fasl (filename fasl) :cfasl (filename cfasl))))
-
 |#

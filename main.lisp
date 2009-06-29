@@ -90,15 +90,13 @@ for this version of XCVB.")))
 (defun load-command (args)
   (unless (list-of-length-p 1 args)
     (error "load requires exactly 1 argument, a file to load"))
-  (let ((*package* (find-package :xcvb-user)))
-    (load (car args))))
+    (load (car args)))
 
 ;; Command to eval a file.
 (defun eval-command (args)
   (unless (list-of-length-p 1 args)
     (error "eval requires exactly 1 argument, a file to load"))
-  (let ((*package* (find-package :xcvb-user)))
-    (eval (read-from-string (car args)))))
+    (eval (read-from-string (car args))))
 
 ;; Command to start a REPL.
 (defun repl-command (args)
@@ -165,11 +163,11 @@ for this version of XCVB.")))
               (interpret-command-line
                (command-line-arguments:get-command-line-arguments))
               0))))
-  (let ((*package* (find-package :xcvb-user)))
-    (repl)))
+    (repl))
 
 (defun interpret-command-line (args)
-  (let* ((command (pop args))
+  (let* ((*package* (find-package :xcvb-user))
+         (command (pop args))
          (fun (second (lookup-command command))))
     (if fun
         (funcall fun args)

@@ -562,7 +562,8 @@ Note that XCVB does *not* support CL-style conditional reading with
 Instead the form is read in a dynamic context
 where ``*features*`` has been bound to ``'(:xcvb)``.
 Indeed, read-time conditionals lose information at read-time
-whereas XCVB purports to build a faithful model of the whole build.
+whereas XCVB purports to build a faithful model of the whole build,
+from which one could e.g. extract a list of source files.
 
 
 Current Limitations
