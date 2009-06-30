@@ -121,20 +121,34 @@ for this version of XCVB.")))
    (("target-lisp-impl" #\i) :type string :optional t)  ;; 'i' for 'implementation'
    (("target-lisp-bin" #\p) :type string :optional t))) ;; 'p' for 'path' of binary.
 
+(defun query-target-lisp-helper (query-string output-filename)
+  (assert *lisp-implementation-type*)
+  (asdf:run-shell-command
+   (format nil
+	   "~A > ~A"
+	   (shell-tokens-to-string
+	    (lisp-invocation-arglist
+	     :eval (format nil "(progn (write ~A :readably t) (terpri) ~A)"
+			   query-string
+			   (format nil (slot-value
+					(get-lisp-implementation
+					 *lisp-implementation-type*) 'quit-format) 0))))
+	   output-filename)))
+
 ;; Create obj/target-features.lisp-expr, which contains the target Lisp's *features*
 (defun make-target-features-lisp-expr ()
   (ensure-directories-exist "obj/")
-  (asdf:run-shell-command
-   (format nil
-	   "~A > obj/target-features.lisp-expr"
-	   (shell-tokens-to-string
-	    (lisp-invocation-arglist
-	     ;; Let the user somehow provide additional features,
-	     ;; perhaps in a setup-features.lisp file
-	     :eval (format nil "(progn (write *features* :readably t) (terpri) ~A)"
-			   (format nil (slot-value
-					(get-lisp-implementation
-					 *lisp-implementation-type*) 'quit-format) 0)))))))
+  (query-target-lisp-helper "*features*"
+			    "obj/target-features.lisp-expr"))
+
+;; Create obj/target-sbcl-emit-cfasl.lisp-expr,
+;; which contains SB-C::*EMIT-CFASL* if target lisp implementation (sbcl)
+;; supports CFASLs.
+(defun target-sbcl-emit-cfasl-lisp-expr ()
+  (assert (eq *lisp-implementation-type* :sbcl))
+  (ensure-directories-exist "obj/")
+  (query-target-lisp-helper "(find-symbol \"*EMIT-CFASL*\" \"SB-C\")"
+			    "obj/target-sbcl-emit-cfasl.lisp-expr"))
 
 (defun make-makefile (args)
   (multiple-value-bind (options arguments)
@@ -151,7 +165,11 @@ for this version of XCVB.")))
       (when verbosity
         (setf *xcvb-verbosity* verbosity))
       (when target-lisp-impl
-	(setf *lisp-implementation-type* (find-symbol (string-upcase target-lisp-impl) (find-package :keyword))))
+	(setf *lisp-implementation-type* (find-symbol (string-upcase target-lisp-impl) (find-package :keyword)))
+	(when (eq *lisp-implementation-type* :sbcl)
+	  (target-sbcl-emit-cfasl-lisp-expr)
+	  ;; If CFASLs are supported, *use-cfasls* = SB-C::*EMIT-CFASL*
+	  (setf *use-cfasls* (compute-target-sbcl-emit-cfasl))))
       (when target-lisp-bin
 	(setf *lisp-executable-pathname* target-lisp-bin)
 	(make-target-features-lisp-expr))

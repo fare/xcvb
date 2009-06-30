@@ -28,6 +28,9 @@
 (defun compute-target-system-features ()
   (read-first-file-form "obj/target-features.lisp-expr"))
 
+(defun compute-target-sbcl-emit-cfasl ()
+  (read-first-file-form "obj/target-sbcl-emit-cfasl.lisp-expr"))
+
 (defun read-first-file-form (filepath)
   "Reads the first form from the top of a file"
   (with-standard-io-syntax ()

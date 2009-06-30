@@ -27,7 +27,8 @@
 (defvar *lisp-flags* :default
   "What options do we need invoke the target Lisp with?")
 
-(defvar *use-cfasls* (eq *lisp-implementation-type* :sbcl)
+;; *use-cfasls* is set by main.lisp after *lisp-implementation-type* is set.
+(defvar *use-cfasls* nil
   "Should we assume the target Lisp supports CFASL?")
 
 (defparameter +xcvb-setup-dependencies+
