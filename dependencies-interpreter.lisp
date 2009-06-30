@@ -160,7 +160,7 @@ a reference to the system was superseded by a BUILD file.")
   "what type for grains corresponding to a given dependency tag")
 
 (defparameter +computing-dependencies+
-  '(:when :cond))
+  '(:when :cond :source))
 
 (defun deconstruct-dependency (dep k)
   (flet ((err () (error "malformed dependency ~S" dep)))
