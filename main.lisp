@@ -40,7 +40,8 @@
       (when xcvb-path
         (set-search-path! xcvb-path))
       (when setup
-        (push `(:lisp ,setup) *lisp-setup-dependencies*))
+        (setf *lisp-setup-dependencies*
+              (append *lisp-setup-dependencies* `((:lisp ,setup)))))
       (when verbosity
         (setf *xcvb-verbosity* verbosity))
       (when output-path

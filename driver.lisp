@@ -166,9 +166,28 @@ This is designed to abstract away the implementation specific quit forms."
 (defun load-file (x)
   (load x))
 
-#+asdf
+(defun do-find-symbol (name package-name)
+  (let ((package (find-package (string package-name))))
+    (unless package
+      (error "Trying to use package ~A, but it is not loaded yet!" package-name))
+    (let ((symbol (find-symbol (string name) package)))
+      (unless symbol
+        (error "Trying to use symbol ~A in package ~A, but it does not exist!" name package-name))
+      symbol)))
+
+(defun call (package symbol &rest args)
+  (apply (do-find-symbol symbol package) args))
+
+(defun eval-string (string)
+  (eval (read-from-string string)))
+
+(defun asdf-symbol (x)
+  (do-find-symbol x :asdf))
+(defun asdf-call (x &rest args)
+  (apply 'call :asdf x args))
+
 (defun load-asdf (x)
-  (asdf:oos 'asdf:load-op x))
+  (asdf-call :oos (asdf-symbol :load-op) x))
 
 (defun compile-lisp (source fasl &key cfasl)
   (let ((*default-pathname-defaults* (truename *default-pathname-defaults*)))
@@ -178,42 +197,33 @@ This is designed to abstract away the implementation specific quit forms."
            (when cfasl
              `(:emit-cfasl ,cfasl)))))
 
-(defun call (package symbol &rest args)
-  (apply (intern (string symbol) package) args))
-
-(defun eval-string (string)
-  (eval (read-from-string string)))
-
 (defun create-image (spec &rest dependencies)
   (destructuring-bind (image &key standalone package) spec
     (do-create-image image dependencies
                      :standalone standalone :package package)))
 
-#+asdf
 (defun asdf-system-up-to-date-p (operation-class system &rest args)
   "Takes a name of an asdf system (or the system itself) and a asdf operation
 and returns a boolean indicating whether or not anything needs to be done
 in order to perform the given operation on the given system.
 This returns whether or not the operation has already been performed,
 and none of the source files in the system have changed since then"
-  (let* ((op (apply #'make-instance operation-class
-		    :original-initargs args args))
-	 (asdf::*verbose-out*
-	  (if (getf args :verbose t)
-            *trace-output*
+  (progv
+      (list (asdf-symbol :*verbose-out*))
+      (list (if (getf args :verbose t) *trace-output*
             (make-broadcast-stream)))
-	 (system (if (typep system 'asdf:component)
-                     system
-                     (asdf:find-system system)))
-	 (steps (asdf::traverse op system)))
-    ;(format T "~%that system is ~:[out-of-date~;up-to-date~]" (null steps))
-    (null steps)))
+    (let* ((op (apply #'make-instance operation-class
+		    :original-initargs args args))
+           (system (if (typep system (asdf-symbol :component))
+                       system
+                       (asdf-call :find-system system)))
+           (steps (asdf-call :traverse op system)))
+      ;;(format T "~%that system is ~:[out-of-date~;up-to-date~]" (null steps))
+      (null steps))))
 
-#+asdf
 (defun asdf-system-loaded-up-to-date-p (system)
-  (asdf-system-up-to-date-p 'asdf:load-op system))
+  (asdf-system-up-to-date-p (asdf-symbol :load-op) system))
 
-#+asdf
 (defun asdf-systems-up-to-date-p (systems)
   "Takes a list of names of asdf systems, and
 exits lisp with a status code indicating
@@ -224,7 +234,6 @@ whether or not all of those systems were up-to-date or not."
   (quit 
    (if x 0 1)))
 
-#+asdf
 (defun asdf-systems-up-to-date (&rest systems)
   "Are all the loaded systems up to date?"
   (with-exit-on-error ()
