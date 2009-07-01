@@ -97,7 +97,10 @@
      #:*lisp-image-pathname*
      #:*lisp-image-name* ;; fullname instead of pathname
      #:*lisp-options*
+
+     ;; Target system configuration
      #:*use-cfasls*
+     #:*target-system-features*
 
      ;; interpreting dependencies
      #:compile-time-fasl-type

@@ -120,9 +120,10 @@ or what's currently left of them as they are processed")
      (let ((p (make-hash-table :test 'equal)))
        (dolist (spec specification)
          (destructuring-bind (names &rest option-options
-                                    &key action type optional negation list)
+                                    &key type optional list negation
+                                    action documentation negation-documentation)
              spec
-           (declare (ignorable action))
+           (declare (ignorable action documentation negation-documentation))
            (when list
              (unless (member type '(integer string))
                (error "option specification wants list but doesn't specify string or integer")))
@@ -139,18 +140,22 @@ or what's currently left of them as they are processed")
              (when (or (eq type 'boolean) list optional)
                (let ((neg-action #'(lambda (value)
                                      (command-line-action pos-action (not value))))
-                     (negation-list (if (listp negation) negation (list negation))))
-                 (loop for name in namelist
-                       when (stringp name) do
-                       (push (concatenate 'string "no-" name) negation-list)
-                       (when (and (<= 7 (length name))
-                                  (string= "enable-" (subseq name 0 7)))
-                         (push (concatenate 'string "disable-" (subseq name 7 nil))
-                               negation-list)))
-                 (loop with spec = (vector neg-action nil nil)
-                       for name in negation-list do
+                     (neg-names (make-negated-names namelist negation)))
+                 (loop with spec = (vector neg-action nil nil nil)
+                       for name in neg-names do
                        (setf (gethash name p) spec)))))))
        p))))
+
+(defun make-negated-names (namelist &optional negation)
+  (let ((negation-list (if (listp negation) negation (list negation))))
+    (loop for name in namelist
+          when (stringp name) do
+          (push (concatenate 'string "no-" name) negation-list)
+          (when (and (<= 7 (length name))
+                     (string= "enable-" (subseq name 0 7)))
+            (push (concatenate 'string "disable-" (subseq name 7 nil))
+                  negation-list)))
+    negation-list))
 
 (defun command-line-option-specification (option)
   (let ((v (gethash option *command-line-option-specification*)))
@@ -318,27 +323,41 @@ or what's currently left of them as they are processed")
 (defun compute-and-process-command-line-options (specification)
   (process-command-line-options specification (get-command-line-arguments)))
 
+(defun show-option-help (specification &optional (stream *standard-output*))
+  ;; TODO: be clever when trying to align stuff vertically
+  (loop :for spec :in specification :do
+        (destructuring-bind (names &key negation documentation negation-documentation
+                                   type optional list &allow-other-keys) spec
+          (declare (ignorable negation documentation negation-documentation type optional list))
+          (when documentation
+            (format stream " ~25A  ~A~%"
+                    (format nil "~{ ~A~}" (mapcar 'option-name names))
+                    documentation))
+          (when negation-documentation
+            (format stream " ~25A  ~A~%"
+                    (format nil "~{ ~A~}" (mapcar 'option-name (make-negated-names names negation)))
+                    negation-documentation)))))
 
 #| Testing:
 
 (defparameter *opt-spec*
- '((("all" #\a) :type boolean)
-   (("verbose" #\v) :type boolean)
-   (("file" #\f) :type string)
-   (("xml-port" #\x) :type integer :optional t)
-   ("enable-qpx-cache" :type boolean)
-   ("path" :type string :list t :optional t)
-   ("port" :type integer :list (:initial-contents (1 2)) :optional t)))
+ '((("all" #\a) :type boolean :documentation "do it all")
+   (("verbose" #\v) :type boolean :documentation "include debugging output")
+   (("file" #\f) :type string :documentation "read from file instead of standard input")
+   (("xml-port" #\x) :type integer :optional t :documentation "specify port for an XML listener")
+   ("enable-cache" :type boolean :documentation "enable cache for queries")
+   ("path" :type string :list t :optional t :documentation "add given directory to the path")
+   ("port" :type integer :list (:initial-contents (1 2)) :optional t :documentation "add a normal listen on given port")))
 
-(defun foo (args &key all verbose file xml-port enable-qpx-cache port path)
+(defun foo (args &key all verbose file xml-port enable-cache port path)
   (list args :all all :verbose verbose :file file :xml-port xml-port
-        :enable-qpx-cache enable-qpx-cache :port port :path path))
+        :enable-cache enable-cache :port port :path path))
 
 (multiple-value-bind (options arguments)
     (process-command-line-options
      *opt-spec*
      '("--all" "--no-verbose" "--file" "foo" "-f" "-v" "-v"
-       "-x" "--disable-qpx-cache"
+       "-x" "--disable-cache"
        "--no-port" "--port" "3" "--port=4"
        "--path" "/foo" "--path" "/bar"
        "--" "--foo" "bar" "baz"))
@@ -346,5 +365,7 @@ or what's currently left of them as they are processed")
   (write options :pretty nil) (terpri)
   (write (apply 'foo arguments options) :pretty nil)
   (terpri))
+
+(show-option-help *opt-spec*)
 
 |#

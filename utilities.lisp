@@ -38,6 +38,12 @@
     (unless (zerop l)
       (char string (1- l)))))
 
+(defun but-last-char (string)
+  (check-type string string)
+  (let ((l (length string)))
+    (unless (zerop l)
+      (subseq string 0 (1- l)))))
+
 (defun first-char (string)
   (check-type string string)
   (unless (zerop (length string))
@@ -334,3 +340,13 @@ Did you mix up the ordering?" f))
 (defun hash-table->alist (table)
   (loop for key being the hash-keys of table using (hash-value value)
 	collect (cons key value)))
+
+
+;;; Reading a file's first form
+(defun read-first-file-form (filepath)
+  "Reads the first form from the top of a file"
+  (with-standard-io-syntax ()
+    (let ((*package* (find-package :xcvb-user))
+	  (*read-eval* nil))
+      (with-open-file (in filepath)
+        (read in)))))

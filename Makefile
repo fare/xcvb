@@ -51,12 +51,15 @@ endef
 LISP_BIN := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_binary_path)
 LISP_IMPL := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_implementation)
 
-obj/target-features.lisp-expr : xcvb.mk
-
 ## These are used to bootstrap xcvb with xcvb.
 ## See test/mock/a/c/Makefile for details and comments.
+obj/target-properties.lisp-expr: xcvb.mk
 xcvb.mk: ${LISP_SOURCES} setup.lisp ${LISP_BIN}
-	xcvb make-makefile --setup /xcvb/setup --build /xcvb --target-lisp-impl ${LISP_IMPL} --target-lisp-bin ${LISP_BIN}
+	xcvb make-makefile \
+	     --build /xcvb \
+	     --setup /xcvb/setup \
+	     --lisp-implementation ${LISP_IMPL} \
+	     --lisp-binary-path ${LISP_BIN}
 
 ## TODO: In xcvb.mk, have xcvb.mk: <more dependencies> **/BUILD.lisp
 ## TODO: In xcvb.mk, generated files should depend on the BUILD.lisp.

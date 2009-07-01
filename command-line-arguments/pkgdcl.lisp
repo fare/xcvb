@@ -11,4 +11,5 @@
    #:process-command-line-options
    #:compute-and-process-command-line-options
    #:get-command-line-arguments
+   #:show-option-help
    ))

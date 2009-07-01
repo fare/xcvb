@@ -1,6 +1,6 @@
 ;;; Shell command-line interface for XCVB
 
-#+xcvb (module (:depends-on ("static-backends" "search-path" "computations")))
+#+xcvb (module (:depends-on ("static-backends" "search-path" "computations" "extract-target-properties")))
 
 (in-package :xcvb)
 
@@ -16,6 +16,49 @@
   (initialize-search-path)
   (values))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter +make-makefile-option-spec+
+ '((("build" #\b) :type string :optional nil :documentation "specify what system to build")
+   (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
+   (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
+   (("output-path" #\o) :type string :optional t :documentation "specify output path (default: xcvb.mk)")
+   (("object-directory" #\O) :type string :optional t :documentation "specify object directory (default: obj)")
+   (("lisp-implementation" #\i) :type string :optional t :documentation "specify type of Lisp implementation (default: sbcl)")
+   (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+   (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
+
+(defun make-makefile (args)
+  (reset-variables)
+  (multiple-value-bind (options arguments)
+      (process-command-line-options +make-makefile-option-spec+ args)
+    (when arguments
+      (error "Invalid arguments to make-makefile"))
+    (destructuring-bind (&key xcvb-path setup verbosity output-path
+                              build lisp-implementation lisp-binary-path
+                              object-directory) options
+      (when xcvb-path
+        (set-search-path! xcvb-path))
+      (when setup
+        (push `(:lisp ,setup) *lisp-setup-dependencies*))
+      (when verbosity
+        (setf *xcvb-verbosity* verbosity))
+      (when output-path
+        (setf *default-pathname-defaults*
+              (ensure-absolute-pathname (pathname-directory-pathname output-path))))
+      (when object-directory
+        (setf *object-directory* ;; strip last "/"
+              (but-last-char (enough-namestring *object-directory*))))
+      (when lisp-implementation
+	(setf *lisp-implementation-type*
+              (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+      (when lisp-binary-path
+	(setf *lisp-executable-pathname* lisp-binary-path))
+      (extract-target-properties)
+      (read-target-properties)
+      (search-search-path)
+      (write-makefile build :output-path output-path))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Command Spec ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Spec for XCVB command-line commands.  Each item of the list takes the form
@@ -24,25 +67,30 @@
 ;; command is invoked, short-help is a short help string for the user, and
 ;; long-help is a longer help string for the user.
 (defparameter +xcvb-commands+
-  '((("eval") eval-command "Eval some Lisp form"
-     "TODO write long help for eval command")
-    (("help" "-?" "--help" "-h") program-help "Output this help message"
-"With no additional arguments, the 'help' command provides general help on
+  '((("help" "-?" "--help" "-h") program-help ()
+     "Output some help message"
+     "With no additional arguments, the 'help' command provides general help on
 using XCVB.  Using 'xcvb help COMMAND' where COMMAND is the name of an XCVB
 command gives specific help on that command.")
-    (("load") load-command "Load a Lisp file"
-     "TODO write long help for load command")
-    (("make-makefile" "mkmk" "mm") make-makefile "Create some Makefile"
-     "TODO write long help for mkmk command")
-    (("repl") repl-command "Start a REPL"
-"The 'repl' command takes no additional arguments.  Using 'xcvb repl' launches
-a Lisp REPL.")
-    (("usage" nil) program-usage "Output usage info"
-"The 'usage' command ignores all arguments, and prints out a simple usage
-string for XCVB.")
-    (("version" "-V" "--version") show-version "Show version"
-"The 'version' command ignores all arguments, and prints out the version number
-for this version of XCVB.")))
+    (("version" "-V" "--version") show-version ()
+     "Show version"
+     "The 'version' command ignores all arguments, and prints out the version number
+for this version of XCVB.")
+    (("make-makefile" "mkmk" "mm") make-makefile +make-makefile-option-spec+
+     "Create some Makefile"
+     "Create Makefile rules to build a project.")
+    (("load") load-command ()
+     "Load a Lisp file"
+     "Load a Lisp file in the context XCVB itself. For XCVB developers only.")
+    (("eval") eval-command ()
+     "Evaluate some Lisp form"
+     "Evaluate some Lisp form in the context of XCVB itself. For XCVB developers only.")
+    (("repl") repl-command ()
+     "Start a REPL"
+     "The 'repl' command takes no additional arguments.
+Using 'xcvb repl' launches a Lisp REPL.
+For XCVB developers only (can be used with SLIME).")))
+
 
 ;; Lookup the command spec for the given command name, or return nil if the
 ;; given command name is invalid.
@@ -50,15 +98,8 @@ for this version of XCVB.")))
   (flet ((member-equalp (x l) (member x l :test #'equalp)))
     (assoc command-name +xcvb-commands+ :test #'member-equalp)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Simple Commands ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Command to print out a usage string.
-(defun program-usage (args)
-  (declare (ignore args))
-  (format t "~&Usage: xcvb COMMAND ARGS~%  ~
-	  where COMMAND is one of the following:~%   ~{ ~A~}~%~
-          See 'xcvb help' for more information.~%"
-          (mapcar #'caar +xcvb-commands+)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Simple Commands ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Command to print out more detailed help.
 (defun program-help (args)
@@ -66,20 +107,25 @@ for this version of XCVB.")))
       ;; If user typed "xcvb help", give general help, summarizing commands.
       (format t "~&Usage: xcvb COMMAND ARGS~%  ~
        where COMMAND is one of the following:~%~%~
-       ~:{    ~1{~16A~}~*~A~%~}~%~
+       ~:{    ~1{~16A~}~*~*~A~%~}~%~
        See 'xcvb help COMMAND' for more information on a specific command.~%"
               +xcvb-commands+)
       ;; Else if user typed "xcvb help COMMAND", give specific help on that
       ;; command.
       (let* ((command (car args))
-             (command-spec (lookup-command command)))
+             (command-spec (lookup-command command))
+             (command-options (symbol-value (third command-spec))))
         (unless (null (cdr args))
           (errexit 2 "~&Too many arguments -- try 'xcvb help'.~%"))
-        (if command-spec
-            (format t "~&~1{Command: ~A~%Aliases:~{ ~A~^ ~}~%~%~2*~A~}~%"
+        (cond
+          (command-spec
+            (format t "~&~1{Command: ~A~%Aliases:~{ ~A~^ ~}~%~%~3*~A~}~%"
                     (cons command command-spec))
-            (errexit 2 "~&Invalid XCVB command ~S -- try 'xcvb help'.~%"
-                     command)))))
+            (when command-options
+              (command-line-arguments:show-option-help command-options)))
+          (t
+           (errexit 2 "~&Invalid XCVB command ~S -- try 'xcvb help'.~%"
+                    command))))))
 
 ;; Command to print out a version string.
 (defun show-version (args)
@@ -95,7 +141,7 @@ for this version of XCVB.")))
 ;; Command to eval a file.
 (defun eval-command (args)
   (unless (list-of-length-p 1 args)
-    (error "eval requires exactly 1 argument, a file to load"))
+    (error "eval requires exactly 1 argument, a form to evaluate"))
     (eval (read-from-string (car args))))
 
 ;; Command to start a REPL.
@@ -106,75 +152,9 @@ for this version of XCVB.")))
   (throw :repl nil))
 
 (defun repl ()
-  #+sbcl (sb-ext:enable-debugger)
-  #+sbcl (sb-impl::toplevel-repl nil)
+  #+sbcl (progn (sb-ext:enable-debugger) (sb-impl::toplevel-repl nil))
   #-(or sbcl) (error "REPL unimplemented"))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defparameter +make-makefile-option-spec+
- '((("xcvb-path" #\x) :type string :optional t)
-   (("setup" #\s) :type string :optional t)
-   (("verbosity" #\v) :type integer :optional t)
-   (("output-path" #\o) :type string :optional t)
-   (("build" #\b) :type string :optional nil)
-   (("target-lisp-impl" #\i) :type string :optional t)  ;; 'i' for 'implementation'
-   (("target-lisp-bin" #\p) :type string :optional t))) ;; 'p' for 'path' of binary.
-
-(defun query-target-lisp-helper (query-string output-filename)
-  (assert *lisp-implementation-type*)
-  (asdf:run-shell-command
-   (format nil
-	   "~A > ~A"
-	   (shell-tokens-to-string
-	    (lisp-invocation-arglist
-	     :eval (format nil "(progn (write ~A :readably t) (terpri) ~A)"
-			   query-string
-			   (format nil (slot-value
-					(get-lisp-implementation
-					 *lisp-implementation-type*) 'quit-format) 0))))
-	   output-filename)))
-
-;; Create obj/target-features.lisp-expr, which contains the target Lisp's *features*
-(defun make-target-features-lisp-expr ()
-  (ensure-directories-exist "obj/")
-  (query-target-lisp-helper "*features*"
-			    "obj/target-features.lisp-expr"))
-
-;; Create obj/target-sbcl-emit-cfasl.lisp-expr,
-;; which contains SB-C::*EMIT-CFASL* if target lisp implementation (sbcl)
-;; supports CFASLs.
-(defun target-sbcl-emit-cfasl-lisp-expr ()
-  (assert (eq *lisp-implementation-type* :sbcl))
-  (ensure-directories-exist "obj/")
-  (query-target-lisp-helper "(find-symbol \"*EMIT-CFASL*\" \"SB-C\")"
-			    "obj/target-sbcl-emit-cfasl.lisp-expr"))
-
-(defun make-makefile (args)
-  (multiple-value-bind (options arguments)
-      (process-command-line-options +make-makefile-option-spec+ args)
-    (reset-variables)
-    (when arguments
-      (error "Invalid arguments to make-makefile"))
-    (destructuring-bind (&key xcvb-path setup verbosity output-path
-        build target-lisp-impl target-lisp-bin) options
-      (when xcvb-path
-        (set-search-path! xcvb-path))
-      (when setup
-        (push `(:lisp ,setup) *lisp-setup-dependencies*))
-      (when verbosity
-        (setf *xcvb-verbosity* verbosity))
-      (when target-lisp-impl
-	(setf *lisp-implementation-type* (find-symbol (string-upcase target-lisp-impl) (find-package :keyword)))
-	(when (eq *lisp-implementation-type* :sbcl)
-	  (target-sbcl-emit-cfasl-lisp-expr)
-	  ;; If CFASLs are supported, *use-cfasls* = SB-C::*EMIT-CFASL*
-	  (setf *use-cfasls* (compute-target-sbcl-emit-cfasl))))
-      (when target-lisp-bin
-	(setf *lisp-executable-pathname* target-lisp-bin)
-	(make-target-features-lisp-expr))
-      (search-search-path)
-      (write-makefile build :output-path output-path))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -191,10 +171,14 @@ for this version of XCVB.")))
   (let* ((*package* (find-package :xcvb-user))
          (command (pop args))
          (fun (second (lookup-command command))))
-    (if fun
-        (funcall fun args)
-        (errexit 2 "~&Invalid XCVB command ~S -- try 'xcvb help'.~%"
-                 command))))
+    (cond
+      (fun
+       (funcall fun args))
+      ((not command)
+       (errexit 2 "XCVB requires a command -- try 'xcvb help'.~%"))
+      (t
+       (errexit 2 "~&Invalid XCVB command ~S -- try 'xcvb help'.~%"
+                command)))))
 
 (defun exit (&optional (code 0) &rest r)
   (declare (ignore r))

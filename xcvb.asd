@@ -30,14 +30,15 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "computations" :depends-on ("grains"))
      (:file "portablish-pathnames" :depends-on ("utilities"))
      (:file "registry" :depends-on ("portablish-pathnames" "grains"))
-     (:file "lisp-grain" :depends-on ("registry" "specials"))
+     (:file "lisp-invocation" :depends-on ("specials"))
+     (:file "extract-target-properties" :depends-on ("specials" "lisp-invocation"))
+     (:file "lisp-grain" :depends-on ("registry" "extract-target-properties"))
      (:file "names" :depends-on ("registry" "lisp-grain" "specials"))
      (:file "search-path" :depends-on ("registry" "specials"))
      (:file "dependencies-interpreter" :depends-on ("names" "specials" "computations"))
      (:file "static-backends" :depends-on
             ("specials" "lisp-grain" "dependencies-interpreter" "logging"))
      (:file "string-escape" :depends-on ("utilities"))
-     (:file "lisp-invocation" :depends-on ("specials"))
      (:file "makefile-backend" :depends-on ("static-backends" "string-escape" "computations"))
 
      ;;; These files are not meaningful anymore, need to be re-written in the new framework:

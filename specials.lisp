@@ -8,7 +8,7 @@
 ;; time...  It would be better to have some version number automatically
 ;; extracted from the date, plus a hash obtained from git, and/or from xcvb's
 ;; own digesting mechanism.
-(defparameter *xcvb-version* "0.310")
+(defparameter *xcvb-version* "0.311")
 
 (defvar *lisp-implementation-type* nil
   "Type of Lisp implementation for the target system")
@@ -69,3 +69,6 @@
   (make-hash-table :test 'equal)
   "Registry of known files, indexed by namestring.
 Negatives are stored as NIL. Positives as grains.")
+
+(defvar *object-directory* "obj"
+  "where to store object files")

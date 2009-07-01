@@ -1,5 +1,5 @@
 ;;;;; Syntax and Semantics of Lisp grains, including BUILD.lisp files
-#+xcvb (module (:depends-on ("registry" "specials")))
+#+xcvb (module (:depends-on ("registry" "specials" "extract-target-properties")))
 (in-package :xcvb)
 
 ;;; Module forms
@@ -21,23 +21,8 @@
            keys)))
 
 (defun target-system-features ()
-  (unless *target-system-features*
-    (setf *target-system-features* (compute-target-system-features)))
+  (get-target-properties)
   *target-system-features*)
-
-(defun compute-target-system-features ()
-  (read-first-file-form "obj/target-features.lisp-expr"))
-
-(defun compute-target-sbcl-emit-cfasl ()
-  (read-first-file-form "obj/target-sbcl-emit-cfasl.lisp-expr"))
-
-(defun read-first-file-form (filepath)
-  "Reads the first form from the top of a file"
-  (with-standard-io-syntax ()
-    (let ((*package* (find-package :xcvb-user))
-	  (*read-eval* nil))
-      (with-open-file (in filepath)
-        (read in)))))
 
 (defun grain-from-file-declaration (path &key build-p)
   (parse-module-declaration

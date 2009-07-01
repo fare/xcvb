@@ -1,12 +1,7 @@
 ;;; Lisp implementations
-#+xcvb
-(module
-  (:depends-on ("specials")))
-
+#+xcvb (module (:depends-on ("specials")))
 
 (in-package :xcvb)
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
 
 (defvar *lisp-implementations* (make-hash-table :test 'equal)
   "Dictionary of known Lisp implementations")
@@ -31,7 +26,6 @@
 (defmacro define-lisp-implementation (key () &rest keys)
   `(setf (gethash ,key *lisp-implementations*)
     (apply #'make-lisp-implementation ',keys)))
-)
 
 (defun get-lisp-implementation (implementation-type)
   (or (gethash implementation-type *lisp-implementations*)
