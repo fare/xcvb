@@ -16,14 +16,15 @@ and the load dependencies depending on load-time effects of the files."
        (loop
          :for comp-dep :in (slot-value module 'compile-depends-on)
          :for load-dep :in (slot-value module 'load-depends-on)
-         :always (and (consp comp-dep)
-                      (eql (first comp-dep) :compile)
-                      (null (rest (rest comp-dep)))
-                      (if (consp load-dep)
-                        (and (eql (first load-dep) :load)
-                             (null (rest (rest load-dep)))
-                             (equal (second load-dep) (second comp-dep)))
-                        (equal load-dep (second comp-dep)))))))
+         :always (or (equal comp-dep load-dep)
+		     (and (consp comp-dep)
+			  (eql (first comp-dep) :compile)
+			  (null (rest (rest comp-dep)))
+			  (if (consp load-dep)
+			      (and (eql (first load-dep) :load)
+				   (null (rest (rest load-dep)))
+				   (equal (second load-dep) (second comp-dep)))
+			      (equal load-dep (second comp-dep))))))))
 
 (defun module-string (grain)
   "Returns a string representation of a module object that can be put at the
@@ -31,9 +32,9 @@ top of a source file"
   (with-output-to-string (out)
     (format out "#+xcvb~%(module (")
     (when (build-grain-p grain)
-      (format out "~@[~%~7,0T:fullname ~S~]" (fullname grain)))
+      (format out "~@[~%~7,0T:fullname ~S~]" (subseq (fullname grain) 1)))
     (dolist (slot '(author maintainer version licence description long-description))
-      (when (slot-boundp grain slot)
+      (when (and (slot-boundp grain slot) (slot-value grain slot))
         (format out "~@[~%~7,0T:~(~A~) ~S~]" slot (slot-value grain slot))))
     (with-slots (load-depends-on compile-depends-on depends-on) grain
       (if (equivalent-deps-p grain)
@@ -42,9 +43,10 @@ top of a source file"
                   "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~S~^~%~})~]~
                    ~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~S~^~%~})~]"
                   compile-depends-on load-depends-on)))
-    (if (and (build-grain-p grain) (slot-value grain 'build-requires))
-        (format out "~@[~%~7,0T:build-requires ~S)~]"
-              (slot-value grain 'build-requires)))
+    (when (build-grain-p grain)
+      (dolist (slot '(build-requires supersedes-asdf))
+	(when (and (slot-boundp grain slot) (slot-value grain slot))
+	  (format out "~@[~%~7,0T:~(~A~) ~S~]" slot (slot-value grain slot)))))
     (format out ")")
     (format out "~@[~%~{~7,0T~S~^~%~}~]" (and (slot-boundp grain 'extension-forms)
 					      (grain-extension-forms grain)))
@@ -160,6 +162,7 @@ form if there is one (but leaving the extension forms)."
                                       file-deps)
                               file-deps)
         :load-depends-on file-deps
+	:supersedes-asdf (mapcar #'asdf::coerce-name original-systems)
 	:pathname (make-pathname
                    :name "BUILD"
                    :type "lisp"
@@ -243,7 +246,7 @@ so that the system can now be compiled with XCVB."
 		   :verbose nil))))
   (let ((asdf-dependency-grovel::*system-base-dir*
 	 (cl-launch:apply-output-pathname-translations base-pathname)))
-    (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system))
+    (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system)) ;; defconstant error
   (eval
    `(asdf:defsystem :migrated-system
      ,@(with-open-file (s (cl-launch:apply-output-pathname-translations
