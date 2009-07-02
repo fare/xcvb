@@ -90,7 +90,16 @@ for this version of XCVB.")
      "Start a REPL"
      "The 'repl' command takes no additional arguments.
 Using 'xcvb repl' launches a Lisp REPL.
-For XCVB developers only (can be used with SLIME).")))
+For XCVB developers only (can be used with SLIME).")
+    (("asdf-to-xcvb") asdf-to-xcvb-command +asdf-to-xcvb-option-spec+
+     "Convert ASDF system to XCVB"
+     "The 'asdf-to-xcvb' command takes 'system' and optional 'setup' and 'systems-path' arguments.  
+'system' specifies the name of the system to convert.
+'setup' specifies a Lisp file to load before converting 'system' from ASDF to XCVB.
+'systems-path' specifies the path to directory where system's ASDF files can be found.
+The 'systems-path' optional argument is not implemented yet.
+Users can set the systems-path used by XCVB by configuring CL_LAUNCH_FLAGS in /xcvb/configure.mk.
+This is annoying however, as it requires remaking XCVB.")))
 
 
 ;; Lookup the command spec for the given command name, or return nil if the
@@ -156,6 +165,21 @@ For XCVB developers only (can be used with SLIME).")))
   #+sbcl (progn (sb-ext:enable-debugger) (sb-impl::toplevel-repl nil))
   #-(or sbcl) (error "REPL unimplemented"))
 
+(defparameter +asdf-to-xcvb-option-spec+
+  '((("system" #\b) :type string :optional nil :documentation "Specify what system to convert.")
+    (("setup"  #\s) :type string :optional t   :documentation "Specify a Lisp setup file, which will be loaded before system is converted from ASDF to XCVB.")
+    (("system-path" #\p) :type string :optional t :documentation "Specify a path to ASDF systems directory, which contains the ASDF files needed to build system.")))
+
+(defun asdf-to-xcvb-command (args)
+  (multiple-value-bind (options arguments)
+      (process-command-line-options +asdf-to-xcvb-option-spec+ args)
+    (when arguments
+      (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
+    (destructuring-bind (&key system setup system-path) options
+      (declare (ignore system-path))
+      (let ((system-keyword (intern (string-upcase system) "KEYWORD")))
+	(when setup (load setup))
+	(asdf-to-xcvb :system system-keyword)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
