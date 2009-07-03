@@ -1,5 +1,5 @@
 ;;; Handle the Search Path for XCVB modules.
-#+xcvb (module (:depends-on ("registry" "specials")))
+#+xcvb (module (:depends-on ("registry" "specials" "portablish-pathnames")))
 (in-package :xcvb)
 
 (defvar *search-path-searched-p* nil
@@ -46,23 +46,6 @@
 
 (defun set-search-path! (string)
   (setf *search-path* (expand-search-path-string string)))
-
-(defun ensure-pathname-is-directory (x)
-  (etypecase x
-    (string
-     (cond
-       ((equal x "")
-	(error "empty namestring"))
-       ((eql (last-char x) #\/)
-	(pathname x))
-       (t
-	(pathname (strcat x "/")))))
-    (pathname
-     (if (or (pathname-name x)
-             (pathname-type x)
-             (not (member (pathname-version x) '(nil :unspecific :newest))))
-       (error "pathname ~S isn't a directory" x)
-       x))))
 
 (defun initialize-search-path ()
   (setf *search-path-searched-p* nil)

@@ -204,3 +204,20 @@ erroring out if some source of non-portability is found"
   (and (string-prefix<= x y)
        (or (= (length x) (length y))
            (eql #\/ (char y (length x))))))
+
+(defun ensure-pathname-is-directory (x)
+  (etypecase x
+    (string
+     (cond
+       ((equal x "")
+	(error "empty namestring"))
+       ((eql (last-char x) #\/)
+	(pathname x))
+       (t
+	(pathname (strcat x "/")))))
+    (pathname
+     (if (or (pathname-name x)
+             (pathname-type x)
+             (not (member (pathname-version x) '(nil :unspecific :newest))))
+       (error "pathname ~S isn't a directory" x)
+       x))))

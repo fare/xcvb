@@ -114,7 +114,10 @@ Other top TODO items that are not on ITA's critical path include the following.
 They would be ideal for a non-ITA hacker to tackle,
 in a suggested order for a newbie to enter XCVB hacking:
 
- * Extend the ``command-line-arguments`` library to allow for self-documentation
+ * Add an XCVB command to dump BUILD and/or ASDF path information, to make it easier
+   for users to understand which version of which software they are using.
+
+ * Extend the ``command-line-arguments`` library to allow for better self-documentation
    of option specifications with ``:documentation`` keyword arguments to options,
    that can be trivially used to generate help for command options and sub-command options
    (think about ``svn`` or ``git`` calling conventions).
@@ -123,6 +126,16 @@ in a suggested order for a newbie to enter XCVB hacking:
  * When identifying a file dependency,
    make the distinction between ``:source``, ``:object`` or ``:file``
    orthogonal to that between ``:lisp``, ``:fasl``, ``:image`` or ``:data``.
+   This is not trivial because this requires:
+
+     + changing the dependency normalization algorithm, probably normalizing
+
+     + updating the ``graph-for`` algorithm to deconstruct the new pattern.
+
+     + updating the ``dependency-namestring`` algorithm to deconstruct the new pattern.
+
+     + to make things error-proof, adding another layer of registration that ensures that
+       an actual pathname is only used for one kind of abstract dependency pathname.
 
  * When a generated file is described in a ``BUILD.lisp``,
    have the file itself depend on ``BUILD.lisp``.

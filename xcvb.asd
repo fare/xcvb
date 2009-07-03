@@ -34,7 +34,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "extract-target-properties" :depends-on ("specials" "lisp-invocation"))
      (:file "lisp-grain" :depends-on ("registry" "extract-target-properties"))
      (:file "names" :depends-on ("registry" "lisp-grain" "specials"))
-     (:file "search-path" :depends-on ("registry" "specials"))
+     (:file "search-path" :depends-on ("registry" "specials" "portablish-pathnames"))
      (:file "dependencies-interpreter" :depends-on ("names" "specials" "computations"))
      (:file "static-backends" :depends-on
             ("specials" "lisp-grain" "dependencies-interpreter" "logging"))

@@ -7,28 +7,35 @@
 ;; TODO: find a good way to ensure this bit gets incremented at the right time.
 ;; e.g. have some version number automatically extracted from the date, plus
 ;; maybe a hash obtained from git, and/or from xcvb's own digesting mechanism.
+;; MAYBE what we want is just a git hook that will ensure that a given version
+;; file is modified at every commit, or else either auto-increment the number
+;; in that file or plainly error out.
 (defparameter *xcvb-version* "0.312")
 
-(defvar *lisp-implementation-type* nil
-  "Type of Lisp implementation for the target system")
+(defvar *lisp-implementation-type*
+  (or #+sbcl :sbcl #+clisp :clisp #+ccl :ccl #+cmu :cmucl)
+  "Type of Lisp implementation for the target system.
+Default: same as XCVB itself.")
 
 (defvar *lisp-executable-pathname* nil
-  "Path to the Lisp implementation to use for the target system")
+  "Path to the Lisp implementation to use for the target system.
+Default: what's in your PATH.")
 
-(defvar *target-system-features* nil)
+(defvar *target-system-features* nil
+  "value of *features* in the target system
+Autodetected from the target Lisp system.")
 
 (defvar *lisp-image-pathname* nil
-  "What path to a Lisp image do we need invoke the target Lisp with?")
-
-(defvar *lisp-image-name* nil
-  "What fullname to a Lisp image do we need invoke the target Lisp with?")
+  "What path to a Lisp image do we need invoke the target Lisp with?
+Default: whatever's the default for your implementation.")
 
 (defvar *lisp-flags* :default
   "What options do we need invoke the target Lisp with?")
 
 ;; *use-cfasls* is set by main.lisp after *lisp-implementation-type* is set.
 (defvar *use-cfasls* nil
-  "Should we assume the target Lisp supports CFASL?")
+  "Should we assume the target Lisp supports CFASL?
+Autodetected from the target Lisp system.")
 
 (defparameter +xcvb-setup-dependencies+
   '((:lisp "/xcvb/driver"))

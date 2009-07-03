@@ -95,7 +95,6 @@
      #:*lisp-implementation*
      #:*lisp-executable-pathname*
      #:*lisp-image-pathname*
-     #:*lisp-image-name* ;; fullname instead of pathname
      #:*lisp-options*
 
      ;; Target system configuration
