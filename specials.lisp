@@ -10,7 +10,7 @@
 ;; MAYBE what we want is just a git hook that will ensure that a given version
 ;; file is modified at every commit, or else either auto-increment the number
 ;; in that file or plainly error out.
-(defparameter *xcvb-version* "0.312")
+(defparameter *xcvb-version* "0.313")
 
 (defvar *lisp-implementation-type*
   (or #+sbcl :sbcl #+clisp :clisp #+ccl :ccl #+cmu :cmucl)

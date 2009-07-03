@@ -28,37 +28,53 @@
    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
    (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
 
-(defun make-makefile (args)
+(defun make-makefile (arguments &key
+                                xcvb-path setup verbosity output-path
+                                build lisp-implementation lisp-binary-path
+                                object-directory)
   (reset-variables)
-  (multiple-value-bind (options arguments)
-      (process-command-line-options +make-makefile-option-spec+ args)
-    (when arguments
-      (error "Invalid arguments to make-makefile"))
-    (destructuring-bind (&key xcvb-path setup verbosity output-path
-                              build lisp-implementation lisp-binary-path
-                              object-directory) options
-      (when xcvb-path
-        (set-search-path! xcvb-path))
-      (when setup
-        (setf *lisp-setup-dependencies*
-              (append *lisp-setup-dependencies* `((:lisp ,setup)))))
-      (when verbosity
-        (setf *xcvb-verbosity* verbosity))
-      (when output-path
-        (setf *default-pathname-defaults*
-              (ensure-absolute-pathname (pathname-directory-pathname output-path))))
-      (when object-directory
-        (setf *object-directory* ;; strip last "/"
-              (but-last-char (enough-namestring *object-directory*))))
-      (when lisp-implementation
-	(setf *lisp-implementation-type*
-              (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
-      (when lisp-binary-path
-	(setf *lisp-executable-pathname* lisp-binary-path))
-      (extract-target-properties)
-      (read-target-properties)
-      (search-search-path)
-      (write-makefile build :output-path output-path))))
+  (when arguments
+    (error "Invalid arguments to make-makefile"))
+  (when xcvb-path
+    (set-search-path! xcvb-path))
+  (when setup
+    (setf *lisp-setup-dependencies*
+          (append *lisp-setup-dependencies* `((:lisp ,setup)))))
+  (when verbosity
+    (setf *xcvb-verbosity* verbosity))
+  (when output-path
+    (setf *default-pathname-defaults*
+          (ensure-absolute-pathname (pathname-directory-pathname output-path))))
+  (when object-directory
+    (setf *object-directory* ;; strip last "/"
+          (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
+  (when lisp-implementation
+    (setf *lisp-implementation-type*
+          (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+  (when lisp-binary-path
+    (setf *lisp-executable-pathname* lisp-binary-path))
+  (extract-target-properties)
+  (read-target-properties)
+  (search-search-path)
+  (write-makefile (canonicalize-fullname build) :output-path output-path))
+
+
+(defparameter +asdf-to-xcvb-option-spec+
+  '((("system" #\b) :type string :optional nil :list t :documentation "Specify a system to convert (can be repeated)")
+    (("setup"  #\s) :type string :optional t :documentation "Specify the path to a Lisp setup file.")
+    (("system-path" #\p) :type string :optional t :list t :documentation "Register an ASDF system path (can be repeated)")
+    (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")))
+
+(defun asdf-to-xcvb-command (arguments &key system setup system-path preload)
+  (when arguments
+    (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
+  (setf asdf:*central-registry*
+        (append (mapcar #'ensure-pathname-is-directory system-path) asdf:*central-registry*))
+  (when setup (load setup))
+  (asdf-to-xcvb
+   :systems (mapcar #'coerce-asdf-system-name system)
+   :systems-to-preload (mapcar #'coerce-asdf-system-name preload)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Command Spec ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -73,13 +89,14 @@
      "With no additional arguments, the 'help' command provides general help on
 using XCVB.  Using 'xcvb help COMMAND' where COMMAND is the name of an XCVB
 command gives specific help on that command.")
-    (("version" "-V" "--version") show-version ()
-     "Show version"
-     "The 'version' command ignores all arguments, and prints out the version number
-for this version of XCVB.")
     (("make-makefile" "mkmk" "mm") make-makefile +make-makefile-option-spec+
      "Create some Makefile"
      "Create Makefile rules to build a project.")
+    (("asdf-to-xcvb" "a2x") asdf-to-xcvb-command +asdf-to-xcvb-option-spec+
+     "Convert ASDF system to XCVB"
+     "Attempt an automated conversion of an ASDF system to XCVB.
+Optionally load a setup Lisp file before anything else, so the user gets
+a chance to load and/or configure ASDF itself and any extension thereof.")
     (("load") load-command ()
      "Load a Lisp file"
      "Load a Lisp file in the context XCVB itself. For XCVB developers only.")
@@ -91,15 +108,10 @@ for this version of XCVB.")
      "The 'repl' command takes no additional arguments.
 Using 'xcvb repl' launches a Lisp REPL.
 For XCVB developers only (can be used with SLIME).")
-    (("asdf-to-xcvb") asdf-to-xcvb-command +asdf-to-xcvb-option-spec+
-     "Convert ASDF system to XCVB"
-     "The 'asdf-to-xcvb' command takes 'system' and optional 'setup' and 'systems-path' arguments.  
-'system' specifies the name of the system to convert.
-'setup' specifies a Lisp file to load before converting 'system' from ASDF to XCVB.
-'systems-path' specifies the path to directory where system's ASDF files can be found.
-The 'systems-path' optional argument is not implemented yet.
-Users can set the systems-path used by XCVB by configuring CL_LAUNCH_FLAGS in /xcvb/configure.mk.
-This is annoying however, as it requires remaking XCVB.")))
+    (("version" "-V" "--version") show-version ()
+     "Show version"
+     "The 'version' command ignores all arguments, and prints out the version number
+for this version of XCVB.")))
 
 
 ;; Lookup the command spec for the given command name, or return nil if the
@@ -165,21 +177,6 @@ This is annoying however, as it requires remaking XCVB.")))
   #+sbcl (progn (sb-ext:enable-debugger) (sb-impl::toplevel-repl nil))
   #-(or sbcl) (error "REPL unimplemented"))
 
-(defparameter +asdf-to-xcvb-option-spec+
-  '((("system" #\b) :type string :optional nil :documentation "Specify what system to convert.")
-    (("setup"  #\s) :type string :optional t   :documentation "Specify a Lisp setup file, which will be loaded before system is converted from ASDF to XCVB.")
-    (("system-path" #\p) :type string :optional t :documentation "Specify a path to ASDF systems directory, which contains the ASDF files needed to build system.")))
-
-(defun asdf-to-xcvb-command (args)
-  (multiple-value-bind (options arguments)
-      (process-command-line-options +asdf-to-xcvb-option-spec+ args)
-    (when arguments
-      (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
-    (destructuring-bind (&key system setup system-path) options
-      (declare (ignore system-path))
-      (let ((system-keyword (intern (string-upcase system) "KEYWORD")))
-	(when setup (load setup))
-	(asdf-to-xcvb :system system-keyword)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -195,15 +192,20 @@ This is annoying however, as it requires remaking XCVB.")))
 (defun interpret-command-line (args)
   (let* ((*package* (find-package :xcvb-user))
          (command (pop args))
-         (fun (second (lookup-command command))))
+         (command-spec (lookup-command command))
+         (fun (second command-spec))
+         (option-spec-var (third command-spec)))
     (cond
+      (option-spec-var
+       (multiple-value-bind (options arguments)
+           (process-command-line-options (symbol-value option-spec-var) args)
+         (apply fun arguments options)))
       (fun
        (funcall fun args))
       ((not command)
-       (errexit 2 "XCVB requires a command -- try 'xcvb help'.~%"))
+       (errexit 2 "~&XCVB requires a command -- try 'xcvb help'.~%"))
       (t
-       (errexit 2 "~&Invalid XCVB command ~S -- try 'xcvb help'.~%"
-                command)))))
+       (errexit 2 "~&Invalid XCVB command ~S -- try 'xcvb help'.~%" command)))))
 
 (defun exit (&optional (code 0) &rest r)
   (declare (ignore r))

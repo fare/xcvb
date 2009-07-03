@@ -159,10 +159,6 @@ Documentation
 	example file to copy into ``configure.mk`` (in the main XCVB directory) and edit,
 	so as to be able to create the ``xcvb`` executable.
 
-``doc/exscribe-migration.lisp.example``
-	example file you can run (see on top of it) to migrate exscribe
-	from ASDF to XCVB. Somewhat out of date. TODO: update it.
-
 ``test/mock/a/c/Makefile``
 	example for how to integrate XCVB in your Makefile.
 
@@ -276,10 +272,35 @@ since the dependencies will be automatically identified and loaded.
 Converting your ASDF system
 ---------------------------
 
-A simple example that used to to work with our ``v0.1-prototype`` is in
-	``doc/exscribe-migration.lisp.example``.
+In simple cases, you may convert a system from ASDF to XCVB with a command such as::
 
-We are otherwise still working to make conversion easier.
+	xcvb asdf-to-xcvb \
+                --setup /path/to/lisp/file/to/setup/asdf/if/not/builtin/to/your/lisp \
+		--system-path /path/to/your/asdf/systems/ \
+		--system-path /path/to/more/asdf/systems/ \
+                --preload some-system-to-preload-and-not-instrument \
+                --preload another-system-to-preload-and-not-instrument \
+                --preload yet-another-system-to-preload-and-not-instrument
+                --system main-system \
+                --system another-system-to-merge-with-it \
+                --system yet-another-system-to-merge-with-it \
+
+
+Common pitfalls include:
+
+  * if your system has conditional dependencies (as in ``#+sbcl ...``) then
+    you'll have to manually add such dependencies to the proper XCVB module.
+
+  * if your system has some generated files, then you'll have to add the
+    proper entries manually in your ``BUILD.lisp``.
+    Moreover, the syntax for that is still unstable at this point
+    and may change a bit in the future.
+
+  * if some of your files have data dependencies, the converter may get confused.
+
+  * if your system requires some other other ASDF extension
+    that isn't yet supported by XCVB, it will have to be converted manually.
+    Please also contact the authors of XCVB.
 
 
 Compiling with XCVB
@@ -568,18 +589,3 @@ whereas XCVB purports to build a faithful model of the whole build,
 from which one could e.g. extract a list of source files.
 
 
-Current Limitations
--------------------
-
-If your build uses any of the features in this section, i.e.
-generated Lisp files, data dependencies or conditional compilation,
-then
-
-  * you'll have to manually migrate your ASDF to XCVB.
-
-  * you may want to contact the authors,
-    as these features are not well documented at this point,
-    and subject to change in the near future.
-
-If you want to migrate an ASDF system that requires any other ASDF extension
-that isn't yet supported by XCVB, please also contact the authors of XCVB.

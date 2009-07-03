@@ -228,7 +228,7 @@ but are necessary to make it usable.
 Migration from ASDF [V1]
 ------------------------
 
-We can already do simple cases. See ``doc/exscribe-migration.lisp.example``.
+We can already do simple cases. See the ``README.rest``.
 
 First we need to add a proper command-line interface to what we have.
 
