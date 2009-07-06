@@ -4,13 +4,15 @@
 
 ;; User-visible special variables.
 
+;; Note: the statement below only declares the variable.
+;; The actual version number is defined in file version.lisp.
 ;; TODO: find a good way to ensure this bit gets incremented at the right time.
 ;; e.g. have some version number automatically extracted from the date, plus
 ;; maybe a hash obtained from git, and/or from xcvb's own digesting mechanism.
 ;; MAYBE what we want is just a git hook that will ensure that a given version
 ;; file is modified at every commit, or else either auto-increment the number
 ;; in that file or plainly error out.
-(defparameter *xcvb-version* "0.313")
+(defvar *xcvb-version*)
 
 (defvar *lisp-implementation-type*
   (or #+sbcl :sbcl #+clisp :clisp #+ccl :ccl #+cmu :cmucl)

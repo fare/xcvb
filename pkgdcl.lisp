@@ -7,6 +7,9 @@
   (:import-from :cl-launch #:DBG)
   (:export
 
+     ;; version
+     #:*xcvb-version*
+
      ;; Defining and using modules and extensions
      #:parse-module #:module-form-p
      #:module

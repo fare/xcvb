@@ -6,7 +6,8 @@ TODO
 
 Future improvements planned for XCVB.
 
-See ``Current Developments [V1]`` for what are hot topics.
+See the first section, ``Current Developments [V1]``,
+for what are hot topics you could be working on right now.
 
 .. contents::
 ..
@@ -115,7 +116,7 @@ They would be ideal for a non-ITA hacker to tackle,
 in a suggested order for a newbie to enter XCVB hacking:
 
  * Add an XCVB command to dump BUILD and/or ASDF path information, to make it easier
-   for users to understand which version of which software they are using.
+   for users to understand which version of which software library XCVB will be compiling.
 
  * Extend the ``command-line-arguments`` library to allow for better self-documentation
    of option specifications with ``:documentation`` keyword arguments to options,
@@ -128,7 +129,10 @@ in a suggested order for a newbie to enter XCVB hacking:
    orthogonal to that between ``:lisp``, ``:fasl``, ``:image`` or ``:data``.
    This is not trivial because this requires:
 
-     + changing the dependency normalization algorithm, probably normalizing
+     + changing the dependency normalization algorithm,
+       probably normalizing to ``(:lisp (:source "subdir/foo.lsp" :in "/fullname/bar"))`` and
+       ``(:fasl (:object "subdir/foo.lx64fsl" :in "/fullname/bar"))``
+       (and autodetecting the pathname type for FASLs from the target implementation).
 
      + updating the ``graph-for`` algorithm to deconstruct the new pattern.
 
@@ -146,7 +150,8 @@ in a suggested order for a newbie to enter XCVB hacking:
  * Also, in generated files, double-check that there isn't
    an intermediate BUILD that short-circuits the name resolution.
    e.g. if ``foo/bar.lisp`` is generated from a BUILD with fullname ``/quux``,
-   then there mustn't a BUILD with fullname ``/quux/foo`` that preempts that name.
+   then there must *not* a BUILD with fullname ``/quux/foo`` that preempts that name;
+   if there is, issue an error early and refuse to build.
 
  * Add support for in-image backend. See `In-image loading [V1]`_.
    This may or may not benefit from the following,
@@ -173,6 +178,19 @@ in a suggested order for a newbie to enter XCVB hacking:
    by implementing the missing functionality
    (init forms, resume function,
    minimal shell wrapping and/or standalone images).
+
+ * Mainline the CFASL patch for SBCL. Needs to be done:
+
+   + fix compile-file-pathname to admit as the same arguments as compile-file...
+     and maybe one more to output the CFASL path instead of the FASL path;
+     or maybe output it as a secondary value?
+
+   + add documentation for it.
+
+   + test it extensively, add tests in SBCL test suite.
+
+   + for usability, make CFASLs as repeatable as possible.
+     Not necessary for getting it committed.
 
 Random ideas:
 
@@ -228,11 +246,11 @@ but are necessary to make it usable.
 Migration from ASDF [V1]
 ------------------------
 
-We can already do simple cases. See the ``README.rest``.
+We can already do simple cases
+with a proper command-line interface.
+See the ``README.rest``.
 
-First we need to add a proper command-line interface to what we have.
-
-Then, we need to handle more complex cases involving migrating
+Now, we need to handle more complex cases involving migrating
 several ASDF systems to XCVB.
 The converter could recursively migrate dependencies:
 starting from specified systems,

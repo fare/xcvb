@@ -99,7 +99,7 @@ Optionally load a setup Lisp file before anything else, so the user gets
 a chance to load and/or configure ASDF itself and any extension thereof.")
     (("load") load-command ()
      "Load a Lisp file"
-     "Load a Lisp file in the context XCVB itself. For XCVB developers only.")
+     "Load a Lisp file in the context of XCVB itself. For XCVB developers only.")
     (("eval") eval-command ()
      "Evaluate some Lisp form"
      "Evaluate some Lisp form in the context of XCVB itself. For XCVB developers only.")
@@ -107,7 +107,7 @@ a chance to load and/or configure ASDF itself and any extension thereof.")
      "Start a REPL"
      "The 'repl' command takes no additional arguments.
 Using 'xcvb repl' launches a Lisp REPL.
-For XCVB developers only (can be used with SLIME).")
+For XCVB developers only (notably for use with SLIME).")
     (("version" "-V" "--version") show-version ()
      "Show version"
      "The 'version' command ignores all arguments, and prints out the version number

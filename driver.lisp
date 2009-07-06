@@ -133,8 +133,17 @@ This is designed to abstract away the implementation specific quit forms."
   #-(or clisp sbcl cmu clozure allegro gcl lispworks)
   (%abort 11 "XCVB-Driver doesn't supports image dumping with this Lisp implementation.~%"))
 
+(defun do-find-symbol (name package-name)
+  (let ((package (find-package (string package-name))))
+    (unless package
+      (error "Trying to use package ~A, but it is not loaded yet!" package-name))
+    (let ((symbol (find-symbol (string name) package)))
+      (unless symbol
+        (error "Trying to use symbol ~A in package ~A, but it does not exist!" name package-name))
+      symbol)))
+
 (defun function-for-command (designator)
-  (fdefinition (intern (string designator) :xcvb-driver)))
+  (fdefinition (do-find-symbol designator :xcvb-driver)))
 
 (defun run-command (command)
   (apply (function-for-command (car command))
@@ -165,15 +174,6 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defun load-file (x)
   (load x))
-
-(defun do-find-symbol (name package-name)
-  (let ((package (find-package (string package-name))))
-    (unless package
-      (error "Trying to use package ~A, but it is not loaded yet!" package-name))
-    (let ((symbol (find-symbol (string name) package)))
-      (unless symbol
-        (error "Trying to use symbol ~A in package ~A, but it does not exist!" name package-name))
-      symbol)))
 
 (defun call (package symbol &rest args)
   (apply (do-find-symbol symbol package) args))

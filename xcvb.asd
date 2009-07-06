@@ -46,4 +46,5 @@ deterministic separate compilation and enforced locally-declared dependencies."
 
      ;;; These files may need some work before we officially release
      (:file "asdf-converter" :depends-on ("lisp-grain"))
-     (:file "main" :depends-on ("static-backends" "search-path" "computations"))))
+     (:file "main" :depends-on ("static-backends" "search-path" "computations"))
+     (:file "version" :depends-on ("specials"))))

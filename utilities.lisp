@@ -343,10 +343,10 @@ Did you mix up the ordering?" f))
 
 
 ;;; Reading a file's first form
-(defun read-first-file-form (filepath)
+(defun read-first-file-form (filepath &key (package :xcvb-user))
   "Reads the first form from the top of a file"
   (with-standard-io-syntax ()
-    (let ((*package* (find-package :xcvb-user))
+    (let ((*package* (find-package package))
 	  (*read-eval* nil))
       (with-open-file (in filepath)
         (read in)))))
