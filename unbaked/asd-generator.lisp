@@ -1,4 +1,9 @@
 ;;; TODO: rewrite this file according to the new XCVB internals
+;;; i.e. create a file asdf-backend based on makefile-backend,
+;;; and based on the output of static-backend, create an asd.
+;;; If any ASDF extensions are required, then
+;;; (a) have a system "xcvb-extensions.asd" that provides them
+;;; (b) push these extensions for inclusion in upstream ASDF.
 
 (in-package :xcvb)
 

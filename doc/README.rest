@@ -194,7 +194,7 @@ building on the lessons of the prototype,
 recycling good ideas and focusing on issues previously raised.
 A semi-usable product was published in May 2009.
 We hope to have a complete release with example and documentation
-ready for general use by the end of June 2009.
+ready for general use by the end of July 2009.
 
 Then will be time to extend and refine the existing functionality,
 refactor the internals,
@@ -215,7 +215,8 @@ you may want to use ASDF-DEPENDENCY-GROVEL and POIU
 to achieve some of the same benefits with existing technology,
 where dependency analysis or build time are important.
 
-Another interesting alternative to ASDF is mudballs.
+Another interesting alternative to ASDF was mudballs;
+mudballs seems to have lost steam, but ASDF seems to be more active these days.
 
 
 Using XCVB
