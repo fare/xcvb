@@ -98,10 +98,6 @@ Here is the top of our TODO list at ITA:
 
  * Make a pre-image optional -- builds that want one can require it explicitly.
 
- * Speed up search-path searching: it takes almost 4 seconds on my machine,
-   which makes the program unacceptably slow, whereas spawning ``find``
-   takes .23 seconds.
-
  * Quench warnings about undefined functions during file compilation,
    but record them on the side. Reconcile them after image creation.
    In other words, reimplement ``with-compilation-unit`` and ``with-qres-compilation``,

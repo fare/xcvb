@@ -82,10 +82,35 @@
                  :type "lisp"
                  :version :newest))
 
+(defun underscore-non-alphanum-chars (x)
+  (map 'base-string
+       (lambda (c) (if (or (char<= #\a c #\z) (char<= #\A c #\Z) (char<= #\0 c #\9)) c #\_))
+       x))
+
+(defun find-build-files-under (root)
+  ;;; This is what we want, but too slow with SBCL.
+  ;; It took 5.8 seconds on my machine, whereas what's below takes .56 seconds
+  ;; I haven't timed it with other implementations -- they might or might not need the same hack.
+  #-sbcl (directory (merge-pathnames +all-builds-path+ root) #+sbcl #+sbcl :resolve-symlinks nil)
+  #+sbcl
+  (let* ((root-string (namestring root))
+         (build-file-name
+          (format nil "~A/builds-under-~A.text"
+                  *object-directory*
+                  (underscore-non-alphanum-chars root-string))))
+    (asdf:run-shell-command
+     (format nil
+             "find ~A -type f -name BUILD.lisp > ~A"
+             (escape-shell-token root-string)
+             build-file-name))
+    (prog1
+        (with-open-file (in build-file-name)
+          (loop :for x = (read-line in nil nil) :while x :collect x))
+      (delete-file build-file-name))))
+
 (defun map-build-files-under (root fn)
   "Call FN for all BUILD files under ROOT"
-  (let* ((builds (directory (merge-pathnames +all-builds-path+ root)
-                            #+sbcl #+sbcl :resolve-symlinks nil))
+  (let* ((builds (find-build-files-under root))
          (builds (remove-if #'in-archive-directory-p builds))
          #+(or) ;; uncomment it for depth first traversal
          (builds (sort builds #'<
