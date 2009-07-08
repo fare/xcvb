@@ -94,13 +94,22 @@ We've got a Makefile backend with which we can recompile XCVB itself.
 
 Here is the top of our TODO list at ITA:
 
- * In a tarball release that can be created from the ``Makefile``, include all the dependencies
-   (ASDF, asdf-dependencies-grovel, closer-mop, cl-launch, command-line-arguments)
-   Add targets to XCVB's ``Makefile`` so that it can be download dependencies,
-   configure and compile XCVB without the need for ASDF (and ASDF setup) at all.
-   Consequently move ``command-line-arguments`` to its own git repo.
+ * SBCL wants to know its home to be able to ``(require :sb-posix)`` and such.
+   XCVB will have to extract the value from the original image with
+   ``(sb-posix:getenv "SBCL_HOME")`` and restore it either from the ``Makefile``
+   with ``export SBCL_HOME=...`` or within some Lisp setup form with
+   ``(sb-posix:putenv "SBCL_HOME=...")``. In the meantime, use something like::
+
+    SBCL_HOME="$($SBCL --noinform --eval '(progn(princ(posix-getenv "SBCL_HOME"))(quit))')"
+
 
  * Apply XCVB to some actual big projects at ITA.
+
+   + Finish converting ITA dependencies to XCVB.
+
+   + Actually try XCVB on ITA code.
+
+   + Send differences upstream.
 
  * Quench warnings about undefined functions during file compilation,
    but record them on the side. Reconcile them after image creation.
@@ -115,6 +124,10 @@ Here is the top of our TODO list at ITA:
 Other top TODO items that are not on ITA's critical path include the following.
 They would be ideal for a non-ITA hacker to tackle,
 in a suggested order for a newbie to enter XCVB hacking:
+
+ * Because the system that tries to load the initial ASDF may have loaded an earlier version
+   some DEFUNs of which were since converted to DEFGENERICs, we can't just load ASDF
+   without a ``(delete-package '#:asdf)``
 
  * Add an XCVB command to dump BUILD and/or ASDF path information, to make it easier
    for users to understand which version of which software library XCVB will be compiling.
@@ -217,6 +230,7 @@ in a suggested order for a newbie to enter XCVB hacking:
  * For a binary release, issue a standalone clisp binary?
 
  * Implement `Centralized Dependency Declaration [V1]`_
+
 
 Random ideas:
 

@@ -51,6 +51,11 @@ endef
 LISP_BIN := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_binary_path)
 LISP_IMPL := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_implementation)
 
+ifeq (${LISP_IMPL},sbcl)
+  export SBCL_HOME:=$(shell ${LISP_BIN} \
+    --noinform --eval '(progn(princ(posix-getenv "SBCL_HOME"))(quit))')
+endif
+
 setup.lisp:
 	( ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_launcher ; \
 	  ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -i "(let ((*package* (find-package :cl-launch))) (format t \"~S~%\" \`(setf asdf:*central-registry*',asdf:*central-registry*)))" \

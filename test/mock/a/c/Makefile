@@ -30,7 +30,7 @@ $(shell ( export XCVB_PATH=${XCVB_PATH} ) >&2)
 # This example shows how you can leverage the above configuration of cl-launch
 # into a setup.lisp that replicates this configuration.
 
-xcvb.mk: setup.lisp
+xcvb.mk: setup.lisp force
 	xcvb make-makefile --setup /c/setup --build /c
 
 # You need to "make xcvb.mk" before you can actually "make" the ultimate target.
