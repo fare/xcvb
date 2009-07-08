@@ -69,7 +69,7 @@
        (equal (pathname-type x) "xcvb")
        #+genera (pathname-newest-version-p x)))
 
-(defvar *archive-directory-names* '("_darcs" ".svn" "tmp")
+(defvar *archive-directory-names* '("_darcs" ".svn")
   "names of archive directories inside which we should not look for BUILD files")
 
 (defun in-archive-directory-p (x)
@@ -127,3 +127,19 @@
 (defun ensure-search-path-searched ()
   (unless *search-path-searched-p*
     (search-search-path)))
+
+(defun show-search-path ()
+  "Show registered builds"
+  (search-search-path)
+  (format t "~&Registered search paths:~{~% ~S~}~%"
+          *search-path*)
+  (format t "~%Builds found in the search paths:~%")
+  (loop :for (fullname . entry) :in (sort (hash-table->alist *grains*) #'string<
+                                          :key (lambda (x) (princ-to-string (car x)))) :do
+        (etypecase entry
+          (build-grain
+           (if (and (consp fullname) (eq (car fullname) :supersedes-asdf))
+               (format t " ASDF ~A superseded by build ~A~%" (cadr fullname) (fullname entry))
+               (format t " Build ~A in ~S~%" fullname (grain-pathname entry))))
+          (build-registry-conflict
+           (format t " Conflict for ~A between ~S~%" fullname (brc-pathnames entry))))))

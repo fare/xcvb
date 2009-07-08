@@ -12,7 +12,7 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 2)
-;;     	   #+sbcl (sb-ext:inhibit-warnings 3)
+           #+sbcl (sb-ext:inhibit-warnings 3)
            #+sbcl (sb-c::merge-tail-calls 3) ;-- this plus debug 1 (or sb-c::insert-debug-catch 0 ???) should ensure all tail calls are optimized, says jsnell
 	   #+cmu (ext:inhibit-warnings 3)))
   #+sbcl (proclaim '(sb-ext:muffle-conditions sb-ext:compiler-note))

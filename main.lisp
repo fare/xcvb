@@ -76,6 +76,18 @@
    :systems-to-preload (mapcar #'coerce-asdf-system-name preload)))
 
 
+(defparameter +show-search-path-option-spec+
+  '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
+
+(defun show-search-path-command (arguments &key xcvb-path)
+  (when arguments
+    (error "Invalid arguments to show-search-path: ~S~%" arguments))
+  (reset-variables)
+  (when xcvb-path
+    (set-search-path! xcvb-path))
+  (show-search-path))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Command Spec ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Spec for XCVB command-line commands.  Each item of the list takes the form
@@ -97,6 +109,10 @@ command gives specific help on that command.")
      "Attempt an automated conversion of an ASDF system to XCVB.
 Optionally load a setup Lisp file before anything else, so the user gets
 a chance to load and/or configure ASDF itself and any extension thereof.")
+    (("show-search-path" "search-path" "ssp") show-search-path-command +show-search-path-option-spec+
+     "Show builds in the specified XCVB path"
+     "Show builds in the implicitly or explicitly specified XCVB path.
+For debugging your XCVB configuration.")
     (("load") load-command ()
      "Load a Lisp file"
      "Load a Lisp file in the context of XCVB itself. For XCVB developers only.")

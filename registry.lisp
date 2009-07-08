@@ -25,6 +25,8 @@ then enriched as we build the graph from the main build.xcvb file.")
 
 (defun registered-build (name)
   (let ((grain (registered-grain name)))
+    (unless (build-grain-p grain)
+      (error "Could not find a build with requested fullname ~A. Try xcvb show-builds" name))
     (check-type grain build-grain)
     grain))
 
@@ -111,3 +113,4 @@ for each of its registered names."
 (defun register-build-named (name build-grain root)
   "Register under NAME pathname BUILD found in user-specified ROOT."
   (funcallf (registered-grain name) #'merge-build build-grain name root))
+

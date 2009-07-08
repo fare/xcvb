@@ -140,18 +140,29 @@ TMP ?= /tmp
 release-tarball:
 	VERSION=$$(cat version.lisp | grep version | cut -d\" -f2) ; \
 	mkdir -p ${TMP}/xcvb-$$VERSION && cd ${TMP}/xcvb-$$VERSION && \
-	git clone http://common-lisp.net/project/xcvb/git/xcvb.git && \
+	( git clone http://common-lisp.net/project/xcvb/git/xcvb.git || \
+	  echo "Already got xcvb.git" ) && \
 	mkdir -p dependencies && cd dependencies && \
-	git clone http://common-lisp.net/project/asdf/asdf.git && \
+	( git clone http://common-lisp.net/project/asdf/asdf.git || \
+	  echo "Already got asdf.git" ) && \
         echo '#+xcvb (module (:fullname "asdf" :depends-on ("asdf")))' > asdf/build.xcvb && \
-	git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git && \
-	git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git && \
-	git clone http://common-lisp.net/project/xcvb/git/cl-launch.git && \
-	darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop && \
+	( if [ ! -f asdf/asdf.lisp.orig ] ; then mv asdf/asdf.lisp asdf/asdf.lisp.orig ; fi ) && \
+        ( echo '#+xcvb (module ())' ; cat asdf/asdf.lisp.orig ) > asdf/asdf.lisp && \
+	( git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git || \
+	  echo "Already got asdf-dependency-grovel.git" ) && \
+	( git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git || \
+	  echo "Already got command-line-arguments.git" ) && \
+	( git clone http://common-lisp.net/project/xcvb/git/cl-launch.git || \
+	  echo "Already got cl-launch.git" ) && \
+	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
+	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi ) && \
+	cd .. && \
 	cp xcvb/doc/Makefile.release Makefile && \
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
 	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
-	xcvb --xcvb-path=$$PWD --build /xcvb --lisp-implementation clisp && \
+	pwd && export XCVB_PATH=$$PWD && \
+	xcvb make-makefile --xcvb-path=$$PWD --build /xcvb --lisp-implementation sbcl && \
+	rm -f obj/target-properties.lisp-expr && rmdir obj && \
 	cd .. && tar jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
