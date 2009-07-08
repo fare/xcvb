@@ -162,7 +162,7 @@ release-tarball:
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
 	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
 	pwd && export XCVB_PATH=$$PWD && \
-	xcvb make-makefile --xcvb-path=$$PWD --build /xcvb --lisp-implementation sbcl && \
+	xcvb make-makefile --xcvb-path=$$PWD --build /xcvb --lisp-implementation clisp && \
 	rm -f obj/target-properties.lisp-expr && rmdir obj && \
 	cd .. && tar jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
