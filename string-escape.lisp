@@ -39,7 +39,7 @@ Raises an error if the string contains a newline."
   (not (or (char<= #\a c #\z)
 	   (char<= #\A c #\Z)
 	   (char<= #\0 c #\9)
-	   (find c "%.,-_:/"))))
+	   (find c "%.,-+_:/"))))
 
 (defun escape-shell-token (string &optional out)
   "Takes a string and if needed, includes the string in double quotes to use as shell argument"

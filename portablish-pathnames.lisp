@@ -42,7 +42,7 @@ of the directory of the given pathname"
   (and (or (char<= #\a c #\z)
 	   (char<= #\A c #\Z)
 	   (char<= #\0 c #\9)
-	   (find c ".,-_"))
+	   (find c ".,-+_"))
        t))
 
 (defun portable-pathname-string-component-p (x)
