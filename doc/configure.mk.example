@@ -4,6 +4,8 @@
 ## uncommenting and/or editing the lines that fit your configuration,
 ## commenting out or deleting those that don't.
 ##
+## Note that this file also provides the defaults used in the release tarball.
+##
 
 ## Prefix from which to deduce various default locations
 PREFIX = /usr/local
@@ -74,13 +76,13 @@ CL_LAUNCH_FLAGS :=
 ##
 ## If you want to specify a search order for Lisp implementations,
 ## you may do it as follows (see cl-launch documentation for details)
-#CL_LAUNCH_FLAGS += --lisp 'sbcl clisp ccl'
+CL_LAUNCH_FLAGS += --lisp '${LISP} sbcl clisp ccl'
 ##
 ##
 ## If you need to specify one or several paths where .asd files reside
 ## that are needed by XCVB, use one or several --path flags
 ## DEFAULT: nothing (assume your /etc/sbclrc or ~/.sbclrc or equivalent does it)
-#CL_LAUNCH_FLAGS += --path ${INSTALL_LISP}/systems/
+CL_LAUNCH_FLAGS += --path ${INSTALL_LISP}/systems/
 #CL_LAUNCH_FLAGS += --path /usr/share/common-lisp/systems/
 #CL_LAUNCH_FLAGS += --path /home/USER/.local/share/common-lisp/systems/
 ##
@@ -88,7 +90,7 @@ CL_LAUNCH_FLAGS :=
 ## If you want to make sure that cl-launch uses installed include files
 ## (respectively, doesn't), use --include /a/b/c (respectively, --no-include)
 ## This matters in image and fasls modes, not in standalone mode (see below).
-#CL_LAUNCH_FLAGS += --no-include
+CL_LAUNCH_FLAGS += --no-include
 #CL_LAUNCH_FLAGS += --include ${INSTALL_LISP}/cl-launch
 #CL_LAUNCH_FLAGS += --include /usr/share/common-lisp/cl-launch
 #CL_LAUNCH_FLAGS += --include /home/USER/.local/share/common-lisp/cl-launch
@@ -109,6 +111,5 @@ CL_LAUNCH_FLAGS :=
 ##
 ## This will create a standalone executable. The catch is that it requires
 ## cl-launch >=2.10 and sbcl >=1.0.22 or clisp >=2.48.
-#CL_LAUNCH_MODE := standalone
-##
+CL_LAUNCH_MODE := standalone
 ##

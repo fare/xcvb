@@ -1,0 +1,24 @@
+(This file is to be included in the toplevel directory of a release tarball)
+
+What is in this directory
+=========================
+
+This is a release of XCVB.
+
+The xcvb/ directory contains xcvb itself.
+
+The dependencies/ directory contains several other packages that xcvb depends on.
+
+The Makefile will help you install
+
+
+How to install XCVB
+===================
+
+To install XCVB compiled with ``clisp`` under ``/usr/local``, just::
+
+	make install
+
+To install XCVB compiled with ``sbcl`` under ``/opt``, instead try::
+
+	make install PREFIX=/opt LISP=sbcl

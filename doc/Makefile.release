@@ -1,0 +1,14 @@
+PREFIX ?= /usr/local
+LISP ?= clisp
+INSTALL_BIN ?= ${PREFIX}/bin
+LISP_SOURCE ?= ${PREFIX}/share/common-lisp/source
+
+export XCVB_PATH := $(shell pwd)
+
+install:
+	./dependencies/cl-launch/cl-launch \
+		-I ${LISP_SOURCE}/cl-launch \
+		-o ${INSTALL_BIN}/cl-launch \
+		-B install
+	${MAKE} -C xcvb -j install \
+		PREFIX=${PREFIX} LISP=${LISP}

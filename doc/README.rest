@@ -113,7 +113,7 @@ You will need a Lisp implementation to build or run XCVB and the software it bui
 
 You will need the following Lisp software libraries to get XCVB running:
 
-  * cl-launch 2.17 or later:
+  * cl-launch 2.18 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
@@ -168,11 +168,13 @@ Documentation
 	example file to copy into ``configure.mk`` (in the main XCVB directory) and edit,
 	so as to be able to create the ``xcvb`` executable.
 
-``test/mock/a/c/Makefile``
-	example for how to integrate XCVB in your Makefile.
-
 ``Makefile``
 	the Makefile for XCVB itself is an example for how to integrate XCVB in your Makefile.
+        Note that the setup.lisp complexity is only required if you're using ASDF.
+
+``test/mock/a/c/Makefile``
+	an older example for how to integrate XCVB in your Makefile.
+        Note that the setup.lisp complexity is only required if you're using ASDF.
 
 
 Timeline

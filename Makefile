@@ -60,15 +60,17 @@ xcvb-bootstrapped: obj/xcvb.image
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image --output $@ --init '(xcvb::main)'
 
 define use_xcvb_mk
+	${MAKE} -f xcvb.mk -j $1
+endef
+
+xcvb.mk: force
 	xcvb make-makefile \
 	     --build /xcvb \
 	     --setup /xcvb/setup \
 	     --lisp-implementation ${LISP_IMPL} \
 	     --lisp-binary-path ${LISP_BIN}
-	${MAKE} -f xcvb.mk -j $1
-endef
 
-obj/xcvb.image: force
+obj/xcvb.image: xcvb.mk
 	$(call use_xcvb_mk,$@)
 
 ## Creating executable
@@ -133,20 +135,27 @@ push:
 show-current-revision:
 	git show --pretty=oneline HEAD | head -1 | cut -d' ' -f1
 
+TMP ?= /tmp
+
 release-tarball:
 	VERSION=$$(cat version.lisp | grep version | cut -d\" -f2) ; \
-	mkdir -p tmp/xcvb-$$VERSION && cd tmp/xcvb-$$VERSION && \
+	mkdir -p ${TMP}/xcvb-$$VERSION && cd ${TMP}/xcvb-$$VERSION && \
 	git clone http://common-lisp.net/project/xcvb/git/xcvb.git && \
 	mkdir -p dependencies && cd dependencies && \
 	git clone http://common-lisp.net/project/asdf/asdf.git && \
+        echo '#+xcvb (module (:fullname "asdf" :depends-on ("asdf")))' > asdf/build.xcvb && \
 	git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git && \
 	git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git && \
 	git clone http://common-lisp.net/project/xcvb/git/cl-launch.git && \
 	darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop && \
-	cp ../../doc/Makefile.release Makefile && \
-	cp ../../doc/configure.mk.release xcvb/configure.mk && \
-	make xcvb/xcvb.mk && \
-	cd .. ; tar jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/
+	cp xcvb/doc/Makefile.release Makefile && \
+	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
+	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
+	xcvb --xcvb-path=$$PWD --build /xcvb --lisp-implementation clisp && \
+	cd .. && tar jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
+	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
+	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
+		common-lisp.net:/project/xcvb/public_html/releases/
 
 .PHONY: all install lisp-install test tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision force \
