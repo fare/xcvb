@@ -164,8 +164,8 @@ form if there is one (but leaving the extension forms)."
         :load-depends-on file-deps
 	:supersedes-asdf (mapcar #'asdf::coerce-name original-systems)
 	:pathname (make-pathname
-                   :name "BUILD"
-                   :type "lisp"
+                   :name "build"
+                   :type "xcvb"
                    :defaults (asdf:component-pathname asdf-system))))))
 
 (defun dependency-sort (components system name-to-module)
@@ -226,7 +226,7 @@ form if there is one (but leaving the extension forms)."
   "Takes the name of one or several ASDF system(s) and
 merge them into a single XCVB build,
 adding xcvb module declarations to the top of all the files in that build,
-and writing a corresponding BUILD.lisp file,
+and writing a corresponding build.xcvb file,
 so that the system can now be compiled with XCVB."
   ;; Remove systems used by XCVB so that asdf-to-xcvb can work on them.
   (dolist (sys systems)

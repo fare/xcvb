@@ -1,4 +1,4 @@
-;;;;; Syntax and Semantics of Lisp grains, including BUILD.lisp files
+;;;;; Syntax and Semantics of Lisp grains, including build.xcvb files
 #+xcvb (module (:depends-on ("registry" "specials" "extract-target-properties")))
 (in-package :xcvb)
 

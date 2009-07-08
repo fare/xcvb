@@ -27,7 +27,7 @@
 (defvar *asdf-systems-warned* ()
   ;; This is a bit of a kluge, but oh well.
   "the names of ASDF systems for which we have already issued a warning that
-a reference to the system was superseded by a BUILD file.")
+a reference to the system was superseded by a build.xcvb file.")
 
 
 (defun lisp-grain-from (name grain)

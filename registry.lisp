@@ -11,8 +11,8 @@
   "A registry of known grains,
 indexed by normalized name, either fullname of a module,
 nickname, or SEXP representing a computed entity.
-Initially populated with all BUILD.lisp files from the search path,
-then enriched as we build the graph from the main BUILD file.")
+Initially populated with all build.xcvb files from the search path,
+then enriched as we build the graph from the main build.xcvb file.")
 
 (defparameter *superseded-asdf*
   (make-hash-table :test 'equalp))
@@ -63,7 +63,7 @@ then enriched as we build the graph from the main BUILD file.")
 
 
 (defun register-build-file (build root)
-  "Registers build file BUILD (given as pathname)
+  "Registers build file build.xcvb (given as pathname)
 as having found under root path ROOT (another pathname),
 for each of its registered names."
   ;;(format *error-output* "~&Found build file ~S in ~S~%" build root)

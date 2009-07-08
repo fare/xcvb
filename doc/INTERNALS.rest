@@ -156,7 +156,7 @@ registry.lisp
 -------------
 
 Handles the mapping from fullname to grain,
-and conflicts when multiple BUILDs claim the same name.
+and conflicts when multiple builds claim the same name.
 
 
 lisp-invocation.lisp
@@ -186,13 +186,13 @@ names.lisp
 
 Handles the mapping from file to fullname and fullname to file.
 This includes recursing in the case that the fullname is
-inherited from a BUILD.lisp up the filesystem tree.
+inherited from a build.xcvb up the filesystem tree.
 
 
 search-path.lisp
 ----------------
 
-Handles the search path where XCVB goes looking for available BUILDs.
+Handles the search path where XCVB goes looking for available builds.
 Shell variable ``XCVB_PATH`` or Lisp variable ``xcvb:*search-path*``.
 
 
@@ -227,7 +227,7 @@ asdf-converter.lisp
 -------------------
 
 This file contains the code to take an ASDF system
-and write a BUILD.lisp file for it
+and write a build.xcvb file for it
 and add module forms to the top of all the source files in the system,
 so that XCVB can now be used to compile the system.
 
@@ -239,7 +239,7 @@ The converter will first use ``asdf-dependency-grovel``
 to compute the actual dependencies within your system(s),
 thus generating a list of components;
 then it will then process that list of components
-and create or update a BUILD.lisp and update all source files
+and create or update a build.xcvb and update all source files
 to insert a module statement,
 keeping any manual rules from a previously added module statement
 but otherwise overriding the main data.
@@ -339,7 +339,7 @@ it would be easy enough to provide a command line interface
 for loading new code before to re-process the rest of the command-line arguments.
 The new code could extend or override existing simple-dispatchers,
 define new functions, push new command-line handlers.
-Loading extensions could also be done as part of parsing BUILD modules.
+Loading extensions could also be done as part of parsing build modules.
 
 
 Notes
@@ -362,7 +362,7 @@ There are two ways that the search path may be search for modules,
 and we have to choose early on because of the naming implications.
 
 In the eager scanning approach,
-the search paths are scanned for BUILD modules
+the search paths are scanned for build modules
 at the beginning of the build session,
 avoiding recursion into version control repositories
 or other excluded patterns.
@@ -436,7 +436,7 @@ Attila Lendvai notably favors the eager approach
 Filesystem Access
 -----------------
 
-We currently use standard CL functions such as DIRECTORY to find BUILD files.
+We currently use standard CL functions such as DIRECTORY to find build files.
 
 We don't use CL-FAD because it is broken,
 and fixing it is an uphill battle that requires code for each implementation,

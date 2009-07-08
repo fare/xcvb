@@ -3,8 +3,8 @@
 
 (in-package :xcvb)
 
-(defvar +BUILD-path+
-  (make-pathname :name "BUILD" :type "lisp"))
+(defvar +build-path+
+  (make-pathname :name "build" :type "xcvb"))
 
 (defvar +lisp-path+
   (make-pathname :type "lisp"))
@@ -86,7 +86,7 @@
              (maybe-inherit-from (rdir subnames)
                (let ((ancestor (probe-file-grain
                                 (make-pathname :host host :device device
-                                               :name "BUILD" :type "lisp"
+                                               :name "build" :type "xcvb"
                                                :directory (reverse rdir))
                                 :build-p t)))
                  (if ancestor
@@ -105,7 +105,7 @@
         (maybe-inherit-from rdirectory (list (pathname-name pathname)))))))
 
 (defun resolve-module-name (name grain)
-  "Resolve module NAME in the context of BUILD into an appropriate grain, if any"
+  "Resolve module NAME in the context of build into an appropriate grain, if any"
   (if (portable-pathname-absolute-p name)
     (resolve-absolute-module-name name)
     (loop :for b = (build-grain-for grain) :then (grain-parent b)
@@ -118,7 +118,7 @@
   (subpathname (merge-pathnames +lisp-path+ path) name))
 
 (defun walk-build-ancestry (name description build-handler)
-  "Call BUILD-HANDLER on each BUILD the fullname of which is a prefix of NAME,
+  "Call BUILD-HANDLER on each build the fullname of which is a prefix of NAME,
 with the SUFFIX from that fullname to NAME as second argument, in order
 of decreasing fullname length"
   (unless (absolute-portable-namestring-p name)

@@ -16,7 +16,7 @@
     :accessor fullname)
    (parent
     :accessor grain-parent
-    :documentation "parent BUILD.lisp file for this grain")
+    :documentation "parent build.xcvb file for this grain")
    (relative-name
     :accessor grain-relative-name
     :documentation "name relative to the parent"))
@@ -146,7 +146,7 @@
     :initarg :build-requires
     :initform nil
     :documentation "A list of dependencies that apply to all files in the
-system specified by this BUILD.lisp file.
+system specified by this build.xcvb file.
 These dependencies will be loaded first thing
 into an image that will be used for all future compile/load operations")
    (build-dependencies
@@ -157,14 +157,14 @@ into an image that will be used for all future compile/load operations")
     :accessor build-pre-image
     :initform nil
     :type boolean
-    :documentation "Should we build a specific pre-image for this BUILD?")
+    :documentation "Should we build a specific pre-image for this build?")
    (build-image
     :initarg :build-image
     :accessor build-image
     :initform nil
     :type boolean
-    :documentation "Should we build a Lisp image with that BUILD loaded?"))
-  (:documentation "BUILD.lisp file grain"))
+    :documentation "Should we build a Lisp image with that build loaded?"))
+  (:documentation "build.xcvb file grain"))
 
 (defclass fasl-grain (file-grain named-grain)
   ((load-dependencies

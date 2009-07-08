@@ -35,7 +35,7 @@ endif
 export INSTALL_XCVB
 
 LISP_SOURCES := $(wildcard *.lisp */*.lisp *.asd */*.asd)
-LISP_INSTALL_FILES := driver.lisp BUILD.lisp
+LISP_INSTALL_FILES := driver.lisp build.xcvb
 
 ## cl-launch mode: standalone executable, script+image or script+fasls?
 define CL_LAUNCH_MODE_standalone
@@ -93,7 +93,7 @@ tidy:
 	cd doc ; rm -f *.aux *.out *.bbl *.dvi *.log *.blg
 
 clean: tidy
-	rm -rf xcvb xcvb-bootstrapped obj
+	rm -rf xcvb xcvb-bootstrapped obj tmp
 	cd doc ; rm -f *.html *.pdf
 
 mrproper: clean
@@ -133,8 +133,23 @@ push:
 show-current-revision:
 	git show --pretty=oneline HEAD | head -1 | cut -d' ' -f1
 
+release-tarball:
+	VERSION=$$(cat version.lisp | grep version | cut -d\" -f2) ; \
+	mkdir -p tmp/xcvb-$$VERSION && cd tmp/xcvb-$$VERSION && \
+	git clone http://common-lisp.net/project/xcvb/git/xcvb.git && \
+	mkdir -p dependencies && cd dependencies && \
+	git clone http://common-lisp.net/project/asdf/asdf.git && \
+	git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git && \
+	git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git && \
+	git clone http://common-lisp.net/project/xcvb/git/cl-launch.git && \
+	darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop && \
+	cp ../../doc/Makefile.release Makefile && \
+	cp ../../doc/configure.mk.release xcvb/configure.mk && \
+	make xcvb/xcvb.mk && \
+	cd .. ; tar jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/
 
 .PHONY: all install lisp-install test tidy clean mrproper \
-	xpdf doc online-doc pull push show-current-revision force
+	xpdf doc online-doc pull push show-current-revision force \
+	release-tarball
 
 # To check out a particular revision: git fetch; git merge $commit
