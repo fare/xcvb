@@ -80,26 +80,25 @@
   (let* ((grain (resolve-absolute-module-name name))
 	 (fullname (fullname grain))
 	 (generator (gethash fullname *generators*)))
-    (when (and generator
-	       (not (generator-computation generator)))
-      (setf (generator-computation generator) T)
-      (let ((dependencies (generator-dependencies generator))
+    (check-type grain lisp-grain)
+    (when (and generator (not (generator-computation generator)))
+      (let ((dependencies (append (build-dependencies grain) (generator-dependencies generator)))
 	    (targets (generator-targets generator)))
 	(unless dependencies
 	  (error "graph-for-lisp-module: Need dependencies to generate file ~S.~%" fullname))
-	(setf (included-dependencies env) NIL)
 	(mapcar (lambda (target) (slot-makunbound target 'computation)) targets)
 	(let ((pre-image (pre-image-for env grain)))
+          (setf (included-dependencies env) (image-included pre-image))
 	  (load-command-for* env dependencies)
-	  (make-computation
-	   ()
-	   :outputs targets
-	   :inputs (traversed-dependencies env)
-	   :command
-	   `(:xcvb-driver-command (:image ,(fullname pre-image))
-				  ,@(traversed-load-commands env)))
-	  )))
-  grain))
+          (setf (generator-computation generator)
+                (make-computation
+                 ()
+                 :outputs targets
+                 :inputs (traversed-dependencies env)
+                 :command
+                 `(:xcvb-driver-command (:image ,(fullname pre-image))
+                   ,@(traversed-load-commands env)))))))
+    grain))
 
 (define-graph-for :build (env name)
   (graph-for-build-named env name))
@@ -127,15 +126,15 @@
     ((string-prefix<= "/_pre/" name)
      (let* ((build-name (subseq name 5))
             (build (registered-build build-name)))
+       (check-type build build-grain)
        (handle-lisp-dependencies build)
-       (let ((dependencies (build-dependencies build)))
-         (if (and (consp dependencies)
-                  (consp (car dependencies))
-                  (eq :build (caar dependencies)))
-             ;; if the build dependency is a build, use its post-image as pre-image!
-             (graph-for-image-grain env name (cadar dependencies) (cdr (build-dependencies build)))
+       (let* ((dependencies (build-dependencies build))
+              (starting-build (imaged-build-starting-dependencies-p dependencies)))
+         (if starting-build
+             ;; if the build dependency is a build AND has a post-image, use it as pre-image!
+             (graph-for-image-grain env name starting-build (cdr dependencies))
              ;; otherwise, start from the common pre-image
-             (graph-for-image-grain env name "/_" (build-dependencies build))))))
+             (graph-for-image-grain env name "/_" dependencies)))))
     (t
      (let* ((build (registered-build name)))
        (graph-for-image-grain
@@ -217,10 +216,13 @@
     (issue-dependency env lisp)
     (let ((load-dependencies (load-dependencies lisp))
           (compile-dependencies (compile-dependencies lisp))
+          (build-dependencies (build-dependencies lisp))
           (pre-image (pre-image-for env lisp)))
       (setf (included-dependencies env) (image-included pre-image))
+      (load-command-for* env build-dependencies)
       (load-command-for* env compile-dependencies)
-      (let ((outputs (fasl-grains-for-name fullname load-dependencies compile-dependencies)))
+      (let ((outputs (fasl-grains-for-name fullname load-dependencies compile-dependencies
+                                           build-dependencies)))
         (make-computation
          ()
          :outputs outputs

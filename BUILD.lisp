@@ -24,4 +24,5 @@ deterministic separate compilation and enforced locally-declared dependencies."
                    "asdf-dependency-grovel" "closer-mop"
                    "command-line-arguments")
   :depends-on ("main" "version")
+  :pre-image t
   :build-image t))

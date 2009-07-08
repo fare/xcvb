@@ -137,35 +137,43 @@
                (grain-pathname build)))))
 
 
-;;; Ain't this superseded by resolve-module-name???
-(defun grain-from-fullname (name)
-  (setf name (canonicalize-fullname name))
-  (or (registered-grain name)
-      (loop :for prev = nil :then pos
-            :for pos = (position #\/ name :from-end t :end prev)
-            :while pos :do
-              (let* ((prefix (subseq name 0 pos))
-                     (build (registered-grain prefix)))
-                (when (build-grain-p build)
-                  (let ((it (%grain-from-relative-name (subseq name (1+ pos)) build)))
-                    (when it
-                      (setf (registered-grain name) it)
-                      (return it)))))
-            :finally (return nil))))
+(defun build-grain-for (grain)
+  (etypecase grain
+    (build-grain grain)
+    (lisp-grain (grain-parent grain))))
+
+(defmethod build-dependencies :before (grain)
+  (handle-lisp-dependencies grain))
+
+(defmethod build-dependencies ((grain lisp-grain))
+  (build-dependencies (grain-parent grain)))
+
+(defun imaged-build-starting-dependencies-p (dependencies)
+  (and (consp dependencies)
+       (consp (car dependencies))
+       (eq :build (caar dependencies))
+       (let* ((dep-build-name (cadar dependencies))
+              (dep-build-grain (registered-grain dep-build-name)))
+         (and (build-grain-p dep-build-grain)
+              (build-image dep-build-grain)
+              dep-build-name))))
 
 (defun build-pre-image-name (build-grain)
   (check-type build-grain build-grain)
   (handle-lisp-dependencies build-grain)
-  (let ((dependencies (build-dependencies build-grain)))
+  (let* ((dependencies (build-dependencies build-grain))
+         (pre-image-p (build-pre-image build-grain))
+         (imaged-build-starting-dependencies (imaged-build-starting-dependencies-p dependencies)))
     (cond
       ((null dependencies) "/_")
-      ((and (consp dependencies)
-            (null (cdr dependencies))
-            (consp (car dependencies))
-            (eq :build (caar dependencies)))
-       ;; requiring exactly one other build... make its post image our pre-image
-       (cadar dependencies))
-      (t (strcat "/_pre" (fullname build-grain))))))
+      ((and imaged-build-starting-dependencies (null (cdr dependencies)))
+       imaged-build-starting-dependencies)
+      (pre-image-p
+       (strcat "/_pre" (fullname build-grain)))
+      (imaged-build-starting-dependencies ; and (not pre-image-p)
+       imaged-build-starting-dependencies)
+      (t
+       "/_"))))
 
 (defun build-image-name (build-grain)
   (check-type build-grain build-grain)
@@ -198,3 +206,4 @@
 
 (defun image-grain-p (x)
   (typep x 'image-grain))
+

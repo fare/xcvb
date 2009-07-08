@@ -94,9 +94,13 @@ We've got a Makefile backend with which we can recompile XCVB itself.
 
 Here is the top of our TODO list at ITA:
 
- * Apply XCVB to some actual big projects at ITA.
+ * Add targets to XCVB's ``Makefile`` so that it can be download dependencies,
+   configure and compile XCVB without the need for ASDF (and ASDF setup) at all.
+   Consequently move ``command-line-arguments`` to its own git repo.
+   May require a bootstrapped ``xcvb.mk`` to be checked in. Sigh.
+   Also, don't include ``xcvb.mk`` -- use ``${MAKE} -f xcvb.mk`` for the desired targets.
 
- * Make a pre-image optional -- builds that want one can require it explicitly.
+ * Apply XCVB to some actual big projects at ITA.
 
  * Quench warnings about undefined functions during file compilation,
    but record them on the side. Reconcile them after image creation.
@@ -143,6 +147,12 @@ in a suggested order for a newbie to enter XCVB hacking:
    This is one more reason to distinguish
    dependency on ``(:data (:source "foo/BUILD.lisp"))``
    from dependency on ``(:build "foo")``.
+
+ * Have a ``xcvb.mk`` target in ``xcvb.mk`` itself, with a proper ``make-makefile`` command,
+   that depends on all BUILD *and* Lisp module files,
+   so the outer Makefile may do lazy update with::
+
+	if [ -f xcvb.mk ] ; then ${MAKE} -f xcvb.mk xcvb.mk ; else xcvb make-makefile ... ; fi
 
  * Also, in generated files, double-check that there isn't
    an intermediate BUILD that short-circuits the name resolution.

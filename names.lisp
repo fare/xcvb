@@ -104,11 +104,6 @@
         (recurse rdirectory nil)
         (maybe-inherit-from rdirectory (list (pathname-name pathname)))))))
 
-(defun build-grain-for (grain)
-  (etypecase grain
-    (build-grain grain)
-    (lisp-grain (grain-parent grain))))
-
 (defun resolve-module-name (name grain)
   "Resolve module NAME in the context of BUILD into an appropriate grain, if any"
   (if (portable-pathname-absolute-p name)

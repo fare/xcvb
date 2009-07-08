@@ -34,9 +34,8 @@ xcvb.mk: setup.lisp
 	xcvb make-makefile --setup /c/setup --build /c
 
 # You need to "make xcvb.mk" before you can actually "make" the ultimate target.
-ifeq ($(wildcard xcvb.mk),xcvb.mk)
-  include xcvb.mk
-endif
+obj/c.image: xcvb.mk
+	${MAKE} -f xcvb.mk -j $@
 
 setup.lisp:
 	( ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_launcher ; \

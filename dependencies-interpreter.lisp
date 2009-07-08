@@ -206,14 +206,14 @@ in the normalized dependency mini-language"
 (defun compile-time-fasl-type ()
   (if *use-cfasls* :cfasl :fasl))
 
-(defun fasl-grains-for-name (fullname load-dependencies compile-dependencies)
+(defun fasl-grains-for-name (fullname load-dependencies compile-dependencies build-dependencies)
   (cons (make-grain 'fasl-grain
                     :fullname `(:fasl ,fullname)
-                    :load-dependencies load-dependencies)
+                    :load-dependencies (append build-dependencies load-dependencies))
         (if *use-cfasls*
             (list (make-grain 'cfasl-grain
                               :fullname `(:cfasl ,fullname)
-                              :load-dependencies compile-dependencies))
+                              :load-dependencies (append build-dependencies compile-dependencies)))
             nil)))
 
 (defun cfasl-for-fasl (fasl-grain)

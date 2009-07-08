@@ -51,24 +51,6 @@ endef
 LISP_BIN := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_binary_path)
 LISP_IMPL := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_implementation)
 
-## These are used to bootstrap xcvb with xcvb.
-## See test/mock/a/c/Makefile for details and comments.
-obj/target-properties.lisp-expr: xcvb.mk
-xcvb.mk: ${LISP_SOURCES} setup.lisp ${LISP_BIN}
-	xcvb make-makefile \
-	     --build /xcvb \
-	     --setup /xcvb/setup \
-	     --lisp-implementation ${LISP_IMPL} \
-	     --lisp-binary-path ${LISP_BIN}
-
-## TODO: In xcvb.mk, have xcvb.mk: <more dependencies> **/BUILD.lisp
-## TODO: In xcvb.mk, generated files should depend on the BUILD.lisp.
-## e.g. lists.lisp : /cl-unicode/BUILD.lisp
-
-ifeq ($(wildcard xcvb.mk),xcvb.mk)
-  include xcvb.mk
-endif
-
 setup.lisp:
 	( ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_launcher ; \
 	  ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -i "(let ((*package* (find-package :cl-launch))) (format t \"~S~%\" \`(setf asdf:*central-registry*',asdf:*central-registry*)))" \
@@ -77,6 +59,17 @@ setup.lisp:
 xcvb-bootstrapped: obj/xcvb.image
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image --output $@ --init '(xcvb::main)'
 
+define use_xcvb_mk
+	xcvb make-makefile \
+	     --build /xcvb \
+	     --setup /xcvb/setup \
+	     --lisp-implementation ${LISP_IMPL} \
+	     --lisp-binary-path ${LISP_BIN}
+	${MAKE} -f xcvb.mk -j $1
+endef
+
+obj/xcvb.image: force
+	$(call use_xcvb_mk,$@)
 
 ## Creating executable
 xcvb: ${INSTALL_BIN}/xcvb
@@ -142,6 +135,6 @@ show-current-revision:
 
 
 .PHONY: all install lisp-install test tidy clean mrproper \
-	xpdf doc online-doc pull push show-current-revision
+	xpdf doc online-doc pull push show-current-revision force
 
 # To check out a particular revision: git fetch; git merge $commit
