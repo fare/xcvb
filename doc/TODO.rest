@@ -94,11 +94,11 @@ We've got a Makefile backend with which we can recompile XCVB itself.
 
 Here is the top of our TODO list at ITA:
 
- * Add targets to XCVB's ``Makefile`` so that it can be download dependencies,
+ * In a tarball release that can be created from the ``Makefile``, include all the dependencies
+   (ASDF, asdf-dependencies-grovel, closer-mop, cl-launch, command-line-arguments)
+   Add targets to XCVB's ``Makefile`` so that it can be download dependencies,
    configure and compile XCVB without the need for ASDF (and ASDF setup) at all.
    Consequently move ``command-line-arguments`` to its own git repo.
-   May require a bootstrapped ``xcvb.mk`` to be checked in. Sigh.
-   Also, don't include ``xcvb.mk`` -- use ``${MAKE} -f xcvb.mk`` for the desired targets.
 
  * Apply XCVB to some actual big projects at ITA.
 
@@ -142,10 +142,10 @@ in a suggested order for a newbie to enter XCVB hacking:
      + to make things error-proof, adding another layer of registration that ensures that
        an actual pathname is only used for one kind of abstract dependency pathname.
 
- * When a generated file is described in a ``BUILD.lisp``,
-   have the file itself depend on ``BUILD.lisp``.
+ * When a generated file is described in a ``build.xcvb``,
+   have the file itself depend on ``build.xcvb``.
    This is one more reason to distinguish
-   dependency on ``(:data (:source "foo/BUILD.lisp"))``
+   dependency on ``(:data (:source "foo/build.xcvb"))``
    from dependency on ``(:build "foo")``.
 
  * Have a ``xcvb.mk`` target in ``xcvb.mk`` itself, with a proper ``make-makefile`` command,
@@ -177,6 +177,12 @@ in a suggested order for a newbie to enter XCVB hacking:
    May or may not benefit from the previous.
    Alternatively, document how any such thing
    may be done in the external ``Makefile`` for now.
+
+ * Figure out why the call of ``directory`` in ``find-build-files-under``
+   is so slow (at least in SBCL), and find a pure-lisp alternative
+   to spawning a shell that executes ``find(1)``.
+   Xof suggests profiling the thing as it runs.
+   I suggest properly extending IOLib or osicat to do the right thing.
 
  * Re-implement the ASDF backend, so ASDF users can use XCVB BUILDs.
    See `ASDF backend [V1]`_
@@ -280,11 +286,11 @@ compile-time reading of data files,
 dynamic creation of Lisp files
 or conditional compilation
 may have to be manually migrated and/or
-their automatically migrated ``BUILD.lisp`` may have to be manually edited.
+their automatically migrated ``build.xcvb`` may have to be manually edited.
 Some systems may also be merged together, as specified by the user.
 
 Also, unmigration, stripping any generated module statement, should be supported.
-So should be merging changes into previously manually-edited BUILD.lisp files.
+So should be merging changes into previously manually-edited build.xcvb files.
 
 
 In-image loading [V1]
@@ -360,7 +366,7 @@ Document or automate away things such as:
      + rules to make ``xcvb.mk`` itself, including dependencies
 
          * could the dependency on the target Lisp implementation's binary
-           as well as on all BUILD.lisp files be automated?
+           as well as on all build.xcvb files be automated?
 
      + how to identify the top-level target of xcvb.mk
 
@@ -502,7 +508,7 @@ or to expand into an actual string (for running the build).
 
 Map actual paths to and from variablized strings, i.e. have
 ``${FOO}/bar/${GAH}`` in your path; it will search for files there,
-and output ``${FOO}/bar/${GAH}/xcvb/BUILD.lisp``
+and output ``${FOO}/bar/${GAH}/xcvb/build.xcvb``
 in the ``Makefile`` (instead of the full expansion).
 
 
@@ -677,8 +683,8 @@ Ideas from jknight [V2]
 
 Ideas from discussion w/ jknight:
 
- * allow python-like hierarchical installation paths instead of named BUILD.lisp
-   (Isn't that already possible? Just have a top-level BUILD.lisp fullname'd "/" somewhere!)
+ * allow python-like hierarchical installation paths instead of named build.xcvb
+   (Isn't that already possible? Just have a top-level build.xcvb fullname'd "/" somewhere!)
    (The point was probably that we can avoid eager search if only we can agree on
    some naming hierarchy for both "module names" and filesystem relative paths.) [Done]
 

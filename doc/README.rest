@@ -99,9 +99,9 @@ and one open to general discussions,
 Dependencies
 ------------
 
-You will need the following pieces of software to get XCVB running:
+You will need a Lisp implementation to build or run XCVB and the software it builds:
 
-  * a Lisp implementation. We test with SBCL:
+  * We test with SBCL:
 	- homepage: http://sbcl.sourceforge.net/
 	- CLiki page: http://cliki.net/SBCL
         - get it from: http://sbcl.sourceforge.net/platform-table.html
@@ -111,19 +111,22 @@ You will need the following pieces of software to get XCVB running:
         - getting it:
 		``wget http://repo.or.cz/w/sbcl/jsnell.git?a=treediff_plain;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master``
 
+You will need the following Lisp software libraries to get XCVB running.
+You can download them all with ``make libs``:
+
   * cl-launch 2.17 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
         - getting it, if you're a project member::
-        	``git clone ssh://USER@common-lisp.net/project/xcvb/public_html/git/cl-launch.git``
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
   * asdf-dependency-grovel 1.0 with our local modifications:
 	- homepage: http://cliki.net/asdf-dependency-grovel
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
         - getting it, if you're a project member:
-		``git clone ssh://USER@common-lisp.net/project/xcvb/public_html/git/asdf-dependency-grovel.git``
+		``git clone ssh://USER@common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
 
   * Closer to MOP, with our XCVB patch:
 	- homepage: http://common-lisp.net/project/closer/closer-mop.html
@@ -131,6 +134,13 @@ You will need the following pieces of software to get XCVB running:
 		``darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop``
 	- getting it, once the XCVB patch has been accepted upstream:
 		``darcs get http://www.common-lisp.net/project/closer/darcs/closer-mop``
+
+  * command-line-arguments:
+	- homepage: http://common-lisp.net/project/qitab/
+	- getting it:
+		``git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git``
+        - getting it, if you're a project member::
+        	``git clone ssh://USER@common-lisp.net/project/qitab/git/command-line-arguments.git``
 
 
 Documentation
@@ -247,14 +257,14 @@ Optionally, you can distinguish
 between ``:compile-depends-on``
 and ``:load-depends-on``.
 
-Finally, a main file called ``BUILD.lisp``
+Finally, a main file called ``build.xcvb``
 is the main file that needs to be loaded in the final image.
 It is typically empty except for the module form specifying
 all its dependencies
 and possibly some finalization forms to run at the end of the build.
 The dependencies typically include ASDF libraries,
 currently specified in an ugly way as dependencies of the build image.
-The ``BUILD.lisp`` file for Exscribe is as follows::
+The ``build.xcvb`` file for Exscribe is as follows::
 
 	#+xcvb
         (module
@@ -265,7 +275,7 @@ The ``BUILD.lisp`` file for Exscribe is as follows::
            :depends-on ("exscribe" "exscribe-html" "exscribe-txt" "exscribe-typeset")
            :build-image t))
 
-You don't need to specify all your files in the ``BUILD.lisp`` module form,
+You don't need to specify all your files in the ``build.xcvb`` module form,
 only those containing the functions you really care about,
 since the dependencies will be automatically identified and loaded.
 
@@ -293,7 +303,7 @@ Common pitfalls include:
     you'll have to manually add such dependencies to the proper XCVB module.
 
   * if your system has some generated files, then you'll have to add the
-    proper entries manually in your ``BUILD.lisp``.
+    proper entries manually in your ``build.xcvb``.
     Moreover, the syntax for that is still unstable at this point
     and may change a bit in the future.
 
@@ -322,7 +332,7 @@ already relied upon while configuring ``xcvb`` itself.
 The setup file is specified in argument ``--setup`` to ``xcvb make-makefile``.
 It must be the name of a Lisp module following usual XCVB naming conventions,
 e.g. ``/foo/setup`` for file ``setup.lisp``
-under a BUILD the fullname of which is ``/foo``.
+under a build the fullname of which is ``/foo``.
 
 
 Restrictions on your Lisp Code
@@ -386,18 +396,18 @@ XCVB relies on a global namespace for developers to name modules.
 Using this namespace allows programmers to name modules independently
 from their specific location on any particular machine's filesystem.
 
-Thus each hierarchy of XCVB files contains a top-level ``BUILD.lisp`` file.
+Thus each hierarchy of XCVB files contains a top-level ``build.xcvb`` file.
 This file contains a module declaration with a ``:fullname`` initializer
 that specifies a prefix name for all modules in the hierarchy.
-E.g. if your directory ``/foo/bar/`` has a file ``BUILD.lisp``
+E.g. if your directory ``/foo/bar/`` has a file ``build.xcvb``
 containing the specification ``:fullname "lisp.example.com/quux"``
 then all files under this file hierarchy will be considered as being under
 the hierarchy ``lisp.example.com/quux`` within the global module namespace,
-unless overridden by a lower ``BUILD.lisp``.
+unless overridden by a lower ``build.xcvb``.
 Thus, a file ``/foo/bar/baz/toto.lisp`` would inherit the fullname
 ``lisp.example.com/quux/baz/toto``.
 
-Nicknames are also allowed, and the same ``BUILD.lisp`` could declare
+Nicknames are also allowed, and the same ``build.xcvb`` could declare
 the nickname ``quux`` and the same file would then be accessible
 under the shorter name ``quux/baz/toto``.
 
@@ -445,10 +455,10 @@ environment variables, configuration files, or
 Before XCVB actually tries to process any module,
 it will finalize its search path by eliminating all invalid paths
 from *search-path* and eagerly collecting a list of all the top-level
-``BUILD.lisp`` files under the specified filesystem hierarchies.
-Conflicts between two ``BUILD.lisp`` files
+``build.xcvb`` files under the specified filesystem hierarchies.
+Conflicts between two ``build.xcvb`` files
 claiming the same name or nickname are resolved as follows:
-if one ``BUILD.lisp`` appears in a hierarchy
+if one ``build.xcvb`` appears in a hierarchy
 that appears earlier in the search path, then it takes precedence;
 if the previous rule doesn't disambiguate a name, then
 said name will be marked as a conflict and
@@ -476,15 +486,15 @@ The algorithm by which a name reference is resolved to a full name is as follows
 First, names that start with a ``/`` character are absolute names,
 and always refer to the global module namespace.
 When resolving an absolute name,
-the registered BUILD with the longest matching path prefix is identified.
+the registered build with the longest matching path prefix is identified.
 If it is not found, or if there are several conflicting
-BUILD files with that same fullname, then an error is raised.
+build files with that same fullname, then an error is raised.
 Otherwise, the rest of the name after stripping the prefix is used as
-a pathname relative to the identified BUILD.
+a pathname relative to the identified build.
 
 Second, names that are not absolute are relative names.
 Attempt is successively made to resolve them
-relative to the current BUILD and each of its ancestors.
+relative to the current build and each of its ancestors.
 Failing that, they are resolved as absolute names as above.
 
 
@@ -498,7 +508,7 @@ Lisp file generation
 XCVB supports the dynamic generation of Lisp files.
 
 Statements of generated files are to be included amongst the
-"extension forms" of your ``BUILD.lisp`` file,
+"extension forms" of your ``build.xcvb`` file,
 i.e. after the list of keyword options
 ``(:fullname ... :depends-on ...)``.
 

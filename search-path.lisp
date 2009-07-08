@@ -64,12 +64,12 @@
    (and (integerp (pathname-version x))
         (equal (truename x) (truename (make-pathname :version :newest :defaults x))))))
 
-(defun pathname-is-BUILD.lisp-p (x)
-  (and (equal (pathname-name x) "BUILD")
-       (equal (pathname-type x) "lisp")
+(defun pathname-is-build.xcvb-p (x)
+  (and (equal (pathname-name x) "build")
+       (equal (pathname-type x) "xcvb")
        #+genera (pathname-newest-version-p x)))
 
-(defvar *archive-directory-names* '("_darcs" ".svn")
+(defvar *archive-directory-names* '("_darcs" ".svn" "tmp")
   "names of archive directories inside which we should not look for BUILD files")
 
 (defun in-archive-directory-p (x)
@@ -78,11 +78,11 @@
 
 (defvar +all-builds-path+
   (make-pathname :directory '(:relative :wild-inferiors)
-                 :name "BUILD"
-                 :type "lisp"
+                 :name "build"
+                 :type "xcvb"
                  :version :newest))
 
-(defun underscore-non-alphanum-chars (x)
+(defun underscore-for-non-alphanum-chars (x)
   (map 'base-string
        (lambda (c) (if (or (char<= #\a c #\z) (char<= #\A c #\Z) (char<= #\0 c #\9)) c #\_))
        x))
@@ -97,10 +97,10 @@
          (build-file-name
           (format nil "~A/builds-under-~A.text"
                   *object-directory*
-                  (underscore-non-alphanum-chars root-string))))
+                  (underscore-for-non-alphanum-chars root-string))))
     (asdf:run-shell-command
      (format nil
-             "find ~A -type f -name BUILD.lisp > ~A"
+             "find ~A -type f -name build.xcvb > ~A"
              (escape-shell-token root-string)
              build-file-name))
     (prog1
