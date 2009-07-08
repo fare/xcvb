@@ -216,6 +216,8 @@ in a suggested order for a newbie to enter XCVB hacking:
 
  * For a binary release, issue a standalone clisp binary?
 
+ * Implement `Centralized Dependency Declaration [V1]`_
+
 Random ideas:
 
  * Maybe every target in the xcvb.mk should depend on xcvb.mk itself...
@@ -342,6 +344,16 @@ a good enough job that with some additional discipline,
 a correct XCVB module should build with ASDF as a backend.
 
 Add a test suite for the ASDF backend.
+
+
+Centralized dependency declaration [V1]
+---------------------------------------
+
+Some users have requested the ability to declare dependencies of a Lisp module
+from the ``build.xcvb`` file instead of inside the Lisp file itself.
+
+A syntax extension allowing such feature (making XCVB more similar to ASDF)
+would be welcome.
 
 
 Lack of Manual [V1]

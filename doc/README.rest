@@ -46,11 +46,12 @@ Status
 
 Bottom line:
 XCVB isn't yet ready as a full replacement for ASDF for the Lisp masses,
-but is already available as such for the adventurous.
+but is already available as a build system for beta-testers.
 
 The current version (in git master branch)
 can handle the usual cases
 though it is neither feature-rich nor user-friendly.
+
 
 You can either write your project directly as an XCVB build
 or automatically convert an existing ASDF project
@@ -76,13 +77,18 @@ The home page of the project is at:
 
 	http://common-lisp.net/project/xcvb/
 
+You can find a tarball containing XCVB, all its dependencies, and a few generated files
+sufficient to bootstrap the whole thing (but depending on an SBCL with or without CFASL) in:
+
+           http://common-lisp.net/project/xcvb/releases/
+
 You can checkout our public repository with::
 
 	git clone http://common-lisp.net/project/xcvb/git/xcvb.git
 
 Or if you are a project member, you can obtain write access using::
 
-	git clone ssh://USER@common-lisp.net/project/xcvb/public_html/git/xcvb.git
+	git clone ssh://USER@common-lisp.net/project/xcvb/git/xcvb.git
 
 You can also browse the repository at either of these:
 
@@ -99,7 +105,12 @@ and one open to general discussions,
 Dependencies
 ------------
 
-You will need a Lisp implementation to build or run XCVB and the software it builds:
+As mentionned above, you can find a tarball sufficient to bootstrap XCVB at:
+
+           http://common-lisp.net/project/xcvb/releases/
+
+
+You will still need a Lisp implementation to build or run XCVB and the software it builds:
 
   * We test with SBCL:
 	- homepage: http://sbcl.sourceforge.net/
@@ -111,10 +122,13 @@ You will need a Lisp implementation to build or run XCVB and the software it bui
         - getting it:
 		``wget http://repo.or.cz/w/sbcl/jsnell.git?a=treediff_plain;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master``
 
-You will need the following Lisp software libraries to get XCVB running:
+
+If you prefer to collect XCVB's dependencies manually into your system,
+you will need the following Lisp software libraries to get XCVB running:
 
   * cl-launch 2.18 or later:
 	- homepage: http://cliki.net/CL-Launch
+
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
         - getting it, if you're a project member::
