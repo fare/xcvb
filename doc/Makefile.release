@@ -6,9 +6,11 @@ LISP_SOURCE ?= ${PREFIX}/share/common-lisp/source
 export XCVB_PATH := $(shell pwd)
 
 install:
-	./dependencies/cl-launch/cl-launch \
+        mkdir -p ${INSTALL_BIN}
+	./dependencies/cl-launch/cl-launch.sh \
 		-I ${LISP_SOURCE}/cl-launch \
 		-o ${INSTALL_BIN}/cl-launch \
 		-B install
+        export PATH=${INSTALL_BIN}:$PATH ; \
 	${MAKE} -C xcvb -j install \
 		PREFIX=${PREFIX} LISP=${LISP}
