@@ -7,8 +7,8 @@
   "Properties of the target system")
 
 (defparameter *target-properties-variables*
-  '(*use-cfasls* "(or #+sbcl (and (find-symbol \"*EMIT-CFASL*\" \"SB-C\") t))"
-    *target-system-features* "*features*")
+  '(( *use-cfasls* . "(or #+sbcl (and (find-symbol \"*EMIT-CFASL*\" \"SB-C\") t))")
+    ( *target-system-features* . "*features*"))
   "plist of variables and how to compute them in the target system")
 
 (defun target-properties-file ()
@@ -25,7 +25,7 @@
       (error "Malformed target properties file ~S" file))
     (setf *target-properties* (cdr form))
     (loop :for (var value) :on *target-properties* :by #'cddr :do
-          (if (getf *target-properties-variables* var)
+          (if (member var *target-properties-variables* :key #'car)
               (set var value)
               (error "Invalid target property ~S in file ~S" var file)))))
 
@@ -36,20 +36,22 @@
 
 (defun target-properties-form ()
   (with-standard-io-syntax ()
-    (let ((*package* (find-package :xcvb-user))
-          (*read-eval* nil))
-      (format nil "`(cl:setf~%~{ ~(~S~) ,~A~})~%" *target-properties-variables*))))
+    (let* ((*package* (find-package :xcvb-user))
+           (*read-eval* nil)
+           (vars (mapcar #'car *target-properties-variables*))
+           (exprs (mapcar #'cdr *target-properties-variables*)))
+      (format nil "(format t \"(cl:setf~~%~{ xcvb::~(~A~) '~~S~~%~})~~%\"~{ ~A~})"
+              vars exprs))))
 
 (defun query-target-lisp-helper (query-string output-filename)
   (assert *lisp-implementation-type*)
   (asdf:run-shell-command ;;; TODO: use something better, someday
-   (format nil
-	   "~A > ~A"
-	   (shell-tokens-to-string
-	    (lisp-invocation-arglist
-	     :eval (format nil "(let ((*package (find-package :xcvb-user))) (write ~A :readably t) (terpri) (finish-output) ~A)"
-			   query-string
-			   (format nil (slot-value
-					(get-lisp-implementation
-					 *lisp-implementation-type*) 'quit-format) 0))))
-	   output-filename)))
+   "~A > ~A"
+   (shell-tokens-to-string
+    (lisp-invocation-arglist
+     :eval (format nil "(progn ~A (finish-output) ~A)"
+                   query-string
+                   (format nil (slot-value
+                                (get-lisp-implementation
+                                 *lisp-implementation-type*) 'quit-format) 0))))
+   output-filename))

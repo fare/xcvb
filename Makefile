@@ -154,6 +154,7 @@ release-tarball:
 	  echo "Already got command-line-arguments.git" ) && \
 	( git clone http://common-lisp.net/project/xcvb/git/cl-launch.git || \
 	  echo "Already got cl-launch.git" ) && \
+	( cd cl-launch && ./cl-launch.sh -I $$PWD -B install_path ) && \
 	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
 	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi ) && \
 	cd .. && \

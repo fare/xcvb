@@ -168,7 +168,8 @@ for this version of XCVB.")))
 ;; Command to print out a version string.
 (defun show-version (args)
   (declare (ignore args))
-  (format t "~&XCVB version ~A~%" *xcvb-version*))
+  (format t "~&XCVB version ~A~%(compiled with ~A ~A)~%"
+          *xcvb-version* (lisp-implementation-type) (lisp-implementation-version)))
 
 ;; Command to load a file.
 (defun load-command (args)

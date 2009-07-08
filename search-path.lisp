@@ -99,10 +99,9 @@
                   *object-directory*
                   (underscore-for-non-alphanum-chars root-string))))
     (asdf:run-shell-command
-     (format nil
-             "find ~A -type f -name build.xcvb > ~A"
-             (escape-shell-token root-string)
-             build-file-name))
+     "find ~A -type f -name build.xcvb > ~A"
+     (escape-shell-token root-string)
+     build-file-name)
     (prog1
         (with-open-file (in build-file-name)
           (loop :for x = (read-line in nil nil) :while x :collect x))
