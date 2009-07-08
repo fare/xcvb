@@ -94,7 +94,7 @@ This is designed to abstract away the implementation specific quit forms."
   #+clisp
   (apply #'ext:saveinitmem filename
    :quiet t
-   :start-package package
+   :start-package *package*
    :keep-global-handlers nil
    :executable (if standalone 0 t) ;--- requires clisp 2.48 or later, still catches --clisp-x
    (when standalone

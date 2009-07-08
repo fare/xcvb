@@ -26,12 +26,13 @@
    (("object-directory" #\O) :type string :optional t :documentation "specify object directory (default: obj)")
    (("lisp-implementation" #\i) :type string :optional t :documentation "specify type of Lisp implementation (default: sbcl)")
    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+   (("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")
    (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
 
 (defun make-makefile (arguments &key
                                 xcvb-path setup verbosity output-path
                                 build lisp-implementation lisp-binary-path
-                                object-directory)
+                                disable-cfasl object-directory)
   (reset-variables)
   (when arguments
     (error "Invalid arguments to make-makefile"))
@@ -55,6 +56,8 @@
     (setf *lisp-executable-pathname* lisp-binary-path))
   (extract-target-properties)
   (read-target-properties)
+  (when disable-cfasl
+    (setf *use-cfasls* nil))
   (search-search-path)
   (write-makefile (canonicalize-fullname build) :output-path output-path))
 

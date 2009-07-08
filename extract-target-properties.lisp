@@ -25,9 +25,13 @@
       (error "Malformed target properties file ~S" file))
     (setf *target-properties* (cdr form))
     (loop :for (var value) :on *target-properties* :by #'cddr :do
-          (if (member var *target-properties-variables* :key #'car)
-              (set var value)
-              (error "Invalid target property ~S in file ~S" var file)))))
+          (cond
+            ((not (member var *target-properties-variables* :key #'car))
+             (error "Invalid target property ~S in file ~S" var file))
+            ((not (and (list-of-length-p 2 value) (eq 'quote (car value))))
+             (error "Invalid target property value ~S in file ~S" value file))
+            (t
+             (set var (second value)))))))
 
 (defun extract-target-properties ()
   (let ((file (target-properties-file)))

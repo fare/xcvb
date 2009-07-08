@@ -1,16 +1,18 @@
 PREFIX ?= /usr/local
-LISP ?= clisp
+LISP ?= sbcl
 INSTALL_BIN ?= ${PREFIX}/bin
 LISP_SOURCE ?= ${PREFIX}/share/common-lisp/source
 
-export XCVB_PATH := $(shell pwd)
+export XCVB_PATH:=$(shell pwd)
+
+export PATH:=${INSTALL_BIN}:${PATH}
 
 install:
-        mkdir -p ${INSTALL_BIN}
+	mkdir -p ${INSTALL_BIN}
 	./dependencies/cl-launch/cl-launch.sh \
 		-I ${LISP_SOURCE}/cl-launch \
 		-o ${INSTALL_BIN}/cl-launch \
 		-B install
-        export PATH=${INSTALL_BIN}:$PATH ; \
-	${MAKE} -C xcvb -j install \
-		PREFIX=${PREFIX} LISP=${LISP}
+	${MAKE} -C xcvb -f xcvb.mk obj/xcvb.image
+	${MAKE} -C xcvb xcvb-bootstrapped-install PREFIX=${PREFIX} LISP=${LISP}
+	install -m 755 xcvb/xcvb-bootstrapped ${INSTALL_BIN}/xcvb

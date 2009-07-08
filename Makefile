@@ -59,6 +59,10 @@ setup.lisp:
 xcvb-bootstrapped: obj/xcvb.image
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image --output $@ --init '(xcvb::main)'
 
+xcvb-bootstrapped-install:
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image \
+		$(call CL_LAUNCH_MODE_standalone,xcvb) --init '(xcvb::main)'
+
 define use_xcvb_mk
 	${MAKE} -f xcvb.mk -j $1
 endef
@@ -162,7 +166,8 @@ release-tarball:
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
 	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
 	pwd && export XCVB_PATH=$$PWD && \
-	xcvb make-makefile --xcvb-path=$$PWD --build /xcvb --lisp-implementation clisp && \
+	xcvb make-makefile --xcvb-path=$$PWD \
+		--build /xcvb --lisp-implementation sbcl --disable-cfasl && \
 	rm -f obj/target-properties.lisp-expr && rmdir obj && \
 	cd .. && tar jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
