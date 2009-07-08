@@ -120,10 +120,12 @@ You will need the following Lisp software libraries to get XCVB running:
         - getting it, if you're a project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
-  * ASDF:
+  * ASDF, with our trivial modifications for building with XCVB:
 	- homepage: http://cliki.net/asdf
 	- getting it:
-		``git clone http://common-lisp.net/project/asdf/asdf.git``
+		``git clone http://common-lisp.net/project/xcvb/git/asdf.git``
+        - getting it, if you're a project member:
+		``git clone ssh://USER@common-lisp.net/project/xcvb/git/asdf.git``
 
   * asdf-dependency-grovel 1.0 with our local modifications:
 	- homepage: http://cliki.net/asdf-dependency-grovel

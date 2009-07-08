@@ -147,11 +147,8 @@ release-tarball:
 	( git clone http://common-lisp.net/project/xcvb/git/xcvb.git || \
 	  echo "Already got xcvb.git" ) && \
 	mkdir -p dependencies && cd dependencies && \
-	( git clone http://common-lisp.net/project/asdf/asdf.git || \
+	( git clone http://common-lisp.net/project/xcvb/git/asdf.git || \
 	  echo "Already got asdf.git" ) && \
-        echo '#+xcvb (module (:fullname "asdf" :depends-on ("asdf")))' > asdf/build.xcvb && \
-	( if [ ! -f asdf/asdf.lisp.orig ] ; then mv asdf/asdf.lisp asdf/asdf.lisp.orig ; fi ) && \
-        ( echo '#+xcvb (module ())' ; cat asdf/asdf.lisp.orig ) > asdf/asdf.lisp && \
 	( git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git || \
 	  echo "Already got asdf-dependency-grovel.git" ) && \
 	( git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git || \
@@ -176,6 +173,6 @@ release-tarball:
 
 .PHONY: all install lisp-install test tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision force \
-	release-tarball
+	release-tarball xcvb-bootstrapped-install
 
 # To check out a particular revision: git fetch; git merge $commit

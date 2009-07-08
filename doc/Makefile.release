@@ -15,4 +15,3 @@ install:
 		-B install
 	${MAKE} -C xcvb -f xcvb.mk obj/xcvb.image
 	${MAKE} -C xcvb xcvb-bootstrapped-install PREFIX=${PREFIX} LISP=${LISP}
-	install -m 755 xcvb/xcvb-bootstrapped ${INSTALL_BIN}/xcvb
