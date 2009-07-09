@@ -9,7 +9,7 @@ export XCVB_PATH:=$(shell pwd):${LISP_SOURCE}
 
 export PATH:=${INSTALL_BIN}:${PATH}
 
-install: xcvb/setup.lisp
+install:
 	mkdir -p ${INSTALL_BIN}
 	./dependencies/cl-launch/cl-launch.sh \
 		-l ${LISP} \
