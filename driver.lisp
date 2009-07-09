@@ -69,7 +69,7 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defun call-with-exit-on-error (thunk)
   (let ((stderr *error-output*))
-    (handler-bind ((error
+    (handler-bind ((t
                     #'(lambda (error)
                         (format stderr "~&~A~%" error)
                         (print-backtrace stderr)
