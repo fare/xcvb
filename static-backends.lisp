@@ -40,6 +40,15 @@
 
 (define-simple-dispatcher graph-for #'graph-for-atom)
 
+(define-graph-for :when (env expression &rest dependencies)
+  (when (evaluate-condition env expression)
+    (graph-for* env dependencies)))
+
+(define-graph-for :cond (env &rest cond-expressions)
+  (loop :for cond-expression :in cond-expressions
+        :when (evaluate-condition env (car cond-expression))
+        :do (return (graph-for env (cdr cond-expression)))))
+
 (defmethod graph-for ((env static-traversal) spec)
   (let* ((current-grains-r (traversed-grain-names-r env))
          (current-grains (reverse current-grains-r))
@@ -55,12 +64,20 @@
            :grain-names (cons spec current-grains-r))
           spec)))))
 
+;; :WHEN and :COND can return 0 or multiple grains.
+;; Allow graph-for to return a list of grains for :WHEN and :COND.
 (defun graph-for* (env specs)
   (remove-duplicates
-   (mapcar #'(lambda (spec)
-	       (or (graph-for env spec)
-		   (error "Couldn't find grain for spec: ~S" spec)))
-           (remove-duplicates specs :from-end t :test 'equal))
+   (mapcan #'(lambda (spec)
+	       (let ((grain (graph-for env spec)))
+		 (or grain
+		     (equal :when (car spec))
+		     (equal :cond (car spec))
+		     (error "Couldn't find grain for spec: ~S" spec))
+		 (if (not (listp grain))
+		     (list grain)
+		     grain)))
+	   (remove-duplicates specs :from-end t :test 'equal))
    :from-end t))
 
 (defun graph-for-compiled (env spec)
