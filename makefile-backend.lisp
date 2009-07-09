@@ -47,7 +47,13 @@ XCVB_EOD :=
 ifneq ($(wildcard ~A),~A)
   XCVB_EOD := xcvb-ensure-object-directories
 endif~2%"
-            *xcvb-version* directories directories)))
+            *xcvb-version* directories directories)
+    (case *lisp-implementation-type*
+      (:sbcl
+       (format stream "~%export SBCL_HOME=~A~%~%" *lisp-implementation-directory*))
+      (:ccl
+       (format stream "~%export CCL_DIRECTORY=~A~%~%" *lisp-implementation-directory*)))))
+
 
 ;; TODO: clean
 ;; * a clean-xcvb target that removes the object directory

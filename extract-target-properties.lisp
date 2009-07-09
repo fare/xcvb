@@ -7,9 +7,13 @@
   "Properties of the target system")
 
 (defparameter *target-properties-variables*
-  '(( *use-cfasls* . "(or #+sbcl (and (find-symbol \"*EMIT-CFASL*\" \"SB-C\") t))")
-    ( *target-system-features* . "*features*"))
-  "plist of variables and how to compute them in the target system")
+  '((*use-cfasls*
+     . "(or #+sbcl (and (find-symbol \"*EMIT-CFASL*\" \"SB-C\") t))")
+    (*target-system-features*
+     . "*features*")
+    (*lisp-implementation-directory*
+     . "(or #+sbcl (sb-int:sbcl-homedir-pathname) #+ccl (namestring(ccl::ccl-directory)))"))
+  "alist of variables and how to compute them in the target system")
 
 (defun target-properties-file ()
   (strcat *object-directory* "/target-properties.lisp-expr"))

@@ -98,7 +98,8 @@
      #:*lisp-implementation*
      #:*lisp-executable-pathname*
      #:*lisp-image-pathname*
-     #:*lisp-options*
+     #:*lisp-flags*
+     #:*lisp-implementation-directory*
 
      ;; Target system configuration
      #:*use-cfasls*

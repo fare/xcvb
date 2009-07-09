@@ -1,17 +1,26 @@
+# See INSTALL for instructions.
+
 PREFIX ?= /usr/local
 LISP ?= sbcl
 INSTALL_BIN ?= ${PREFIX}/bin
 LISP_SOURCE ?= ${PREFIX}/share/common-lisp/source
 
-export XCVB_PATH:=$(shell pwd)
+export XCVB_PATH:=$(shell pwd):${LISP_SOURCE}
 
 export PATH:=${INSTALL_BIN}:${PATH}
 
-install:
+install: xcvb/setup.lisp
 	mkdir -p ${INSTALL_BIN}
 	./dependencies/cl-launch/cl-launch.sh \
+		-l ${LISP} \
 		-I ${LISP_SOURCE}/cl-launch \
 		-o ${INSTALL_BIN}/cl-launch \
 		-B install
-	${MAKE} -C xcvb -f xcvb.mk obj/xcvb.image
+	${MAKE} -C xcvb -f xcvb.mk.${LISP} obj/xcvb.image
 	${MAKE} -C xcvb xcvb-bootstrapped-install PREFIX=${PREFIX} LISP=${LISP}
+
+
+xcvb/setup.lisp:
+        ( echo "(in-package :cl-user) (eval-when (:compile-toplevel :load-toplevel) \
+	  (let ((package (find-package '#:asdf))) (when package (delete-package package))))" \
+	) > $@

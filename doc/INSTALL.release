@@ -3,22 +3,29 @@
 What is in this directory
 =========================
 
-This is a release of XCVB.
+This directory is a release of XCVB.
 
-The xcvb/ directory contains xcvb itself.
+The xcvb/ subdirectory contains xcvb itself.
 
-The dependencies/ directory contains several other packages that xcvb depends on.
+The dependencies/ subdirectory contains several other packages
+that XCVB depends on.
 
-The Makefile will help you install
+The Makefile will help you install.
 
 
 How to install XCVB
 ===================
 
-To install XCVB compiled with ``clisp`` under ``/usr/local``, just::
+To install XCVB compiled with the default Lisp under ``/usr/local``, just::
 
 	make install
 
 To install XCVB compiled with ``sbcl`` under ``/opt``, instead try::
 
 	make install PREFIX=/opt LISP=sbcl
+
+Look inside the Makefile to see the supported parameters.
+For fine-tuning beyond those parameters, you may have to manually
+edit ``xcvb/configure.mk``.
+
+Currently supported Lisps: sbcl, clisp (untested: cmucl, ccl).

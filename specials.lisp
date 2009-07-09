@@ -31,6 +31,11 @@ Autodetected from the target Lisp system.")
   "What path to a Lisp image do we need invoke the target Lisp with?
 Default: whatever's the default for your implementation.")
 
+(defvar *lisp-implementation-directory* nil
+  "Where is the home directory for the Lisp implementation,
+in case we need it to (require ...) special features?
+Default: whatever's the default for your implementation.")
+
 (defvar *lisp-flags* :default
   "What options do we need invoke the target Lisp with?")
 

@@ -14,15 +14,17 @@ for what are hot topics you could be working on right now.
     1   Current Developments [V1]
     2   Roadmap [Done]
     3   Usability Issues [V1]
-      3.1  Migration from ASDF [V1]
-      3.2  In-image loading [V1]
-      3.3  ASDF backend [V1]
-      3.4  Lack of Manual [V1]
-      3.5  Producing Executables [V3]
-      3.6  Generalized Staged Images [Done]
-      3.7  Command-line interface [Done]
-      3.8  Configurability of the build image [Done]
-      3.9  Conditional Build [Done]
+      3.1   Migration from ASDF [V1]
+      3.2   In-image loading [V1]
+      3.3   ASDF backend [V1]
+      3.4   Centralized Dependency Declaration [V1]
+      3.5   Exploded File Dependencies [V1]
+      3.6   Lack of Manual [V1]
+      3.7   Producing Executables [V3]
+      3.8   Generalized Staged Images [Done]
+      3.9   Command-line interface [Done]
+      3.10  Configurability of the build image [Done]
+      3.11  Conditional Build [Done]
     4   Features [V2]
       4.1   Improve Makefile backend [V2]
       4.2   Abstract Away Paths [V2]
@@ -93,15 +95,6 @@ Following a complete rewrite, a release is soon to come (ETA: late June 2009).
 We've got a Makefile backend with which we can recompile XCVB itself.
 
 Here is the top of our TODO list at ITA:
-
- * SBCL wants to know its home to be able to ``(require :sb-posix)`` and such.
-   XCVB will have to extract the value from the original image with
-   ``(sb-posix:getenv "SBCL_HOME")`` and restore it either from the ``Makefile``
-   with ``export SBCL_HOME=...`` or within some Lisp setup form with
-   ``(sb-posix:putenv "SBCL_HOME=...")``. In the meantime, use something like::
-
-    SBCL_HOME="$($SBCL --noinform --eval '(progn(princ(posix-getenv "SBCL_HOME"))(quit))')"
-
 
  * Apply XCVB to some actual big projects at ITA.
 
@@ -229,7 +222,7 @@ in a suggested order for a newbie to enter XCVB hacking:
 
  * For a binary release, issue a standalone clisp binary?
 
- * Implement `Centralized Dependency Declaration [V1]`_
+ * Implement `Exploded File Dependencies [V1]`_ then `Centralized Dependency Declaration [V1]`_.
 
 
 Random ideas:
@@ -360,7 +353,7 @@ a correct XCVB module should build with ASDF as a backend.
 Add a test suite for the ASDF backend.
 
 
-Centralized dependency declaration [V1]
+Centralized Dependency Declaration [V1]
 ---------------------------------------
 
 Some users have requested the ability to declare dependencies of a Lisp module
@@ -368,6 +361,34 @@ from the ``build.xcvb`` file instead of inside the Lisp file itself.
 
 A syntax extension allowing such feature (making XCVB more similar to ASDF)
 would be welcome.
+
+To be practical and not lead to everything depending on build.xcvb and having
+to be rebuilt every single time any dependency changes, this feature should be
+accompanied by the below feature on exploded file dependencies.
+
+
+Exploded File Dependencies [V1]
+-------------------------------
+
+Another useful feature it to store the computation for each object file
+in its own shell script that is only modified when the contents actually change.
+The shell script is the first dependency of the target, and the ``Makefile`` rule
+could look like that::
+
+	obj/foo/bar.fasl: obj/foo/bar.fasl.sh obj/foo/pkg.cfasl obj/foo/mac.cfasl
+		sh $<
+
+Additionally, this script can contain dependency information on all the things that matter
+yet that are not encoded in the timestamps used by make:
+e.g. timestamp and/or md5sum of the Lisp implementation that was previously used,
+values of critical shell environment variables, etc.
+This could notably include information from ``SBCL_HOME`` or ``CCL_DIRECTORY``.
+
+Note however that for the purposes of bootstrapping a project
+(which should only matters for XCVB itself, really),
+we can't include any such dependency on things that are outside
+the distributed sources. So it should be possible to disable this feature
+at least for such dependencies.
 
 
 Lack of Manual [V1]
