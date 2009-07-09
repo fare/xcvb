@@ -168,6 +168,7 @@ release-tarball:
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
 	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
 	pwd && export XCVB_PATH=$$PWD && \
+	make xcvb/setup.lisp && \
 	for l in sbcl clisp ; do xcvb make-makefile --xcvb-path=$$PWD \
 		--build /xcvb --setup /xcvb/setup \
 		--lisp-implementation $$l --disable-cfasl ; done && \

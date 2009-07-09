@@ -1,4 +1,4 @@
-# See INSTALL for instructions.
+# See INSTALL for instructions. -*- Makefile -*-
 
 PREFIX ?= /usr/local
 LISP ?= sbcl
@@ -21,6 +21,9 @@ install: xcvb/setup.lisp
 
 
 xcvb/setup.lisp:
-        ( echo "(in-package :cl-user) (eval-when (:compile-toplevel :load-toplevel) \
-	  (let ((package (find-package '#:asdf))) (when package (delete-package package))))" \
+	( echo "#+xcvb (module ())" \
+	       "(in-package :cl-user)" \
+	       "(eval-when (:compile-toplevel :load-toplevel)" \
+	       "(let ((package (find-package '#:asdf)))" \
+	       "(when package (delete-package package))))" \
 	) > $@
