@@ -18,12 +18,3 @@ install: xcvb/setup.lisp
 		-B install
 	${MAKE} -C xcvb -f xcvb.mk.${LISP} obj/xcvb.image
 	${MAKE} -C xcvb xcvb-bootstrapped-install PREFIX=${PREFIX} LISP=${LISP}
-
-
-xcvb/setup.lisp:
-	( echo "#+xcvb (module ())" \
-	       "(in-package :cl-user)" \
-	       "(eval-when (:compile-toplevel :load-toplevel)" \
-	       "(let ((package (find-package '#:asdf)))" \
-	       "(when package (delete-package package))))" \
-	) > $@

@@ -1,0 +1,5 @@
+#+xcvb (module ())
+(in-package :cl-user)
+(eval-when (:compile-toplevel :load-toplevel)
+  (let ((package (find-package :asdf)))
+    (when package (delete-package package))))
