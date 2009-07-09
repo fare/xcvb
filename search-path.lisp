@@ -98,8 +98,9 @@
           (format nil "~A/builds-under-~A.text"
                   *object-directory*
                   (underscore-for-non-alphanum-chars root-string))))
+    (ensure-directories-exist build-file-name)
     (asdf:run-shell-command
-     "find ~A -type f -name build.xcvb > ~A"
+     "find -L ~A -type f -name build.xcvb > ~A"
      (escape-shell-token root-string)
      build-file-name)
     (prog1
