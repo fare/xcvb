@@ -73,6 +73,7 @@
 		 (assert (or grain
 			     (equal :when (car spec))
 			     (equal :cond (car spec)))
+			 (spec)
 			 "Couldn't find grain for spec: ~S" spec)
 		 (if (not (listp grain))
 		     (list grain)
