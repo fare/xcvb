@@ -70,10 +70,10 @@
   (remove-duplicates
    (mapcan #'(lambda (spec)
 	       (let ((grain (graph-for env spec)))
-		 (or grain
-		     (equal :when (car spec))
-		     (equal :cond (car spec))
-		     (error "Couldn't find grain for spec: ~S" spec))
+		 (assert (or grain
+			     (equal :when (car spec))
+			     (equal :cond (car spec)))
+			 "Couldn't find grain for spec: ~S" spec)
 		 (if (not (listp grain))
 		     (list grain)
 		     grain)))
