@@ -126,7 +126,7 @@ You will still need a Lisp implementation to build or run XCVB and the software 
 If you prefer to collect XCVB's dependencies manually into your system,
 you will need the following Lisp software libraries to get XCVB running:
 
-  * cl-launch 2.18 or later:
+  * cl-launch 2.19 or later:
 	- homepage: http://cliki.net/CL-Launch
 
 	- getting it:

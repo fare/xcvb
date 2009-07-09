@@ -61,17 +61,6 @@ setup.lisp:
 	  ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -i "(let ((*package* (find-package :cl-launch))) (format t \"~S~%\" \`(setf asdf:*central-registry*',asdf:*central-registry*)))" \
 	) > $@
 
-xcvb-bootstrapped: obj/xcvb.image
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image --output $@ --init '(xcvb::main)'
-
-xcvb-bootstrapped-install:
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image \
-		$(call CL_LAUNCH_MODE_standalone,xcvb) --init '(xcvb::main)'
-
-define use_xcvb_mk
-	${MAKE} -f xcvb.mk -j $1
-endef
-
 xcvb.mk: force
 	xcvb make-makefile \
 	     --build /xcvb \
@@ -80,12 +69,19 @@ xcvb.mk: force
 	     --lisp-binary-path ${LISP_BIN}
 
 obj/xcvb.image: xcvb.mk
-	$(call use_xcvb_mk,$@)
+	${MAKE} -f xcvb.mk -j $@
 
-## Creating executable
-xcvb: ${INSTALL_BIN}/xcvb
+xcvb: obj/xcvb.image
+	${MAKE} xcvb-bootstrapped-install
 
-${INSTALL_BIN}/xcvb: configure.mk ${LISP_SOURCES}
+xcvb-bootstrapped-install:
+	mkdir -p ${INSTALL_BIN}
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image \
+		$(call CL_LAUNCH_MODE_standalone,xcvb) --init '(xcvb::main)'
+
+## If you don't have XCVB, but have a cl-launch with properly ASDF setup in configure.mk,
+## then you can bootstrap XCVB with the following target:
+xcvb-using-asdf:
 	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
 	--system xcvb --restart xcvb::main \
@@ -176,6 +172,6 @@ release-tarball:
 
 .PHONY: all install lisp-install test tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision force \
-	release-tarball xcvb-bootstrapped-install
+	release-tarball xcvb-bootstrapped-install xcvb-asdf-install
 
 # To check out a particular revision: git fetch; git merge $commit

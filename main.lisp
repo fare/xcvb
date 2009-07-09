@@ -4,6 +4,9 @@
 
 (in-package :xcvb)
 
+(eval-when (:compile-toplevel :load-toplevel)
+  (require :sb-posix))
+
 (defun reset-variables ()
   ;; TODO: have some macro define notable variables
   ;; so they will be reset here.
@@ -148,7 +151,7 @@ for this version of XCVB.")))
       ;; If user typed "xcvb help", give general help, summarizing commands.
       (format t "~&Usage: xcvb COMMAND ARGS~%  ~
        where COMMAND is one of the following:~%~%~
-       ~:{    ~1{~16A~}~*~*~A~%~}~%~
+       ~:{    ~1{~18A~}~*~*~A~%~}~%~
        See 'xcvb help COMMAND' for more information on a specific command.~%"
               +xcvb-commands+)
       ;; Else if user typed "xcvb help COMMAND", give specific help on that
@@ -201,6 +204,7 @@ for this version of XCVB.")))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun main ()
+  #+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
   (catch :repl
     (with-exit-on-error ()
       (quit (catch :exit

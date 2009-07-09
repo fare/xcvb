@@ -12,7 +12,7 @@
     (*target-system-features*
      . "*features*")
     (*lisp-implementation-directory*
-     . "(or #+sbcl (sb-int:sbcl-homedir-pathname) #+ccl (namestring(ccl::ccl-directory)))"))
+     . "(or #+sbcl (namestring(sb-int:sbcl-homedir-pathname)) #+ccl (namestring(ccl::ccl-directory)))"))
   "alist of variables and how to compute them in the target system")
 
 (defun target-properties-file ()

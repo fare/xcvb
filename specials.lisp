@@ -31,7 +31,8 @@ Autodetected from the target Lisp system.")
   "What path to a Lisp image do we need invoke the target Lisp with?
 Default: whatever's the default for your implementation.")
 
-(defvar *lisp-implementation-directory* nil
+(defvar *lisp-implementation-directory*
+  (or #+sbcl (namestring (sb-int:sbcl-homedir-pathname)))
   "Where is the home directory for the Lisp implementation,
 in case we need it to (require ...) special features?
 Default: whatever's the default for your implementation.")

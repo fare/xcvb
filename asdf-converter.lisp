@@ -211,15 +211,22 @@ form if there is one (but leaving the extension forms)."
       (setf (gethash (asdf:component-name c) name-to-module) c))
     name-to-module))
 
+(defun guess-base-pathname-for-systems (systems)
+  (with-nesting ()
+    (let ((first-system (first systems))))
+    (progn (unless first-system
+             (error "No system provided")))
+    (let* ((first-system-name (asdf::coerce-name first-system))
+           (sysdef-pathname (asdf::system-definition-pathname first-system-name))))
+    (progn (unless sysdef-pathname
+             (error "Could not find system :~A" first-system-name)))
+    (pathname-directory-pathname (truename sysdef-pathname))))
+
 (defun asdf-to-xcvb (&key
 		     system
 		     (systems (when system (list system)))
 		     (simplified-system :simplified-system)
-		     (base-pathname
-		      (pathname-directory-pathname
-		       (truename
-			(asdf::system-definition-pathname
-			 (asdf::coerce-name (first systems))))))
+		     (base-pathname (guess-base-pathname-for-systems systems))
 		     (components-path *components-path*)
 		     systems-to-preload)
 
