@@ -152,7 +152,7 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
 
 	if [ -f xcvb.mk ] ; then ${MAKE} -f xcvb.mk xcvb.mk ; else xcvb make-makefile ... ; fi
 
-   Or maybe just rebuild xcvb.mk everytime.
+   Or maybe just rebuild ``xcvb.mk`` everytime.
 
  * Also, in generated files, double-check that there isn't
    an intermediate BUILD that short-circuits the name resolution.
@@ -196,9 +196,8 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
 
  * Mainline the CFASL patch for SBCL. Needs to be done:
 
-   + fix compile-file-pathname to admit as the same arguments as compile-file...
-     and maybe one more to output the CFASL path instead of the FASL path;
-     or maybe output it as a secondary value?
+   + fix ``compile-file-pathname`` to admit as the same arguments as compile-file...
+     Not necessary since it has ``&allow-other-keys``.
 
    + add documentation for it.
 

@@ -119,9 +119,10 @@ You will still need a Lisp implementation to build or run XCVB and the software 
 
   * If you want CFASL, you may need to recompile SBCL from source with this patch, until it has been merged upstream:
 	- homepage: http://repo.or.cz/w/sbcl/jsnell.git?a=treediff;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master
-        - getting it:
+        - getting it (relative to same old SBCL):
 		``wget http://repo.or.cz/w/sbcl/jsnell.git?a=treediff_plain;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master``
-
+        - getting it (relative to a recent SBCL):
+		``wget http://common-lisp.net/project/xcvb/releases/sbcl-1.0.29.54.rc5-cfasl.diff``
 
 If you prefer to collect XCVB's dependencies manually into your system,
 you will need the following Lisp software libraries to get XCVB running:
@@ -148,7 +149,7 @@ you will need the following Lisp software libraries to get XCVB running:
         - getting it, if you're a project member:
 		``git clone ssh://USER@common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
 
-  * Closer to MOP, with our XCVB patch:
+  * Closer to MOP, with our trivial XCVB patch:
 	- homepage: http://common-lisp.net/project/closer/closer-mop.html
 	- getting it:
 		``darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop``

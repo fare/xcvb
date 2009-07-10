@@ -68,8 +68,10 @@ xcvb.mk: force
 	     --lisp-implementation ${LISP_IMPL} \
 	     --lisp-binary-path ${LISP_BIN}
 
+PARALLELIZE := -j
+
 obj/xcvb.image: xcvb.mk
-	${MAKE} -f xcvb.mk -j $@
+	${MAKE} -f xcvb.mk ${PARALLELIZE} $@
 
 xcvb: obj/xcvb.image
 	${MAKE} xcvb-bootstrapped-install
