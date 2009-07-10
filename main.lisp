@@ -7,6 +7,7 @@
 
 (in-package :xcvb)
 
+#+sbcl
 (eval-when (:compile-toplevel :load-toplevel)
   (require :sb-posix))
 
