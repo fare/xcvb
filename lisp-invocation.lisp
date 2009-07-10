@@ -35,8 +35,10 @@
   :fullname "Steel Bank Common Lisp"
   :name "sbcl"
   :feature :sbcl
-  ;; We purposefully specify --userinit /dev/null but NOT --sysinit /dev/null
-  :flags ("--noinform" "--userinit" "/dev/null")
+  ;; We need both --userinit /dev/null AND --sysinit /dev/null
+  ;; because on debian, the default /etc/sbcl*rc do ASDF trickery
+  ;; that make the sequence of no-asdf and asdf unhappy.
+  :flags ("--noinform" "--userinit" "/dev/null" "--sysinit" "/dev/null")
   :eval-flag "--eval" ;; Note: SBCL's eval can only handle one form per argument.
   :load-flag "--load"
   :arguments-end "--end-toplevel-options"

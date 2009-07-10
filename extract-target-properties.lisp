@@ -1,5 +1,5 @@
 ;;; Extracting properties from the target lisp implementation
-#+xcvb (module (:depends-on ("lisp-invocation")))
+#+xcvb (module (:depends-on ("lisp-invocation" "string-escape")))
 
 (in-package :xcvb)
 

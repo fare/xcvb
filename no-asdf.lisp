@@ -1,8 +1,17 @@
 #+xcvb (module ())
 (in-package :cl-user)
-(eval-when (:compile-toplevel :load-toplevel)
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (let ((package (find-package :asdf)))
-    #+sbcl (setf sb-ext:*module-provider-functions*
-                 (delete-if (lambda (x) (and (symbolp x) (eq package (symbol-package x))))
-                            sb-ext:*module-provider-functions*))
-    (when package (delete-package package))))
+    (when package
+       #+sbcl (setf sb-ext:*module-provider-functions*
+                    (delete-if (lambda (x)
+                                 (when (and (symbolp x) (eq package (symbol-package x)))
+                                   (format t "~&Deleted ~S from sb-ext:*module-provider-functions*" x)
+                                   t))
+                               sb-ext:*module-provider-functions*))
+       (delete-package :asdf)
+       (format t "~&Deleted old instance of ASDF.~%")))
+  #+sbcl (pushnew :sbcl-hooks-require *features*)
+  (format t "*features* = ~S~%" *features*)
+  (finish-output)
+  (values))

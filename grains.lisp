@@ -205,6 +205,18 @@ Modeled after the asdf function coerce-name"
      (asdf-grain (asdf-grain-system-name name))
      (t (simply-error 'syntax-error "~@<invalid asdf system designator ~A~@:>" name)))))
 
+(defun lisp-grain-p (x)
+  (typep x 'lisp-grain))
+
+(defun build-grain-p (x)
+  (typep x 'build-grain))
+
+(defun asdf-grain-p (x)
+  (typep x 'asdf-grain))
+
+(defun image-grain-p (x)
+  (typep x 'image-grain))
+
 ;------>8------>8------>8------>8------>8------>8------>8------>8------>8------
 
 #|

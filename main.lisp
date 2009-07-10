@@ -1,6 +1,9 @@
 ;;; Shell command-line interface for XCVB
 
-#+xcvb (module (:depends-on ("static-backends" "search-path" "computations" "extract-target-properties")))
+#+xcvb
+(module (:depends-on
+         ("makefile-backend" "search-path"
+          "asdf-converter" "extract-target-properties")))
 
 (in-package :xcvb)
 

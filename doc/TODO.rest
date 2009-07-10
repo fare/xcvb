@@ -115,15 +115,7 @@ Here is the top of our TODO list at ITA:
 
 
 Other top TODO items that are not on ITA's critical path include the following.
-They would be ideal for a non-ITA hacker to tackle,
-in a suggested order for a newbie to enter XCVB hacking:
-
- * Because the system that tries to load the initial ASDF may have loaded an earlier version
-   some DEFUNs of which were since converted to DEFGENERICs, we can't just load ASDF
-   without a ``(delete-package '#:asdf)``
-
- * Add an XCVB command to dump BUILD and/or ASDF path information, to make it easier
-   for users to understand which version of which software library XCVB will be compiling.
+They would be ideal for a non-ITA hacker to tackle, in a random order:
 
  * Extend the ``command-line-arguments`` library to allow for better self-documentation
    of option specifications with ``:documentation`` keyword arguments to options,
@@ -160,6 +152,8 @@ in a suggested order for a newbie to enter XCVB hacking:
 
 	if [ -f xcvb.mk ] ; then ${MAKE} -f xcvb.mk xcvb.mk ; else xcvb make-makefile ... ; fi
 
+   Or maybe just rebuild xcvb.mk everytime.
+
  * Also, in generated files, double-check that there isn't
    an intermediate BUILD that short-circuits the name resolution.
    e.g. if ``foo/bar.lisp`` is generated from a BUILD with fullname ``/quux``,
@@ -171,10 +165,10 @@ in a suggested order for a newbie to enter XCVB hacking:
    by connecting a master Lisp process to a slave XCVB
    itself executing ``make``.
 
- * Implement a portable library for executing sub-programs,
-   that does at least what ``asdf:run-shell-program`` does,
-   but hopefully much more, like python's ``popen2.popen3``
-   or even like what SCSH provides.
+ * Implement a portable library for executing sub-programs
+   with arbitrary output redirection, that does at least what
+   ``asdf:run-shell-program`` does, but hopefully much more,
+   like python's ``popen2.popen3`` or even like what SCSH provides.
    This feature will eventually be used by
    our standalone distributed build system.
 
@@ -189,6 +183,8 @@ in a suggested order for a newbie to enter XCVB hacking:
    to spawning a shell that executes ``find(1)``.
    Xof suggests profiling the thing as it runs.
    I suggest properly extending IOLib or osicat to do the right thing.
+
+ * In general, figure out what are the slow parts of XCVB, and optimize them.
 
  * Re-implement the ASDF backend, so ASDF users can use XCVB BUILDs.
    See `ASDF backend [V1]`_
@@ -215,10 +211,6 @@ in a suggested order for a newbie to enter XCVB hacking:
 
  * Have a test suite for XCVB that includes automated migration of some benchmark ASDF systems
    (e.g. historical tarballs of well-known systems?)
-
- * Figure out what are the slow parts of XCVB, and optimize them.
-
- * For a source code release, pack all dependencies in a tarball.
 
  * For a binary release, issue a standalone clisp binary?
 

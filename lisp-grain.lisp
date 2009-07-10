@@ -195,15 +195,3 @@
 (defmethod compile-dependencies ((grain asdf-grain))
   nil)
 
-(defun lisp-grain-p (x)
-  (typep x 'lisp-grain))
-
-(defun build-grain-p (x)
-  (typep x 'build-grain))
-
-(defun asdf-grain-p (x)
-  (typep x 'asdf-grain))
-
-(defun image-grain-p (x)
-  (typep x 'image-grain))
-

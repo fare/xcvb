@@ -26,8 +26,8 @@
             (and (= system::*gcl-major-version* 2)
                  (< system::*gcl-minor-version* 7)))
     (pushnew :gcl-pre2.7 *features*))
-;;  (setf *print-readably* nil ; allegro 5.0 notably will bork without this
-;;        *load-verbose* nil *compile-verbose* nil *compile-print* nil)
+  (setf *print-readably* nil ; allegro 5.0 notably will bork without this
+        *load-verbose* nil *compile-verbose* nil *compile-print* nil)
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
   #+gcl (setf compiler::*compiler-default-type* (pathname "")
@@ -67,18 +67,73 @@ This is designed to abstract away the implementation specific quit forms."
   nil
   #+sbcl (sb-debug:backtrace most-positive-fixnum out))
 
+(defvar *stderr* *error-output*)
+
+(defun bork (condition)
+  (format *stderr* "~&~A~%" condition)
+  (print-backtrace *stderr*)
+  (format *stderr* "~&~A~%" condition)
+  (quit 99))
+
 (defun call-with-exit-on-error (thunk)
-  (let ((stderr *error-output*))
-    (handler-bind ((t
-                    #'(lambda (error)
-                        (format stderr "~&~A~%" error)
-                        (print-backtrace stderr)
-                        (format stderr "~&~A~%" error)
-                        (quit 99))))
-      (funcall thunk))))
+  (handler-bind ((error #'bork))
+    (funcall thunk)))
 
 (defmacro with-exit-on-error (() &body body)
   `(call-with-exit-on-error (lambda () ,@body)))
+
+(defmacro with-controlled-compiler-conditions (() &body body)
+  `(call-with-controlled-compiler-conditions (lambda () ,@body)))
+
+(defvar *uninteresting-conditions*
+  (append
+   #+sbcl
+   '("&OPTIONAL and &KEY found in the same lambda list: ~S"
+     sb-kernel:uninteresting-redefinition
+     sb-kernel:undefined-alien-style-warning
+     sb-ext:implicit-generic-function-warning
+     sb-kernel:lexical-environment-too-complex)
+   )
+  "Conditions that may be skipped. type symbols, predicates or strings")
+
+(defvar *deferred-warnings* ()
+  "Warnings the handling of which is deferred until the end of the compilation unit")
+
+(defun uninteresting-condition-p (condition)
+  ;; TODO: do something interesting, extensible and semi-portable here.
+  (loop :for x :in *uninteresting-conditions* :thereis
+        (etypecase x
+          (symbol (typep condition x))
+          (function (funcall x condition))
+          (string (and (typep condition '(and simple-condition style-warning))
+                       (equal (simple-condition-format-control condition) x))))))
+
+(defun hush-undefined-warnings ()
+  #+sbcl (setf sb-c::*undefined-warnings* nil)
+  #+clozure (setf *compiler-warnings* nil)
+  nil)
+
+(defun call-with-controlled-compiler-conditions (thunk)
+  (hush-undefined-warnings)
+  (handler-bind
+      (#+sbcl (sb-c::simple-compiler-note #'muffle-warning)
+       #+clozure (ccl::compiler-warning #'(lambda (condition) (push condition *deferred-warnings*)))
+       (style-warning
+        #'(lambda (condition)
+            ;; TODO: do something magic for undefined-function,
+            ;; save all of aside, and reconcile in the end of the virtual compilation-unit.
+            (when (uninteresting-condition-p condition)
+              (muffle-warning condition)))))
+    (with-compilation-unit ()
+      (funcall thunk)
+      #+sbcl
+      (progn
+        (dolist (w sb-c::*undefined-warnings*)
+          (push `(:undefined
+                  ,(princ-to-string (sb-c::undefined-warning-kind w))
+                  ,(princ-to-string (sb-c::undefined-warning-name w)))
+                *deferred-warnings*))
+        (setf sb-c::*undefined-warnings* nil)))))
 
 (defun do-resume ()
   (when *restart* (funcall *restart*))
@@ -91,6 +146,7 @@ This is designed to abstract away the implementation specific quit forms."
 (defun dump-image (filename &key standalone package)
   (declare (ignorable filename standalone))
   (setf *package* (find-package (or package :cl-user)))
+  (defparameter *previous-features* *features*)
   #+clisp
   (apply #'ext:saveinitmem filename
    :quiet t
@@ -150,20 +206,23 @@ This is designed to abstract away the implementation specific quit forms."
          (cdr command)))
 
 (defun do-run (commands)
+  (with-controlled-compiler-conditions ()
+    (run-commands commands)))
+
+(defun run-commands (commands)
   (map () #'run-command commands))
 
 (defmacro run (&rest commands)
   `(with-exit-on-error ()
-    ;;(with-controlled-compiler-notes ()
-     (do-run ',commands);;)
-     (quit 0)))
+    (do-run ',commands);;)
+    (quit 0)))
 
 #-ecl
 (defun do-create-image (image dependencies &rest flags)
-  (do-run dependencies)
+  (run-commands dependencies)
   (apply #'dump-image image flags))
 
-#+ecl
+#+ecl ;; wholly untested and probably buggy.
 (defun do-create-image (image dependencies &key standalone)
   (let ((epilogue-code
           `(progn
@@ -191,11 +250,16 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defun compile-lisp (source fasl &key cfasl)
   (let ((*default-pathname-defaults* (truename *default-pathname-defaults*)))
-    (apply #'compile-file source
-           :output-file (merge-pathnames fasl)
-           ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-           (when cfasl
-             `(:emit-cfasl ,cfasl)))))
+    (multiple-value-bind (output-truename warnings-p failure-p)
+        (apply #'compile-file source
+               :output-file (merge-pathnames fasl)
+               ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+               (when cfasl
+                 `(:emit-cfasl ,cfasl)))
+      (declare (ignore output-truename))
+      (when (or warnings-p failure-p)
+        (error "Compilation Failed for ~A" source))))
+  (values))
 
 (defun create-image (spec &rest dependencies)
   (destructuring-bind (image &key standalone package) spec
