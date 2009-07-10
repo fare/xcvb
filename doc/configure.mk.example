@@ -19,7 +19,7 @@ INSTALL_BIN = ${PREFIX}/bin
 #INSTALL_BIN := /home/USER/bin
 
 
-### Where to find run-time configuration?
+### Where to find run-time configuration? [not currently used]
 INSTALL_ETC = ${PREFIX}/etc
 #INSTALL_ETC := /etc
 #INSTALL_ETC := /home/USER/.config
@@ -48,10 +48,14 @@ INSTALL_LISP = ${INSTALL_SHARE}/common-lisp
 #INSTALL_LISP := /usr/share/common-lisp
 #INSTALL_LISP := /home/USER/.local/share/common-lisp
 
-#### Where to install the XCVB driver files?
-INSTALL_XCVB = ${INSTALL_LISP}/xcvb
-#INSTALL_XCVB := /usr/share/common-lisp/xcvb
-#INSTALL_XCVB := /home/USER/.local/share/common-lisp/xcvb
+### Where to install Lisp source?
+LISP_SOURCE := ${INSTALL_LISP}/source
+
+### Where to install symlinks to ASDF systems?
+LISP_SYSTEMS := ${INSTALL_LISP}/systems
+
+#### Where to install the XCVB source, including important driver files?
+INSTALL_XCVB = ${LISP_SOURCE}/xcvb
 
 
 #### Where to find cl-launch?
@@ -65,6 +69,11 @@ CL_LAUNCH := cl-launch
 # CL_LAUNCH := /home/USER/bin/cl-launch
 # CL_LAUNCH := ${INSTALL_BIN}/cl-launch
 
+### Do you want to use a Lisp in particular?
+# LISP := sbcl
+# LISP := clisp
+# LISP :=
+LISP := sbcl
 
 #### What options to pass to cl-launch?
 ##
@@ -82,7 +91,7 @@ CL_LAUNCH_FLAGS += --lisp '${LISP} sbcl clisp ccl'
 ## If you need to specify one or several paths where .asd files reside
 ## that are needed by XCVB, use one or several --path flags
 ## DEFAULT: nothing (assume your /etc/sbclrc or ~/.sbclrc or equivalent does it)
-CL_LAUNCH_FLAGS += --path ${INSTALL_LISP}/systems/
+CL_LAUNCH_FLAGS += --path ${LISP_SYSTEMS}
 #CL_LAUNCH_FLAGS += --path /usr/share/common-lisp/systems/
 #CL_LAUNCH_FLAGS += --path /home/USER/.local/share/common-lisp/systems/
 ##
@@ -91,7 +100,7 @@ CL_LAUNCH_FLAGS += --path ${INSTALL_LISP}/systems/
 ## (respectively, doesn't), use --include /a/b/c (respectively, --no-include)
 ## This matters in image and fasls modes, not in standalone mode (see below).
 CL_LAUNCH_FLAGS += --no-include
-#CL_LAUNCH_FLAGS += --include ${INSTALL_LISP}/cl-launch
+#CL_LAUNCH_FLAGS += --include ${LISP_SOURCE}/cl-launch
 #CL_LAUNCH_FLAGS += --include /usr/share/common-lisp/cl-launch
 #CL_LAUNCH_FLAGS += --include /home/USER/.local/share/common-lisp/cl-launch
 ##
