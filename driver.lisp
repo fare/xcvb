@@ -75,12 +75,13 @@ This is designed to abstract away the implementation specific quit forms."
   (format *stderr* "~&~A~%" condition)
   (quit 99))
 
-(defun call-with-exit-on-error (thunk)
+(defun call-with-coded-exit (thunk)
   (handler-bind ((error #'bork))
-    (funcall thunk)))
+    (funcall thunk)
+    (quit 0)))
 
-(defmacro with-exit-on-error (() &body body)
-  `(call-with-exit-on-error (lambda () ,@body)))
+(defmacro with-coded-exit (() &body body)
+  `(call-with-coded-exit (lambda () ,@body)))
 
 (defmacro with-controlled-compiler-conditions (() &body body)
   `(call-with-controlled-compiler-conditions (lambda () ,@body)))
@@ -105,7 +106,7 @@ This is designed to abstract away the implementation specific quit forms."
         (etypecase x
           (symbol (typep condition x))
           (function (funcall x condition))
-          (string (and (typep condition '(and simple-condition style-warning))
+          (string (and (typep condition 'simple-condition)
                        (equal (simple-condition-format-control condition) x))))))
 
 (defun hush-undefined-warnings ()
@@ -124,7 +125,11 @@ This is designed to abstract away the implementation specific quit forms."
             ;; save all of aside, and reconcile in the end of the virtual compilation-unit.
             (when (uninteresting-condition-p condition)
               (muffle-warning condition)))))
-    (with-compilation-unit ()
+;;;XXX- For some reason, this WITH-COMPILATION-UNIT causes ITA's SBCL to
+;;; hang on a mutex while compiling asdf.lisp. We will have to resolve
+;;; that issue eventually, because we *do* want to use WITH-COMPILATION-UNIT
+;;; and properly defer *undefined-warnings* eventually.
+;;    (with-compilation-unit ()
       (funcall thunk)
       #+sbcl
       (progn
@@ -133,7 +138,7 @@ This is designed to abstract away the implementation specific quit forms."
                   ,(princ-to-string (sb-c::undefined-warning-kind w))
                   ,(princ-to-string (sb-c::undefined-warning-name w)))
                 *deferred-warnings*))
-        (setf sb-c::*undefined-warnings* nil)))))
+        (setf sb-c::*undefined-warnings* nil))));)
 
 (defun do-resume ()
   (when *restart* (funcall *restart*))
@@ -206,16 +211,16 @@ This is designed to abstract away the implementation specific quit forms."
          (cdr command)))
 
 (defun do-run (commands)
-  (with-controlled-compiler-conditions ()
-    (run-commands commands)))
+  (let ((*stderr* *error-output*))
+    (with-controlled-compiler-conditions ()
+      (run-commands commands))))
 
 (defun run-commands (commands)
   (map () #'run-command commands))
 
 (defmacro run (&rest commands)
-  `(with-exit-on-error ()
-    (do-run ',commands);;)
-    (quit 0)))
+  `(with-coded-exit ()
+    (do-run ',commands)))
 
 #-ecl
 (defun do-create-image (image dependencies &rest flags)
@@ -256,8 +261,10 @@ This is designed to abstract away the implementation specific quit forms."
                ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
                (when cfasl
                  `(:emit-cfasl ,cfasl)))
-      (declare (ignore output-truename))
-      (when (or warnings-p failure-p)
+      (declare (ignorable output-truename warnings-p))
+      ;;(when warnings-p
+      ;;  (error "Compilation Warned for ~A" source))
+      (when failure-p
         (error "Compilation Failed for ~A" source))))
   (values))
 
@@ -300,9 +307,10 @@ whether or not all of those systems were up-to-date or not."
 
 (defun asdf-systems-up-to-date (&rest systems)
   "Are all the loaded systems up to date?"
-  (with-exit-on-error ()
+  (with-coded-exit ()
     (shell-boolean (asdf-systems-up-to-date-p systems))))
 
-(export '(finish-outputs quit resume restart run with-exit-on-error))
+(export '(finish-outputs quit resume restart run do-run run-commands run-command
+          with-coded-exit with-controlled-compiler-conditions *uninteresting-conditions*))
 
 ;;;(format t "~&XCVB driver loaded~%")

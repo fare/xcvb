@@ -210,7 +210,7 @@ for this version of XCVB.")))
 (defun main ()
   #+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
   (catch :repl
-    (with-exit-on-error ()
+    (with-coded-exit ()
       (quit (catch :exit
               (interpret-command-line
                (command-line-arguments:get-command-line-arguments))
