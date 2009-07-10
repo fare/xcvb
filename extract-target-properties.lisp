@@ -53,8 +53,9 @@
 
 (defun query-target-lisp-helper (query-string output-filename)
   (assert *lisp-implementation-type*)
+  (ensure-directories-exist output-filename)
   (asdf:run-shell-command ;;; TODO: use something better, someday
-   "~A > ~A"
+   "exec ~A > ~A"
    (shell-tokens-to-string
     (lisp-invocation-arglist
      :eval (format nil "(progn ~A (finish-output) ~A)"

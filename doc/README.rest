@@ -35,7 +35,6 @@ enforced locally-declared dependencies.
       5.1  Lisp file generation
       5.2  Data Dependencies
       5.3  Conditional Dependencies
-      5.4  Current Limitations
 
 
 About XCVB
