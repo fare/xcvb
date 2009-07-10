@@ -24,7 +24,8 @@ install-cl-launch:
 
 install: install-cl-launch
 	mkdir -p ${INSTALL_BIN}
-	${MAKE} -C xcvb -f xcvb.mk.${LISP} obj/xcvb.image
+	${MAKE} -f xcvb.mk.${LISP} obj/xcvb.image
+	ln -s ../obj xcvb/
 	${MAKE} -C xcvb xcvb-bootstrapped-install ${OPTIONS}
 
 install-source: install-cl-launch
