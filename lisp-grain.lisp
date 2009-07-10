@@ -101,7 +101,7 @@
   (let* ((targets
 	  (mapcar (lambda (target)
 		    (destructuring-bind (type name &rest keys &key &allow-other-keys) target
-		      (unless (eq type :gen-lisp)
+		      (unless (eq type :lisp)
 			(error "Only know how to generate lisp modules."))
 		      (parse-module-declaration `(module ,keys)
 						:path (module-subpathname

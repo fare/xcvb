@@ -139,7 +139,7 @@
         (etypecase entry
           (build-grain
            (if (and (consp fullname) (eq (car fullname) :supersedes-asdf))
-               (format t " ASDF ~A superseded by build ~A~%" (cadr fullname) (fullname entry))
-               (format t " Build ~A in ~S~%" fullname (grain-pathname entry))))
+               (format t " (:ASDF ~S) superseded by (:BUILD ~S)~%" (cadr fullname) (fullname entry))
+               (format t " (:BUILD ~S) in ~S~%" fullname (grain-pathname entry))))
           (build-registry-conflict
-           (format t " Conflict for ~A between ~S~%" fullname (brc-pathnames entry))))))
+           (format t " CONFLICT for ~S between ~S~%" fullname (brc-pathnames entry))))))
