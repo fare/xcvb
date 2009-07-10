@@ -44,7 +44,7 @@ top of a source file"
                    ~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~S~^~%~})~]"
                   compile-depends-on load-depends-on)))
     (when (build-grain-p grain)
-      (dolist (slot '(build-requires supersedes-asdf))
+      (dolist (slot '(build-depends-on supersedes-asdf))
 	(when (and (slot-boundp grain slot) (slot-value grain slot))
 	  (format out "~@[~%~7,0T:~(~A~) ~S~]" slot (slot-value grain slot)))))
     (format out ")")
@@ -154,7 +154,7 @@ form if there is one (but leaving the extension forms)."
         :description description
         :long-description long-description
         :licence licence
-        :build-requires (mapcar (lambda (dep)
+        :build-depends-on (mapcar (lambda (dep)
                                   (list :asdf (coerce-asdf-system-name dep)))
                                 asdf-deps)
         :compile-depends-on (if *use-cfasls*

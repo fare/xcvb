@@ -21,7 +21,7 @@
      #:licence
      #:fullname
      #:build-module
-     #:build-requires
+     #:build-depends-on
      #:compile-depends-on
      #:load-depends-on
      #:defextension

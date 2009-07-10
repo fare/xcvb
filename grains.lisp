@@ -142,8 +142,8 @@
     :reader supersedes-asdf
     :initform nil
     :documentation "A list of ASDF systems superseded by this module")
-   (build-requires
-    :initarg :build-requires
+   (build-depends-on
+    :initarg :build-depends-on
     :initform nil
     :documentation "A list of dependencies that apply to all files in the
 system specified by this build.xcvb file.

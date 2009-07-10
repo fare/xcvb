@@ -19,8 +19,8 @@
   :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-  :build-requires ("asdf" "cl-launch" "asdf-dependency-grovel"
-                   "closer-mop" "command-line-arguments")
+  :build-depends-on ("asdf" "cl-launch" "asdf-dependency-grovel"
+                     "closer-mop" "command-line-arguments")
   :depends-on ("makefile-backend" "asdf-converter" "main" "version")
   :pre-image t
   :build-image t))

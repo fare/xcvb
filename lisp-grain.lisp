@@ -59,21 +59,11 @@
                 (append common-dependencies
                         (normalize load-depends-on)))))
       (when (build-grain-p grain)
-        (with-slots (build-requires build-dependencies) grain
-          (setf build-dependencies (normalize build-requires))))))
+        (with-slots (build-depends-on build-dependencies) grain
+          (setf build-dependencies (normalize build-depends-on))))))
   (values))
 
 ;; Lisp grain extension form for generating Lisp files.
-
-(defclass generate-extension-form ()
-  ;; List of Lisp files to be generated.
-  ((generate
-    :initform nil
-    :initarg :generate)
-   ;; List of dependencies in order to generate Lisp files.
-   (generate-depends-on
-    :initform nil
-    :initarg :generate-depends-on)))
 
 (define-simple-dispatcher handle-extension-form #'handle-extension-form-atom)
 
@@ -93,10 +83,10 @@
    (computation :initform nil :accessor generator-computation))) ;; generated-computation
   
 
-(define-handle-extension-form :generate (grain generate &key generate-depends-on)
+(define-handle-extension-form :generate (grain generate &key depends-on)
   (unless generate
     (error "Files to be generated not specified."))
-  (unless generate-depends-on
+  (unless depends-on
     (error "Generators not specified."))
   (let* ((targets
 	  (mapcar (lambda (target)
@@ -110,7 +100,7 @@
 	 (generator
 	  (make-instance 'generator
 	    :targets targets
-	    :dependencies (normalize-dependencies generate-depends-on grain))))
+	    :dependencies (normalize-dependencies depends-on grain))))
     (dolist (target targets)
       (slot-makunbound target 'computation)
       (setf (gethash (fullname target) *generators*) generator)
