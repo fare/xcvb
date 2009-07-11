@@ -24,6 +24,14 @@ To install XCVB compiled with ``sbcl`` under ``/opt``, instead try::
 
 	make install PREFIX=/opt LISP=sbcl
 
+To install XCVB using ASDF and compiling with clisp, for bootstrap purposes, instead try::
+
+        make install-using-asdf PREFIX=/opt LISP=clisp
+
+Note that using ASDF requires installing all the source. You can also install the source with::
+
+        make install-source PREFIX=/opt
+
 Look inside the Makefile to see the supported parameters.
 For fine-tuning beyond those parameters, you may have to manually
 edit ``xcvb/configure.mk``.
