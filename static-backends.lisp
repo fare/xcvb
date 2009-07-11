@@ -248,6 +248,6 @@
          :command
          `(:xcvb-driver-command
            (:image ,(fullname pre-image))
-           ,@(traversed-load-commands env)
-           (:compile-lisp ,fullname)))
+           (:compile-lisp (,fullname)
+            ,@(traversed-load-commands env))))
         outputs))))

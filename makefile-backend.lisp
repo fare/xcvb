@@ -143,24 +143,30 @@ xcvb-ensure-object-directories:
   (format str "(:load-asdf ~S)" name)
   (values))
 
-(define-text-for-xcvb-driver-command :compile-lisp (str name)
-  (format str "(:compile-lisp ~S ~S~@[ :cfasl ~S~])"
-          (dependency-namestring name)
-          (dependency-namestring `(:fasl ,name))
-          (when *use-cfasls*
-            (dependency-namestring `(:cfasl ,name))))
+(defun text-for-xcvb-driver-helper (stream dependencies format &rest args)
+  (format stream "(")
+  (apply #'format stream format args)
+  (dolist (dep dependencies)
+    (text-for-xcvb-driver-command stream dep))
+  (format stream ")")
   (values))
+
+(define-text-for-xcvb-driver-command :compile-lisp (str name-options &rest dependencies)
+  (destructuring-bind (name &key) name-options
+    (text-for-xcvb-driver-helper
+     str dependencies
+     ":compile-lisp (~S ~S ~@[:cfasl ~S~])"
+     (dependency-namestring name)
+     (dependency-namestring `(:fasl ,name))
+     (when *use-cfasls* (dependency-namestring `(:cfasl ,name))))))
 
 (define-text-for-xcvb-driver-command :create-image (str spec &rest dependencies)
   (destructuring-bind (&key image standalone package) spec
-    (format str "(:create-image ~S"
-            (append (list (dependency-namestring `(:image ,image)))
-                    (when standalone '(:standalone t))
-                    (when package `(:package ,package))))
-    (dolist (dep dependencies)
-      (text-for-xcvb-driver-command str dep))
-    (format str ")"))
-  (values))
+    (text-for-xcvb-driver-helper
+     str dependencies
+     ":create-image (~S~@[~* :standalone t~]~@[ :package ~S~])"
+     (dependency-namestring `(:image ,image))
+     standalone package)))
 
 (define-simple-dispatcher Makefile-command-for-computation #'Makefile-command-for-computation-atom)
 

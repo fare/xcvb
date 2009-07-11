@@ -45,7 +45,7 @@
 (map () #'export
      '(finish-outputs quit resume restart debugging
        run do-run run-commands run-command
-       with-coded-exit with-controlled-compiler-conditions
+       with-coded-exit with-controlled-compiler-conditions with-xcvb-compilation
        *uninteresting-conditions*))
 
 ;; Variables that define the current system
@@ -90,22 +90,17 @@ This is designed to abstract away the implementation specific quit forms."
 (defmacro with-coded-exit (() &body body)
   `(call-with-coded-exit (lambda () ,@body)))
 
-(defmacro with-controlled-compiler-conditions (() &body body)
-  `(call-with-controlled-compiler-conditions (lambda () ,@body)))
-
 (defvar *uninteresting-conditions*
   (append
    #+sbcl
-   '("&OPTIONAL and &KEY found in the same lambda list: ~S"
+   '(sb-c::simple-compiler-note
+     "&OPTIONAL and &KEY found in the same lambda list: ~S"
      sb-kernel:uninteresting-redefinition
      sb-kernel:undefined-alien-style-warning
      sb-ext:implicit-generic-function-warning
      sb-kernel:lexical-environment-too-complex)
    )
   "Conditions that may be skipped. type symbols, predicates or strings")
-
-(defvar *deferred-warnings* ()
-  "Warnings the handling of which is deferred until the end of the compilation unit")
 
 (defun uninteresting-condition-p (condition)
   ;; TODO: do something interesting, extensible and semi-portable here.
@@ -116,36 +111,42 @@ This is designed to abstract away the implementation specific quit forms."
           (string (and (typep condition 'simple-condition)
                        (equal (simple-condition-format-control condition) x))))))
 
-(defun hush-undefined-warnings ()
-  #+sbcl (setf sb-c::*undefined-warnings* nil)
-  #+clozure (setf *compiler-warnings* nil)
-  nil)
-
 (defun call-with-controlled-compiler-conditions (thunk)
-  (hush-undefined-warnings)
   (handler-bind
-      (#+sbcl (sb-c::simple-compiler-note #'muffle-warning)
-       #+clozure (ccl::compiler-warning #'(lambda (condition) (push condition *deferred-warnings*)))
-       (style-warning
+      (((or style-warning #+sbcl sb-c::simple-compiler-note)
         #'(lambda (condition)
             ;; TODO: do something magic for undefined-function,
             ;; save all of aside, and reconcile in the end of the virtual compilation-unit.
             (when (uninteresting-condition-p condition)
               (muffle-warning condition)))))
-;;;XXX- For some reason, this WITH-COMPILATION-UNIT causes ITA's SBCL to
-;;; hang on a mutex while compiling asdf.lisp. We will have to resolve
-;;; that issue eventually, because we *do* want to use WITH-COMPILATION-UNIT
-;;; and properly defer *undefined-warnings* eventually.
-    (with-compilation-unit (:override t)
-      (funcall thunk)
-      #+sbcl
-      (progn
-        (dolist (w sb-c::*undefined-warnings*)
-          (push `(:undefined
-                  ,(princ-to-string (sb-c::undefined-warning-kind w))
-                  ,(princ-to-string (sb-c::undefined-warning-name w)))
-                *deferred-warnings*))
-        (setf sb-c::*undefined-warnings* nil)))))
+    (funcall thunk)))
+
+(defmacro with-controlled-compiler-conditions (() &body body)
+  `(call-with-controlled-compiler-conditions (lambda () ,@body)))
+
+(defvar *deferred-warnings* ()
+  "Warnings the handling of which is deferred until the end of the compilation unit")
+
+(defun call-with-xcvb-compilation-unit (thunk)
+  (with-compilation-unit (:override t)
+    (let ((*deferred-warnings* ())
+          #+sbcl (sb-c::*undefined-warnings* nil))
+      (handler-bind (#+clozure 
+                     (ccl::compiler-warning
+                      #'(lambda (condition)
+                          (push condition *deferred-warnings*))))
+        (funcall thunk))
+    #+sbcl
+    (progn
+      (dolist (w sb-c::*undefined-warnings*)
+        (push `(:undefined
+                ,(princ-to-string (sb-c::undefined-warning-kind w))
+                ,(princ-to-string (sb-c::undefined-warning-name w)))
+              *deferred-warnings*))
+      (setf sb-c::*undefined-warnings* nil)))))
+
+(defmacro with-xcvb-compilation-unit (() &body body)
+  `(call-with-xcvb-compilation-unit (lambda () ,@body)))
 
 (defun do-resume ()
   (when *restart* (funcall *restart*))
@@ -214,8 +215,11 @@ This is designed to abstract away the implementation specific quit forms."
   (fdefinition (do-find-symbol designator :xcvb-driver)))
 
 (defun run-command (command)
-  (apply (function-for-command (car command))
-         (cdr command)))
+  (multiple-value-bind (head args)
+      (etypecase command
+        (symbol (values command nil))
+        (cons (values (car command) (cdr command))))
+    (apply (function-for-command head) args)))
 
 (defun do-run (commands)
   (let ((*stderr* *error-output*))
@@ -228,23 +232,8 @@ This is designed to abstract away the implementation specific quit forms."
   `(with-coded-exit ()
     (do-run ',commands)))
 
-#-ecl
-(defun do-create-image (image dependencies &rest flags)
-  (run-commands dependencies)
-  (apply #'dump-image image flags))
-
-#+ecl ;; wholly untested and probably buggy.
-(defun do-create-image (image dependencies &key standalone)
-  (let ((epilogue-code
-          `(progn
-            ,(if standalone '(resume) '(si::top-level)))))
-    (c::builder :program (parse-namestring image)
-		:lisp-files (mapcar #'second dependencies)
-		:epilogue-code epilogue-code)))
-
 (defun load-file (x)
-  (with-controlled-compiler-conditions ()
-    (load x)))
+  (load x))
 
 (defun call (package symbol &rest args)
   (apply (do-find-symbol symbol package) args))
@@ -260,21 +249,42 @@ This is designed to abstract away the implementation specific quit forms."
 (defun load-asdf (x)
   (asdf-call :oos (asdf-symbol :load-op) x))
 
-(defun compile-lisp (source fasl &key cfasl)
+(defun do-compile-lisp (dependencies source fasl &key cfasl)
   (let ((*default-pathname-defaults* (truename *default-pathname-defaults*)))
     (multiple-value-bind (output-truename warnings-p failure-p)
         (with-controlled-compiler-conditions ()
-          (apply #'compile-file source
-                 :output-file (merge-pathnames fasl)
-                 ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-                 (when cfasl
-                   `(:emit-cfasl ,cfasl))))
-      (declare (ignorable output-truename warnings-p))
-      ;;(when warnings-p
-      ;;  (error "Compilation Warned for ~A" source))
-      (when failure-p
-        (error "Compilation Failed for ~A" source))))
+          (with-xcvb-compilation-unit ()
+            (run-commands dependencies)
+            (apply #'compile-file source
+                   :output-file (merge-pathnames fasl)
+                   ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+                   (when cfasl
+                     `(:emit-cfasl ,cfasl)))))
+        (declare (ignore output-truename))
+        (when warnings-p
+          (error "Compilation Warned for ~A" source))
+        (when failure-p
+          (error "Compilation Failed for ~A" source))))
   (values))
+
+(defun compile-lisp (spec &rest dependencies)
+  (destructuring-bind (source fasl &key cfasl) spec
+    (do-compile-lisp dependencies source fasl :cfasl cfasl)))
+
+#-ecl
+(defun do-create-image (image dependencies &rest flags)
+  (with-controlled-compiler-conditions ()
+    (run-commands dependencies))
+  (apply #'dump-image image flags))
+
+#+ecl ;; wholly untested and probably buggy.
+(defun do-create-image (image dependencies &key standalone)
+  (let ((epilogue-code
+          `(progn
+            ,(if standalone '(resume) '(si::top-level)))))
+    (c::builder :program (parse-namestring image)
+		:lisp-files (mapcar #'second dependencies)
+		:epilogue-code epilogue-code)))
 
 (defun create-image (spec &rest dependencies)
   (destructuring-bind (image &key standalone package) spec

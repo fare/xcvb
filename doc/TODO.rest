@@ -104,26 +104,16 @@ Here is the top of our TODO list at ITA:
 
    + Send differences upstream.
 
- * Quench warnings about undefined functions during file compilation,
-   but record them on the side. Reconcile them after image creation.
-   In other words, reimplement ``with-compilation-unit`` and ``with-qres-compilation``,
-   except in a way that works well with XCVB.
-   Note that I previously tried using ``with-compilation-unit`` so as to catch
-   undefined function warnings, but not only did I not go so far as to find a way to
-   parse and/or save aside said warnings, the attempt caused a deadlock on the
-   sbcl 1.0.28.70.ita.5 used at ITA as ``with-compilation`` tries to grab a ``mutex``,
-   though it works perfectly on the minimally modified sbcl 1.0.29.54.rc5.cfasl
-   that I compiled locally. And so I commented out this ``with-compilation-unit``
-   and for now, you'll be getting lots of ``undefined-function`` ``style-warnings``
-   while compiling, that will cause your ``compile-file``'s to warn, and prevent you
-   from stopping the build when such condition is met.
+ * Warnings about undefined functions are quenched during file compilation.
+   HOWEVER, we should record them on the, and reconcile them afterwards,
+   before or after image creation. In other words, we must implement
+   ``with-xcvb-compilation-unit`` in a way that actually defers warnings,
+   rather than plainly drops them.
 
  * There is an attempt at providing a simple way to specify which compiler
    conditions to show to the user and which to muffle. This feature is very useful
    to make sure that warnings the user cares about are caught, whereas those considered
-   as noise are filtered out. This happens in ``driver.lisp`` using
-   ``*uninteresting-conditions*``, except that sbcl ``compiler-notes``
-   are currently special-cased (but shouldn't be, really).
+   as noise are filtered out. Document it.
 
  * Revise documentation, including this very file. Notably document
    support for extension rules, generated Lisp files, data dependencies, etc.
@@ -163,7 +153,7 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
    from dependency on ``(:build "foo")``.
 
  * Have a ``xcvb.mk`` target in ``xcvb.mk`` itself, with a proper ``make-makefile`` command,
-   that depends on all BUILD *and* Lisp module files,
+   that depends on all build.xcvb *and* Lisp module files,
    so the outer Makefile may do lazy update with::
 
 	if [ -f xcvb.mk ] ; then ${MAKE} -f xcvb.mk xcvb.mk ; else xcvb make-makefile ... ; fi
@@ -171,9 +161,9 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
    Or maybe just rebuild ``xcvb.mk`` everytime.
 
  * Also, in generated files, double-check that there isn't
-   an intermediate BUILD that short-circuits the name resolution.
-   e.g. if ``foo/bar.lisp`` is generated from a BUILD with fullname ``/quux``,
-   then there must *not* a BUILD with fullname ``/quux/foo`` that preempts that name;
+   an intermediate build that short-circuits the name resolution.
+   e.g. if ``foo/bar.lisp`` is generated from a build with fullname ``/quux``,
+   then there must *not* a build with fullname ``/quux/foo`` that preempts that name;
    if there is, issue an error early and refuse to build.
 
  * Add support for in-image backend. See `In-image loading [V1]`_.
@@ -202,7 +192,7 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
 
  * In general, figure out what are the slow parts of XCVB, and optimize them.
 
- * Re-implement the ASDF backend, so ASDF users can use XCVB BUILDs.
+ * Re-implement the ASDF backend, so ASDF users can use XCVB builds.
    See `ASDF backend [V1]`_
 
  * Make XCVB independent from ``cl-launch``
@@ -212,15 +202,9 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
 
  * Mainline the CFASL patch for SBCL. Needs to be done:
 
-   + fix ``compile-file-pathname`` to admit as the same arguments as compile-file...
-     Not necessary since it has ``&allow-other-keys``.
-
    + add documentation for it.
 
    + test it extensively, add tests in SBCL test suite.
-
-   + for usability, make CFASLs as repeatable as possible.
-     Not necessary for getting it committed.
 
  * Expand the migration code from ASDF. See `Migration from ASDF [V1]`_.
 
@@ -242,6 +226,9 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
    Document that.
    In some future, XCVB should control make itself, have a debug option,
    and drop you at the REPL of the failing Lisp file with useful restarts.
+   Also, there is now a ``xcvb-driver:debugging`` primitive.
+   Make it possible to easily re-invoke the failing command with debugging enabled;
+   maybe ``xcvb.mk`` should always include a ${DEBUGGING} statement in its output?
 
 
 Roadmap [Done]
@@ -513,13 +500,13 @@ However, that approach was a hack with several drawbacks:
     for the initial user-customization file from ``--setup``,
     because we need to load such file for any customization of ``*features*``,
     yet we currently need the target ``*features*`` before we may properly
-    use ``#+`` while reading and interning BUILD files during
+    use ``#+`` while reading and interning build files during
     ``(search-search-path)``,
     as needs be done before we may resolve "normal" names.
 
 XCVB has a syntactic construct to specify conditional dependencies.
 mudballs had the following syntax:
-``(:USOCKET (:FOR (:NOT (:LISPWORKS))))`` to conditionalize ``:USOCKET``.
+``(:usocket (:for (:not (:lispworks))))`` to conditionalize ``:usocket``.
 That didn't directly fit the XCVB model, and so we instead use:
 ``(:when (:featurep (:not :lispworks)) "usocket")``.
 (Note that we could imaginably hack the reader
@@ -527,7 +514,7 @@ to have ``#+`` and ``#-`` expand to that,
 but that would be a lot of pain for little gain).
 
 By mandating such syntax and/or hacking the reader,
-we may intern the BUILD files before any customization of ``*features*``,
+we may intern the build files before any customization of ``*features*``,
 then resolve the name of the setup file,
 use that file and acquire the target ``*features*``,
 and finally process features during graph building.
@@ -1616,7 +1603,7 @@ Don't repeat their mistake.)
 Hooks into the Module Naming Resolution [V5]
 --------------------------------------------
 
-So as to support compilation of a project that spans over multiple BUILDs,
+So as to support compilation of a project that spans over multiple builds,
 a module naming system was implemented.
 
 When a module is not found, a hook function may be called,
