@@ -1,4 +1,5 @@
-;;; XCVB driver to be compiled in buildee images (largely copy-pasted from cl-launch)
+;;; XCVB driver to be compiled in buildee images
+;;; (largely inspired from cl-launch, a bit by qres-build + hacks by fare & sbrody)
 
 #+xcvb
 (module
@@ -35,11 +36,17 @@
   #+ecl (require 'cmp)
   ;;;; Ensure package hygiene
   (unless (find-package :xcvb-driver)
-    (if (find-package :common-lisp)
-       (defpackage :xcvb-driver (:use :common-lisp))
-       (make-package :xcvb-driver :use '(:lisp)))))
+    (make-package
+     :xcvb-driver :nicknames '(:xcvbd)
+     :use (list (or (find-package :common-lisp) :lisp)))))
 
 (in-package :xcvb-driver)
+
+(map () #'export
+     '(finish-outputs quit resume restart debugging
+       run do-run run-commands run-command
+       with-coded-exit with-controlled-compiler-conditions
+       *uninteresting-conditions*))
 
 ;; Variables that define the current system
 (defvar *restart* nil)
@@ -129,7 +136,7 @@ This is designed to abstract away the implementation specific quit forms."
 ;;; hang on a mutex while compiling asdf.lisp. We will have to resolve
 ;;; that issue eventually, because we *do* want to use WITH-COMPILATION-UNIT
 ;;; and properly defer *undefined-warnings* eventually.
-;;    (with-compilation-unit ()
+    (with-compilation-unit (:override t)
       (funcall thunk)
       #+sbcl
       (progn
@@ -138,7 +145,7 @@ This is designed to abstract away the implementation specific quit forms."
                   ,(princ-to-string (sb-c::undefined-warning-kind w))
                   ,(princ-to-string (sb-c::undefined-warning-name w)))
                 *deferred-warnings*))
-        (setf sb-c::*undefined-warnings* nil))));)
+        (setf sb-c::*undefined-warnings* nil)))))
 
 (defun do-resume ()
   (when *restart* (funcall *restart*))
@@ -212,8 +219,7 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defun do-run (commands)
   (let ((*stderr* *error-output*))
-    (with-controlled-compiler-conditions ()
-      (run-commands commands))))
+    (run-commands commands)))
 
 (defun run-commands (commands)
   (map () #'run-command commands))
@@ -237,7 +243,8 @@ This is designed to abstract away the implementation specific quit forms."
 		:epilogue-code epilogue-code)))
 
 (defun load-file (x)
-  (load x))
+  (with-controlled-compiler-conditions ()
+    (load x)))
 
 (defun call (package symbol &rest args)
   (apply (do-find-symbol symbol package) args))
@@ -256,11 +263,12 @@ This is designed to abstract away the implementation specific quit forms."
 (defun compile-lisp (source fasl &key cfasl)
   (let ((*default-pathname-defaults* (truename *default-pathname-defaults*)))
     (multiple-value-bind (output-truename warnings-p failure-p)
-        (apply #'compile-file source
-               :output-file (merge-pathnames fasl)
-               ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-               (when cfasl
-                 `(:emit-cfasl ,cfasl)))
+        (with-controlled-compiler-conditions ()
+          (apply #'compile-file source
+                 :output-file (merge-pathnames fasl)
+                 ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+                 (when cfasl
+                   `(:emit-cfasl ,cfasl))))
       (declare (ignorable output-truename warnings-p))
       ;;(when warnings-p
       ;;  (error "Compilation Warned for ~A" source))
@@ -284,12 +292,11 @@ and none of the source files in the system have changed since then"
       (list (if (getf args :verbose t) *trace-output*
             (make-broadcast-stream)))
     (let* ((op (apply #'make-instance operation-class
-		    :original-initargs args args))
+                      :original-initargs args args))
            (system (if (typep system (asdf-symbol :component))
                        system
                        (asdf-call :find-system system)))
            (steps (asdf-call :traverse op system)))
-      ;;(format T "~%that system is ~:[out-of-date~;up-to-date~]" (null steps))
       (null steps))))
 
 (defun asdf-system-loaded-up-to-date-p (system)
@@ -310,7 +317,10 @@ whether or not all of those systems were up-to-date or not."
   (with-coded-exit ()
     (shell-boolean (asdf-systems-up-to-date-p systems))))
 
-(export '(finish-outputs quit resume restart run do-run run-commands run-command
-          with-coded-exit with-controlled-compiler-conditions *uninteresting-conditions*))
+(defun debugging ()
+  #+sbcl (sb-ext:enable-debugger)
+  #+clisp (ext:set-global-handler #'invoke-debugger)
+  (setf *load-verbose* t *compile-verbose* t *compile-print* t)
+  (values))
 
 ;;;(format t "~&XCVB driver loaded~%")
