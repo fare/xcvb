@@ -131,26 +131,26 @@ you will need the following Lisp software libraries to get XCVB running:
 
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
-        - getting it, if you're a project member::
+        - getting it, if you're an XCVB project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
-  * ASDF, with our trivial modifications for building with XCVB:
+  * ASDF 1.354 or later:
 	- homepage: http://cliki.net/asdf
 	- getting it:
-		``git clone http://common-lisp.net/project/xcvb/git/asdf.git``
-        - getting it, if you're a project member:
-		``git clone ssh://USER@common-lisp.net/project/xcvb/git/asdf.git``
+		``git clone http://common-lisp.net/project/asdf/asdf.git``
+        - getting it, if you're an ASDF project member:
+		``git clone ssh://USER@common-lisp.net/project/asdf/asdf.git``
 
   * asdf-dependency-grovel 1.0 with our local modifications:
 	- homepage: http://cliki.net/asdf-dependency-grovel
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
-        - getting it, if you're a project member:
+        - getting it, if you're an XCVB project member:
 		``git clone ssh://USER@common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
 
   * Closer to MOP, with our trivial XCVB patch:
 	- homepage: http://common-lisp.net/project/closer/closer-mop.html
-	- getting it:
+	- getting it for now:
 		``darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop``
 	- getting it, once the XCVB patch has been accepted upstream:
 		``darcs get http://www.common-lisp.net/project/closer/darcs/closer-mop``
@@ -159,7 +159,7 @@ you will need the following Lisp software libraries to get XCVB running:
 	- homepage: http://common-lisp.net/project/qitab/
 	- getting it:
 		``git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git``
-        - getting it, if you're a project member::
+        - getting it, if you're a QITAB project member::
         	``git clone ssh://USER@common-lisp.net/project/qitab/git/command-line-arguments.git``
 
 

@@ -147,7 +147,7 @@ release-tarball:
 	( git clone http://common-lisp.net/project/xcvb/git/xcvb.git || \
 	  echo "Already got xcvb.git" ) && \
 	mkdir -p dependencies && cd dependencies && \
-	( git clone http://common-lisp.net/project/xcvb/git/asdf.git || \
+	( git clone http://common-lisp.net/project/asdf/asdf.git || \
 	  echo "Already got asdf.git" ) && \
 	( git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git || \
 	  echo "Already got asdf-dependency-grovel.git" ) && \
@@ -166,7 +166,7 @@ release-tarball:
 		--build /xcvb --setup /xcvb/no-asdf \
 		--lisp-implementation $$l --output-path=$$PWD/xcvb.mk.$$l --disable-cfasl ; done && \
 	rm -f obj/target-properties.lisp-expr && rmdir obj && \
-	cd .. && tar jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
+	cd .. && tar --exclude .git --exclude _darcs -jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/

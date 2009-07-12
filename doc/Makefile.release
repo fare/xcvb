@@ -34,7 +34,7 @@ install-source: install-cl-launch
 	done
 	cd xcvb && mkdir -p ${LISP_SOURCE}/xcvb && cp -a *.asd *.lisp *.xcvb ${LISP_SOURCE}/xcvb/
 	mkdir -p ${LISP_SYSTEMS}/
-	ln -sf $$(find ${LISP_SOURCE}/ -name '*.asd' -type f) ${LISP_SYSTEMS}/
+	ln -sf $$(find ${LISP_SOURCE}/ -name '*test*' -prune -name '*.asd' -type f) ${LISP_SYSTEMS}/
 
 install-using-asdf: install-source
 	mkdir -p ${INSTALL_BIN}
