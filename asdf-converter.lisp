@@ -253,7 +253,8 @@ so that the system can now be compiled with XCVB."
 		   :verbose nil))))
   (let ((asdf-dependency-grovel::*system-base-dir*
 	 (cl-launch:apply-output-pathname-translations base-pathname)))
-    (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system)) ;; defconstant error
+    (xcvb-driver:with-controlled-compiler-conditions ()
+      (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system)))
   (eval
    `(asdf:defsystem :migrated-system
      ,@(with-open-file (s (cl-launch:apply-output-pathname-translations

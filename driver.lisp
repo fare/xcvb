@@ -95,6 +95,7 @@ This is designed to abstract away the implementation specific quit forms."
    #+sbcl
    '(sb-c::simple-compiler-note
      "&OPTIONAL and &KEY found in the same lambda list: ~S"
+     sb-int:package-at-variance
      sb-kernel:uninteresting-redefinition
      sb-kernel:undefined-alien-style-warning
      sb-ext:implicit-generic-function-warning
@@ -113,7 +114,7 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defun call-with-controlled-compiler-conditions (thunk)
   (handler-bind
-      (((or style-warning #+sbcl sb-c::simple-compiler-note)
+      ((t
         #'(lambda (condition)
             ;; TODO: do something magic for undefined-function,
             ;; save all of aside, and reconcile in the end of the virtual compilation-unit.
