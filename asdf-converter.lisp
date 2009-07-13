@@ -238,22 +238,22 @@ so that the system can now be compiled with XCVB."
   ;; Remove systems used by XCVB so that asdf-to-xcvb can work on them.
   (dolist (sys systems)
     (remhash (asdf::coerce-name sys) asdf::*defined-systems*))
-  (dolist (sys systems-to-preload)
-    (asdf:operate 'asdf:load-op sys))
-  (eval
-   `(asdf:defsystem ,simplified-system
-     :components ((asdf-dependency-grovel:component-file
-		   "simplified-system-components"
-		   :output-file ,components-path
-		   :base-asd-file nil
-		   :load-systems ,systems
-		   :merge-systems ,systems
-		   :cull-redundant nil
-		   :base-pathname ,base-pathname
-		   :verbose nil))))
-  (let ((asdf-dependency-grovel::*system-base-dir*
-	 (cl-launch:apply-output-pathname-translations base-pathname)))
-    (xcvb-driver:with-controlled-compiler-conditions ()
+  (xcvb-driver:with-controlled-compiler-conditions ()
+    (dolist (sys systems-to-preload)
+      (asdf:operate 'asdf:load-op sys))
+    (eval
+     `(asdf:defsystem ,simplified-system
+	  :components ((asdf-dependency-grovel:component-file
+			"simplified-system-components"
+			:output-file ,components-path
+			:base-asd-file nil
+			:load-systems ,systems
+			:merge-systems ,systems
+			:cull-redundant nil
+			:base-pathname ,base-pathname
+			:verbose nil))))
+    (let ((asdf-dependency-grovel::*system-base-dir*
+	   (cl-launch:apply-output-pathname-translations base-pathname)))
       (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system)))
   (eval
    `(asdf:defsystem :migrated-system
