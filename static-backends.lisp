@@ -11,6 +11,7 @@
     :initform nil
     :accessor traversed-dependencies-r)
    (included-dependencies ;;; dependencies included in the current image
+    :initform nil
     :accessor included-dependencies)
    (load-commands-r ;;; load commands issued so far to run the current compilation.
     :initform nil
@@ -40,15 +41,6 @@
 
 (define-simple-dispatcher graph-for #'graph-for-atom)
 
-(define-graph-for :when (env expression &rest dependencies)
-  (when (evaluate-condition env expression)
-    (graph-for* env dependencies)))
-
-(define-graph-for :cond (env &rest cond-expressions)
-  (loop :for cond-expression :in cond-expressions
-        :when (evaluate-condition env (car cond-expression))
-        :do (return (graph-for env (cdr cond-expression)))))
-
 (defmethod graph-for ((env static-traversal) spec)
   (let* ((current-grains-r (traversed-grain-names-r env))
          (current-grains (reverse current-grains-r))
@@ -68,16 +60,10 @@
 ;; Allow graph-for to return a list of grains for :WHEN and :COND.
 (defun graph-for* (env specs)
   (remove-duplicates
-   (mapcan #'(lambda (spec)
+   (mapcar #'(lambda (spec)
 	       (let ((grain (graph-for env spec)))
-		 (assert (or grain
-			     (equal :when (car spec))
-			     (equal :cond (car spec)))
-			 (spec)
-			 "Couldn't find grain for spec: ~S" spec)
-		 (if (not (listp grain))
-		     (list grain)
-		     grain)))
+		 (check-type grain grain)
+		 grain))
 	   (remove-duplicates specs :from-end t :test 'equal))
    :from-end t))
 
@@ -134,8 +120,10 @@
         (graph-for env `(:image ,post-image-name))
         (make-phony-grain
          :name `(:build ,(fullname grain))
-         :dependencies (graph-for*
-                        env (append (compile-dependencies grain) (load-dependencies grain)))))))
+	 :dependencies
+	 (progn (load-command-for*
+		 env (append (compile-dependencies grain) (load-dependencies grain)))
+		(traversed-dependencies env))))))
 
 (define-graph-for :image (env name)
   (cond
