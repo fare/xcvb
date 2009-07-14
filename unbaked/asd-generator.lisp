@@ -3,7 +3,8 @@
 ;;; and based on the output of static-backend, create an asd.
 ;;; If any ASDF extensions are required, then
 ;;; (a) have a system "xcvb-extensions.asd" that provides them
-;;; (b) push these extensions for inclusion in upstream ASDF.
+;;; (b) push these extensions for inclusion in upstream ASDF, or
+;;; (c) just punt and have ASDF delegate to our in-image backend (if/when implemented)
 
 (in-package :xcvb)
 

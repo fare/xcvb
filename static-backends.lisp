@@ -135,12 +135,11 @@
        (check-type build build-grain)
        (handle-lisp-dependencies build)
        (let* ((dependencies (build-dependencies build))
-              (starting-build (build-starting-dependencies-p dependencies)))
-         (if starting-build
-             ;; if the build dependency is a build AND has a post-image, use it as pre-image!
-             (graph-for-image-grain env name starting-build (cdr dependencies))
-             ;; otherwise, start from the common pre-image
-             (graph-for-image-grain env name "/_" dependencies)))))
+              (starting-build-name (build-starting-dependencies-p dependencies))
+              (starting-build-image-name
+               (when starting-build-name
+                 (build-post-image-name (registered-build starting-build-name)))))
+         (graph-for-image-grain env name (or starting-build-image-name "/_") dependencies))))
     (t
      (let* ((build (registered-build name)))
        (graph-for-image-grain

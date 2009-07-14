@@ -149,25 +149,34 @@
   (handle-lisp-dependencies build-grain)
   (let* ((dependencies (build-dependencies build-grain))
          (pre-image-p (build-pre-image build-grain))
-         (build-starting-dependencies (build-starting-dependencies-p dependencies))
-         (dep-build-grain (when build-starting-dependencies
-                            (registered-grain build-starting-dependencies)))
-         (imaged-build-starting-dependencies
-          (and (build-grain-p dep-build-grain)
-               (build-image dep-build-grain)
-               build-starting-dependencies)))
+         (starting-build-name (build-starting-dependencies-p dependencies))
+         (starting-build
+          (when starting-build-name
+            (registered-build starting-build-name)))
+         (starting-build-image-name
+          (when starting-build
+            (build-image-name starting-build))))
     (cond
       ((null dependencies) "/_")
-      ((and imaged-build-starting-dependencies (null (cdr dependencies)))
-       imaged-build-starting-dependencies)
+      ((and starting-build-image-name (null (cdr dependencies)))
+       starting-build-image-name)
       (pre-image-p
        (strcat "/_pre" (fullname build-grain)))
-      (imaged-build-starting-dependencies ; and (not pre-image-p)
-       imaged-build-starting-dependencies)
-      (build-starting-dependencies
-       (build-pre-image-name dep-build-grain))
+      (starting-build-image-name ; and (not pre-image-p)
+       starting-build-image-name)
+      (starting-build
+       (build-pre-image-name starting-build))
       (t
        "/_"))))
+
+(defun build-post-image-name (build-grain)
+  ;; The closest build on top of which to load files to reach the state post loading the build.
+  ;; If the build has an image, that's it. Otherwise, it's its pre-image.
+  (check-type build-grain build-grain)
+  (handle-lisp-dependencies build-grain)
+  (if (build-image build-grain)
+      (build-image-name build-grain)
+      (build-pre-image-name build-grain)))
 
 (defun build-image-name (build-grain)
   (check-type build-grain build-grain)
