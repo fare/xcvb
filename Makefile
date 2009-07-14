@@ -141,6 +141,9 @@ show-current-revision:
 
 TMP ?= /tmp
 
+# EXCLUDE_REVISION_INFO := --exclude .git --exclude _darcs
+EXCLUDE_REVISION_INFO :=
+
 release-tarball:
 	VERSION=$$(cat version.lisp | grep version | cut -d\" -f2) ; \
 	mkdir -p ${TMP}/xcvb-$$VERSION && cd ${TMP}/xcvb-$$VERSION && \
@@ -166,7 +169,7 @@ release-tarball:
 		--build /xcvb --setup /xcvb/no-asdf \
 		--lisp-implementation $$l --output-path=$$PWD/xcvb.mk.$$l --disable-cfasl ; done && \
 	rm -f obj/target-properties.lisp-expr && rmdir obj && \
-	cd .. && tar --exclude .git --exclude _darcs -jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
+	cd .. && tar ${EXCLUDE_REVISION_INFO} -jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/

@@ -47,25 +47,23 @@ Bottom line:
 XCVB isn't yet ready as a full replacement for ASDF for the Lisp masses,
 but is already available as a build system for beta-testers.
 
-The current version (in git master branch)
-can handle the usual cases
+The current version (in git master branch or the release tarball)
+can handle complex builds,
 though it is neither feature-rich nor user-friendly.
-
 
 You can either write your project directly as an XCVB build
 or automatically convert an existing ASDF project
-(no ASDF extension supported yet).
-XCVB will then help you create a ``Makefile``
-for your project, whereby it can be compiled
-in a way that enforces declared dependencies.
+(no ASDF extension supported during conversion).
+XCVB will then help you create a ``Makefile`` for your project,
+whereby it can be compiled in a way that enforces declared dependencies.
 You may even compile in parallel with ``make -j``
-which on a SMP machine may be faster than ASDF.
+which on a SMP machine may end up being faster than ASDF.
 
 XCVB builds can depend on other builds and/or on ASDF systems.
-ASDF systems can be superseded by migrated XCVB builds when available,
+ASDF systems can be superseded by incrementally migrated XCVB builds when available,
 for better dependency management.
 
-Hopefully a version 1.0 will be released this summer
+Hopefully a version 1.0 will be released at the end of this summer
 that can seriously replace ASDF and provide a migration path.
 
 
@@ -104,7 +102,7 @@ and one open to general discussions,
 Dependencies
 ------------
 
-As mentionned above, you can find a tarball sufficient to bootstrap XCVB at:
+As mentioned above, you can find a tarball sufficient to bootstrap XCVB at:
 
            http://common-lisp.net/project/xcvb/releases/
 
