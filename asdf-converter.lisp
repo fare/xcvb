@@ -241,6 +241,7 @@ so that the system can now be compiled with XCVB."
   (xcvb-driver:with-controlled-compiler-conditions ()
     (dolist (sys systems-to-preload)
       (asdf:operate 'asdf:load-op sys))
+    (setf cl-launch:*output-pathname-translations* nil)
     (eval
      `(asdf:defsystem ,simplified-system
 	  :components ((asdf-dependency-grovel:component-file

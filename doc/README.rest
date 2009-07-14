@@ -26,8 +26,9 @@ enforced locally-declared dependencies.
       2.4  Lisp Setup
     3  Restrictions on your Lisp Code
       3.1  Compile-time side-effects
-      3.2  Optimization settings
-      3.3  Requiring System Components
+      3.2  Full library needed at compile-time
+      3.3  Optimization settings
+      3.4  Requiring System Components
     4  Combining Multiple Projects
       4.1  Module Full Names
       4.2  Search Path
@@ -393,15 +394,33 @@ but you probably want to include it in any macro that generates an ``eval-when``
 Note that CFASLs are only available for SBCL at the moment,
 but there are plans for Clozure CL to support it if and when XCVB takes off.
 
-You can force the use of a FASL instead of a CFASL by explicitly specifying
-a ``:compile-depends-on (... (:fasl "foo") ...)``
-instead of the ``:compile-depends-on (... (:compile "foo") ...)``
-implicit in saying ``:depends-on (... "foo" ...)``
-which would when CFASLs are enable be transformed into a ``... (:cfasl "foo") ...``.
-However currently nothing is made to prevent both the FASL and CFASL to be loaded,
-in any order implicit in the transitive dependencies of a module,
-which can cause interesting surprises if any compile-time side effects
-are not idempotent.
+
+Full library needed at compile-time
+-----------------------------------
+
+Sometimes, you actually want the full run-time power
+of a library to be available at compile-time,
+rather than only the definition of its macros and other usual compile-time side-effects.
+
+You can achieve this by including your required dependencies in the
+``:build-depends`` option of your ``build.xcvb``,
+or the ``:compile-depends`` option of your Lisp module.
+
+Indeed, when you specify a dependency in a ``:depends-on`` clause,
+the dependency will be added to the load dependencies of the module
+as if by ``:load-depends-on``,
+and the compile-time-only version of the dependency (if available)
+will be added to the compile dependencies of the module,
+as if by ``:compile-depends-on``.
+For instance, a ``:depends-on (... "foo" ...) will specify
+a load-time dependency on ``(:fasl "foo")`` and
+a compile-time dependency on ``(:cfasl "foo")``.
+
+Note however that nothing is done to prevent both the FASL and CFASL to be loaded,
+in any order implicit in the transitive dependencies of a module.
+This can cause interesting surprises if any of those compile-time side-effects
+are not idempotent, and/or if loading the CFASL resets some work done by the FASL.
+Consider notably the proper use of ``defvar`` vs ``defparameter`` at compile-time.
 
 
 Optimization settings
@@ -769,10 +788,10 @@ In simple cases, you may convert a system from ASDF to XCVB with a command such 
 		--system-path /path/to/more/asdf/systems/ \
                 --preload some-system-to-preload-and-not-instrument \
                 --preload another-system-to-preload-and-not-instrument \
-                --preload yet-another-system-to-preload-and-not-instrument
+                --preload yet-another-system-to-preload-and-not-instrument \
                 --system main-system \
                 --system another-system-to-merge-with-it \
-                --system yet-another-system-to-merge-with-it \
+                --system yet-another-system-to-merge-with-it
 
 
 In cases where the above fails, common pitfalls include the following:
@@ -815,4 +834,4 @@ In cases where the above fails, common pitfalls include the following:
 Additionally, figuring out the dependencies between your Lisp modules
 may not suffice to obtain a system that compiles with XCVB.
 You will still have to edit your code so that it follows the
-`Restrictions on your Lisp Code`_.
+`Restrictions on your Lisp Code`_, most notably regarding the proper usage of ``eval-when``.
