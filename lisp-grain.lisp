@@ -138,22 +138,24 @@
 (defmethod build-dependencies ((grain lisp-grain))
   (build-dependencies (grain-parent grain)))
 
-(defun imaged-build-starting-dependencies-p (dependencies)
+(defun build-starting-dependencies-p (dependencies)
   (and (consp dependencies)
        (consp (car dependencies))
        (eq :build (caar dependencies))
-       (let* ((dep-build-name (cadar dependencies))
-              (dep-build-grain (registered-grain dep-build-name)))
-         (and (build-grain-p dep-build-grain)
-              (build-image dep-build-grain)
-              dep-build-name))))
+       (cadar dependencies)))
 
 (defun build-pre-image-name (build-grain)
   (check-type build-grain build-grain)
   (handle-lisp-dependencies build-grain)
   (let* ((dependencies (build-dependencies build-grain))
          (pre-image-p (build-pre-image build-grain))
-         (imaged-build-starting-dependencies (imaged-build-starting-dependencies-p dependencies)))
+         (build-starting-dependencies (build-starting-dependencies-p dependencies))
+         (dep-build-grain (when build-starting-dependencies
+                            (registered-grain dep-build-name)))
+         (imaged-build-starting-dependencies
+          (and (build-grain-p dep-build-grain)
+               (build-image dep-build-grain)
+               build-starting-dependencies)))
     (cond
       ((null dependencies) "/_")
       ((and imaged-build-starting-dependencies (null (cdr dependencies)))
@@ -162,6 +164,8 @@
        (strcat "/_pre" (fullname build-grain)))
       (imaged-build-starting-dependencies ; and (not pre-image-p)
        imaged-build-starting-dependencies)
+      (build-starting-dependencies
+       (build-pre-image-name dep-build-grain))
       (t
        "/_"))))
 
