@@ -26,7 +26,7 @@ then enriched as we build the graph from the main build.xcvb file.")
 (defun registered-build (name)
   (let ((grain (registered-grain name)))
     (unless (build-grain-p grain)
-      (error "Could not find a build with requested fullname ~A. Try xcvb show-builds" name))
+      (error "Could not find a build with requested fullname ~A. Try xcvb show-search-path" name))
     (check-type grain build-grain)
     grain))
 
