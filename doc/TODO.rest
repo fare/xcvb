@@ -98,11 +98,17 @@ Here is the top of our TODO list at ITA:
 
  * Apply XCVB to some actual big projects at ITA.
 
-   + Finish converting ITA dependencies to XCVB.
-
    + Actually try XCVB on ITA code.
 
-   + Send differences upstream.
+   + Collect differences on ITA dependencies into diffs, stored in releases/ directory.
+     Send them to upstream maintainers.
+
+ * Figure out the shortest path from here to providing incremental testing
+   for unit-tests and regression scripts. What state needs to be maintained?
+   Can we make maintaining this state compatible with the ``Makefile`` backend,
+   or do we need to leapfrog to a standalone backend with queries to a server?
+   A server could definitely hold the data about dependencies based on the
+   contenthash of files.
 
  * Warnings about undefined functions are quenched during file compilation.
    HOWEVER, we should record them on the, and reconcile them afterwards,
@@ -110,18 +116,29 @@ Here is the top of our TODO list at ITA:
    ``with-xcvb-compilation-unit`` in a way that actually defers warnings,
    rather than plainly drops them.
 
- * There is an attempt at providing a simple way to specify which compiler
-   conditions to show to the user and which to muffle. This feature is very useful
-   to make sure that warnings the user cares about are caught, whereas those considered
-   as noise are filtered out. Document it.
-
  * Revise documentation, including this very file. Notably document
    support for extension rules, generated Lisp files, data dependencies, etc.
-   e.g. "this Lisp file is the result of running some Lisp or shell command"
 
 
 Other top TODO items that are not on ITA's critical path include the following.
 They would be ideal for a non-ITA hacker to tackle, in a random order:
+
+ * Make the production of FASL and CFASL atomic,
+   so the user never has to deal with stale half-written files anymore.
+   The only portable solution here is to ask the underlying Lisp to produce a FASL
+   with a temporary name that is different from the destination name and anything else,
+   then to (atomically if possible) delete-and-replace the old version with the new one.
+   A cheap way to do this may be to modifying ``:compile-lisp`` in ``driver.lisp``;
+   however, this won't work for ``:create-image`` (at least under SBCL without forking).
+   A full solution would be to modify ``makefile-backend.lisp``,
+   possibly in conjunction with `Exploded File Dependencies [V1]`_,
+   to ``mv`` the temporary files to their final destination if the change was successful
+   (starting with secondary targets so that ``make`` will retry to make the primary target
+   if things fail in the middle).
+
+ * Refactor the ``:image`` handling so that it automatically recurses on builds that
+   first depend on a build, etc., selecting each time the post-image or else pre-image
+   of the build or depended-upon build.
 
  * Extend the ``command-line-arguments`` library to allow for better self-documentation
    of option specifications with ``:documentation`` keyword arguments to options,
@@ -152,13 +169,10 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
    dependency on ``(:data (:source "foo/build.xcvb"))``
    from dependency on ``(:build "foo")``.
 
- * Have a ``xcvb.mk`` target in ``xcvb.mk`` itself, with a proper ``make-makefile`` command,
-   that depends on all build.xcvb *and* Lisp module files,
-   so the outer Makefile may do lazy update with::
-
-	if [ -f xcvb.mk ] ; then ${MAKE} -f xcvb.mk xcvb.mk ; else xcvb make-makefile ... ; fi
-
-   Or maybe just rebuild ``xcvb.mk`` everytime.
+ * The current correct thing is to just rebuild ``xcvb.mk`` everytime.
+   *Maybe* there's a more clever way to do things, but I doubt it.
+   Hopefully, we'll make XCVB fast enough that this isn't a problem.
+   Document that.
 
  * Also, in generated files, double-check that there isn't
    an intermediate build that short-circuits the name resolution.
@@ -200,6 +214,9 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
    (init forms, resume function,
    minimal shell wrapping and/or standalone images).
 
+ * Figure out why "standalone" SBCL images produced by cl-launch 1.19 with SBCL 1.0.29.54.rc5.cfasl
+   still accept ``--core`` and ``--version`` arguments. Is it a bug in cl-launch or in SBCL?
+
  * Mainline the CFASL patch for SBCL. Needs to be done:
 
    + add documentation for it.
@@ -224,11 +241,21 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
    with ``make xcvb PARALLELIZE=``
    (where the default value of ``PARALLELIZE`` is ``-j``).
    Document that.
-   In some future, XCVB should control make itself, have a debug option,
+
+ * In some future, XCVB should control make itself, have a debug option,
    and drop you at the REPL of the failing Lisp file with useful restarts.
    Also, there is now a ``xcvb-driver:debugging`` primitive.
    Make it possible to easily re-invoke the failing command with debugging enabled;
    maybe ``xcvb.mk`` should always include a ${DEBUGGING} statement in its output?
+   Or should the ``driver.lisp`` check for some environment variable (ugh)?
+
+ * Starting whenever we have users who actually use XCVB to bootstrap XCVB,
+   we'll want ``driver.lisp`` to provide backwards compatibility.
+   i.e. we can no longer change the semantics of ``:compile-lisp``.
+   Instead, we must keep the old ``:compile-lisp`` and possibly provide new versions
+   under a different name, such as ``:compile-lisp/2``.
+
+ * Have an extensive test-suite to run before any tarball is pushed to the release directory.
 
 
 Roadmap [Done]
@@ -347,6 +374,11 @@ all the features required for XCVB.
 Nevertheless, we should in most cases be able to do
 a good enough job that with some additional discipline,
 a correct XCVB module should build with ASDF as a backend.
+
+Alternatively, the in-image backend could be combined
+with an ASDF extension that creates bridge systems,
+so that ASDF may dynamically invoke XCVB when such systems
+are to be compiled.
 
 Add a test suite for the ASDF backend.
 
