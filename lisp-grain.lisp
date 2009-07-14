@@ -151,7 +151,7 @@
          (pre-image-p (build-pre-image build-grain))
          (build-starting-dependencies (build-starting-dependencies-p dependencies))
          (dep-build-grain (when build-starting-dependencies
-                            (registered-grain dep-build-name)))
+                            (registered-grain build-starting-dependencies)))
          (imaged-build-starting-dependencies
           (and (build-grain-p dep-build-grain)
                (build-image dep-build-grain)
