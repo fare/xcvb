@@ -173,7 +173,7 @@ form if there is one (but leaving the extension forms)."
   (flet ((carname (x) (asdf:component-name (car x)))
          (nameop (x) (list (gethash x name-to-module))))
     (mapcar #'carname
-            (asdf-dependency-grovel::components-in-traverse-order
+            (asdf-dependency-grovel:components-in-traverse-order
              system (mapcar #'nameop components)))))
 
 (defun get-module-for-component (asdf-component build-grain asdf-system name-to-module)
@@ -250,7 +250,6 @@ so that the system can now be compiled with XCVB."
 			:base-asd-file nil
 			:load-systems ,systems
 			:merge-systems ,systems
-			:cull-redundant nil
 			:base-pathname ,base-pathname
 			:verbose nil))))
     (let ((asdf-dependency-grovel::*system-base-dir*
