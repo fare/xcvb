@@ -91,16 +91,18 @@ for what are hot topics you could be working on right now.
 Current Developments [V1]
 =========================
 
-Following a complete rewrite, a release is soon to come (ETA: late June 2009).
-We've got a Makefile backend with which we can recompile XCVB itself.
+Following a complete rewrite the XCVB 0.3 series has been released in July 2009.
+We've got a Makefile backend with which we can recompile XCVB itself,
+and compile a number of free software Lisp libraries.
 
 Here is the top of our TODO list at ITA:
 
  * Apply XCVB to some actual big projects at ITA.
 
-   + Actually try XCVB on ITA code.
+   + Complete the EVAL-WHEN cleanup of ITA code.
 
-   + Collect differences on ITA dependencies into diffs, stored in releases/ directory.
+   + Collect differences on ITA library dependencies into diffs.
+     Publish them in the XCVB releases/ directory.
      Send them to upstream maintainers.
 
  * Figure out the shortest path from here to providing incremental testing
@@ -124,7 +126,7 @@ Other top TODO items that are not on ITA's critical path include the following.
 They would be ideal for a non-ITA hacker to tackle, in a random order:
 
  * Make the production of FASL and CFASL atomic,
-   so the user never has to deal with stale half-written files anymore.
+   so the user will never have to deal with stale half-written files anymore.
    The only portable solution here is to ask the underlying Lisp to produce a FASL
    with a temporary name that is different from the destination name and anything else,
    then to (atomically if possible) delete-and-replace the old version with the new one.
@@ -214,8 +216,10 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
    (init forms, resume function,
    minimal shell wrapping and/or standalone images).
 
- * Figure out why "standalone" SBCL images produced by cl-launch 1.19 with SBCL 1.0.29.54.rc5.cfasl
-   still accept ``--core`` and ``--version`` arguments. Is it a bug in cl-launch or in SBCL?
+ * Investigate how to produce actual standalone executables with SBCL.
+   Current "standalone" SBCL images produced by cl-launch in standalone mode
+   still accept ``--core`` and ``--version`` arguments, because
+   ``:save-runtime-options`` doesn't seem to be doing what I thought it was.
 
  * Mainline the CFASL patch for SBCL. Needs to be done:
 
@@ -256,6 +260,7 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
    under a different name, such as ``:compile-lisp/2``.
 
  * Have an extensive test-suite to run before any tarball is pushed to the release directory.
+
 
 
 Roadmap [Done]
@@ -357,9 +362,13 @@ when some defstruct is modified while still in use,
 when the helpers of some functions in an active stack frame are redefined,
 etc.
 
-At least, XCVB will avoid issues like these during compilation;
-and another optional behaviour might include the automatic uninterning
-of symbols and/or renaming of packages that are to be reloaded.
+Alternatively, modules could declare symbols to unintern,
+packages to delete, hook functions to unregister,
+sufficient to wipe away possibly incompatible former versions
+and replace them with new ones.
+Or some automated analysis and detection could take place to determine such.
+XCVB could then automatically unintern symbols, and
+delete or rename away packages that are to be reloaded.
 
 Note that in-image loading is also necessary for extensions to XCVB itself,
 whereby extensions are to be loaded in the current XCVB image.
@@ -375,7 +384,7 @@ Nevertheless, we should in most cases be able to do
 a good enough job that with some additional discipline,
 a correct XCVB module should build with ASDF as a backend.
 
-Alternatively, the in-image backend could be combined
+Alternatively, the `In-image loading [V1]`_ backend could be combined
 with an ASDF extension that creates bridge systems,
 so that ASDF may dynamically invoke XCVB when such systems
 are to be compiled.
@@ -414,11 +423,16 @@ e.g. timestamp and/or md5sum of the Lisp implementation that was previously used
 values of critical shell environment variables, etc.
 This could notably include information from ``SBCL_HOME`` or ``CCL_DIRECTORY``.
 
+The script can also contain a debugging option, so that the user may easily debug
+something that went wrong -- and the script would output an offer to call the script
+with the debug flag when it detects that things went wrong.
+
 Note however that for the purposes of bootstrapping a project
 (which should only matters for XCVB itself, really),
-we can't include any such dependency on things that are outside
-the distributed sources. So it should be possible to disable this feature
-at least for such dependencies.
+we can't include any such dependency on things
+that are outside the distributed sources.
+Therefore it should be possible to disable this feature
+at least for the dependencies of such project.
 
 
 Lack of Manual [V1]
@@ -434,18 +448,12 @@ Document or automate away things such as:
   * What should be in the ``Makefile`` of a project that uses xcvb:
 
      + what Make variables to configure and how to configure them
+       (much fewer now that ASDF is not needed anymore).
 
      + what Lisp variables to setup and how to set them up,
-       especially if when still using ASDF.
+       especially when still using ASDF.
 
-     + statements to ``include xcvb.mk``
-
-     + rules to make ``xcvb.mk`` itself, including dependencies
-
-         * could the dependency on the target Lisp implementation's binary
-           as well as on all build.xcvb files be automated?
-
-     + how to identify the top-level target of xcvb.mk
+     + rules to make ``xcvb.mk`` itself (always make it). How to use it.
 
      + how to use CL-Launch to build an executable from a xcvb-produced image.
 
