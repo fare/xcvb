@@ -126,6 +126,34 @@ xcvb-ensure-object-directories:
   (declare (ignore env))
   name)
 
+
+;; Renaming of targets ensures reasonable atomicity whereas CL implementations
+;; may create bad invalid stale output files when interrupted in the middle
+;; (whether the process is killed in the midst of an unsuccessful debug attempt,
+;; or the plug is simply pulled). This isn't done in the target Lisp side,
+;; because CL implementations don't usually do that for you implicitly, and
+;; while we could do it explicitly for :compile-lisp doing it for :create-image
+;; would be a pain in SBCL where we would have to fork and wait for a subprocess
+;; to SAVE-LISP-AND-DIE which would make the target much more complex than desired.
+
+(defvar *renamed-targets* ()
+  "alist of targets really desired, and the temporary names under which the XCVB driver commands
+will create the desired content. An atomic rename() will have to be performed afterwards.")
+
+(defun register-renamed-target (target tempname)
+  (push (cons target tempname) *renamed-targets*))
+
+(defun rename-target (target tempname)
+  (register-renamed-target target tempname)
+  tempname)
+
+(defun tempname-target (target)
+  (let* ((path (pathname target))
+         (tempname (namestring
+                    (make-pathname :name (strcat (pathname-name path) "-temp")
+                                   :defaults path))))
+    (rename-target target tempname)))
+
 (define-simple-dispatcher text-for-xcvb-driver-command #'text-for-xcvb-driver-command-atom)
 
 (defun text-for-xcvb-driver-command-atom (str foo)
@@ -157,40 +185,49 @@ xcvb-ensure-object-directories:
      str dependencies
      ":compile-lisp (~S ~S ~@[:cfasl ~S~])"
      (dependency-namestring name)
-     (dependency-namestring `(:fasl ,name))
-     (when *use-cfasls* (dependency-namestring `(:cfasl ,name))))))
+     (tempname-target (dependency-namestring `(:fasl ,name)))
+     (when *use-cfasls* (tempname-target (dependency-namestring `(:cfasl ,name)))))))
 
 (define-text-for-xcvb-driver-command :create-image (str spec &rest dependencies)
   (destructuring-bind (&key image standalone package) spec
     (text-for-xcvb-driver-helper
      str dependencies
      ":create-image (~S~@[~* :standalone t~]~@[ :package ~S~])"
-     (dependency-namestring `(:image ,image))
+     (tempname-target (dependency-namestring `(:image ,image)))
      standalone package)))
 
-(define-simple-dispatcher Makefile-command-for-computation #'Makefile-command-for-computation-atom)
+(define-simple-dispatcher Makefile-commands-for-computation #'Makefile-commands-for-computation-atom)
 
-(defun Makefile-command-for-computation-atom (str computation-command)
+(defun Makefile-commands-for-computation-atom (str computation-command)
   (declare (ignore str))
-  (error "Invalid command ~S" computation-command))
+  (error "Invalid computation ~S" computation-command))
 
-(defun Makefile-command-for-computation (str computation-command)
-  (Makefile-command-for-computation-dispatcher str computation-command))
+(defun Makefile-commands-for-computation (str computation-command)
+  ;; We rename secondary targets first, according to the theory that
+  ;; in case of interruption, the primary target will be re-built which will
+  ;; cause the secondary targets to be implicitly re-built before success.
+  (let* ((*renamed-targets* nil)
+         (commands (Makefile-commands-for-computation-dispatcher str computation-command)))
+    (append commands
+            (when *renamed-targets*
+              (loop :for (target . tempname) :in *renamed-targets*
+                    :collect (shell-tokens-to-Makefile (list "mv" tempname target)))))))
 
-(define-Makefile-command-for-computation :xcvb-driver-command (str keys &rest commands)
-  (destructuring-bind (&key image load) keys
-    (shell-tokens-to-Makefile
-     (lisp-invocation-arglist
-      :image-path (if image (dependency-namestring image) *lisp-image-pathname*)
-      :load (mapcar #'dependency-namestring load)
-      :eval (xcvb-driver-commands-to-shell-token commands))
-     str)))
+(define-Makefile-commands-for-computation :xcvb-driver-command (str keys &rest commands)
+  (list
+   (destructuring-bind (&key image load) keys
+     (shell-tokens-to-Makefile
+      (lisp-invocation-arglist
+       :image-path (if image (dependency-namestring image) *lisp-image-pathname*)
+       :load (mapcar #'dependency-namestring load)
+       :eval (xcvb-driver-commands-to-shell-token commands))
+      str))))
 
-(define-Makefile-command-for-computation :shell-command (str command)
-  (escape-string-for-Makefile command str))
+(define-Makefile-commands-for-computation :shell-command (str command)
+  (list (escape-string-for-Makefile command str)))
 
-(define-Makefile-command-for-computation :exec-command (str &rest argv)
-  (shell-tokens-to-Makefile argv str))
+(define-Makefile-commands-for-computation :exec-command (str &rest argv)
+  (list (shell-tokens-to-Makefile argv str)))
 
 (defun xcvb-driver-commands-to-shell-token (commands)
   (with-output-to-string (s)
@@ -227,8 +264,8 @@ xcvb-ensure-object-directories:
               (mapcar #'grain-pathname-text inputs)
               (asdf-dependency-text first-output inputs))
       (when command
-        (format stream "~C~A~%"
-              #\Tab (Makefile-command-for-computation nil command)))
+        (dolist (c (Makefile-commands-for-computation nil command))
+          (format stream "~C~A~%" #\Tab c)))
       (terpri stream))))
 
 ;;; This is only done for images, not for individual files.

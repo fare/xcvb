@@ -149,16 +149,20 @@ release-tarball:
 	mkdir -p ${TMP}/xcvb-$$VERSION && cd ${TMP}/xcvb-$$VERSION && \
 	( git clone http://common-lisp.net/project/xcvb/git/xcvb.git || \
 	  echo "Already got xcvb.git" ) && \
+	( cd xcvb && git gc ) && \
 	mkdir -p dependencies && cd dependencies && \
 	( git clone http://common-lisp.net/project/asdf/asdf.git || \
 	  echo "Already got asdf.git" ) && \
+	( cd asdf && git gc ) && \
 	( git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git || \
 	  echo "Already got asdf-dependency-grovel.git" ) && \
+	( cd asdf-dependency-grovel && git gc ) && \\
 	( git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git || \
 	  echo "Already got command-line-arguments.git" ) && \
+	( cd command-line-arguments && git gc ) && \\
 	( git clone http://common-lisp.net/project/xcvb/git/cl-launch.git || \
 	  echo "Already got cl-launch.git" ) && \
-	( cd cl-launch && ./cl-launch.sh -I $$PWD -B install_path ) && \
+	( cd cl-launch && git gc && ./cl-launch.sh -I $$PWD -B install_path ) && \
 	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
 	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi ) && \
 	cd .. && cd `/bin/pwd` && \

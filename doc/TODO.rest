@@ -125,19 +125,6 @@ Here is the top of our TODO list at ITA:
 Other top TODO items that are not on ITA's critical path include the following.
 They would be ideal for a non-ITA hacker to tackle, in a random order:
 
- * Make the production of FASL and CFASL atomic,
-   so the user will never have to deal with stale half-written files anymore.
-   The only portable solution here is to ask the underlying Lisp to produce a FASL
-   with a temporary name that is different from the destination name and anything else,
-   then to (atomically if possible) delete-and-replace the old version with the new one.
-   A cheap way to do this may be to modifying ``:compile-lisp`` in ``driver.lisp``;
-   however, this won't work for ``:create-image`` (at least under SBCL without forking).
-   A full solution would be to modify ``makefile-backend.lisp``,
-   possibly in conjunction with `Exploded File Dependencies [V1]`_,
-   to ``mv`` the temporary files to their final destination if the change was successful
-   (starting with secondary targets so that ``make`` will retry to make the primary target
-   if things fail in the middle).
-
  * Refactor the ``:image`` handling so that it automatically recurses on builds that
    first depend on a build, etc., selecting each time the post-image or else pre-image
    of the build or depended-upon build.
