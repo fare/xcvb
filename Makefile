@@ -156,10 +156,10 @@ release-tarball:
 	( cd asdf && git gc ) && \
 	( git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git || \
 	  echo "Already got asdf-dependency-grovel.git" ) && \
-	( cd asdf-dependency-grovel && git gc ) && \\
+	( cd asdf-dependency-grovel && git gc ) && \
 	( git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git || \
 	  echo "Already got command-line-arguments.git" ) && \
-	( cd command-line-arguments && git gc ) && \\
+	( cd command-line-arguments && git gc ) && \
 	( git clone http://common-lisp.net/project/xcvb/git/cl-launch.git || \
 	  echo "Already got cl-launch.git" ) && \
 	( cd cl-launch && git gc && ./cl-launch.sh -I $$PWD -B install_path ) && \
