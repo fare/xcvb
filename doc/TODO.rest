@@ -6,7 +6,7 @@ TODO
 
 Future improvements planned for XCVB.
 
-See the first section, ``Current Developments [V1]``,
+See the first section, `Current Developments [V1]`_,
 for what are hot topics you could be working on right now.
 
 .. contents::
@@ -45,7 +45,8 @@ for what are hot topics you could be working on right now.
       6.3  Crypto Check [V3]
       6.4  Template Instantiations [V5]
     7   Internals [V4]
-      7.1  Error handling [V4]
+      7.1  Type-Checking [V4]
+      7.2  Error handling [V4]
     8   Higher-level description [V2]
       8.1  XCVB's Architecture
       8.2  Grains and Types
@@ -125,10 +126,6 @@ Here is the top of our TODO list at ITA:
 Other top TODO items that are not on ITA's critical path include the following.
 They would be ideal for a non-ITA hacker to tackle, in a random order:
 
- * Refactor the ``:image`` handling so that it automatically recurses on builds that
-   first depend on a build, etc., selecting each time the post-image or else pre-image
-   of the build or depended-upon build.
-
  * Extend the ``command-line-arguments`` library to allow for better self-documentation
    of option specifications with ``:documentation`` keyword arguments to options,
    that can be trivially used to generate help for command options and sub-command options
@@ -180,6 +177,9 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
    like python's ``popen2.popen3`` or even like what SCSH provides.
    This feature will eventually be used by
    our standalone distributed build system.
+   Stelian Ionescu is possibly working on such a library as part of IOLib,
+   but would appreciate our giving him a good API.
+   See also http://common-lisp.net/project/external-program/
 
  * Add support for arbitrary shell commands, including support for
    filename expansion in shell commands, etc., in ``string-escape.lisp``.
@@ -248,6 +248,10 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
 
  * Have an extensive test-suite to run before any tarball is pushed to the release directory.
 
+ * Have a test-suite that validates the release-tarball before to publish it.
+
+ * Refactor the outdated ``test/mock/a/c/Makefile`` and the related builds into
+   a Common Lisp equivalent of GNU hello. Move it outside of the XCVB tree.
 
 
 Roadmap [Done]
@@ -674,7 +678,7 @@ The hardest part may well be extending and migrating asdf-dependency-grovel
 We will want to have some non-invasive incremental strategy
 to migrating all the existing ASDF projects,
 and to integrate with some existing distribution mechanism
-(clbuild or mudballs).
+(clbuild).
 
 
 Same source, multiple compilers [V4]
@@ -873,6 +877,20 @@ as the need for such appears.
 
 Internals [V4]
 ==============
+
+Type-Checking [V4]
+------------------
+
+XCVB uses some poor-man's mechanism for writing in a decentralized way
+code that can handle "little languages" that are thus easy to extend: 
+``define-simple-dispatcher``.
+
+At some point we might probably want to systematize
+the use of these "little languages",
+aka Abstract Data Types, and provide a way to type-check our code,
+automatically verify that we're handling all the cases as we extend them,
+give meaningful feedback for errors in user-provided input, etc.
+
 
 Error handling [V4]
 -------------------
@@ -1336,7 +1354,6 @@ stored in the ``obj/`` directory and updated when it changed. Lots of infrastruc
 
 
 
-
 Advanced Build Issues [V3]
 ==========================
 
@@ -1605,6 +1622,7 @@ Even for Common-Lisp, cheap yet better replacement exists, Lexicons.
 
 We may want to layer on top of XCVB
 an syntactic extension to Common Lisp that properly handles namespaces.
+(See BSDF?)
 
 For instance, we might reuse concepts and even code from the PLT Scheme system,
 both regarding their module system and their unit system.
@@ -1645,7 +1663,7 @@ At some point in a relatively distant future,
 we may want to extend XCVB to handle
 the automatic packaging and distribution of Lisp-based projects.
 
-See ASDF-INSTALL, clbuild, mudballs, etc.
+See ASDF-INSTALL, clbuild, etc.
 
 See Haskell Cabal and Hackage, Caml Hump,
 PLaneT, Chicken eggs,

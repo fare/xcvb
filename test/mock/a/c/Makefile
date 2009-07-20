@@ -4,8 +4,6 @@
 # IN YOUR PROJECT, your ultimate target will usually be something else
 # that is based on the image but requires additional processing and installation.
 all: obj/c.image
-# XCVB TODO: add some feature to XCVB and/or cl-launch
-# for building executables from images.
 
 # This leverages the configuration the user already did for XCVB.
 # IN YOUR PROJECT, until Lisp paths and features are standardized,

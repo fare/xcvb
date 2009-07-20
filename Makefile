@@ -56,10 +56,13 @@ ifeq (${LISP_IMPL},sbcl)
     --noinform --eval '(progn(princ(posix-getenv "SBCL_HOME"))(quit))')
 endif
 
+### Not needed by XCVB anymore since it's fully bootstrapped, but that's how
+### you may automatically dump a setup.lisp that has the same ASDF configuration
+### as cl-launch invoked with the same options (requires cl-launch 2.21 or later).
 setup.lisp:
-	( ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_launcher ; \
-	  ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -i "(let ((*package* (find-package :cl-launch))) (format t \"~S~%\" \`(setf asdf:*central-registry*',asdf:*central-registry*)))" \
-	) > $@
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_setup > $@
+
+xcvb: xcvb-using-xcvb
 
 xcvb.mk: force
 	xcvb make-makefile \
@@ -73,7 +76,7 @@ PARALLELIZE := -j
 obj/xcvb.image: xcvb.mk
 	${MAKE} -f xcvb.mk ${PARALLELIZE} $@
 
-xcvb: obj/xcvb.image
+xcvb-using-xcvb: obj/xcvb.image
 	${MAKE} xcvb-bootstrapped-install
 
 xcvb-bootstrapped-install:
@@ -135,6 +138,7 @@ pull:
 push:
 	git push --tags git@github.com:fare/xcvb.git master:master
 	git push --tags common-lisp.net:/project/xcvb/public_html/git/xcvb.git master:master
+	git pull
 
 show-current-revision:
 	git show --pretty=oneline HEAD | head -1 | cut -d' ' -f1
