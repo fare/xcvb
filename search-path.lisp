@@ -8,10 +8,10 @@
 (defun default-search-path ()
   (list
    *default-pathname-defaults*
-   (subpathname (user-homedir-pathname) ".local/share/common-lisp/")
+   (subpathname (user-homedir-pathname) ".local/share/common-lisp/source/")
    *xcvb-lisp-directory*
-   #p"/usr/local/share/common-lisp/"
-   #p"/usr/share/common-lisp/"))
+   #p"/usr/local/share/common-lisp/source/"
+   #p"/usr/share/common-lisp/source/"))
 
 (defun verify-path-element (element)
   (let* ((absolute-path (ensure-absolute-pathname (ensure-pathname-is-directory element))))

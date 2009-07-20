@@ -116,24 +116,16 @@ As mentioned above, you can find a tarball sufficient to bootstrap XCVB at:
 
 You will still need a Lisp implementation to build or run XCVB and the software it builds:
 
-  * We test with SBCL:
+  * We test with SBCL (CFASL support is included in SBCL 1.0.30.4 or later):
 	- homepage: http://sbcl.sourceforge.net/
 	- CLiki page: http://cliki.net/SBCL
         - get it from: http://sbcl.sourceforge.net/platform-table.html
-
-  * If you want CFASL, you may need to recompile SBCL from source with this patch, until it has been merged upstream:
-	- homepage: http://repo.or.cz/w/sbcl/jsnell.git?a=treediff;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master
-        - getting it (relative to same old SBCL):
-		``wget http://repo.or.cz/w/sbcl/jsnell.git?a=treediff_plain;h=refs/heads/cfasl;hp=refs/heads/master;hb=cfasl;hpb=master``
-        - getting it (relative to a recent SBCL):
-		``wget http://common-lisp.net/project/xcvb/releases/sbcl-1.0.30.3-cfasl.diff``
 
 If you prefer to collect XCVB's dependencies manually into your system,
 you will need the following Lisp software libraries to get XCVB running:
 
   * cl-launch 2.21 or later:
 	- homepage: http://cliki.net/CL-Launch
-
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
         - getting it, if you're an XCVB project member::
@@ -261,7 +253,6 @@ You can now to bootstrap XCVB using ASDF with ``make xcvb-using-asdf``.
 If successful, you may finally complete the bootstrap of XCVB using XCVB itself,
 by exporting the proper ``XCVB_PATH`` and then invoking ``make xcvb``.
 
-
 Assuming you installed ``xcvb`` into some directory in your ``$PATH``,
 you can test that XCVB built correctly by using the following query commands::
 
@@ -324,7 +315,15 @@ is actually ``xcvb.mk`` in the current directory,
 but you can override either or both of this name and that directory
 with the ``--output-path`` option to ``make-makefile``.
 
-You may invoke ``make(1)`` using this output file in the following way::
+For a correct build, it is recommended that you should run
+the ``xcvb make-makefile`` command before every time you build,
+in case any dependency has changed due to some modification.
+XCVB should be fast and this shouldn't be a problem.
+If making the Makefile takes more than a few seconds,
+there's probably a performance bug and you should contact us.
+
+After obtaining your ``xcvb.mk``, you may invoke ``make(1)``
+using this output file in the following way::
 
 	make -f xcvb.mk -j obj/foo/bar.image
 
@@ -506,8 +505,8 @@ environment variables, configuration files, or
     (list
       *default-pathname-defaults*
       (subpathname (user-homedir-pathname) "lisp/")
-      #p"/usr/local/share/common-lisp/modules/"
-      #p"/usr/share/common-lisp/modules/"))
+      #p"/usr/local/share/common-lisp/source/"
+      #p"/usr/share/common-lisp/source/"))
 
   2- If environment variable ``XCVB_PATH`` is set,
   it is read as a "``:``"-delimited list of path strings,
@@ -524,6 +523,11 @@ Before XCVB actually tries to process any module,
 it will finalize its search path by eliminating all invalid paths
 from *search-path* and eagerly collecting a list of all the top-level
 ``build.xcvb`` files under the specified filesystem hierarchies.
+For this reason, you will want to include as narrow directory hierarchies
+as you can in the search path. ``/opt/share/common-lisp/source/``
+is probably good, whereas ``/`` or ``/usr`` may result in minutes or hours
+being spent searching your whole filesystem in vain.
+
 Conflicts between two ``build.xcvb`` files
 claiming the same name or nickname are resolved as follows:
 if one ``build.xcvb`` appears in a hierarchy

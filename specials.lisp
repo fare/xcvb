@@ -68,7 +68,7 @@ Autodetected from the target Lisp system.")
 ;;; TODO: make that not depend on an environment variable,
 ;;; and/or make the dependency explicit in a way that XCVB is aware of.
 (defvar *xcvb-lisp-directory*
-  #p"/usr/share/common-lisp/xcvb/"
+  #p"/usr/share/common-lisp/source/xcvb/"
   ;; (pathname (strcat (cl-launch:getenv "INSTALL_XCVB") "/"))
   "Directory pathname for the location where XCVB Lisp files are installed")
 

@@ -155,11 +155,6 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
    dependency on ``(:data (:source "foo/build.xcvb"))``
    from dependency on ``(:build "foo")``.
 
- * The current correct thing is to just rebuild ``xcvb.mk`` everytime.
-   *Maybe* there's a more clever way to do things, but I doubt it.
-   Hopefully, we'll make XCVB fast enough that this isn't a problem.
-   Document that.
-
  * Also, in generated files, double-check that there isn't
    an intermediate build that short-circuits the name resolution.
    e.g. if ``foo/bar.lisp`` is generated from a build with fullname ``/quux``,
@@ -184,8 +179,6 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
  * Add support for arbitrary shell commands, including support for
    filename expansion in shell commands, etc., in ``string-escape.lisp``.
    May or may not benefit from the previous.
-   Alternatively, document how any such thing
-   may be done in the external ``Makefile`` for now.
 
  * Figure out why the call of ``directory`` in ``find-build-files-under``
    is so slow (at least in SBCL), and find a pure-lisp alternative
@@ -206,13 +199,8 @@ They would be ideal for a non-ITA hacker to tackle, in a random order:
  * Investigate how to produce actual standalone executables with SBCL.
    Current "standalone" SBCL images produced by cl-launch in standalone mode
    still accept ``--core`` and ``--version`` arguments, because
-   ``:save-runtime-options`` doesn't seem to be doing what I thought it was.
-
- * Mainline the CFASL patch for SBCL. Needs to be done:
-
-   + add documentation for it.
-
-   + test it extensively, add tests in SBCL test suite.
+   ``:save-runtime-options`` doesn't seem to be working (as of 1.0.30.4)
+   when SBCL was itself invoked from an executable image.
 
  * Expand the migration code from ASDF. See `Migration from ASDF [V1]`_.
 
