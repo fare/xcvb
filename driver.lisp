@@ -71,7 +71,11 @@ This is designed to abstract away the implementation specific quit forms."
   (error "xcvb driver: Quitting not implemented"))
 
 (defun print-backtrace (out)
+  (declare (ignorable out))
   nil
+  #+clozure (let ((*debug-io* out))
+	      (ccl:print-call-history :count 100 :start-frame-number 1)
+	      (finish-output out))
   #+sbcl (sb-debug:backtrace most-positive-fixnum out))
 
 (defvar *stderr* *error-output*)

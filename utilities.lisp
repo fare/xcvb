@@ -51,9 +51,9 @@
 
 (defun join-strings (separator strings &optional out)
   (with-output (out)
-    (loop :for (string . rest) :on strings :do
+    (loop :for (string . more-strings) :on strings :do
       (write-string string out)
-      (when rest
+      (when more-strings
         (princ separator out)))))
 
 (defun string-prefix<= (x y)

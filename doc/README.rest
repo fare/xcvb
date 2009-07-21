@@ -336,7 +336,7 @@ and ``foo/bar.image`` would be the name of the image for your project
 From the image, you can create an executable with such a command as::
 
 	cl-launch --lisp sbcl --image obj/foo/bar.image \
-		--output bar --dump ! --resume 'bar::main'
+		--output bar --dump ! --restart 'bar::main'
 
 As an example of how to put it all together, see XCVB's own ``Makefile``.
 

@@ -183,7 +183,7 @@ will create the desired content. An atomic rename() will have to be performed af
   (destructuring-bind (name &key) name-options
     (text-for-xcvb-driver-helper
      str dependencies
-     ":compile-lisp (~S ~S ~@[:cfasl ~S~])"
+     ":compile-lisp (~S ~S~@[ :cfasl ~S~])"
      (dependency-namestring name)
      (tempname-target (dependency-namestring `(:fasl ,name)))
      (when *use-cfasls* (tempname-target (dependency-namestring `(:cfasl ,name)))))))

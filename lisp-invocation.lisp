@@ -75,6 +75,7 @@
   :feature :clozure
   :flags ("--no-init")
   :eval-flag "--eval" ; -e
+  :load-flag "--load"
   :image-flag "--image-name" ; -I
   :image-executable-p t
   :arguments-end "--"
@@ -89,6 +90,7 @@
   :feature :cmu
   :flags ("-quiet" "-noinit")
   :eval-flag "-eval"
+  :load-flag "-load"
   :arguments-end "--"
   :image-flag "-core"
   :argument-control nil ;; cmucl will always scan all the arguments for -eval... EVIL!

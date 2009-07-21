@@ -56,11 +56,13 @@ top of a source file"
   "From Lisp file stream IN, read any header made of blanks and ;-comments
 until something else is found, then return that header as a string"
   (with-output-to-string (out)
-     (loop
-	 (case (peek-char nil in nil)
-	   ((#\space #\tab #\newline #-clisp #\linefeed) (princ (read-char in) out))
-	   ((#\;) (write-line (read-line in) out))
-	   (t (return))))))
+     (loop :for x = (peek-char nil in nil) :do
+	(cond
+	  ((member x '(#\space #\tab #\newline #\linefeed))
+	   (princ (read-char in) out))
+	  ((eql x #\;)
+	   (write-line (read-line in) out))
+	  (t (return))))))
 
 (defun skip-whitespace (in)
   "From stream IN, read any number of whitespace until non-whitespace is found."
