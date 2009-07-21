@@ -230,17 +230,19 @@ form if there is one (but leaving the extension forms)."
 		     (simplified-system :simplified-system)
 		     (base-pathname (guess-base-pathname-for-systems systems))
 		     (components-path *components-path*)
-		     systems-to-preload)
+		     systems-to-preload
+		     verbose)
 
   "Takes the name of one or several ASDF system(s) and
 merge them into a single XCVB build,
 adding xcvb module declarations to the top of all the files in that build,
 and writing a corresponding build.xcvb file,
 so that the system can now be compiled with XCVB."
-  ;; Remove systems used by XCVB so that asdf-to-xcvb can work on them.
+  ;; Remove any system used by XCVB so that asdf-to-xcvb may work on them.
   (dolist (sys systems)
     (remhash (asdf::coerce-name sys) asdf::*defined-systems*))
   (xcvb-driver:with-controlled-compiler-conditions ()
+    (when verbose (DBG "preloading systems"))
     (dolist (sys systems-to-preload)
       (asdf:operate 'asdf:load-op sys))
     (setf cl-launch:*output-pathname-translations* nil)
@@ -253,10 +255,12 @@ so that the system can now be compiled with XCVB."
 			:load-systems ,systems
 			:merge-systems ,systems
 			:base-pathname ,base-pathname
-			:verbose nil))))
+			:verbose ,verbose))))
+    (when verbose (DBG "Starting the dependency grovelling"))
     (let ((asdf-dependency-grovel::*system-base-dir*
 	   (cl-launch:apply-output-pathname-translations base-pathname)))
       (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system)))
+  (when verbose (DBG "Adding dependency information to files"))
   (eval
    `(asdf:defsystem :migrated-system
      ,@(with-open-file (s (cl-launch:apply-output-pathname-translations

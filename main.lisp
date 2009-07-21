@@ -73,9 +73,10 @@
   '((("system" #\b) :type string :optional nil :list t :documentation "Specify a system to convert (can be repeated)")
     (("setup"  #\s) :type string :optional t :documentation "Specify the path to a Lisp setup file.")
     (("system-path" #\p) :type string :optional t :list t :documentation "Register an ASDF system path (can be repeated)")
-    (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")))
+    (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")
+    (("verbose" #\v) :type boolean :optional t :documentation "Whether the dependency-groveller should be verbose.")))
 
-(defun asdf-to-xcvb-command (arguments &key system setup system-path preload)
+(defun asdf-to-xcvb-command (arguments &key system setup system-path preload verbose)
   (when arguments
     (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
   (setf asdf:*central-registry*
@@ -83,7 +84,8 @@
   (when setup (load setup))
   (asdf-to-xcvb
    :systems (mapcar #'coerce-asdf-system-name system)
-   :systems-to-preload (mapcar #'coerce-asdf-system-name preload)))
+   :systems-to-preload (mapcar #'coerce-asdf-system-name preload)
+   :verbose verbose))
 
 
 (defparameter +show-search-path-option-spec+

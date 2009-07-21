@@ -106,6 +106,9 @@
       (setf (gethash (fullname target) *generators*) generator)
       (setf (gethash (namestring (grain-pathname target)) *pathname-grain-cache*) target))))
 
+;;(define-handle-extension-form :in-package (grain files &key package) ...)
+
+
 (defun handle-extension-forms (grain)
   (let ((extension-forms  (grain-extension-forms grain)))
     (when extension-forms
