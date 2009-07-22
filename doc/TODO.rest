@@ -102,6 +102,13 @@ Here is the top of our TODO list at ITA:
 
    + Complete the EVAL-WHEN cleanup of ITA code.
 
+   + Implement the removal of XCVB module statements, so (a copy of) a migrated
+     system may easily be de-a2x'ed, leaving only the EVAL-WHEN and other fixes,
+     that may be merged upstream before we are ready to get module statements
+     themselves merged. (Note: a lot of those EVAL-WHEN bugs are indeed bugs
+     even when compiling with ASDF, and will show in case an incremental compilation
+     when some of the files are already compiled but others not.)
+
    + Collect differences on ITA library dependencies into diffs.
      Publish them in the XCVB releases/ directory.
      Send them to upstream maintainers.
@@ -119,17 +126,19 @@ Here is the top of our TODO list at ITA:
    ``with-xcvb-compilation-unit`` in a way that actually defers warnings,
    rather than plainly drops them.
 
- * Revise documentation, including this very file. Notably document
-   support for extension rules, generated Lisp files, data dependencies, etc.
+ * Write a better pretty-printer for module forms, that conforms to standard Lisp style.
 
-
-Other top TODO items that are not on ITA's critical path include the following.
-They would be ideal for a non-ITA hacker to tackle, in a random order:
+Other top TODO items that are not on ITA's critical path include the following,
+in a random order. They would be ideal for a non-ITA hacker to tackle.
 
  * Extend the ``command-line-arguments`` library to allow for better self-documentation
    of option specifications with ``:documentation`` keyword arguments to options,
    that can be trivially used to generate help for command options and sub-command options
    (think about ``svn`` or ``git`` calling conventions).
+   Maybe make that an extension to command-line-arguments, that itself uses
+   a more general tool to display stuff on a terminal while respecting terminal width;
+   or that actually outputs HTML and uses lynx -dump.
+   Or that outputs HTML and invokes a browser.
    Use that to generate XCVB internal help.
 
  * When identifying a file dependency,
