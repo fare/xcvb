@@ -46,7 +46,9 @@
      '(finish-outputs quit resume restart debugging
        run do-run run-commands run-command
        with-coded-exit with-controlled-compiler-conditions with-xcvb-compilation
-       *uninteresting-conditions*))
+       *uninteresting-conditions* *debugging*))
+
+(defvar *debugging* nil)
 
 ;; Variables that define the current system
 (defvar *restart* nil)
@@ -81,10 +83,11 @@ This is designed to abstract away the implementation specific quit forms."
 (defvar *stderr* *error-output*)
 
 (defun bork (condition)
-  (format *stderr* "~&~A~%" condition)
-  (print-backtrace *stderr*)
-  (format *stderr* "~&~A~%" condition)
-  (quit 99))
+  (unless *debugging*
+    (format *stderr* "~&~A~%" condition)
+    (print-backtrace *stderr*)
+    (format *stderr* "~&~A~%" condition)
+    (quit 99)))
 
 (defun call-with-coded-exit (thunk)
   (handler-bind ((error #'bork))
@@ -155,7 +158,7 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defun do-resume ()
   (when *restart* (funcall *restart*))
-  (quit))
+  (quit 0))
 
 (defun resume ()
   (do-resume))
@@ -333,6 +336,7 @@ whether or not all of those systems were up-to-date or not."
     (shell-boolean (asdf-systems-up-to-date-p systems))))
 
 (defun debugging ()
+  (setf *debugging* t)
   #+sbcl (sb-ext:enable-debugger)
   #+clisp (ext:set-global-handler #'invoke-debugger)
   (setf *load-verbose* t *compile-verbose* t *compile-print* t)
