@@ -135,26 +135,42 @@ This is designed to abstract away the implementation specific quit forms."
 (defvar *deferred-warnings* ()
   "Warnings the handling of which is deferred until the end of the compilation unit")
 
-(defun call-with-xcvb-compilation-unit (thunk)
+(defun call-with-xcvb-compilation-unit (thunk &key forward-references)
   (with-compilation-unit (:override t)
     (let ((*deferred-warnings* ())
           #+sbcl (sb-c::*undefined-warnings* nil))
-      (handler-bind (#+clozure 
-                     (ccl::compiler-warning
-                      #'(lambda (condition)
-                          (push condition *deferred-warnings*))))
-        (funcall thunk))
-    #+sbcl
-    (progn
-      (dolist (w sb-c::*undefined-warnings*)
-        (push `(:undefined
-                ,(princ-to-string (sb-c::undefined-warning-kind w))
-                ,(princ-to-string (sb-c::undefined-warning-name w)))
-              *deferred-warnings*))
-      (setf sb-c::*undefined-warnings* nil)))))
+      (multiple-value-prog1
+          (handler-bind (#+clozure
+                         (ccl::compiler-warning
+                          #'(lambda (condition)
+                              ;;(push condition *deferred-warnings*) ;TODO: decode it as for SBCL!
+                              (muffle-warning condition))))
+            (funcall thunk))
+        #+sbcl
+        (loop :for w :in sb-c::*undefined-warnings*
+              :for kind = (sb-c::undefined-warning-kind w) ; :function :variable :type
+              :for name = (sb-c::undefined-warning-name w)
+              :for symbol = (cond
+                              ((and (consp name) (eq name 'setf))
+                               (assert (eq kind :function))
+                               (assert (and (consp (cdr name)) (null (cddr name))) ())
+                               (setf kind :setf-function)
+                               (second name))
+                              (t
+                               (assert (member kind '(:function :variable :type)) ())
+                               name))
+              :for symbol-name = (symbol-name symbol)
+              :for package-name = (package-name (symbol-package symbol))
+              :collect `(:undefined ,symbol-name ,package-name ,kind) :into undefined-warnings
+              :finally (setf *deferred-warnings* undefined-warnings
+                             sb-c::*undefined-warnings* nil)))
+      (when forward-references
+        (with-open-file (s forward-references :direction :output :if-exists :supersede)
+          (write *deferred-warnings* :stream s :pretty t :readably t)
+          (terpri s))))))
 
-(defmacro with-xcvb-compilation-unit (() &body body)
-  `(call-with-xcvb-compilation-unit (lambda () ,@body)))
+(defmacro with-xcvb-compilation-unit ((&key forward-references) &body body)
+  `(call-with-xcvb-compilation-unit (lambda () ,@body) :forward-references ,forward-references))
 
 (defun do-resume ()
   (when *restart* (funcall *restart*))
@@ -327,7 +343,7 @@ whether or not all of those systems were up-to-date or not."
   (every #'asdf-system-loaded-up-to-date-p systems))
 
 (defun shell-boolean (x)
-  (quit 
+  (quit
    (if x 0 1)))
 
 (defun asdf-systems-up-to-date (&rest systems)

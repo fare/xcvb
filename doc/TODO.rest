@@ -120,11 +120,37 @@ Here is the top of our TODO list at ITA:
    A server could definitely hold the data about dependencies based on the
    contenthash of files.
 
- * Warnings about undefined functions are quenched during file compilation.
+ * Warnings about undefined functions are currently quenched during file compilation.
    HOWEVER, we should record them on the, and reconcile them afterwards,
    before or after image creation. In other words, we must implement
    ``with-xcvb-compilation-unit`` in a way that actually defers warnings,
    rather than plainly drops them.
+
+   + Good compilers generate conditions when a function is forward referenced;
+     these conditions need to be handled in implementation-dependent way, and
+     the symbol-name and package-name of the referenced symbols need to be
+     dumped into a file ``.fref`` alongside the ``.fasl`` and ``.cfasl``
+     as each file is compiled.
+
+   + Previous solutions in single-image build systems such as ASDF involved
+     WITH-COMPILATION-UNIT and simple wrappers around it that defer the
+     handling of some conditions until the end of the compilation unit.
+     However, because we are specifically invalidating this assumption that
+     everything is compiled in the same image, we need to instead persist
+     forward reference information in files, and complete the final check
+     for undefined functions after image-dumping. This check would be the
+     first XCVB-managed unit-test; implementing it would be a good way to start
+     moving existing unit tests into incremental management by XCVB
+     -- the ultimate goal of migrating QRes to XCVB.
+
+   + Basically, one would create a test target dependent on the final image
+     that runs a function that collects all these forward references and makes sure
+     that all the referenced functions are indeed defined and defined as functions
+     (rather than as macro).
+
+   + The check would issue precise error messages describing which file referenced which
+     undefined function, or which file used a macro without depending on the file that
+     defined the macro.
 
  * Write a better pretty-printer for module forms, that conforms to standard Lisp style.
 
