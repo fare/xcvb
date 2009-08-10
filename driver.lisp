@@ -12,7 +12,7 @@
 (in-package :cl)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 2)
+  (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3);;2)
            #+sbcl (sb-ext:inhibit-warnings 3)
            #+sbcl (sb-c::merge-tail-calls 3) ;-- this plus debug 1 (or sb-c::insert-debug-catch 0 ???) should ensure all tail calls are optimized, says jsnell
 	   #+cmu (ext:inhibit-warnings 3)))
@@ -151,7 +151,7 @@ This is designed to abstract away the implementation specific quit forms."
               :for kind = (sb-c::undefined-warning-kind w) ; :function :variable :type
               :for name = (sb-c::undefined-warning-name w)
               :for symbol = (cond
-                              ((and (consp name) (eq name 'setf))
+                              ((and (consp name) (eq (car name) 'setf))
                                (assert (eq kind :function))
                                (assert (and (consp (cdr name)) (null (cddr name))) ())
                                (setf kind :setf-function)
@@ -283,7 +283,7 @@ This is designed to abstract away the implementation specific quit forms."
                    :output-file (merge-pathnames fasl)
                    ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
                    (when cfasl
-                     `(:emit-cfasl ,cfasl)))))
+                     `(:emit-cfasl ,(merge-pathnames cfasl))))))
         (declare (ignore output-truename))
         (when warnings-p
           (error "Compilation Warned for ~A" source))
