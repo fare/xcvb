@@ -56,8 +56,6 @@
            :grain-names (cons spec current-grains-r))
           spec)))))
 
-;; :WHEN and :COND can return 0 or multiple grains.
-;; Allow graph-for to return a list of grains for :WHEN and :COND.
 (defun graph-for* (env specs)
   (remove-duplicates
    (mapcar #'(lambda (spec)

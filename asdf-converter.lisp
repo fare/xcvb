@@ -30,25 +30,25 @@ and the load dependencies depending on load-time effects of the files."
   "Returns a string representation of a module object that can be put at the
 top of a source file"
   (with-output-to-string (out)
-    (format out "#+xcvb~%(module (")
+    (format out "#+xcvb (module (")
     (when (build-grain-p grain)
-      (format out "~@[~%~7,0T:fullname ~S~]" (subseq (fullname grain) 1)))
+      (format out "~@[:fullname ~S~]" (subseq (fullname grain) 1)))
     (dolist (slot '(author maintainer version licence description long-description))
       (when (and (slot-boundp grain slot) (slot-value grain slot))
-        (format out "~@[~%~7,0T:~(~A~) ~S~]" slot (slot-value grain slot))))
+        (format out "~@[:~(~A~) ~S~]" slot (slot-value grain slot))))
     (with-slots (load-depends-on compile-depends-on depends-on) grain
       (if (equivalent-deps-p grain)
-          (format out "~@[~%~7,0T:depends-on (~%~14,7T~{~15,0T~S~^~%~})~]" load-depends-on)
+          (format out "~@[:depends-on (~{~15,0T~S~^ ~})~]" load-depends-on)
           (format out
-                  "~@[~%~7,0T:compile-depends-on (~%~{~15,0T~S~^~%~})~]~
-                   ~@[~%~7,0T:load-depends-on (~%~14,7T~{~15,0T~S~^~%~})~]"
+                  "~@[:compile-depends-on ( ~{~15,0T~S~^ ~})~]~
+                   ~@[:load-depends-on ( ~14,7T~{~15,0T~S~^ ~})~]"
                   compile-depends-on load-depends-on)))
     (when (build-grain-p grain)
       (dolist (slot '(build-depends-on supersedes-asdf))
 	(when (and (slot-boundp grain slot) (slot-value grain slot))
-	  (format out "~@[~%~7,0T:~(~A~) ~S~]" slot (slot-value grain slot)))))
+	  (format out "~@[ :~(~A~) ~S~]" slot (slot-value grain slot)))))
     (format out ")")
-    (format out "~@[~%~{~7,0T~S~^~%~}~]" (and (slot-boundp grain 'extension-forms)
+    (format out "~@[ ~{~S~^ ~}~]" (and (slot-boundp grain 'extension-forms)
 					      (grain-extension-forms grain)))
     (format out ")")))
 
@@ -69,44 +69,59 @@ until something else is found, then return that header as a string"
   (loop :while (member (peek-char nil in nil) '(#\space #\tab #\newline #-clisp #\linefeed))
         :do (read-char in)))
 
-
-(defun add-module-to-file (module &optional (filename (grain-pathname module)))
-  "Adds a module form to the beginning of a file, replacing the existing module
-form if there is one (but leaving the extension forms)."
+;; If the file does not have an existing XCVB module, a module is
+;; created and inserted into the file.  If the file already has an
+;; XCVB module, the file's module is replaced with new XCVB module,
+;; keeping the old module's extension forms.  If 'module' argument is
+;; NIL, then the file's XCVB module is removed.
+(defun replace-module-in-file (filename module)
   (if (probe-file filename)
-    (let* ((tmppath (make-pathname
-		     :type (strcat (pathname-type filename) ".xcvbtmp")
-		     :defaults filename))
-	   (*features* (cons :xcvb *features*)))
-      (with-open-file (in filename :direction :input :if-does-not-exist nil)
-        (with-open-file (out tmppath
-                             :direction :output
-                             :if-does-not-exist :create
-                             :if-exists :supersede)
-	  (format out "~a" (read-comment-header in))
-          (let* ((first-form-position (file-position in))
-		 (first-form (read in nil)))
-            (if (module-form-p first-form)
-                (setf (grain-extension-forms module)
-                      (grain-extension-forms
-                       (parse-module-declaration
-                        first-form
-                        :path filename
-                        :build-p (build-grain-p module))))
-                (file-position in first-form-position))
-	    (format out "~a~%~%" (module-string module)))
-	  (skip-whitespace in)
-          (do ((line (read-line in nil) (read-line in nil)))
-              ((null line))
-            (write-line line out))))
+      (let* ((tmppath (make-pathname
+		       :type (strcat (pathname-type filename) ".xcvbtmp")
+		       :defaults filename))
+	     (*features* (cons :xcvb *features*)))
+	(with-open-file (in filename :direction :input :if-does-not-exist nil)
+	  (with-open-file (out tmppath
+			       :direction :output
+			       :if-does-not-exist :create
+			       :if-exists :supersede)
+	    ;; Copy comment header to tmppath file.
+	    (format out "~a" (read-comment-header in))
+	    ;; Write out xcvb module to tmppath file.
+	    (let* ((first-form-position (file-position in))
+		   (first-form (read in nil)))
+	      (if (not (module-form-p first-form))
+		  (file-position in first-form-position)
+		  (when module
+		    (setf (grain-extension-forms module)
+			  (grain-extension-forms
+			   (parse-module-declaration
+			    first-form
+			    :path filename
+			    :build-p (build-grain-p module))))))
+	      (when module (format out "~a~%~%" (module-string module))))
+	    (skip-whitespace in)
+	    ;; Copy rest of file to tmppath file.
+	    (do ((line (read-line in nil) (read-line in nil)))
+		((null line))
+	      (write-line line out))))
         (rename-file tmppath filename
                      #+clozure :if-exists #+clozure :rename-and-delete))
-    (with-open-file
-        (out filename
-             :direction :output
-             :if-does-not-exist :create
-             :if-exists :supersede)
-      (format out "~a~%" (module-string module)))))
+      ;; If module=NIL, we're removing xcvb module from file and file must exist
+      (progn
+	(assert module)
+	(with-open-file
+	    (out filename
+		 :direction :output
+		 :if-does-not-exist :create
+		 :if-exists :supersede)
+	  (format out "~a~%" (module-string module))))))
+
+(defun remove-module-from-file (filename)
+  (replace-module-in-file filename NIL))
+
+(defun add-module-to-file (module &optional (filename (grain-pathname module)))
+  (replace-module-in-file filename module))
 
 ;; See also http://paste.lisp.org/display/66610
 (defun get-dependencies-from-components (components)
@@ -277,3 +292,19 @@ so that the system can now be compiled with XCVB."
 	(dolist (component (asdf:module-components asdf-system))
 	  (add-module-to-file (get-module-for-component
                                component build-grain asdf-system name-to-module))))))
+
+;; Using the build.xcvb as a starting point, finds files and 
+;; strips XCVB modules from them.
+(defun remove-xcvb-from-build (&key xcvb-path verbosity build)
+  (reset-variables)
+  (when xcvb-path
+    (set-search-path! xcvb-path))
+  (when verbosity
+    (setf *xcvb-verbosity* verbosity))
+  (search-search-path)
+  (let* ((build (registered-build (canonicalize-fullname build))))
+    (with-slots (depends-on) build
+      (mapcar (lambda (name)
+		(let ((path (module-subpathname (grain-pathname build) name)))
+		  (remove-module-from-file path)))
+	   depends-on)))) 

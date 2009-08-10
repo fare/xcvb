@@ -87,6 +87,21 @@
    :systems-to-preload (mapcar #'coerce-asdf-system-name preload)
    :verbose verbose))
 
+(defparameter +remove-xcvb-option-spec+
+  '((("build" #\b) :type string :optional nil
+     :documentation "Specify XCVB build to remove modules from")
+    (("xcvb-path" #\x) :type string :optional t
+     :documentation "override your XCVB_PATH") 
+    (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
+
+(defun remove-xcvb-command (arguments &key xcvb-path verbosity build)
+  ;;(declare (ignore xcvb-path verbosity))
+  (when arguments
+    (error "Invalid arguments to remove-xcvb: ~S~%" arguments))
+  (remove-xcvb-from-build
+   :xcvb-path xcvb-path
+   :verbosity verbosity
+   :build build))
 
 (defparameter +show-search-path-option-spec+
   '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
@@ -121,6 +136,9 @@ command gives specific help on that command.")
      "Attempt an automated conversion of an ASDF system to XCVB.
 Optionally load a setup Lisp file before anything else, so the user gets
 a chance to load and/or configure ASDF itself and any extension thereof.")
+    (("remove-xcvb" "rm-x") remove-xcvb-command +remove-xcvb-option-spec+
+     "Remove XCVB modules from files in build"
+     "Given an XCVB build file, removes the XCVB modules from each of the files listed in the build file.")
     (("show-search-path" "search-path" "ssp") show-search-path-command +show-search-path-option-spec+
      "Show builds in the specified XCVB path"
      "Show builds in the implicitly or explicitly specified XCVB path.
