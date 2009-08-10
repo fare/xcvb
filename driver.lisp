@@ -151,11 +151,18 @@ This is designed to abstract away the implementation specific quit forms."
               :for kind = (sb-c::undefined-warning-kind w) ; :function :variable :type
               :for name = (sb-c::undefined-warning-name w)
               :for symbol = (cond
-                              ((and (consp name) (eq (car name) 'setf))
-                               (assert (eq kind :function))
-                               (assert (and (consp (cdr name)) (null (cddr name))) ())
-                               (setf kind :setf-function)
-                               (second name))
+			      ((consp name)
+			       (assert (eq kind :function))
+			       (ecase (car name)
+				 ((setf)
+				  (assert (and (consp (cdr name)) (null (cddr name))) ())
+				  (setf kind :setf-function)
+				  (second name))
+				 ((sb-pcl::slot-accessor)
+				  (assert (eq :global (second name)))
+				  (assert (eq 'boundp (fourth name)))
+				  (setf kind :sb-pcl-global-slot-accessor)
+				  (third name))))
                               (t
                                (assert (member kind '(:function :variable :type)) ())
                                name))
