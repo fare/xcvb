@@ -16,6 +16,7 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 		LISP_SOURCE=${LISP_SOURCE} LISP_SYSTEMS=${LISP_SYSTEMS}
 
 install-cl-launch:
+	mkdir -p ${LISP_SOURCE}/cl-launch ${INSTALL_BIN}
 	./dependencies/cl-launch/cl-launch.sh \
 		-l ${LISP} \
 		-I ${LISP_SOURCE}/cl-launch \
@@ -29,13 +30,12 @@ install: install-cl-launch
 	${MAKE} -C xcvb xcvb-bootstrapped-install ${OPTIONS}
 
 install-source: install-cl-launch
+	mkdir -p ${LISP_SOURCE}/xcvb ${LISP_SYSTEMS}
 	for dir in asdf asdf-dependency-grovel closer-mop command-line-arguments ; do \
 	  rsync -aC --exclude _darcs dependencies/$$dir ${LISP_SOURCE}/ ; \
 	done
-	cd xcvb && mkdir -p ${LISP_SOURCE}/xcvb && cp -a *.asd *.lisp *.xcvb ${LISP_SOURCE}/xcvb/
-	mkdir -p ${LISP_SYSTEMS}/
+	cd xcvb && cp -a *.asd *.lisp *.xcvb ${LISP_SOURCE}/xcvb/
 	ln -sf $$(find ${LISP_SOURCE}/ -name '*test*' -prune -name '*.asd' -type f) ${LISP_SYSTEMS}/
 
 install-using-asdf: install-source
-	mkdir -p ${INSTALL_BIN}
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
