@@ -35,7 +35,8 @@ install-source: install-cl-launch
 	  rsync -aC --exclude _darcs dependencies/$$dir ${LISP_SOURCE}/ ; \
 	done
 	cd xcvb && cp -a *.asd *.lisp *.xcvb ${LISP_SOURCE}/xcvb/
-	ln -sf $$(find ${LISP_SOURCE}/ -name '*test*' -prune -name '*.asd' -type f) ${LISP_SYSTEMS}/
+	ln -sf $$(find ${LISP_SOURCE}/ \( -name '*test*' -prune -false \) -o \
+			 -type f -name '*.asd' ! -name '*test*' ) ${LISP_SYSTEMS}/
 
 install-using-asdf: install-source
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
