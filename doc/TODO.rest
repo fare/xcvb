@@ -115,10 +115,35 @@ Here is the top of our TODO list at ITA:
 
  * Figure out the shortest path from here to providing incremental testing
    for unit-tests and regression scripts. What state needs to be maintained?
-   Can we make maintaining this state compatible with the ``Makefile`` backend,
-   or do we need to leapfrog to a standalone backend with queries to a server?
-   A server could definitely hold the data about dependencies based on the
-   contenthash of files.
+
+   + Test reports are file grains that depend on the properly compiled
+     fasls or images that are being tested.
+
+   + A test report is a file the first form of which is
+     a simple SEXP to be read,
+     following some standardized structure to specify overall success,
+     status of individual tests (including error message, maybe
+     information as to last success, etc.).
+
+   + For the sake of interoperability, we may specify a translation
+     from said S-Expression test result format to XML
+     that complies with what JUnit expects.
+     (Suggestion by Robert Goldman <rpgoldman@sift.info>)
+
+   + In collaboration with folks from BBN, my (rpg's) colleague John Maraist
+     has built this capability into his NST test framework.
+     This means that a large system with Java components can all be tested together.
+
+   + From the test reports, a success witness (empty file) may be created
+     on success.
+
+   + The success witness fails to be created when the test wasn't a success,
+     and the process returns with an error code for make to catch.
+
+   + Preparing the makefile erases the success witnesses.
+
+   + To evaluate the progress of tests, regressions, etc., said state can be
+     registered in some test state maintenance server.
 
  * Warnings about undefined functions are currently quenched during file compilation.
    HOWEVER, we should record them on the, and reconcile them afterwards,
@@ -133,7 +158,7 @@ Here is the top of our TODO list at ITA:
      as each file is compiled.
 
    + Previous solutions in single-image build systems such as ASDF involved
-     WITH-COMPILATION-UNIT and simple wrappers around it that defer the
+     ``with-compilation-unit`` and simple wrappers around it that defer the
      handling of some conditions until the end of the compilation unit.
      However, because we are specifically invalidating this assumption that
      everything is compiled in the same image, we need to instead persist
