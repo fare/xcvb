@@ -160,7 +160,6 @@ This is designed to abstract away the implementation specific quit forms."
 				  (second name))
 				 ((sb-pcl::slot-accessor)
 				  (assert (eq :global (second name)))
-				  (assert (eq 'boundp (fourth name)))
 				  (setf kind :sb-pcl-global-slot-accessor)
 				  (third name))))
                               (t
