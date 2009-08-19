@@ -185,28 +185,44 @@ until something else is found, then return that header as a string"
                    :type "xcvb"
                    :defaults (asdf:component-pathname asdf-system))))))
 
-(defun dependency-sort (components system name-to-module)
+(defun dependency-sort (components system name-to-module
+			traverse-order-components)
   "Sorts a list of asdf components according to their dependencies."
   (flet ((carname (x) (asdf:component-name (car x)))
          (nameop (x) (list (gethash x name-to-module))))
     (mapcar #'carname
             (asdf-dependency-grovel:components-in-traverse-order
-             system (mapcar #'nameop components)))))
+             system (mapcar #'nameop components)
+	     traverse-order-components))))
 
-(defun get-module-for-component (asdf-component build-grain asdf-system name-to-module)
+(defun get-module-for-component (asdf-component build-grain asdf-system name-to-module traverse-order-components)
   "Returns a module object for the file represented by the given asdf-component"
-  (let* ((dependencies
-          (dependency-sort
-           (get-dependencies-from-component asdf-component) asdf-system name-to-module))
-         (filepath (asdf:component-pathname asdf-component))
-         (fullname (strcat
-                    (fullname build-grain)
-                    "/"
-                    (portable-pathname-output
-                     (enough-namestring
-                      (make-pathname :type nil :defaults filepath)
-                      (grain-pathname build-grain))
-                     :allow-absolute nil))))
+  (let ((comp-index (position asdf-component traverse-order-components))
+	(traverse-order-names    ;; Should replace with hash-table lookup.
+	 (mapcar #'coerce-asdf-system-name traverse-order-components)))
+    (flet ((forward-ref-p (dep)
+	     (let ((dep-index
+		    (position-if (lambda (d) (equal dep d))
+				 traverse-order-names)))
+	       (> dep-index comp-index))))
+      (let* ((backward-defs
+	      ;;(remove-forward-refs
+	      (remove-if #'forward-ref-p
+	       (get-dependencies-from-component asdf-component))))
+	(let* ((dependencies
+		(dependency-sort
+		 backward-defs
+		 asdf-system name-to-module
+		 traverse-order-components))
+	       (filepath (asdf:component-pathname asdf-component))
+	       (fullname (strcat
+			  (fullname build-grain)
+			  "/"
+			  (portable-pathname-output
+			   (enough-namestring
+			    (make-pathname :type nil :defaults filepath)
+			    (grain-pathname build-grain))
+			   :allow-absolute nil))))
     (let ((lisp-grain
 	   (make-instance 'lisp-grain
 	    :pathname filepath
@@ -217,7 +233,7 @@ until something else is found, then return that header as a string"
 				    dependencies)
 	    :load-depends-on dependencies)))
       (setf (fullname lisp-grain) fullname)
-      lisp-grain)))
+      lisp-grain))))))
 
 
 (defvar *components-path* #p"/tmp/simplified-system-components.lisp-expr")
@@ -287,11 +303,15 @@ so that the system can now be compiled with XCVB."
       (let ((*default-pathname-defaults* base-pathname)
             (build-grain (get-build-grain-for-asdf-system
                           asdf-system (mapcar #'asdf:find-system systems)))
-            (name-to-module (name-to-module-map asdf-system))) ; Precompute to ensure O(n) behavior
+            (name-to-module (name-to-module-map asdf-system)) ; Precompute to ensure O(n) behavior
+	    (traverse-order-components (asdf:module-components asdf-system)))
 	(add-module-to-file build-grain)
-	(dolist (component (asdf:module-components asdf-system))
+	(when verbose (DBG "Added module to build.xcvb"))
+	(dolist (component traverse-order-components)
+	  (when verbose (DBG "Add module to component ~S~%" component))
 	  (add-module-to-file (get-module-for-component
-                               component build-grain asdf-system name-to-module))))))
+                               component build-grain asdf-system name-to-module
+			       traverse-order-components))))))
 
 ;; Using the build.xcvb as a starting point, finds files and 
 ;; strips XCVB modules from them.

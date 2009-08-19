@@ -18,7 +18,11 @@
 	  cached
 	  (let* ((probed (probe-file path))
 		 (module (when probed
-			     (make-grain-from-file probed :build-p build-p))))
+			     (make-grain-from-file
+			      ;; Use path so symlinks still work.
+			      path
+			      ;;probed
+			      :build-p build-p))))
 	    (setf (gethash string *pathname-grain-cache*) module)
 	    module)))))
 	

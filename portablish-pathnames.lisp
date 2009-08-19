@@ -84,7 +84,9 @@ erroring out if some source of non-portability is found"
 	((and (consp directory) (eq (car directory) :relative))
 	 (unless allow-relative
 	   (error "relative directory ~S not allowed" directory))
-	 (d2s (cdr directory)))
+	 (if (eq :up (third directory))
+	     (d2s (cdddr directory))
+	     (d2s (cdr directory))))
 	(t
 	 (error "Invalid directory ~S" directory))))))
 
@@ -145,8 +147,8 @@ erroring out if some source of non-portability is found"
     (loop :for p = (and (< start end) (position #\/ string :start start :end end))
 	  :while p :do
 	  (let ((dir (subseq string start p)))
-	    (unless (portable-pathname-string-component-p dir)
-	      (error "non-portable pathname directory ~S" dir))
+;; 	    (unless (portable-pathname-string-component-p dir)
+;; 	      (error "non-portable pathname directory ~S" dir))
 	    (push dir r)
 	    (setf start (1+ p))))
     (when (< start end)
