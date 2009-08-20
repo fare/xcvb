@@ -74,33 +74,36 @@
     (("setup"  #\s) :type string :optional t :documentation "Specify the path to a Lisp setup file.")
     (("system-path" #\p) :type string :optional t :list t :documentation "Register an ASDF system path (can be repeated)")
     (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")
-    (("verbose" #\v) :type boolean :optional t :documentation "Whether the dependency-groveller should be verbose.")))
+    (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
 
-(defun asdf-to-xcvb-command (arguments &key system setup system-path preload verbose)
+(defun asdf-to-xcvb-command (arguments &key system setup system-path preload verbosity)
   (when arguments
     (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
+  (when verbosity
+    (setf *xcvb-verbosity* verbosity))
   (setf asdf:*central-registry*
         (append (mapcar #'ensure-pathname-is-directory system-path) asdf:*central-registry*))
   (when setup (load setup))
   (asdf-to-xcvb
    :systems (mapcar #'coerce-asdf-system-name system)
    :systems-to-preload (mapcar #'coerce-asdf-system-name preload)
-   :verbose verbose))
+   :verbose (> verbosity 5)))
 
 (defparameter +remove-xcvb-option-spec+
   '((("build" #\b) :type string :optional nil
      :documentation "Specify XCVB build to remove modules from")
     (("xcvb-path" #\x) :type string :optional t
-     :documentation "override your XCVB_PATH") 
+     :documentation "override your XCVB_PATH")
     (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
 
 (defun remove-xcvb-command (arguments &key xcvb-path verbosity build)
   ;;(declare (ignore xcvb-path verbosity))
   (when arguments
     (error "Invalid arguments to remove-xcvb: ~S~%" arguments))
+  (when verbosity
+    (setf *xcvb-verbosity* verbosity))
   (remove-xcvb-from-build
    :xcvb-path xcvb-path
-   :verbosity verbosity
    :build build))
 
 (defparameter +show-search-path-option-spec+

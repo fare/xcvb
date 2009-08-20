@@ -10,7 +10,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (asdf:defsystem :xcvb
-    :author ("Francois-Rene Rideau" "Spencer Brody")
+    :author ("Francois-Rene Rideau" "Spencer Brody" "Joyce Chen")
     :maintainer "Francois-Rene Rideau"
     :licence "MIT"
     :description "XCVB"

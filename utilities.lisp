@@ -341,6 +341,22 @@ Did you mix up the ordering?" f))
   (loop for key being the hash-keys of table using (hash-value value)
 	collect (cons key value)))
 
+(defun sequence-function-map (function sequence &key key)
+  (let ((map (make-hash-table :test 'equal)))
+    (flet ((index (x)
+             (let ((k (if key (funcall key x) x)))
+               ;; more general would be to merge results when it appears multiple times
+               ;; instead of dropping subsequence appearances. But this is enough for our purposes.
+               (unless (nth-value 1 (gethash k map))
+                 (setf (gethash k map) (funcall function x))))))
+      (map () #'index sequence))
+    map))
+
+(defun sequence-position-map (sequence)
+  (let ((index -1))
+    (flet ((index (x) (declare (ignore x)) (incf index)))
+      (sequence-function-map #'index sequence))))
+
 
 ;;; Reading a file's first form
 (defun read-first-file-form (filepath &key (package :xcvb-user))

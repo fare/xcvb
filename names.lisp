@@ -19,13 +19,11 @@
 	  (let* ((probed (probe-file path))
 		 (module (when probed
 			     (make-grain-from-file
-			      ;; Use path so symlinks still work.
-			      path
-			      ;;probed
+			      path ;; Use path instead of probed so symlinks still work.
 			      :build-p build-p))))
 	    (setf (gethash string *pathname-grain-cache*) module)
 	    module)))))
-	
+
 (defmethod fullname ((module lisp-grain))
   (unless (slot-boundp module 'fullname)
     (compute-fullname module))

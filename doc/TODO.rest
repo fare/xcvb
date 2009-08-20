@@ -177,7 +177,11 @@ Here is the top of our TODO list at ITA:
      undefined function, or which file used a macro without depending on the file that
      defined the macro.
 
+ * Make XCVB less slow: 2'21" to compute a Makefile for QRes-core is too much.
+   Use sb-sprof to locate bottleneck.
+
  * Write a better pretty-printer for module forms, that conforms to standard Lisp style.
+
 
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
