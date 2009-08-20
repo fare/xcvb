@@ -206,9 +206,8 @@ until something else is found, then return that header as a string"
 				 traverse-order-names)))
 	       (> dep-index comp-index))))
       (let* ((backward-defs
-	      ;;(remove-forward-refs
 	      (remove-if #'forward-ref-p
-	       (get-dependencies-from-component asdf-component))))
+			 (get-dependencies-from-component asdf-component))))
 	(let* ((dependencies
 		(dependency-sort
 		 backward-defs
