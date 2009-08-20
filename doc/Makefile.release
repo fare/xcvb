@@ -7,6 +7,12 @@ INSTALL_LISP ?= ${PREFIX}/share/common-lisp
 LISP_SOURCE ?= ${INSTALL_LISP}/source
 LISP_SYSTEMS ?= ${INSTALL_LISP}/systems
 
+ifeq (${LISP},sbcl)
+  XSH=$(shell echo SBCL_HOME="$$(sbcl --noinform --eval '(progn(princ(sb-ext:posix-getenv "SBCL_HOME"))(quit))')")
+else
+  XSH=
+endif
+
 export XCVB_PATH:=$(shell pwd):${LISP_SOURCE}
 
 export PATH:=${INSTALL_BIN}:${PATH}
@@ -25,7 +31,7 @@ install-cl-launch:
 
 install: install-cl-launch
 	mkdir -p ${INSTALL_BIN}
-	${MAKE} -f xcvb.mk.${LISP} obj/xcvb.image
+	${MAKE} ${XSH} -f xcvb.mk.${LISP} obj/xcvb.image
 	ln -s ../obj xcvb/
 	${MAKE} -C xcvb xcvb-bootstrapped-install ${OPTIONS}
 
