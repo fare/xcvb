@@ -45,7 +45,7 @@ Otherwise, signal an error."
   (defun kintern (format &rest rest)
     (apply #'fintern nil format rest))
   (defun keywordify (x)
-    (kintern "~A" x)))
+    (with-standard-io-syntax (kintern "~A" x))))
 
 ;;; Collecting data
 
