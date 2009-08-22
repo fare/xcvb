@@ -30,3 +30,5 @@
   (format t "*features* = ~S~%" *features*)
   (finish-output)
   (values))
+
+(proclaim '(optimize (speed 1) (safety 3) (debug 3)))

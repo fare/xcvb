@@ -147,7 +147,10 @@
        (eq :build (caar dependencies))
        (cadar dependencies)))
 
-(defun build-pre-image-name (build-grain)
+(defun build-pre-image-name (build-grain &optional traversed)
+  ;; TODO: catch infinite recursion in bad builds.
+  (when (member build-grain traversed)
+    (error "Circular build dependency of ~S" build-grain))
   (check-type build-grain build-grain)
   (handle-lisp-dependencies build-grain)
   (let* ((dependencies (build-dependencies build-grain))
@@ -168,7 +171,7 @@
       (starting-build-image-name ; and (not pre-image-p)
        starting-build-image-name)
       (starting-build
-       (build-pre-image-name starting-build))
+       (build-pre-image-name starting-build (cons build-grain traversed)))
       (t
        "/_"))))
 
