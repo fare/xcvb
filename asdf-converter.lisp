@@ -325,7 +325,7 @@ so that the system can now be compiled with XCVB."
                `(asdf:defsystem ,system
                  :pathname ,base-pathname
                  :components
-                 ,@(mapcan (lambda (x) (getf (cdr x) :components)) system-components)))
+                  ,(mapcan (lambda (x) (getf (cdr x) :components)) system-components)))
               (asdf:find-system system)))
            (*default-pathname-defaults* base-pathname)
            (build-grain (get-build-grain-for-asdf-system asdf-system systems original-asdf-deps))
