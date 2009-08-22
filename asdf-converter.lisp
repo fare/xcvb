@@ -242,9 +242,10 @@ until something else is found, then return that header as a string"
                     (fullname build-grain)
                     "/"
                     (portable-pathname-output
-                     (enough-namestring
-                      (make-pathname :type nil :defaults filepath)
-                      (grain-pathname build-grain))
+                     (asdf-dependency-grovel::strip.lisp
+                      (enough-namestring
+                       filepath
+                       (grain-pathname build-grain)))
                      :allow-absolute nil)))
          (lisp-grain
           (make-instance 'lisp-grain
