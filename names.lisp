@@ -117,7 +117,7 @@
           :finally (return (resolve-absolute-module-name (canonicalize-fullname name))))))
 
 (defun module-subpathname (path name)
-  (subpathname path name))
+  (subpathname path  (strcat name ".lisp")))
 
 (defun walk-build-ancestry (name description build-handler)
   "Call BUILD-HANDLER on each build the fullname of which is a prefix of NAME,
@@ -153,7 +153,7 @@ of decreasing fullname length"
 (defun resolve-module-name-at (name build)
   (check-type build build-grain)
   (if name
-      (probe-file-grain (module-subpathname (grain-pathname build) (strcat name ".lisp")))
+      (probe-file-grain (module-subpathname (grain-pathname build) name))
       build))
 
 (defun resolve-build-relative-name (name)

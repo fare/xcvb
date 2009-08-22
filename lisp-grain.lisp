@@ -81,7 +81,7 @@
   ((target-grain :initarg :targets :reader generator-targets) ;; generated-grains
    (dependencies :initarg :dependencies :reader generator-dependencies) ;; generated-to-generator
    (computation :initform nil :accessor generator-computation))) ;; generated-computation
-  
+
 
 (define-handle-extension-form :generate (grain generate &key depends-on)
   (unless generate

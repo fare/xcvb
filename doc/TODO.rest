@@ -260,7 +260,8 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    (init forms, resume function,
    minimal shell wrapping and/or standalone images).
 
- * Investigate how to produce actual standalone executables with SBCL.
+ * Fix SBCL bug 411925 https://bugs.launchpad.net/bugs/411925
+   so making images from images should work.
    Current "standalone" SBCL images produced by cl-launch in standalone mode
    still accept ``--core`` and ``--version`` arguments, because
    ``:save-runtime-options`` doesn't seem to be working (as of 1.0.30.4)
