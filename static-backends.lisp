@@ -11,18 +11,18 @@
     :initform nil
     :accessor traversed-dependencies-r)
    (included-dependencies ;;; dependencies included in the current image
-    :initform nil
+    :initform (make-hash-table :test 'equal)
     :accessor included-dependencies)
    (load-commands-r ;;; load commands issued so far to run the current compilation.
     :initform nil
     :accessor traversed-load-commands-r)))
 
 (defmethod dependency-already-included-p ((env static-traversal) grain)
-  (or (member grain (included-dependencies env))
-      (member grain (traversed-dependencies-r env))))
+  (gethash grain (included-dependencies env)))
 
 (defmethod issue-dependency ((env static-traversal) grain)
   ;;; TODO: avoid dependencies that are already in the base image!
+  (setf (gethash grain (included-dependencies env)) t)
   (push grain (traversed-dependencies-r env)))
 
 (defmethod issue-load-command ((env static-traversal) command)
@@ -90,7 +90,7 @@
 	  (error "graph-for-lisp-module: Need dependencies to generate file ~S.~%" fullname))
 	(mapcar (lambda (target) (slot-makunbound target 'computation)) targets)
 	(let ((pre-image (pre-image-for env grain)))
-          (setf (included-dependencies env) (image-included pre-image))
+          (setf (included-dependencies env) (list->hashset (image-included pre-image) :test 'equal))
 	  (load-command-for* env dependencies)
           (setf (generator-computation generator)
                 (make-computation
@@ -156,7 +156,7 @@
     (progn
       (when pre-image-name
         (check-type pre-image image-grain)
-        (setf (included-dependencies env) (image-included pre-image))))
+        (setf (included-dependencies env) (list->hashset (image-included pre-image) :test 'equal))))
     (let ((pre-dependencies
            (if pre-image
              (list pre-image)
@@ -221,7 +221,7 @@
           (compile-dependencies (compile-dependencies lisp))
           (build-dependencies (build-dependencies lisp))
           (pre-image (pre-image-for env lisp)))
-      (setf (included-dependencies env) (image-included pre-image))
+      (setf (included-dependencies env) (list->hashset (image-included pre-image) :test 'equal))
       (load-command-for* env build-dependencies)
       (load-command-for* env compile-dependencies)
       (let ((outputs (fasl-grains-for-name fullname load-dependencies compile-dependencies
