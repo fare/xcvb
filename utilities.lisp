@@ -357,10 +357,12 @@ Did you mix up the ordering?" f))
     (flet ((index (x) (declare (ignore x)) (incf index)))
       (sequence-function-map #'index sequence))))
 
-(defun list->hashset (list &key (test 'eql))
+(defun make-hashset (&key (test 'eql) list set)
   (let ((h (make-hash-table :test test)))
     (dolist (x list)
       (setf (gethash x h) t))
+    (when set
+      (loop :for x :being :the :hash-keys :in set :do (setf (gethash x h) t)))
     h))
 
 ;;; Reading a file's first form

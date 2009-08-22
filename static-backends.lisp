@@ -11,18 +11,22 @@
     :initform nil
     :accessor traversed-dependencies-r)
    (included-dependencies ;;; dependencies included in the current image
-    :initform (make-hash-table :test 'equal)
+    :initform (make-hashset :test 'equal)
     :accessor included-dependencies)
+   (issued-dependencies ;;; dependencies included in the current image
+    :initform (make-hashset :test 'equal)
+    :accessor issued-dependencies)
    (load-commands-r ;;; load commands issued so far to run the current compilation.
     :initform nil
     :accessor traversed-load-commands-r)))
 
 (defmethod dependency-already-included-p ((env static-traversal) grain)
-  (gethash grain (included-dependencies env)))
+  (or (gethash grain (included-dependencies env))
+      (gethash grain (issued-dependencies env))))
 
 (defmethod issue-dependency ((env static-traversal) grain)
   ;;; TODO: avoid dependencies that are already in the base image!
-  (setf (gethash grain (included-dependencies env)) t)
+  (setf (gethash grain (issued-dependencies env)) t)
   (push grain (traversed-dependencies-r env)))
 
 (defmethod issue-load-command ((env static-traversal) command)
@@ -78,6 +82,10 @@
 (define-graph-for :lisp (env name)
   (graph-for-atom env name))
 
+(defun include-image-dependencies (env image)
+  (check-type image image-grain)
+  (setf (included-dependencies env) (image-included image)))
+
 (defun graph-for-lisp-module (env name)
   (let* ((grain (resolve-absolute-module-name name))
 	 (fullname (fullname grain))
@@ -88,9 +96,10 @@
 	    (targets (generator-targets generator)))
 	(unless dependencies
 	  (error "graph-for-lisp-module: Need dependencies to generate file ~S.~%" fullname))
-	(mapcar (lambda (target) (slot-makunbound target 'computation)) targets)
+	(dolist (target targets)
+          (slot-makunbound target 'computation))
 	(let ((pre-image (pre-image-for env grain)))
-          (setf (included-dependencies env) (list->hashset (image-included pre-image) :test 'equal))
+          (include-image-dependencies env pre-image)
 	  (load-command-for* env dependencies)
           (setf (generator-computation generator)
                 (make-computation
@@ -155,8 +164,7 @@
              (graph-for env `(:image ,pre-image-name))))))
     (progn
       (when pre-image-name
-        (check-type pre-image image-grain)
-        (setf (included-dependencies env) (list->hashset (image-included pre-image) :test 'equal))))
+        (include-image-dependencies env pre-image)))
     (let ((pre-dependencies
            (if pre-image
              (list pre-image)
@@ -166,9 +174,9 @@
     (let* ((dependencies
             (append pre-dependencies (traversed-dependencies env)))
            (included
-            (if pre-image
-                (append (image-included pre-image) dependencies)
-                dependencies))
+            (make-hashset :test 'equal
+                          :list dependencies
+                          :set (when pre-image (image-included pre-image))))
            (grain
             (make-grain 'image-grain
                         :fullname `(:image ,name)
@@ -221,7 +229,7 @@
           (compile-dependencies (compile-dependencies lisp))
           (build-dependencies (build-dependencies lisp))
           (pre-image (pre-image-for env lisp)))
-      (setf (included-dependencies env) (list->hashset (image-included pre-image) :test 'equal))
+      (include-image-dependencies env pre-image)
       (load-command-for* env build-dependencies)
       (load-command-for* env compile-dependencies)
       (let ((outputs (fasl-grains-for-name fullname load-dependencies compile-dependencies

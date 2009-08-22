@@ -314,15 +314,18 @@ so that the system can now be compiled with XCVB."
     (let* ((original-asdf-deps
             (mapcar 'asdf::coerce-name
                     (get-dependencies-from-components (mapcar 'asdf:find-system systems))))
+           (system-components
+            (with-open-file (s (cl-launch:apply-output-pathname-translations
+                                       (merge-pathnames components-path)))
+              (read s)))
            (asdf-system
             (progn
               (remhash system asdf::*defined-systems*)
               (eval
                `(asdf:defsystem ,system
                  :pathname ,base-pathname
-                 ,@(with-open-file (s (cl-launch:apply-output-pathname-translations
-                                       (merge-pathnames components-path)))
-                                   (cdar (read s)))))
+                 :components
+                 ,@(mapcan (lambda (x) (getf (cdr x) :components)) system-components)))
               (asdf:find-system system)))
            (*default-pathname-defaults* base-pathname)
            (build-grain (get-build-grain-for-asdf-system asdf-system systems original-asdf-deps))
