@@ -173,11 +173,10 @@ until something else is found, then return that header as a string"
           (licence (maybe-slot-value asdf-system 'asdf::licence))
           (file-deps (mapcar
                       (lambda (component)
-                        (enough-namestring
-                         (make-pathname
-                          :type nil
-                          :defaults (asdf:component-pathname component))
-                         (asdf:component-pathname asdf-system)))
+                        (asdf-dependency-grovel::strip.lisp
+                         (enough-namestring
+                          (asdf:component-pathname component)
+                          (asdf:component-pathname asdf-system))))
                       (asdf:module-components asdf-system))))
       (make-instance 'build-grain
         :fullname fullname
