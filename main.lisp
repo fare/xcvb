@@ -8,8 +8,25 @@
 (in-package :xcvb)
 
 #+sbcl
-(eval-when (:compile-toplevel :load-toplevel)
-  (require :sb-posix))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require :sb-posix)
+  (require :sb-sprof))
+
+#+sbcl
+(defun call-with-maybe-profiling (maybe thunk)
+  (if maybe
+    (sb-sprof:with-profiling (:max-samples 10000 :report :graph :loop nil)
+      (funcall thunk))
+    (funcall thunk)))
+
+#-sbcl
+(defun call-with-maybe-profiling (maybe thunk)
+  (declare (ignore maybe))
+  (funcall thunk))
+
+(defmacro with-maybe-profiling ((maybe) &body body)
+  `(call-with-maybe-profiling ,maybe (lambda () ,@body)))
+
 
 (defun reset-variables ()
   ;; TODO: have some macro define notable variables
@@ -34,40 +51,41 @@
    (("lisp-implementation" #\i) :type string :optional t :documentation "specify type of Lisp implementation (default: sbcl)")
    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
    (("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")
-   (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
+   (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")
+   (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
 
 (defun make-makefile (arguments &key
                                 xcvb-path setup verbosity output-path
                                 build lisp-implementation lisp-binary-path
-                                disable-cfasl object-directory)
-  (reset-variables)
-  (when arguments
-    (error "Invalid arguments to make-makefile"))
-  (when xcvb-path
-    (set-search-path! xcvb-path))
-  (when setup
-    (setf *lisp-setup-dependencies*
-          (append *lisp-setup-dependencies* `((:lisp ,setup)))))
-  (when verbosity
-    (setf *xcvb-verbosity* verbosity))
-  (when output-path
-    (setf *default-pathname-defaults*
-          (ensure-absolute-pathname (pathname-directory-pathname output-path))))
-  (when object-directory
-    (setf *object-directory* ;; strip last "/"
-          (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
-  (when lisp-implementation
-    (setf *lisp-implementation-type*
-          (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
-  (when lisp-binary-path
-    (setf *lisp-executable-pathname* lisp-binary-path))
-  (extract-target-properties)
-  (read-target-properties)
-  (when disable-cfasl
-    (setf *use-cfasls* nil))
-  (search-search-path)
-  (write-makefile (canonicalize-fullname build) :output-path output-path))
-
+                                disable-cfasl object-directory profiling)
+  (with-maybe-profiling (profiling)
+    (reset-variables)
+    (when arguments
+      (error "Invalid arguments to make-makefile"))
+    (when xcvb-path
+      (set-search-path! xcvb-path))
+    (when setup
+      (setf *lisp-setup-dependencies*
+            (append *lisp-setup-dependencies* `((:lisp ,setup)))))
+    (when verbosity
+      (setf *xcvb-verbosity* verbosity))
+    (when output-path
+      (setf *default-pathname-defaults*
+            (ensure-absolute-pathname (pathname-directory-pathname output-path))))
+    (when object-directory
+      (setf *object-directory* ;; strip last "/"
+            (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
+    (when lisp-implementation
+      (setf *lisp-implementation-type*
+            (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+    (when lisp-binary-path
+      (setf *lisp-executable-pathname* lisp-binary-path))
+    (extract-target-properties)
+    (read-target-properties)
+    (when disable-cfasl
+      (setf *use-cfasls* nil))
+    (search-search-path)
+    (write-makefile (canonicalize-fullname build) :output-path output-path)))
 
 (defparameter +asdf-to-xcvb-option-spec+
   '((("system" #\b) :type string :optional nil :list t :documentation "Specify a system to convert (can be repeated)")
@@ -87,14 +105,14 @@
   (asdf-to-xcvb
    :systems (mapcar #'coerce-asdf-system-name system)
    :systems-to-preload (mapcar #'coerce-asdf-system-name preload)
-   :verbose (> verbosity 5)))
+   :verbose (and verbosity (> verbosity 5))))
 
 (defparameter +remove-xcvb-option-spec+
   '((("build" #\b) :type string :optional nil
      :documentation "Specify XCVB build to remove modules from")
     (("xcvb-path" #\x) :type string :optional t
      :documentation "override your XCVB_PATH")
-    (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
+    (("verbosity" #\v) :type integer :optional t :default 5 :documentation "set verbosity (default: 5)")))
 
 (defun remove-xcvb-command (arguments &key xcvb-path verbosity build)
   ;;(declare (ignore xcvb-path verbosity))

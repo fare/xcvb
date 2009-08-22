@@ -88,7 +88,7 @@
 
 (defun graph-for-lisp-module (env name)
   (let* ((grain (resolve-absolute-module-name name))
-	 (fullname (fullname grain))
+	 (fullname (if grain (fullname grain) (error "Couldn't resolve ~S to a lisp module" name)))
 	 (generator (gethash fullname *generators*)))
     (check-type grain lisp-grain)
     (when (and generator (not (generator-computation generator)))

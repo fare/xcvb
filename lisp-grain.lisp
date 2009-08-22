@@ -110,10 +110,9 @@
 
 
 (defun handle-extension-forms (grain)
-  (let ((extension-forms  (grain-extension-forms grain)))
-    (when extension-forms
-      (dolist (extension extension-forms)
-	(handle-extension-form grain extension)))))
+  (let ((extension-forms (grain-extension-forms grain)))
+    (dolist (extension extension-forms)
+      (handle-extension-form grain extension))))
 
 (defun make-grain-from-file (path &key build-p)
   "Takes a PATH to a lisp file, and returns the corresponding grain."
