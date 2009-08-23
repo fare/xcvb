@@ -89,12 +89,14 @@
 
 (defparameter +asdf-to-xcvb-option-spec+
   '((("system" #\b) :type string :optional nil :list t :documentation "Specify a system to convert (can be repeated)")
+    (("base" #\B) :type string :optional t :documentation "Base pathname for the new build")
+    (("name" #\n) :type string :optional t :documentation "name of the resulting system")
     (("setup"  #\s) :type string :optional t :documentation "Specify the path to a Lisp setup file.")
     (("system-path" #\p) :type string :optional t :list t :documentation "Register an ASDF system path (can be repeated)")
     (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")
     (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
 
-(defun asdf-to-xcvb-command (arguments &key system setup system-path preload verbosity)
+(defun asdf-to-xcvb-command (arguments &key system setup system-path preload verbosity base name)
   (when arguments
     (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
   (when verbosity
@@ -103,8 +105,10 @@
         (append (mapcar #'ensure-pathname-is-directory system-path) asdf:*central-registry*))
   (when setup (load setup))
   (asdf-to-xcvb
+   :name name
    :systems (mapcar #'coerce-asdf-system-name system)
    :systems-to-preload (mapcar #'coerce-asdf-system-name preload)
+   :base-pathname (when base (ensure-pathname-is-directory base))
    :verbose (and verbosity (> verbosity 5))))
 
 (defparameter +remove-xcvb-option-spec+
@@ -123,6 +127,20 @@
   (remove-xcvb-from-build
    :xcvb-path xcvb-path
    :build build))
+
+;; Using the build.xcvb as a starting point, finds files and
+;; strips XCVB modules from them.
+(defun remove-xcvb-from-build (&key xcvb-path build)
+  (reset-variables)
+  (when xcvb-path
+    (set-search-path! xcvb-path))
+  (search-search-path)
+  (let ((build (registered-build (canonicalize-fullname build))))
+    (with-slots (depends-on) build
+      (dolist (name depends-on)
+        (let ((path (module-subpathname (grain-pathname build) name)))
+          (remove-module-from-file path)))
+      (delete-file (grain-pathname build)))))
 
 (defparameter +show-search-path-option-spec+
   '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
@@ -157,7 +175,7 @@ command gives specific help on that command.")
      "Attempt an automated conversion of an ASDF system to XCVB.
 Optionally load a setup Lisp file before anything else, so the user gets
 a chance to load and/or configure ASDF itself and any extension thereof.")
-    (("remove-xcvb" "rm-x") remove-xcvb-command +remove-xcvb-option-spec+
+    (("remove-xcvb" "rm-x" "rx") remove-xcvb-command +remove-xcvb-option-spec+
      "Remove XCVB modules from files in build"
      "Given an XCVB build file, removes the XCVB modules from each of the files listed in the build file.")
     (("show-search-path" "search-path" "ssp") show-search-path-command +show-search-path-option-spec+
@@ -249,7 +267,6 @@ for this version of XCVB.")))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun main ()
-  #+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
   (catch :repl
     (with-coded-exit ()
       (quit (catch :exit
@@ -258,7 +275,17 @@ for this version of XCVB.")))
               0))))
     (repl))
 
+(defun initialize-environment ()
+  #+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
+  (labels ((v (x)
+             (let ((s (cl-launch:getenv x)))
+               (and (not (equal s "")) s))))
+    (let ((tmp (or (v "TMP") (v "TMPDIR"))))
+      (when tmp
+        (setf *tmp-directory* (ensure-pathname-is-directory tmp))))))
+
 (defun interpret-command-line (args)
+  (initialize-environment)
   (let* ((*package* (find-package :xcvb-user))
          (command (pop args))
          (command-spec (lookup-command command))

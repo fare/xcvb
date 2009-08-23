@@ -50,7 +50,7 @@ endif~2%"
             *xcvb-version* directories directories)
     (flet ((export-directory (x)
              (format stream "~%~A ?= ~A~%export ~A~%~%"
-                     x *lisp-implementation-directory* x)))
+                     x (but-last-char (namestring *lisp-implementation-directory*)) x)))
       (case *lisp-implementation-type*
         ((:sbcl) (export-directory "SBCL_HOME"))
         ((:ccl) (export-directory "CCL_DEFAULT_DIRECTORY"))))))

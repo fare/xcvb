@@ -86,3 +86,5 @@ Negatives are stored as NIL. Positives as grains.")
 
 (defvar *object-directory* "obj"
   "where to store object files")
+
+(defvar *tmp-directory* #p"/tmp/")

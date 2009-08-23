@@ -158,12 +158,12 @@ until something else is found, then return that header as a string"
   (get-dependencies-from-components (list component)))
 
 
-(defun get-build-grain-for-asdf-system (asdf-system original-systems asdf-deps)
+(defun get-build-grain-for-asdf-system (asdf-system original-systems asdf-deps &key name)
   "Returns a build-grain with information from the given asdf system"
   (flet ((maybe-slot-value (object slot)
            (if (slot-boundp object slot)
              (slot-value object slot))))
-    (let ((fullname (maybe-slot-value asdf-system 'asdf::name))
+    (let ((fullname (or name (maybe-slot-value asdf-system 'asdf::name)))
           (author (maybe-slot-value asdf-system 'asdf::author))
           (maintainer (maybe-slot-value asdf-system 'asdf::maintainer))
           (version (maybe-slot-value asdf-system 'asdf::version))
@@ -186,9 +186,9 @@ until something else is found, then return that header as a string"
         :description description
         :long-description long-description
         :licence licence
-        :build-depends-on (mapcar (lambda (dep)
-                                  (list :asdf (coerce-asdf-system-name dep)))
-                                asdf-deps)
+        :build-depends-on (mapcar (lambda (dep) `(:asdf ,dep))
+                                  (set-difference (mapcar #'coerce-asdf-system-name asdf-deps)
+                                                  original-systems :test 'equal))
         :compile-depends-on (if *use-cfasls*
                               (mapcar (lambda (dep) (list :compile dep))
                                       file-deps)
@@ -256,7 +256,7 @@ until something else is found, then return that header as a string"
     (setf (fullname lisp-grain) fullname)
     lisp-grain))
 
-(defvar *components-path* #p"/tmp/simplified-system-components.lisp-expr")
+(defvar *components-path* #p"simplified-system-components.lisp-expr")
 
 (defun guess-base-pathname-for-systems (systems)
   (with-nesting ()
@@ -270,11 +270,12 @@ until something else is found, then return that header as a string"
     (pathname-directory-pathname (truename sysdef-pathname))))
 
 (defun asdf-to-xcvb (&key
+                     name
 		     system
 		     (systems (when system (list system)))
 		     (simplified-system :simplified-system)
-		     (base-pathname (guess-base-pathname-for-systems systems))
-		     (components-path *components-path*)
+		     base-pathname
+		     (components-path (merge-pathnames *components-path* *tmp-directory*))
 		     systems-to-preload
 		     verbose)
 
@@ -283,6 +284,8 @@ merge them into a single XCVB build,
 adding xcvb module declarations to the top of all the files in that build,
 and writing a corresponding build.xcvb file,
 so that the system can now be compiled with XCVB."
+  (unless base-pathname
+    (setf base-pathname (guess-base-pathname-for-systems systems)))
   (log-format 6 "Preloading systems")
   (xcvb-driver:with-controlled-compiler-conditions ()
     (dolist (sys systems-to-preload)
@@ -316,7 +319,7 @@ so that the system can now be compiled with XCVB."
                     (get-dependencies-from-components (mapcar 'asdf:find-system systems))))
            (system-components
             (with-open-file (s (cl-launch:apply-output-pathname-translations
-                                       (merge-pathnames components-path)))
+                                (merge-pathnames components-path)))
               (read s)))
            (asdf-system
             (progn
@@ -328,7 +331,8 @@ so that the system can now be compiled with XCVB."
                   ,(mapcan (lambda (x) (getf (cdr x) :components)) system-components)))
               (asdf:find-system system)))
            (*default-pathname-defaults* base-pathname)
-           (build-grain (get-build-grain-for-asdf-system asdf-system systems original-asdf-deps))
+           (build-grain (get-build-grain-for-asdf-system
+                         asdf-system systems original-asdf-deps :name name))
            (name-component-map (name-component-map asdf-system))) ; Precompute to ensure O(n) behavior
       (add-module-to-file build-grain)
       (log-format 6 "Added module to build.xcvb")
@@ -337,16 +341,3 @@ so that the system can now be compiled with XCVB."
         (add-module-to-file (get-module-for-component
                              component build-grain
                              name-component-map original-traverse-order-map))))))
-
-;; Using the build.xcvb as a starting point, finds files and
-;; strips XCVB modules from them.
-(defun remove-xcvb-from-build (&key xcvb-path build)
-  (reset-variables)
-  (when xcvb-path
-    (set-search-path! xcvb-path))
-  (search-search-path)
-  (let ((build (registered-build (canonicalize-fullname build))))
-    (with-slots (depends-on) build
-      (dolist (name depends-on)
-        (let ((path (module-subpathname (grain-pathname build) name)))
-          (remove-module-from-file path))))))
