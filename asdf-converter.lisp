@@ -158,7 +158,8 @@ until something else is found, then return that header as a string"
   (get-dependencies-from-components (list component)))
 
 
-(defun get-build-grain-for-asdf-system (asdf-system original-systems asdf-deps &key name)
+(defun get-build-grain-for-asdf-system (asdf-system original-systems asdf-deps
+                                        original-traverse-order-map &key name)
   "Returns a build-grain with information from the given asdf system"
   (flet ((maybe-slot-value (object slot)
            (if (slot-boundp object slot)
@@ -177,7 +178,8 @@ until something else is found, then return that header as a string"
                          (enough-namestring
                           (asdf:component-pathname component)
                           (asdf:component-pathname asdf-system))))
-                      (asdf:module-components asdf-system))))
+                      (dependency-sort (asdf:module-components asdf-system)
+                                       original-traverse-order-map))))
       (make-instance 'build-grain
         :fullname fullname
         :author author
@@ -231,7 +233,7 @@ until something else is found, then return that header as a string"
                    (forward-dep-p* (dep)
                      (and (forward-dep-p dep)
                           (progn
-                            (log-format 7 "Removing forward dependency from ~A to ~A"
+                            (log-format 7 "Removing forward dependency from ~A to ~A~%"
                                         (component-truename asdf-component)
                                         (component-truename dep))
                             t))))
@@ -293,7 +295,7 @@ and writing a corresponding build.xcvb file,
 so that the system can now be compiled with XCVB."
   (unless base-pathname
     (setf base-pathname (guess-base-pathname-for-systems systems)))
-  (log-format 6 "Preloading systems")
+  (log-format 6 "Preloading systems~%")
   (xcvb-driver:with-controlled-compiler-conditions ()
     (dolist (sys systems-to-preload)
       (asdf:operate 'asdf:load-op sys)))
@@ -316,11 +318,11 @@ so that the system can now be compiled with XCVB."
                      :merge-systems ,systems
                      :base-pathname ,base-pathname
                      :verbose ,verbose))))
-    (log-format 6 "Starting the dependency grovelling")
+    (log-format 6 "Starting the dependency grovelling~%")
     (let ((asdf-dependency-grovel::*system-base-dir*
            (cl-launch:apply-output-pathname-translations base-pathname)))
       (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system))
-    (log-format 6 "Adding dependency information to files")
+    (log-format 6 "Adding dependency information to files~%")
     (let* ((original-asdf-deps
             (mapcar 'asdf::coerce-name
                     (get-dependencies-from-components (mapcar 'asdf:find-system systems))))
@@ -339,10 +341,11 @@ so that the system can now be compiled with XCVB."
               (asdf:find-system system)))
            (*default-pathname-defaults* base-pathname)
            (build-grain (get-build-grain-for-asdf-system
-                         asdf-system systems original-asdf-deps :name name))
+                         asdf-system systems original-asdf-deps
+                         original-traverse-order-map :name name))
            (name-component-map (name-component-map asdf-system))) ; Precompute to ensure O(n) behavior
       (add-module-to-file build-grain)
-      (log-format 6 "Added module to build.xcvb")
+      (log-format 6 "Added module to build.xcvb~%")
       (dolist (component (asdf:module-components asdf-system))
         (log-format 6 "Add module to component ~S~%" component)
         (add-module-to-file (get-module-for-component

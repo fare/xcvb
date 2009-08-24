@@ -346,7 +346,7 @@ Did you mix up the ordering?" f))
     (flet ((index (x)
              (let ((k (if key (funcall key x) x)))
                ;; more general would be to merge results when it appears multiple times
-               ;; instead of dropping subsequence appearances. But this is enough for our purposes.
+               ;; instead of dropping subsequent appearances. But this is enough for our purposes.
                (unless (nth-value 1 (gethash k map))
                  (setf (gethash k map) (funcall function x))))))
       (map () #'index sequence))

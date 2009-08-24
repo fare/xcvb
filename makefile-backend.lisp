@@ -150,7 +150,7 @@ will create the desired content. An atomic rename() will have to be performed af
 (defun tempname-target (target)
   (let* ((path (pathname target))
          (tempname (namestring
-                    (make-pathname :name (strcat (pathname-name path) "-temp")
+                    (make-pathname :name (strcat (pathname-name path) "--temp")
                                    :defaults path))))
     (rename-target target tempname)))
 
