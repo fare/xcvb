@@ -186,6 +186,8 @@ Here is the top of our TODO list at ITA:
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
+ * Filter out :static-file from consideration by a2x
+
  * Extend the ``command-line-arguments`` library to allow for better self-documentation
    of option specifications with ``:documentation`` keyword arguments to options,
    that can be trivially used to generate help for command options and sub-command options

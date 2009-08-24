@@ -220,7 +220,7 @@ until something else is found, then return that header as a string"
 
 (defun dependency-sort (components component-order-map)
   "Sorts a list of asdf components according to their dependencies."
-  (sort components #'< :key (lambda (x) (component-position x component-order-map))))
+  (sort components #'< :key (lambda (x) (or (component-position x component-order-map) -1))))
 
 (defun get-module-for-component (asdf-component build-grain
                                  name-component-map original-traverse-order-map)
