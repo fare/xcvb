@@ -226,10 +226,17 @@ until something else is found, then return that header as a string"
   (let* ((comp-position (component-position asdf-component original-traverse-order-map))
          (component-dependencies (get-dependencies-from-component asdf-component))
          (backward-deps
-          (flet ((forward-dep-p (dep)
-                   (> (component-position dep original-traverse-order-map) comp-position)))
-           (remove-if #'forward-dep-p
-                      (mapcar (lambda (x) (gethash x name-component-map)) component-dependencies))))
+          (labels ((forward-dep-p (dep)
+                     (> (component-position dep original-traverse-order-map) comp-position))
+                   (forward-dep-p* (dep)
+                     (and (forward-dep-p dep)
+                          (progn
+                            (log-format 7 "Removing forward dependency from ~A to ~A"
+                                        (component-truename asdf-component)
+                                        (component-truename dep))
+                            t))))
+            (remove-if #'forward-dep-p*
+                       (mapcar (lambda (x) (gethash x name-component-map)) component-dependencies))))
          (dependencies
           (mapcar #'asdf:component-name
                   (dependency-sort backward-deps original-traverse-order-map)))

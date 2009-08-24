@@ -130,7 +130,7 @@ Here is the top of our TODO list at ITA:
      that complies with what JUnit expects.
      (Suggestion by Robert Goldman <rpgoldman@sift.info>)
 
-   + In collaboration with folks from BBN, my (rpg's) colleague John Maraist
+   + In collaboration with folks from BBN, rpg's colleague John Maraist
      has built this capability into his NST test framework.
      This means that a large system with Java components can all be tested together.
 
