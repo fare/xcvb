@@ -46,3 +46,12 @@ install-source: install-cl-launch
 
 install-using-asdf: install-source
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
+
+update:
+	for i in xcvb dependencies/asdf dependencies/asdf-dependency-grovel \
+		dependencies/cl-launch dependencies/command-line-arguments ; do \
+	  (echo -n "Updating $$i... " ; cd $$i ; git pull) ; \
+	done ; \
+	(echo -n "Updating dependencies/closer-mop... " ; cd dependencies/closer-mop ; \
+	darcs pull -a ) ; \
+	echo "You may have to regenerate the xcvb.mk.* bootstrap files..."
