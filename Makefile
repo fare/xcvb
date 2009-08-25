@@ -169,7 +169,7 @@ release-tarball:
 	( cd cl-launch && git gc && ./cl-launch.sh -I $$PWD -B install_path ) && \
 	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
 	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi ) && \
-	cd .. && cd `/bin/pwd` && \
+	cd .. && cd `/bin/pwd` && make update && \
 	cp xcvb/doc/Makefile.release Makefile && \
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
 	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
