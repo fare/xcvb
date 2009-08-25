@@ -150,7 +150,10 @@ EXCLUDE_REVISION_INFO :=
 
 release-tarball:
 	VERSION=$$(cat version.lisp | grep version | cut -d\" -f2) ; \
-	mkdir -p ${TMP}/xcvb-$$VERSION && cd ${TMP}/xcvb-$$VERSION && \
+	cd ${TMP} && \
+	mkdir -p xcvb-release && \
+	rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
+	cd ${TMP}/xcvb-$$VERSION && \
 	( git clone http://common-lisp.net/project/xcvb/git/xcvb.git || \
 	  echo "Already got xcvb.git" ) && \
 	( cd xcvb && git gc ) && \
@@ -169,14 +172,14 @@ release-tarball:
 	( cd cl-launch && git gc && ./cl-launch.sh -I $$PWD -B install_path ) && \
 	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
 	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi ) && \
-	cd .. && cd `/bin/pwd` && make update && \
-	cp xcvb/doc/Makefile.release Makefile && \
+	cd .. && cd `/bin/pwd` && \
+	cp xcvb/doc/Makefile.release Makefile && make update && \
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
 	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
 	for l in sbcl clisp ; do xcvb make-makefile --xcvb-path=$$PWD \
 		--build /xcvb --setup /xcvb/no-asdf \
 		--lisp-implementation $$l --output-path=$$PWD/xcvb.mk.$$l --disable-cfasl ; done && \
-	rm -f obj/target-properties.lisp-expr && rmdir obj && \
+	rm -rf obj xcvb/obj && \
 	cd .. && tar ${EXCLUDE_REVISION_INFO} -jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
