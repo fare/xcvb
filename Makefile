@@ -150,36 +150,12 @@ EXCLUDE_REVISION_INFO :=
 
 release-tarball:
 	VERSION=$$(cat version.lisp | grep version | cut -d\" -f2) ; \
+	mkdir -p ${TMP}/xcvb-release && \
+	cp doc/Makefile.release ${TMP}/xcvb-release && \
 	cd ${TMP} && \
-	mkdir -p xcvb-release && \
 	rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
 	cd ${TMP}/xcvb-$$VERSION && \
-	( git clone http://common-lisp.net/project/xcvb/git/xcvb.git || \
-	  echo "Already got xcvb.git" ) && \
-	( cd xcvb && git gc ) && \
-	mkdir -p dependencies && cd dependencies && \
-	( git clone http://common-lisp.net/project/asdf/asdf.git || \
-	  echo "Already got asdf.git" ) && \
-	( cd asdf && git gc ) && \
-	( git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git || \
-	  echo "Already got asdf-dependency-grovel.git" ) && \
-	( cd asdf-dependency-grovel && git gc ) && \
-	( git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git || \
-	  echo "Already got command-line-arguments.git" ) && \
-	( cd command-line-arguments && git gc ) && \
-	( git clone http://common-lisp.net/project/xcvb/git/cl-launch.git || \
-	  echo "Already got cl-launch.git" ) && \
-	( cd cl-launch && git gc && ./cl-launch.sh -I $$PWD -B install_path ) && \
-	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
-	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi ) && \
-	cd .. && cd `/bin/pwd` && \
-	cp xcvb/doc/Makefile.release Makefile && make update && \
-	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
-	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
-	for l in sbcl clisp ; do xcvb make-makefile --xcvb-path=$$PWD \
-		--build /xcvb --setup /xcvb/no-asdf \
-		--lisp-implementation $$l --output-path=$$PWD/xcvb.mk.$$l --disable-cfasl ; done && \
-	rm -rf obj xcvb/obj && \
+	make checkout gc update prepare-release && \
 	cd .. && tar ${EXCLUDE_REVISION_INFO} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \

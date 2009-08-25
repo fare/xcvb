@@ -47,11 +47,39 @@ install-source: install-cl-launch
 install-using-asdf: install-source
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
 
+checkout:
+	( git clone http://common-lisp.net/project/xcvb/git/xcvb.git || \
+	  echo "Already got xcvb.git" ) && \
+	mkdir -p dependencies && cd dependencies && \
+	( git clone http://common-lisp.net/project/asdf/asdf.git || \
+	  echo "Already got asdf.git" ) && \
+	( git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git || \
+	  echo "Already got asdf-dependency-grovel.git" ) && \
+	( git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git || \
+	  echo "Already got command-line-arguments.git" ) && \
+	( git clone http://common-lisp.net/project/xcvb/git/cl-launch.git || \
+	  echo "Already got cl-launch.git" ) && \
+	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
+	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi )
+
+gc:
+	for i in xcvb dependencies/asdf dependencies/asdf-dependency-grovel \
+		dependencies/cl-launch dependencies/command-line-arguments ; do \
+	  (echo -n "packing $$i..." ; cd $$i ; git gc) ; done
+
 update:
 	for i in xcvb dependencies/asdf dependencies/asdf-dependency-grovel \
 		dependencies/cl-launch dependencies/command-line-arguments ; do \
 	  (echo -n "Updating $$i... " ; cd $$i ; git pull) ; \
 	done ; \
 	(echo -n "Updating dependencies/closer-mop... " ; cd dependencies/closer-mop ; \
-	darcs pull -a ) ; \
-	echo "You may have to regenerate the xcvb.mk.* bootstrap files..."
+	darcs pull -a )
+
+prepare-release:
+	( cd dependencies/cl-launch && git gc && ./cl-launch.sh -I $$PWD -B install_path ) && \
+	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
+	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
+	for l in sbcl clisp ; do xcvb make-makefile --xcvb-path=$$PWD \
+		--build /xcvb --setup /xcvb/no-asdf \
+		--lisp-implementation $$l --output-path=$$PWD/xcvb.mk.$$l --disable-cfasl ; done && \
+	rm -rf obj xcvb/obj
