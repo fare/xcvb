@@ -16,7 +16,8 @@
 
 (defun write-makefile (fullname &key output-path)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
-  (let* ((build (registered-build fullname))
+  (let* ((*print-pretty* nil); otherwise SBCL will slow us down a lot.
+         (build (registered-build fullname))
          (default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
          (output-path (if output-path (merge-pathnames output-path default-output-path) default-output-path))
          (makefile-path (ensure-absolute-pathname output-path))
@@ -24,7 +25,9 @@
          (*default-pathname-defaults* makefile-dir)
          (*makefile-target-directories* nil)
          (*makefile-phonies* nil))
+    (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
     (graph-for-build-grain (make-instance 'static-traversal) build)
+    (log-format 6 "T=~A building makefile~%" (get-universal-time))
     (let ((body
            (with-output-to-string (s)
              (dolist (computation *computations*)
@@ -32,10 +35,11 @@
       (with-open-file (out makefile-path
                            :direction :output
                            :if-exists :supersede)
+        (log-format 6 "T=~A printing makefile~%" (get-universal-time))
         (write-makefile-prelude out)
         (princ body out)
-        (write-makefile-conclusion out)))))
-
+        (write-makefile-conclusion out))))
+        (log-format 6 "T=~A done~%" (get-universal-time)))
 
 (defun write-makefile-prelude (&optional stream)
   (let ((directories (join-strings " " (mapcar #'escape-string-for-Makefile *makefile-target-directories*))))

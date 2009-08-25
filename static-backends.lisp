@@ -16,7 +16,10 @@
    (issued-dependencies ;;; dependencies included in the current image
     :initform (make-hashset :test 'equal)
     :accessor issued-dependencies)
-   (load-commands-r ;;; load commands issued so far to run the current compilation.
+   (issued-load-commands ;;; load commands issued so far to run the current compilation, as a set.
+    :initform (make-hashset :test 'equal)
+    :accessor issued-load-commands)
+   (load-commands-r ;;; load commands issued so far to run the current compilation, in reverse order.
     :initform nil
     :accessor traversed-load-commands-r)))
 
@@ -30,8 +33,9 @@
   (push grain (traversed-dependencies-r env)))
 
 (defmethod issue-load-command ((env static-traversal) command)
-  ;;; TODO: avoid dependencies that are already in the base image!
-  (pushnew command (traversed-load-commands-r env) :test 'equal))
+  (unless (gethash command (issued-load-commands env))
+    (setf (gethash command (issued-load-commands env)) t)
+    (push command (traversed-load-commands-r env))))
 
 (defmethod traversed-dependencies ((env static-traversal))
   (reverse (traversed-dependencies-r env)))
@@ -40,8 +44,7 @@
   (reverse (traversed-load-commands-r env)))
 
 (defmethod load-command-issued-p ((env static-traversal) command)
-  (and (member command (traversed-load-commands-r env) :test 'equal)
-       t))
+  (values (gethash command (issued-load-commands env))))
 
 (define-simple-dispatcher graph-for #'graph-for-atom)
 
@@ -71,10 +74,6 @@
 
 (defun graph-for-compiled (env spec)
   (graph-for env (compiled-dependency spec)))
-
-(defun load-command-for* (env specs)
-  (dolist (spec specs)
-    (load-command-for env spec)))
 
 (defmethod graph-for-atom (env (name string))
   (graph-for-lisp-module env name))

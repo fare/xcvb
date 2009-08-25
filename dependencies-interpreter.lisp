@@ -2,6 +2,9 @@
 
 (in-package :xcvb)
 
+;(declaim (optimize (debug 3) (speed 1) (safety 3)))
+(declaim (optimize (debug 1) (speed 3) (safety 2)))
+
 ;;; TODO: We probably need a better interface, so that
 ;;; the following aspects be handled in a generic way
 ;;; * the fact that we don't want to load the same dependency twice
@@ -164,21 +167,27 @@ a reference to the system was superseded by a build.xcvb file.")
 
 (defun deconstruct-dependency (dep k)
   (flet ((err () (error "malformed dependency ~S" dep)))
-    (unless (consp dep) (err))
-    (let* ((head (first dep))
-           (computing (and (member head +computing-dependencies+) t)))
-      (if computing
-          (funcall k head nil t)
-          (progn
-            (unless (and (list-of-length-p 2 dep)
-                         (stringp (second dep)))
-              (err))
-            (let* ((name (second dep))
-                   (type (or computing (cdr (assoc head +dependency-type+)))))
-              (unless (or computing type)
-                (err))
-              (funcall k head name type)))))))
+    (typecase dep
+      (cons
+         (let* ((head (first dep))
+                (computing (and (member head +computing-dependencies+) t)))
+           (if computing
+             (funcall k head nil t)
+             (progn
+               (unless (and (list-of-length-p 2 dep)
+                            (stringp (second dep)))
+                 (err))
+               (let* ((name (second dep))
+                      (type (or computing (cdr (assoc head +dependency-type+)))))
+                 (unless (or computing type)
+                   (err))
+                 (funcall k head name type))))))
+      (string
+         (funcall k :lisp dep 'lisp-grain))
+      (t
+         (err)))))
 
+    
 (defmacro with-dependency ((&key head name type) expr &body body)
   (loop :for v :in (list head name type)
         :for var = (or v (gensym))
@@ -224,12 +233,16 @@ in the normalized dependency mini-language"
 
 (define-simple-dispatcher load-command-for #'load-command-for-atom)
 
+(defun load-command-for (env spec)
+  (load-command-for-dispatcher env spec))
+
+(defun load-command-for* (env specs)
+  (dolist (spec specs)
+    (load-command-for env spec)))
+
 (defun load-command-for-atom (env spec)
   (declare (ignore env))
   (error "Invalid dependency ~S" spec))
-
-(defun load-command-for (env spec)
-  (load-command-for-dispatcher env spec))
 
 (define-load-command-for :lisp (env name)
   (simple-load-command-for
@@ -242,6 +255,15 @@ in the normalized dependency mini-language"
    env `(:load-file (:cfasl ,name)) `(:cfasl ,name)))
 (define-load-command-for :asdf (env name)
   (simple-load-command-for env `(:load-asdf ,name) `(:asdf ,name)))
+
+(defun simple-load-command-for (env command fullname)
+  (call-with-dependency-grain
+   env fullname
+   (lambda (grain)
+     (unless (dependency-already-included-p env grain)
+       (load-commands-for-dependencies env grain)
+       (issue-dependency env grain)
+       (issue-load-command env command)))))
 
 (define-load-command-for :source (env name &key in)
   ;; Suffices to know data file exists.  No need to issue load command.
@@ -258,15 +280,6 @@ in the normalized dependency mini-language"
         (error "Expected a grain of type ~S for ~S, instead got ~S"
                type dep grain))
       (funcall fun grain))))
-
-(defun simple-load-command-for (env command fullname)
-  (call-with-dependency-grain
-   env fullname
-   (lambda (grain)
-     (unless (dependency-already-included-p env grain)
-       (load-commands-for-dependencies env grain)
-       (issue-dependency env grain)
-       (issue-load-command env command)))))
 
 (define-load-command-for :build (env name)
   (let ((build (registered-build name)))

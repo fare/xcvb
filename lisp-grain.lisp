@@ -37,9 +37,6 @@
        (listp (cdr form))
        (listp (cadr form))))
 
-(defun generate-form-p (form)
-  (eq :generate (car form)))
-
 ;;; Lisp Grains
 
 (defgeneric handle-lisp-dependencies (grain))
@@ -134,7 +131,11 @@
     (build-grain grain)
     (lisp-grain (grain-parent grain))))
 
-(defmethod build-dependencies :before (grain)
+(defmethod load-dependencies :before ((grain lisp-grain))
+  (handle-lisp-dependencies grain))
+(defmethod compile-dependencies :before ((grain lisp-grain))
+  (handle-lisp-dependencies grain))
+(defmethod build-dependencies :before ((grain lisp-grain))
   (handle-lisp-dependencies grain))
 
 (defmethod build-dependencies ((grain lisp-grain))

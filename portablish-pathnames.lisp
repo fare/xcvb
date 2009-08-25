@@ -38,11 +38,12 @@ of the directory of the given pathname"
        (eql #\/ (last-char name))))
 
 (defun portable-pathname-string-component-char-p (c)
+  (declare (type character c))
   ;; Assumes ASCII
   (and (or (char<= #\a c #\z)
 	   (char<= #\A c #\Z)
 	   (char<= #\0 c #\9)
-	   (find c ".,-+_"))
+	   (member c '(#\" #\. #\, #\- #\+ #\_)))
        t))
 
 (defun portable-pathname-string-component-p (x)
