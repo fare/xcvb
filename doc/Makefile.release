@@ -76,10 +76,12 @@ update:
 	darcs pull -a )
 
 prepare-release:
-	( cd dependencies/cl-launch && git gc && ./cl-launch.sh -I $$PWD -B install_path ) && \
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
 	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
 	for l in sbcl clisp ; do xcvb make-makefile --xcvb-path=$$PWD \
 		--build /xcvb --setup /xcvb/no-asdf \
 		--lisp-implementation $$l --output-path=$$PWD/xcvb.mk.$$l --disable-cfasl ; done && \
 	rm -rf obj xcvb/obj
+
+.PHONY: install-cl-launch install install-source install-using-asdf \
+	checkout gc update prepare-release

@@ -151,7 +151,7 @@ EXCLUDE_REVISION_INFO :=
 release-tarball:
 	VERSION=$$(cat version.lisp | grep version | cut -d\" -f2) ; \
 	mkdir -p ${TMP}/xcvb-release && \
-	cp doc/Makefile.release ${TMP}/xcvb-release && \
+	cp doc/Makefile.release ${TMP}/xcvb-release/Makefile && \
 	cd ${TMP} && \
 	rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
 	cd ${TMP}/xcvb-$$VERSION && \
