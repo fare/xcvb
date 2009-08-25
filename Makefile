@@ -180,7 +180,7 @@ release-tarball:
 		--build /xcvb --setup /xcvb/no-asdf \
 		--lisp-implementation $$l --output-path=$$PWD/xcvb.mk.$$l --disable-cfasl ; done && \
 	rm -rf obj xcvb/obj && \
-	cd .. && tar ${EXCLUDE_REVISION_INFO} -jcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
+	cd .. && tar ${EXCLUDE_REVISION_INFO} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/
