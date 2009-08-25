@@ -28,7 +28,6 @@
       (gethash grain (issued-dependencies env))))
 
 (defmethod issue-dependency ((env static-traversal) grain)
-  ;;; TODO: avoid dependencies that are already in the base image!
   (setf (gethash grain (issued-dependencies env)) t)
   (push grain (traversed-dependencies-r env)))
 

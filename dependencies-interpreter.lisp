@@ -3,7 +3,7 @@
 (in-package :xcvb)
 
 ;(declaim (optimize (debug 3) (speed 1) (safety 3)))
-(declaim (optimize (debug 1) (speed 3) (safety 2)))
+;(declaim (optimize (debug 1) (speed 3) (safety 2)))
 
 ;;; TODO: We probably need a better interface, so that
 ;;; the following aspects be handled in a generic way
@@ -25,13 +25,20 @@
 (defgeneric graph-for-build-grain (env grain))
 (defgeneric graph-for-fasls (env fullname))
 
+(defmacro with-dependency-loading ((env grain) &body body)
+  `(call-with-dependency-loading ,env ,grain (lambda () ,@body)))
+
+(defun call-with-dependency-loading (env grain thunk)
+  (unless (dependency-already-included-p env grain)
+    (issue-dependency env grain)
+    (funcall thunk)))
+
 ;;; Recognizer for current trivial dependency language
 
 (defvar *asdf-systems-warned* ()
   ;; This is a bit of a kluge, but oh well.
   "the names of ASDF systems for which we have already issued a warning that
 a reference to the system was superseded by a build.xcvb file.")
-
 
 (defun lisp-grain-from (name grain)
   (let ((lisp-grain (resolve-module-name name grain)))
@@ -260,9 +267,8 @@ in the normalized dependency mini-language"
   (call-with-dependency-grain
    env fullname
    (lambda (grain)
-     (unless (dependency-already-included-p env grain)
+     (with-dependency-loading (env grain)
        (load-commands-for-dependencies env grain)
-       (issue-dependency env grain)
        (issue-load-command env command)))))
 
 (define-load-command-for :source (env name &key in)
@@ -271,7 +277,8 @@ in the normalized dependency mini-language"
    env
    `(:source ,name :in ,in)
    (lambda (grain)
-     (issue-dependency env grain))))
+     (with-dependency-loading (env grain)
+       (values)))))
 
 (defun call-with-dependency-grain (environment dep fun)
   (let* ((grain (graph-for environment dep)))
@@ -284,14 +291,16 @@ in the normalized dependency mini-language"
 (define-load-command-for :build (env name)
   (let ((build (registered-build name)))
     (handle-lisp-dependencies build)
-    (load-commands-for-build-dependencies env build)
-    (load-commands-for-dependencies env build)))
+    (with-dependency-loading (env build)
+      (load-commands-for-build-dependencies env build)
+      (load-commands-for-dependencies env build))))
 
 (define-load-command-for :compile-build (env name)
   (let ((build (registered-build name)))
     (handle-lisp-dependencies build)
-    (load-commands-for-build-dependencies env build)
-    (load-commands-for-compile-dependencies env build)))
+    (with-dependency-loading (env build)
+      (load-commands-for-build-dependencies env build)
+      (load-commands-for-compile-dependencies env build))))
 
 (defun load-commands-for-dependencies (env grain)
   (dolist (dep (load-dependencies grain))
