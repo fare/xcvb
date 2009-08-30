@@ -51,11 +51,11 @@ Status
 ------
 
 Bottom line:
-XCVB isn't yet ready as a full replacement for ASDF for the Lisp masses,
-but is already available as a build system for beta-testers.
+XCVB is available as a working deterministic build system for beta-testers.
+It isn't yet ready as a full replacement for ASDF for the Lisp masses.
 
 The current version (in git master branch or the release tarball)
-can handle complex builds,
+can handle builds of big, complex systems,
 though it is neither feature-rich nor user-friendly.
 
 You can either write your project directly as an XCVB build
@@ -109,7 +109,8 @@ and one open to general discussions,
 Dependencies
 ------------
 
-As mentioned above, you can find a tarball sufficient to bootstrap XCVB at:
+As mentioned above, you can find a tarball with all dependencies
+sufficient to bootstrap XCVB at:
 
            http://common-lisp.net/project/xcvb/releases/
 
@@ -221,8 +222,11 @@ A semi-usable product was published in May 2009,
 and usable release tarballs have been produced since July 2009,
 with notable contributions from Joyce Chen and Matthew Steele.
 
-We are working hard towards releasing by the end of August 2009
-something usable by random Common Lisp programmers.
+In late August 2009, we released XCVB 0.366 which successfully
+compiled a large system at ITA.
+
+We are working hard towards making a 1.0 release usable by
+random Common Lisp programmer by the end of 2009.
 
 Subscribe to one of our mailing-lists
 if you're interested in learning about our progress
@@ -446,7 +450,7 @@ You may load such components by including the following in your initial package 
 after your ``(cl:in-package :cl-user)`` statement,
 and before any ``(defpackage ...)`` clause that may import from the system::
 
-	(eval-when (:compile-toplevel :load-toplevel)
+	(eval-when (:compile-toplevel :load-toplevel :execute)
           #+sbcl (require :sb-posix))
 
 It is *NOT* OK to (conditionally or not) declare a dependency on an ASDF system for ``:sb-posix``,

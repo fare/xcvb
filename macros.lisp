@@ -34,7 +34,7 @@ Otherwise, signal an error."
        (funcall fun s)))))
 
 
-(eval-when (:compile-toplevel :load-toplevel)
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (defun fintern (package format &rest rest)
     (intern (apply #'format nil format rest)
             (find-package
