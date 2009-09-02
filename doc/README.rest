@@ -222,8 +222,8 @@ A semi-usable product was published in May 2009,
 and usable release tarballs have been produced since July 2009,
 with notable contributions from Joyce Chen and Matthew Steele.
 
-In late August 2009, we released XCVB 0.366 which successfully
-compiled a large system at ITA.
+In late August 2009, we released XCVB 0.366
+which successfully compiled a large system at ITA.
 
 We are working hard towards making a 1.0 release usable by
 random Common Lisp programmer by the end of 2009.
@@ -313,6 +313,15 @@ A simple example would be::
 	xcvb make-makefile --build /foo/bar --lisp-implementation sbcl
 
 Where ``/foo/bar`` is the fullname of your build.
+
+Note that you need to properly setup your `Search Path`_ with ``XCVB_PATH``,
+or specify it with option ``--xcvb-path``.
+Also, XCVB will assume that the specified implementation,
+``sbcl`` or otherwise, is in your ``PATH``, though you may override with
+``--lisp-binary-path``.
+If needed, make sure you export the proper
+``SBCL_HOME`` or ``CCL_DEFAULT_DIRECTORY``, etc.,
+or that some wrapper script to your Lisp binary does.
 
 The default name for said generated ``Makefile``
 is actually ``xcvb.mk`` in the current directory,
@@ -543,12 +552,23 @@ To avoid gratuitous conflicts,
 subdirectories named ``_darcs`` or ``.svn``
 are conspicuously not searched.
 
+Importantly, an installed version of XCVB itself
+(at least its ``build.xcvb`` and ``driver.lisp`` in the same directory)
+must be present under the search path
+since XCVB will look for the module ``/xcvb/driver``
+to be included in the target Lisp image as a necessary prelude to any build.
+
+In a good installation of XCVB, this should be the case by default,
+and users would use ``!`` in their search path specifications
+to inherit this default;
+however, until XCVB comes packaged with your system,
+you shouldn't trust these defaults until you have verified them.
+
 You can query your current search path with the command::
 
 	xcvb search-search-path
 
 Also available is the short-hand ``xcvb ssp``.
-
 
 _`Note to people migrating from ASDF`_:
 this more or less corresponds
