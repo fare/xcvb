@@ -16,15 +16,20 @@
 ;; existing configuration and send your Lisp to limbo.
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (let ((package (find-package :asdf)))
+  (let ((package (find-package :asdf))
+        #+sbcl (mpf 'sb-ext:*module-provider-functions*))
     (when package
-       #+sbcl (setf sb-ext:*module-provider-functions*
-                    (delete-if (lambda (x)
-                                 (when (and (symbolp x) (eq package (symbol-package x)))
-                                   (format t "~&Deleted ~S from sb-ext:*module-provider-functions*" x)
-                                   t))
-                               sb-ext:*module-provider-functions*))
-       (delete-package :asdf)
+       #+sbcl (set mpf (delete-if (lambda (x)
+                                    (when (and (symbolp x) (eq package (symbol-package x)))
+                                      (format t "~&Deleting ~S from ~S" x mpf)
+                                      t))
+                                  (symbol-value mpf)))
+       ;; Recursively delete packages that use ASDF (e.g. if your Lisp was compiled with C-L-C)
+       (labels ((del (p)
+                  (map () #'del (package-used-by-list p))
+                  (format t "~&Deleting package ~A~%" (package-name p))
+                  (delete-package p)))
+          (del package))
        (format t "~&Deleted old instance of ASDF.~%")))
   #+sbcl (pushnew :sbcl-hooks-require *features*)
   (format t "*features* = ~S~%" *features*)

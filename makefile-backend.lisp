@@ -215,7 +215,7 @@ will create the desired content. An atomic rename() will have to be performed af
     (append commands
             (when *renamed-targets*
               (loop :for (target . tempname) :in *renamed-targets*
-                    :collect (strcat "@" (shell-tokens-to-Makefile (list "mv" tempname target))))))))
+                    :collect (shell-tokens-to-Makefile (list "mv" tempname target)))))))
 
 (define-Makefile-commands-for-computation :xcvb-driver-command (str keys &rest commands)
   (list
@@ -268,8 +268,9 @@ will create the desired content. An atomic rename() will have to be performed af
               (mapcar #'grain-pathname-text inputs)
               (asdf-dependency-text first-output inputs))
       (when command
-        (dolist (c (Makefile-commands-for-computation nil command))
-          (format stream "~C~A~%" #\Tab c)))
+        (dolist (c (cons (format nil "echo Building ~A" (grain-pathname-text first-output))
+                         (Makefile-commands-for-computation nil command)))
+          (format stream "~C@~A~%" #\Tab c)))
       (terpri stream))))
 
 ;;; This is only done for images, not for individual files.

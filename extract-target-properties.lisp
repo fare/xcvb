@@ -55,7 +55,12 @@
   (assert *lisp-implementation-type*)
   (ensure-directories-exist output-filename)
   (asdf:run-shell-command ;;; TODO: use something better, someday
-   "exec ~A > ~A"
+   "exec ~@[~A~] ~A > ~A"
+   ;; When XCVB is itself compiled with SBCL, and the target is a different SBCL,
+   ;; then XCVB's SBCL will export SBCL_HOME which will confuse the target.
+   ;; And so, to provide deterministic behavior whatever the build implementation is,
+   ;; we unset SBCL_HOME when invoking the target SBCL.
+   (when (eq *lisp-implementation-type* :sbcl) "env -u SBCL_HOME")
    (shell-tokens-to-string
     (lisp-invocation-arglist
      :eval (format nil "(progn ~A (finish-output) ~A)"
