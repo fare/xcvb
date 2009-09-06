@@ -215,7 +215,7 @@ will create the desired content. An atomic rename() will have to be performed af
     (append commands
             (when *renamed-targets*
               (loop :for (target . tempname) :in *renamed-targets*
-                    :collect (shell-tokens-to-Makefile (list "mv" tempname target)))))))
+                    :collect (strcat "@" (shell-tokens-to-Makefile (list "mv" tempname target))))))))
 
 (define-Makefile-commands-for-computation :xcvb-driver-command (str keys &rest commands)
   (list

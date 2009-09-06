@@ -83,14 +83,17 @@ This is designed to abstract away the implementation specific quit forms."
 (defvar *stderr* *error-output*)
 
 (defun bork (condition)
-  (unless *debugging*
-    (format *stderr* "~&~A~%" condition)
-    (print-backtrace *stderr*)
-    (format *stderr* "~&~A~%" condition)
-    (quit 99)))
+  (format *stderr* "~&BORK:~%~A~%" condition)
+  (cond
+    (*debugging*
+     (invoke-debugger condition))
+    (t
+     (print-backtrace *stderr*)
+     (format *stderr* "~&~A~%" condition)
+     (quit 99))))
 
 (defun call-with-coded-exit (thunk)
-  (handler-bind ((error #'bork))
+  (handler-bind ((serious-condition #'bork))
     (funcall thunk)
     (quit 0)))
 
@@ -119,14 +122,23 @@ This is designed to abstract away the implementation specific quit forms."
           (string (and (typep condition 'simple-condition)
                        (equal (simple-condition-format-control condition) x))))))
 
+(defvar *fatal-condition*
+  '(or serious-condition))
+
+(defun fatal-condition-p (condition)
+  (typep condition *fatal-condition*))
+
 (defun call-with-controlled-compiler-conditions (thunk)
   (handler-bind
       ((t
         #'(lambda (condition)
             ;; TODO: do something magic for undefined-function,
             ;; save all of aside, and reconcile in the end of the virtual compilation-unit.
-            (when (uninteresting-condition-p condition)
-              (muffle-warning condition)))))
+            (cond
+              ((uninteresting-condition-p condition)
+               (muffle-warning condition))
+              ((fatal-condition-p condition)
+               (bork condition))))))
     (funcall thunk)))
 
 (defmacro with-controlled-compiler-conditions (() &body body)
@@ -134,6 +146,18 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defvar *deferred-warnings* ()
   "Warnings the handling of which is deferred until the end of the compilation unit")
+
+(defun call-with-controlled-loader-conditions (thunk)
+  (let ((*uninteresting-conditions*
+         (append
+          #+sbcl '(sb-kernel:redefinition-with-defun
+                   sb-kernel:redefinition-with-defgeneric
+                   sb-kernel:redefinition-with-defmethod)
+          *uninteresting-conditions*)))
+    (call-with-controlled-compiler-conditions thunk)))
+
+(defmacro with-controlled-loader-conditions (() &body body)
+  `(call-with-controlled-loader-conditions (lambda () ,@body)))
 
 (defun call-with-xcvb-compilation-unit (thunk &key forward-references)
   (with-compilation-unit (:override t)
@@ -169,11 +193,11 @@ This is designed to abstract away the implementation specific quit forms."
               :for package-name = (package-name (symbol-package symbol))
               :collect `(:undefined ,symbol-name ,package-name ,kind) :into undefined-warnings
               :finally (setf *deferred-warnings* undefined-warnings
-                             sb-c::*undefined-warnings* nil)))
-      (when forward-references
-        (with-open-file (s forward-references :direction :output :if-exists :supersede)
-          (write *deferred-warnings* :stream s :pretty t :readably t)
-          (terpri s))))))
+                             sb-c::*undefined-warnings* nil))
+        (when forward-references
+          (with-open-file (s forward-references :direction :output :if-exists :supersede)
+            (write *deferred-warnings* :stream s :pretty t :readably t)
+            (terpri s)))))))
 
 (defmacro with-xcvb-compilation-unit ((&key forward-references) &body body)
   `(call-with-xcvb-compilation-unit (lambda () ,@body) :forward-references ,forward-references))
@@ -263,7 +287,9 @@ This is designed to abstract away the implementation specific quit forms."
     (do-run ',commands)))
 
 (defun load-file (x)
-  (load x))
+  (with-controlled-loader-conditions ()
+    (unless (load x)
+      (error "Failed to load ~A" (list x)))))
 
 (defun call (package symbol &rest args)
   (apply (do-find-symbol symbol package) args))
@@ -291,10 +317,10 @@ This is designed to abstract away the implementation specific quit forms."
                    (when cfasl
                      `(:emit-cfasl ,(merge-pathnames cfasl))))))
         (declare (ignore output-truename))
-        (when warnings-p
-          (error "Compilation Warned for ~A" source))
         (when failure-p
-          (error "Compilation Failed for ~A" source))))
+          (error "Compilation Failed for ~A" source))
+        (when warnings-p
+          (error "Compilation Warned for ~A" source))))
   (values))
 
 (defun compile-lisp (spec &rest dependencies)
@@ -357,11 +383,18 @@ whether or not all of those systems were up-to-date or not."
   (with-coded-exit ()
     (shell-boolean (asdf-systems-up-to-date-p systems))))
 
-(defun debugging ()
-  (setf *debugging* t)
-  #+sbcl (sb-ext:enable-debugger)
-  #+clisp (ext:set-global-handler #'invoke-debugger)
-  (setf *load-verbose* t *compile-verbose* t *compile-print* t)
+(defun debugging (&optional (debug t))
+  (setf *debugging* debug
+        *load-verbose* debug
+        *compile-verbose* debug
+        *compile-print* debug)
+  (cond
+    (debug
+     #+sbcl (sb-ext:enable-debugger)
+     #+clisp (ext:set-global-handler #'invoke-debugger))
+    (t
+     #+sbcl (sb-ext:disable-debugger)
+     #+clisp (ext:set-global-handler #'bork)))
   (values))
 
 ;;;(format t "~&XCVB driver loaded~%")
