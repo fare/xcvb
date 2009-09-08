@@ -82,6 +82,10 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defvar *stderr* *error-output*)
 
+(defun die (format &rest arguments)
+  (apply #'format *stderr* format arguments)
+  (quit 99))
+
 (defun bork (condition)
   (format *stderr* "~&BORK:~%~A~%" condition)
   (cond
@@ -89,8 +93,7 @@ This is designed to abstract away the implementation specific quit forms."
      (invoke-debugger condition))
     (t
      (print-backtrace *stderr*)
-     (format *stderr* "~&~A~%" condition)
-     (quit 99))))
+     (die "~&~A~%" condition))))
 
 (defun call-with-coded-exit (thunk)
   (handler-bind ((serious-condition #'bork))
@@ -289,7 +292,7 @@ This is designed to abstract away the implementation specific quit forms."
 (defun load-file (x)
   (with-controlled-loader-conditions ()
     (unless (load x)
-      (error "Failed to load ~A" (list x)))))
+      (die "Failed to load ~A" (list x)))))
 
 (defun call (package symbol &rest args)
   (apply (do-find-symbol symbol package) args))
@@ -318,9 +321,9 @@ This is designed to abstract away the implementation specific quit forms."
                      `(:emit-cfasl ,(merge-pathnames cfasl))))))
         (declare (ignore output-truename))
         (when failure-p
-          (error "Compilation Failed for ~A" source))
+          (die "Compilation Failed for ~A" source))
         (when warnings-p
-          (error "Compilation Warned for ~A" source))))
+          (die "Compilation Warned for ~A" source))))
   (values))
 
 (defun compile-lisp (spec &rest dependencies)

@@ -38,7 +38,7 @@
   ;; We need both --userinit /dev/null AND --sysinit /dev/null
   ;; because on debian, the default /etc/sbcl*rc do ASDF trickery
   ;; that make the sequence of no-asdf and asdf unhappy.
-  :flags ("--noinform" "--userinit" "/dev/null" "--sysinit" "/dev/null")
+  :flags ("--noinform" "--no-userinit" "--no-sysinit")
   :eval-flag "--eval" ;; Note: SBCL's eval can only handle one form per argument.
   :load-flag "--load"
   :arguments-end "--end-toplevel-options"
