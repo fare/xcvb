@@ -83,7 +83,9 @@ This is designed to abstract away the implementation specific quit forms."
 (defvar *stderr* *error-output*)
 
 (defun die (format &rest arguments)
+  (format *stderr* "~&")
   (apply #'format *stderr* format arguments)
+  (format *stderr* "~&")
   (quit 99))
 
 (defun bork (condition)
@@ -93,7 +95,7 @@ This is designed to abstract away the implementation specific quit forms."
      (invoke-debugger condition))
     (t
      (print-backtrace *stderr*)
-     (die "~&~A~%" condition))))
+     (die "~A" condition))))
 
 (defun call-with-coded-exit (thunk)
   (handler-bind ((serious-condition #'bork))

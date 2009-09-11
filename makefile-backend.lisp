@@ -268,8 +268,9 @@ will create the desired content. An atomic rename() will have to be performed af
               (mapcar #'grain-pathname-text inputs)
               (asdf-dependency-text first-output inputs))
       (when command
-        (dolist (c (cons (format nil "echo Building ~A" (grain-pathname-text first-output))
-                         (Makefile-commands-for-computation nil command)))
+        (dolist (c (cons
+                    (format nil "echo Building ~A" (grain-pathname-text first-output))
+                    (Makefile-commands-for-computation nil command)))
           (format stream "~C@~A~%" #\Tab c)))
       (terpri stream))))
 

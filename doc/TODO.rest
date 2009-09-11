@@ -98,6 +98,8 @@ and compile a number of free software Lisp libraries.
 
 Here is the top of our TODO list at ITA:
 
+ * Move tests outside from the system itself - speed compile, etc.
+
  * Apply XCVB to some actual big projects at ITA.
 
    + Complete the EVAL-WHEN cleanup of ITA code.
@@ -177,18 +179,34 @@ Here is the top of our TODO list at ITA:
      undefined function, or which file used a macro without depending on the file that
      defined the macro.
 
- * Make XCVB less slow: 2'21" to compute a Makefile for QRes-core is too much.
-   Use sb-sprof to locate bottleneck.
-
- * Write a better pretty-printer for module forms, that conforms to standard Lisp style.
-
 
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
+ * Instrument the driver to dump timing information about the build in some side files:
+   how long did it take to build? to load each of the elements? to load all of them?
+   to actually compile the file? to actually dump the file?
+
+ * Have a dependency optimizer that starts from whatever is declared
+   (initially, what asdf-dependency-grovel provides, or even a linear ASDF::TRAVERSE-al;
+   in any case, a known-working order), and strip them to a minimum.
+   For each dependency that isn't confirmed known-needed (starting from the last to the first),
+   try recompiling without said dependency. If there was an error, it is definitely needed.
+   If the FASL and CFASL are identical, it was definitely not needed. If there was no error but
+   different output, then mark as known unknown (can be made known known by testing, if a test
+   suite is available -- in a first pass, keep all the known unknown).
+   Importantly, distinguish compile-depends-on, load-depends-on and even cload-depends-on
+   (for loading the cfasl) - with the "does it error out" test only for loading.
+   Once some known-needed dependencies of some file are determined, propagating this dependency to
+   other files that depend on the former will of course be instrumental in avoiding pointless
+   attempts at doing without said dependencies; which is why attempts should be queued in a
+   "brings most information" order.
+
  * Support dependencies on things to be CL:REQUIRE'd.
 
- * Filter out :static-file from consideration by a2x (?)
+ * Filter out :static-file from consideration by a2x -- or maybe not:
+   hopefully, ASDF 1.364 will have saner component-relative-pathname methods that don't
+   create crazy pathnames with dots in the name and a null type.
 
  * Extend the ``command-line-arguments`` library to allow for better self-documentation
    of option specifications with ``:documentation`` keyword arguments to options,
@@ -264,12 +282,9 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    (init forms, resume function,
    minimal shell wrapping and/or standalone images).
 
- * Fix SBCL bug 411925 https://bugs.launchpad.net/bugs/411925
+ * [Fixed in SBCL 1.0.31.3 - remove this note when 1.0.32 is released]
+   Get SBCL bug 411925 https://bugs.launchpad.net/bugs/411925 fixed
    so making images from images should work.
-   Current "standalone" SBCL images produced by cl-launch in standalone mode
-   still accept ``--core`` and ``--version`` arguments, because
-   ``:save-runtime-options`` doesn't seem to be working (as of 1.0.30.4)
-   when SBCL was itself invoked from an executable image.
 
  * Expand the migration code from ASDF. See `Migration from ASDF [V1]`_.
 
@@ -392,7 +407,7 @@ For better determinism, in-image loading will by default
 delegate all compilation to some slave sub-process using the
 best supported backend (which would probably be the make backend);
 when done compiling, the slave would communicate to the master process
-a list of files to load.
+a list of files to load, which the master process would proceed to load indeed.
 
 Optionally, the master would maintain a cryptographic hash-table
 of modules already loaded, and the slave would avoid asking to load
@@ -408,6 +423,8 @@ in a previous version is no more such in the newer version,
 when the signature of a generic function is changed,
 when some defstruct is modified while still in use,
 when the helpers of some functions in an active stack frame are redefined,
+when global variables were side-effected in a way that would have had to be undone
+and/or redone to reflect the new image state,
 etc.
 
 Alternatively, modules could declare symbols to unintern,
