@@ -85,8 +85,7 @@
 
 (defun setup-environment ()
   (debugging (setenvp "XCVB_DEBUGGING"))
-  (setf *profiling* (setenvp "XCVB_PROFILING"))
-  (format t "~&PROFILING=~S~&" *profiling*))
+  (setf *profiling* (setenvp "XCVB_PROFILING")))
 
 ;; Variables that define the current system
 (defvar *restart* nil)
