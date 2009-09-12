@@ -9,6 +9,10 @@ Future improvements planned for XCVB.
 See the first section, `Current Developments [V1]`_,
 for what are hot topics you could be working on right now.
 
+Further sections are mostly for longer term projects
+and background on the design and ultimate goals of XCVB.
+
+
 .. contents::
 ..
     1   Current Developments [V1]
@@ -203,6 +207,7 @@ Here is the top of our TODO list at ITA:
      themselves merged. (Note: a lot of those EVAL-WHEN bugs are indeed bugs
      even when compiling with ASDF, and will show in case an incremental compilation
      when some of the files are already compiled but others not.)
+     [Done but not tested]
 
    + Collect differences on ITA library dependencies into diffs.
      Publish them in the XCVB releases/ directory.
@@ -295,7 +300,7 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    "brings most information" order.
 
  * Filter out :static-file from consideration by a2x -- or maybe not:
-   hopefully, ASDF 1.364 will have saner component-relative-pathname methods that don't
+   hopefully, ASDF 1.366 will have saner component-relative-pathname methods that don't
    create crazy pathnames with dots in the name and a null type.
 
  * Extend the ``command-line-arguments`` library to allow for better self-documentation
@@ -362,10 +367,10 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    Xof suggests profiling the thing as it runs.
    I suggest properly extending IOLib or osicat to do the right thing.
 
+ * In general, figure out what are the slow parts of XCVB, and optimize them.
+
  * Allow individual lisp modules to override
    the ``:build-depends-on`` inherited from their ``build.xcvb``.
-
- * In general, figure out what are the slow parts of XCVB, and optimize them.
 
  * Re-implement the ASDF backend, so ASDF users can use XCVB builds.
    See `ASDF backend [V1]`_
@@ -925,8 +930,8 @@ Ideas from jknight [V2]
 
 Ideas from discussion w/ jknight:
 
- * allow python-like hierarchical installation paths instead of named build.xcvb
-   (Isn't that already possible? Just have a top-level build.xcvb fullname'd "/" somewhere!)
+ * allow python-like hierarchical installation paths instead of named ``build.xcvb``
+   (Isn't that already possible? Just have a top-level ``build.xcvb`` fullname'd "``/``" somewhere!)
    (The point was probably that we can avoid eager search if only we can agree on
    some naming hierarchy for both "module names" and filesystem relative paths.) [Done]
 

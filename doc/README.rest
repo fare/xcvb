@@ -38,6 +38,7 @@ enforced locally-declared dependencies.
       5.2  Data Dependencies
       5.3  Conditional Dependencies
       5.4  Warning Control
+      5.5  CL:Require
     6  XCVB and ASDF
       6.1  Depending on ASDF systems
       6.2  ASDF systems depending on XCVB builds
@@ -51,12 +52,12 @@ Status
 ------
 
 Bottom line:
-XCVB is available as a working deterministic build system for beta-testers.
+XCVB is available as a working deterministic build system for Common Lisp.
 It isn't yet ready as a full replacement for ASDF for the Lisp masses.
 
 The current version (in git master branch or the release tarball)
-can handle builds of big, complex systems,
-though it is neither feature-rich nor user-friendly.
+can handle builds of very large and complex systems,
+though it is not very user-friendly in its failure modes.
 
 You can either write your project directly as an XCVB build
 or automatically convert an existing ASDF project
