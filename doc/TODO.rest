@@ -143,10 +143,12 @@ And so the priority at ITA is to solve this performance issue.
   Refactoring:
     Rearrange our code so that the really needed forms that everyone depends on
     do not come attached to other heavy code that isn't depended upon but slows down the build.
-    This can be done manually or semi-automatically (see below).
+    This can be done manually or semi-automatically.
     How much this may potentially help may be measured by decomposing the build in individual forms
     (as msteele did for QPX), recomputing the dependency graph, and analyzing the profiling of a
-    build based on that.
+    build based on that (can be a serial build with both CFASL loading and FASL loading).
+    Each form is of course to be preceded by a proper in-package,
+    and so in-package forms have to be treated specially.
 
   Moving tests out of the way:
     As a straightforward form of refactoring, we should move all the test files

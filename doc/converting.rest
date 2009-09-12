@@ -1,0 +1,73 @@
+Lessons from converting a large project to XCVB
+===============================================
+
+Here is a summary of the kind of changes
+we had to make to QRes for it to be built with XCVB.
+Note that each and every of these changes is necessary
+to achieve successful incremental builds with ASDF, too,
+except for some additional EVAL-WHENs. We had to:
+
+  * Hand-modify many ``build.xcvb`` beyond
+    what ``asdf-to-xcvb`` could automatically convert,
+    to support various cases of conditional compilation and source file generation.
+
+  * Accompany any use of (EVAL ...), (FINALIZE-INHERITANCE ...), etc., in macros
+    by an equivalent form in an EVAL-WHEN in the expansion,
+    least it would break the incremental compile.
+
+      = Example: quake/embeddable-class.lisp
+
+  * Simplify overly clever introspection of the image, since with CFASLs
+    there is less state available at compile-time than previously available.
+
+      = Example: core/special-service-rules.lisp.
+
+  * End abuse of the package system whereby packages were modified after definition.
+
+      = Example: ars/qadm-pkgdcl.lisp
+
+  * Work around damage in the package system:
+    importing internal symbols requires them to have been interned
+    somewhere, and that somewhere isn't usually the original package's defpackage.
+
+      = Examples:
+          puma-etd/puma/test-pkgdcl.lisp
+          ars/ars-test-pkgdcl.lisp
+          dcs/pkgdcl.lisp
+
+      = Solution 1: actually export the symbols from the original package
+
+      = Solution 2: define a defpackage* that ensures imported symbols are interned.
+
+  * Overly clever introspection of the image must be removed, as with CFASLs
+    there is less state available at compile-time than previously available.
+
+      = Example: core/special-service-rules.lisp.
+
+      = Solution: as a compile-time safety measure, merely introspect for existing symbol,
+        not for fbound symbol.
+
+  * Fix defining functions and macros that side-effect dictionary variables at compile-time.
+
+     = Solution:
+
+        1- wrap in EVAL-WHEN.
+
+        2- defining functions and/or macros should include
+           ``signal-user`` and ``signal-provider`` hints for ADG.
+
+  * Work around ``defparameter``'s that were actually used at compile-time as constants.
+
+     = Workaround: wrap in EVAL-WHEN.
+
+     = Real solution: either make them a constant or don't use them as such.
+
+  * Changed some macros to play nicer with ADG.
+
+     = Changed a declaim special into a defvar in quux/thread-variables
+
+
+Along the way we made many misguided attempts to do things otherwise;
+this reflects the correct solutions we found.
+If you're interested in the bad "solutions" we sometimes came up with at first,
+including bad ideas we tried with XCVB or ADG, contact me.
