@@ -37,7 +37,7 @@ enforced locally-declared dependencies.
       5.1  Lisp file generation
       5.2  Data Dependencies
       5.3  Conditional Dependencies
-      5.4  Warning control
+      5.4  Warning Control
     6  XCVB and ASDF
       6.1  Depending on ASDF systems
       6.2  ASDF systems depending on XCVB builds
@@ -70,7 +70,7 @@ XCVB builds can depend on other builds and/or on ASDF systems.
 ASDF systems can be superseded by incrementally migrated XCVB builds when available,
 for better dependency management.
 
-Hopefully a version 1.0 will be released at the end of this summer
+Hopefully a version 1.0 will be released at the end of this year
 that can seriously replace ASDF and provide a migration path.
 
 
@@ -364,7 +364,7 @@ Such setup may include
 proclaiming optimization settings,
 loading and configuring ASDF (see below `Depending on ASDF systems`_),
 configuring variables that control your Lisp implementation,
-selecting compiler warnings you want to silence (see below `Warning control`_),
+selecting compiler warnings you want to silence (see below `Warning Control`_),
 declaring features for conditional compilation based on some environment variables,
 initializing some pathname translation layer such as logical pathnames,
 extensions to the build system,
@@ -412,8 +412,8 @@ of a library to be available at compile-time,
 rather than only the definition of its macros and other usual compile-time side-effects.
 
 You can achieve this by including your required dependencies in the
-``:build-depends`` option of your ``build.xcvb``,
-or the ``:compile-depends`` option of your Lisp module.
+``:build-depends-on`` option of your ``build.xcvb``,
+or the ``:compile-depends-on`` option of your Lisp module.
 
 Indeed, when you specify a dependency in a ``:depends-on`` clause,
 the dependency will be added to the load dependencies of the module
@@ -724,7 +724,7 @@ whereas XCVB purports to build a faithful model of the whole build,
 from which one could e.g. extract a list of source files.
 
 
-Warning control
+Warning Control
 ---------------
 
 XCVB provides a simple way to specify which compiler conditions (style-warnings, etc.)
@@ -742,6 +742,17 @@ Typically you may have to grep the sources of said implementation to find
 a condition type or a simple-condition's format-control string.
 In more advanced cases, you may can define your own predicate to
 discriminate the conditions you're looking to keep or eliminate.
+
+
+CL:Require
+----------
+
+Any dependency of the form ``(:require :foo)`` will be interpreted as
+the need to call ``CL:REQUIRE`` to load the implementation-dependent feature ``:foo``.
+The argument can be a string or a keyword, and is usually written
+as an upper-case string or a lower-case keyword (which will be case-converted).
+These things are implementation-dependent, and so often used in conjunction
+with ``:when`` or ``:cond``.
 
 
 XCVB and ASDF

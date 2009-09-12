@@ -9,6 +9,9 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#+sbcl (require :sb-posix)
+#+sbcl (require :sb-sprof)
+
 (asdf:defsystem :xcvb
     :author ("Francois-Rene Rideau" "Spencer Brody" "Joyce Chen")
     :maintainer "Francois-Rene Rideau"

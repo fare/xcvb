@@ -76,8 +76,7 @@ a reference to the system was superseded by a build.xcvb file.")
 (define-normalize-dependency :cond (grain &rest cond-expressions)
   ;; TODO: parse and make sure that expression is well-formed, which
   ;; should issue an error message early if there user-provided code is wrong.
-  `(:cond ,@(mapcar (lambda (x) (cons (car x)
-                                      (normalize-dependencies (cdr x) grain)))
+  `(:cond ,@(mapcar (lambda (x) (cons (car x) (normalize-dependencies (cdr x) grain)))
                     cond-expressions)))
 
 (defun normalize-dependency-lisp* (type grain name)
@@ -124,6 +123,11 @@ a reference to the system was superseded by a build.xcvb file.")
        (error "Trying to use ASDF system :~A claimed by conflicting builds ~S"
               n superseding)))))
 
+(define-normalize-dependency :require (grain name)
+  (declare (ignore grain))
+  (check-type name (or string symbol))
+  `(:require ,(intern (string name) :keyword)))
+
 (define-normalize-dependency :source (grain name &key in)
   "File named relatively to a build"
   (let ((path (portable-pathname-from-string name)))
@@ -162,6 +166,7 @@ a reference to the system was superseded by a build.xcvb file.")
     (:fasl . fasl-grain)
     (:cfasl . cfasl-grain)
     (:asdf . asdf-grain)
+    (:require . t)
     (:build . t)
     (:compiled-build . t)
     (:source . t)
@@ -170,7 +175,7 @@ a reference to the system was superseded by a build.xcvb file.")
   "what type for grains corresponding to a given dependency tag")
 
 (defparameter +computing-dependencies+
-  '(:when :cond :source))
+  '(:when :cond :source :require))
 
 (defun deconstruct-dependency (dep k)
   (flet ((err () (error "malformed dependency ~S" dep)))
@@ -194,7 +199,6 @@ a reference to the system was superseded by a build.xcvb file.")
       (t
          (err)))))
 
-    
 (defmacro with-dependency ((&key head name type) expr &body body)
   (loop :for v :in (list head name type)
         :for var = (or v (gensym))
@@ -214,7 +218,7 @@ in the normalized dependency mini-language"
     (ecase h
       (:fasl (list (compile-time-fasl-type) x))
       (:build `(:compile-build ,x))
-      ((:lisp :cfasl :asdf :compile-build) dep)
+      ((:lisp :cfasl :asdf :require :compile-build) dep)
       (:when `(:when ,(second dep) ,@(mapcar #'compiled-dependency (cddr dep))))
       (:cond `(:cond ,@(mapcar (lambda (x) (cons (car x) (mapcar #'compiled-dependency (cdr x))))
                               (cdr dep)))))))
@@ -287,6 +291,9 @@ in the normalized dependency mini-language"
         (error "Expected a grain of type ~S for ~S, instead got ~S"
                type dep grain))
       (funcall fun grain))))
+
+(define-load-command-for :require (env name)
+  (issue-load-command env `(:require ,name)))
 
 (define-load-command-for :build (env name)
   (let ((build (registered-build name)))

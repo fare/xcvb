@@ -175,6 +175,10 @@ will create the desired content. An atomic rename() will have to be performed af
   (format str "(:load-asdf ~S)" name)
   (values))
 
+(define-text-for-xcvb-driver-command :require (str name)
+  (format str "(:require ~(~S~))" name)
+  (values))
+
 (defun text-for-xcvb-driver-helper (stream dependencies format &rest args)
   (format stream "(")
   (apply #'format stream format args)

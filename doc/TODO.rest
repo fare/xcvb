@@ -294,8 +294,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    attempts at doing without said dependencies; which is why attempts should be queued in a
    "brings most information" order.
 
- * Support dependencies on things to be CL:REQUIRE'd.
-
  * Filter out :static-file from consideration by a2x -- or maybe not:
    hopefully, ASDF 1.364 will have saner component-relative-pathname methods that don't
    create crazy pathnames with dots in the name and a null type.

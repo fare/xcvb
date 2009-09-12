@@ -3,7 +3,10 @@
 #+xcvb
 (module (:depends-on
          ("makefile-backend" "search-path"
-          "asdf-converter" "extract-target-properties")))
+          "asdf-converter" "extract-target-properties"
+          (:when (:featurep :sbcl)
+            (:require :sb-posix)
+            (:require :sb-sprof)))))
 
 (in-package :xcvb)
 
