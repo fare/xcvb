@@ -87,4 +87,4 @@ prepare-release:
 	rm -rf obj xcvb/obj
 
 .PHONY: install-cl-launch install install-source install-using-asdf \
-	checkout gc update prepare-release
+	checkout update gc prepare-release

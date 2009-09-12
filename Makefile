@@ -155,7 +155,7 @@ release-tarball:
 	cd ${TMP} && \
 	rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
 	cd ${TMP}/xcvb-$$VERSION && \
-	make checkout gc update prepare-release && \
+	make checkout update gc prepare-release && \
 	cd .. && tar ${EXCLUDE_REVISION_INFO} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
