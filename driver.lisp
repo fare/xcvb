@@ -48,7 +48,45 @@
        with-coded-exit with-controlled-compiler-conditions with-xcvb-compilation
        *uninteresting-conditions* *debugging*))
 
+(defun getenv (x)
+  #-cmu
+  (#+clozure ccl::getenv
+   #+allegro sys:getenv
+   #+gcl system:getenv
+   #+clisp ext:getenv
+   #+ecl si:getenv
+   #+sbcl sb-ext:posix-getenv
+   #+lispworks lispworks:environment-variable
+   x)
+  #+cmu (cdr (assoc (intern x :keyword) ext:*environment-list*)))
+
 (defvar *debugging* nil)
+(defvar *profiling* nil)
+(defvar *goal* nil)
+
+(defun call-with-maybe-profiling (thunk what goal)
+  (if *profiling*
+    (let* ((start-time (get-internal-real-time))
+           (values (multiple-value-list (funcall thunk)))
+           (end-time (get-internal-real-time))
+           (duration (coerce (/ (- end-time start-time) internal-time-units-per-second) 'double-float)))
+      (format *trace-output* "~&~S~&" `(:profiling ,what :from ,goal :duration ,duration))
+      (apply #'values values))
+    (funcall thunk)))
+
+(defmacro with-profiling (what &body body)
+  `(call-with-maybe-profiling (lambda () ,@body) ,what *goal*))
+
+
+(defun emptyp (x)
+  (or (null x) (and (vectorp x) (zerop (length x)))))
+(defun setenvp (x)
+  (not (emptyp (getenv x))))
+
+(defun setup-environment ()
+  (debugging (setenvp "XCVB_DEBUGGING"))
+  (setf *profiling* (setenvp "XCVB_PROFILING"))
+  (format t "~&PROFILING=~S~&" *profiling*))
 
 ;; Variables that define the current system
 (defvar *restart* nil)
@@ -282,6 +320,7 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defun do-run (commands)
   (let ((*stderr* *error-output*))
+    (setup-environment)
     (run-commands commands)))
 
 (defun run-commands (commands)
@@ -292,9 +331,10 @@ This is designed to abstract away the implementation specific quit forms."
     (do-run ',commands)))
 
 (defun load-file (x)
-  (with-controlled-loader-conditions ()
-    (unless (load x)
-      (die "Failed to load ~A" (list x)))))
+  (with-profiling `(:load-file ,x)
+    (with-controlled-loader-conditions ()
+      (unless (load x)
+        (die "Failed to load ~A" (list x))))))
 
 (defun call (package symbol &rest args)
   (apply (do-find-symbol symbol package) args))
@@ -308,24 +348,32 @@ This is designed to abstract away the implementation specific quit forms."
   (apply 'call :asdf x args))
 
 (defun load-asdf (x)
-  (asdf-call :oos (asdf-symbol :load-op) x))
+  (with-profiling `(:asdf ,x)
+    (asdf-call :oos (asdf-symbol :load-op) x)))
+
+(defun cl-require (x)
+  (with-profiling `(:require ,x)
+    (require x)))
 
 (defun do-compile-lisp (dependencies source fasl &key cfasl)
-  (let ((*default-pathname-defaults* (truename *default-pathname-defaults*)))
+  (let ((*goal* `(:compile-lisp ,source))
+        (*default-pathname-defaults* (truename *default-pathname-defaults*)))
     (multiple-value-bind (output-truename warnings-p failure-p)
-        (with-controlled-compiler-conditions ()
-          (with-xcvb-compilation-unit ()
-            (run-commands dependencies)
-            (apply #'compile-file source
-                   :output-file (merge-pathnames fasl)
-                   ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-                   (when cfasl
-                     `(:emit-cfasl ,(merge-pathnames cfasl))))))
-        (declare (ignore output-truename))
-        (when failure-p
-          (die "Compilation Failed for ~A" source))
-        (when warnings-p
-          (die "Compilation Warned for ~A" source))))
+        (with-profiling `(:preparing-and-compiling ,source)
+          (with-controlled-compiler-conditions ()
+            (with-xcvb-compilation-unit ()
+              (run-commands dependencies)
+              (with-profiling `(:compiling ,source)
+                (apply #'compile-file source
+                       :output-file (merge-pathnames fasl)
+                       ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+                       (when cfasl
+                         `(:emit-cfasl ,(merge-pathnames cfasl))))))))
+      (declare (ignore output-truename))
+      (when failure-p
+        (die "Compilation Failed for ~A" source))
+      (when warnings-p
+        (die "Compilation Warned for ~A" source))))
   (values))
 
 (defun compile-lisp (spec &rest dependencies)
@@ -334,13 +382,17 @@ This is designed to abstract away the implementation specific quit forms."
 
 #-ecl
 (defun do-create-image (image dependencies &rest flags)
-  (with-controlled-compiler-conditions ()
-    (run-commands dependencies))
-  (apply #'dump-image image flags))
+  (let ((*goal* `(create-image ,image))
+        #+sbcl (*uninteresting-conditions*
+                (cons "undefined ~(~A~): ~S" *uninteresting-conditions*)))
+    (with-controlled-compiler-conditions ()
+      (run-commands dependencies))
+    (apply #'dump-image image flags)))
 
 #+ecl ;; wholly untested and probably buggy.
 (defun do-create-image (image dependencies &key standalone)
-  (let ((epilogue-code
+  (let ((*goal* `(create-image ,image))
+        (epilogue-code
           `(progn
             ,(if standalone '(resume) '(si::top-level)))))
     (c::builder :program (parse-namestring image)
