@@ -98,6 +98,10 @@ and compile a number of free software Lisp libraries.
 
 Here is the top of our TODO list at ITA:
 
+ * Make XCVB fast on our large system, on which it currently builds an order of magnitude
+   slower than the ASDF build, on a quad-core system.
+   See `Enhancing Build Speed`_.
+
  * Move tests outside from the system itself - speed compile, etc.
 
  * Apply XCVB to some actual big projects at ITA.
@@ -324,6 +328,78 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
 
  * Refactor the outdated ``test/mock/a/c/Makefile`` and the related builds into
    a Common Lisp equivalent of GNU hello. Move it outside of the XCVB tree.
+
+
+Enhancing Build Speed
+=====================
+
+After our initial implementation of XCVB for QRes, it appears that
+the size of QRes and the depth of the dependencies as used so far
+lead to a build time that is an order of magnitude slower
+than the serial build time with ASDF, on a quad-core machine.
+
+  Profiling the build:
+    To understand what is taking so long,
+    which files are clogging the build,
+    and how much more clever build strategies (see below) could help,
+    we should profile the build.
+    This is relatively straightforward:
+    edit the xcvb/driver so it will save aside the time spent
+    on loading and compiling the various files.
+    Then write some programs to analyze the results,
+    and compare how a different build strategy would help.
+
+  Building with forks:
+    Don't build with make, but by forking processes that cache a partial state of the image
+    with various CFASLs being loaded so far.
+    This may tremendously reduce the overhead currently due to loading CFASLs.
+    The advantage is that it can easily be automated with relatively little code (1 week).
+    However, because of the combinatorial explosion in which subset of the CFASLs is required
+    for building which file, this may or may not help as much as we'd like;
+    but how much this would help we can evaluate by profiling the build without having to code it.
+    The disadvantage is that we will have to make fork work with CCL again
+    (my previous patch to CCL has bitrotten and gbyers didn't like the idea;
+    so that would be a few more days of work to get it up to date).
+
+  Refactoring:
+    Rearrange our code so that the really needed forms that everyone depends on
+    do not come attached to other heavy code that isn't depended upon but slows down the build.
+    This can be done manually or semi-automatically (see below).
+    How much this may potentially help may be measured by decomposing the build in individual forms
+    (as msteele did for QPX), recomputing the dependency graph, and analyzing the profiling of a
+    build based on that.
+
+  Moving tests out of the way:
+    As a straightforward form of refactoring, we should move all the test files
+    out of the main build into unit-test subsystems are lisp test scripts.
+    This would both take a lot of pressure out of the build system,
+    and be a good way to formalize a systematic way to relate source files and test files,
+    e.g. by having unit-tests in a test/ directory with files named similarly to the tested file,
+    as is done by other CL test systems.
+
+  Distinguishing FOO-time dependencies:
+    It is possible that the load-time dependencies of files are much smaller than their
+    compile-time dependencies, and that the load-time dependencies of CFASL may be even smaller.
+    There is one way to determine that automatically:
+    systematically try to remove each dependency from each file, one at a time, and see whether it
+    still compiles without error, if possible to the same output (now that SBCL has somewhat
+    deterministic output), whether its fasl still loads without error,
+    and whether its cfasl still loads without error.
+    This can also be fully automated in a way that requires zero-maintenance afterwards
+    and provides a "lint" tool for dependencies.
+
+  Using SB-HEAPDUMP:
+    Instead of relying on the slow-loading FASL and CFASL,
+    use a more efficient method more akin to ``.o`` files.
+    Such a method currently exists for SBCL: SB-HEAPDUMP.
+    It doesn't currently exist for CCL but could conceivably be implemented
+    following the same model.
+    Modular chunks of dumped state could then be loaded more cheaply than FASLs
+    without implying the combinatorial explosion of having to save or fork
+    images for all possible partial load orders.
+    However, in addition to requiring technology we don't have on the CCL side,
+    it requires adherence to some package discipline we don't follow in QRes,
+    and for which we have no enforcement tool yet.
 
 
 Roadmap [Done]
@@ -842,6 +918,8 @@ Ideas from discussion w/ jknight:
 
  * extending XCVB: allow people to export a procedural interface as in "rebuild me"
    rather than only a declarative interface "conform to my crazy internal graph representation". [V2]
+   (Note that if you're using the Makefile backend, you can just add rules to a Makefile
+   that otherwise ``include``s the XCVB output.)
 
  * Makefile already doesn't like spaces in names (except implicit names from current path),
    so we must be using relative pathnames inside the Makefile by default. [Done]
@@ -851,7 +929,7 @@ Ideas from discussion w/ jknight:
  * Must allow path-independent inclusion of foreign libraries (as -ljpeg in gcc)
    in portable xcvb.mk output [V2].
 
- * --object-directory=object option [V2]
+ * --object-directory=object option [Done]
 
  * Allow output to go in different directory from the source, with sensible defaults.
    For instance, with autotools, the output by default goes
@@ -1445,17 +1523,20 @@ ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
 The build system described takes an interesting declarative approach:
 the system builds an abstract model of the modules in terms
 of grains having various kinds of directed reference relationships as
-in (:macros-calls foo bar).
+in ``(:macros-calls foo bar)``.
 The task graph to fulfill a build request is automatically deduced
 from the reference model and various request-handlers
 (pre and post reference handling) and reference-handlers
 that propagate the information along the nodes.
 
-See also GNU Make, OMake, CMake, SCons, Boost Jam, Cabal, etc.:
+See also:
 
-	* http://www.scons.org/
-	* http://omake.metaprl.org/index.html
-	* http://www.cmake.org/
+        * GNU Make http://www.gnu.org/software/make/
+	* OMake http://omake.metaprl.org/index.html
+	* CMake http://www.cmake.org/
+        * Haskell Cabal http://www.haskell.org/cabal/
+        * Boost Jam http://www.boost.org/doc/tools/jam/index.html
+	* SCons http://www.scons.org/
 
 distclc [V3]
 ------------
@@ -1739,7 +1820,7 @@ the automatic packaging and distribution of Lisp-based projects.
 
 See ASDF-INSTALL, clbuild, etc.
 
-See Haskell Cabal and Hackage, Caml Hump,
+See Haskell Hackage, Caml Hump,
 PLaneT, Chicken eggs,
 Ruby gems, Python eggs, Java beans, etc.
 
