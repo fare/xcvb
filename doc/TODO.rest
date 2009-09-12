@@ -12,6 +12,9 @@ for what are hot topics you could be working on right now.
 .. contents::
 ..
     1   Current Developments [V1]
+      1.1  Enhancing Build Speed [V1]
+      1.2  Top ITA TODO [V1]
+      1.3  Other Top TODO Items [V1]
     2   Roadmap [Done]
     3   Usability Issues [V1]
       3.1   Migration from ASDF [V1]
@@ -29,15 +32,14 @@ for what are hot topics you could be working on right now.
       4.1   Improve Makefile backend [V2]
       4.2   Abstract Away Paths [V2]
       4.3   Initialization and Finalization [V2]
-      4.4   Executables [V2]
-      4.5   Tests [V2]
-      4.6   Dependency grovelling [V2]
-      4.7   Revert [V2]
-      4.8   Bootstrap [V3]
-      4.9   Same source, multiple compilers [V4]
-      4.10  Correctly handling C libraries [V4]
-      4.11  Dynamic compilation [V4]
-      4.12  Bug hunting [V5]
+      4.4   Tests [V2]
+      4.5   Dependency grovelling [V2]
+      4.6   Revert [V2]
+      4.7   Bootstrap [V3]
+      4.8   Same source, multiple compilers [V4]
+      4.9   Correctly handling C libraries [V4]
+      4.10  Dynamic compilation [V4]
+      4.11  Bug hunting [V5]
     5   Ideas from jknight [V2]
     6   The semantics of dependencies [V2]
       6.1  Computed Lisp files [V2]
@@ -94,19 +96,104 @@ Current Developments [V1]
 
 Following a complete rewrite the XCVB 0.3 series has been released in July 2009.
 We've got a Makefile backend with which we can recompile XCVB itself,
-and compile a number of free software Lisp libraries.
+compile a number of free software Lisp libraries,
+and handle a large system at ITA.
+
+
+Enhancing Build Speed [V1]
+--------------------------
+
+After our initial implementation of XCVB for QRes, it appears that
+the size of QRes and the depth of the dependencies as used so far
+lead to a build time that is an order of magnitude slower
+than the serial build time with ASDF, on a quad-core machine.
+And so the priority at ITA is to solve this performance issue.
+
+  Serial build:
+    provide a non-enforcing serial build that brings the speed of ASDF
+    while using XCVB. This won't provide the same safety features of XCVB,
+    but will allow transition to XCVB while we fix the performance issues
+    without having to maintain a dual build system.
+    A full incremental enforcing build could be performed in parallel
+    as part of our precheckin.
+
+  Profiling the build:
+    To understand what is taking so long,
+    which files are clogging the build,
+    and how much more clever build strategies (see below) could help,
+    we should profile the build.
+    This is relatively straightforward:
+    edit the xcvb/driver so it will save aside the time spent
+    on loading and compiling the various files,
+    then write some programs to analyze the results,
+    and compare how a different build strategy would help.
+
+  Building with forks:
+    Don't build with make, but by forking processes that cache a partial state of the image
+    with various CFASLs being loaded so far.
+    This may tremendously reduce the overhead currently due to loading CFASLs.
+    The advantage is that it can easily be automated with relatively little code (1 week).
+    However, because of the combinatorial explosion in which subset of the CFASLs is required
+    for building which file, this may or may not help as much as we'd like;
+    but how much this would help we can evaluate by profiling the build without having to code it.
+    The disadvantage is that we will have to make fork work with CCL again
+    (my previous patch to CCL has bitrotten and gbyers didn't like the idea;
+    so that would be a few more days of work to get it up to date).
+
+  Refactoring:
+    Rearrange our code so that the really needed forms that everyone depends on
+    do not come attached to other heavy code that isn't depended upon but slows down the build.
+    This can be done manually or semi-automatically (see below).
+    How much this may potentially help may be measured by decomposing the build in individual forms
+    (as msteele did for QPX), recomputing the dependency graph, and analyzing the profiling of a
+    build based on that.
+
+  Moving tests out of the way:
+    As a straightforward form of refactoring, we should move all the test files
+    out of the main build into unit-test subsystems are lisp test scripts.
+    This would both take a lot of pressure out of the build system,
+    and be a good way to formalize a systematic way to relate source files and test files,
+    e.g. by having unit-tests in a test/ directory with files named similarly to the tested file,
+    as is done by other CL test systems.
+
+  Distinguishing FOO-time dependencies:
+    It is possible that the load-time dependencies of files are much smaller than their
+    compile-time dependencies, and that the load-time dependencies of CFASL may be even smaller.
+    There is one way to determine that automatically:
+    systematically try to remove each dependency from each file, one at a time, and see whether it
+    still compiles without error, if possible to the same output (now that SBCL has somewhat
+    deterministic output), whether its fasl still loads without error,
+    and whether its cfasl still loads without error.
+    This can also be fully automated in a way that requires zero-maintenance afterwards
+    and provides a "lint" tool for dependencies.
+
+  Using SB-HEAPDUMP:
+    Instead of relying on the slow-loading FASL and CFASL,
+    use a more efficient method more akin to ``.o`` files.
+    Such a method currently exists for SBCL: SB-HEAPDUMP.
+    It doesn't currently exist for CCL but could conceivably be implemented
+    following the same model.
+    Modular chunks of dumped state could then be loaded more cheaply than FASLs
+    without implying the combinatorial explosion of having to save or fork
+    images for all possible partial load orders.
+    However, in addition to requiring technology we don't have on the CCL side,
+    it requires adherence to some package discipline we don't follow in QRes,
+    and for which we have no enforcement tool yet.
+
+Top ITA TODO [V1]
+-----------------
 
 Here is the top of our TODO list at ITA:
 
  * Make XCVB fast on our large system, on which it currently builds an order of magnitude
    slower than the ASDF build, on a quad-core system.
-   See `Enhancing Build Speed`_.
+   See `Enhancing Build Speed [V1]`_.
 
  * Move tests outside from the system itself - speed compile, etc.
 
  * Apply XCVB to some actual big projects at ITA.
 
-   + Complete the EVAL-WHEN cleanup of ITA code.
+   + Complete the EVAL-WHEN cleanup of ITA code. [Mostly Done]
 
    + Implement the removal of XCVB module statements, so (a copy of) a migrated
      system may easily be de-a2x'ed, leaving only the EVAL-WHEN and other fixes,
@@ -152,7 +239,7 @@ Here is the top of our TODO list at ITA:
      registered in some test state maintenance server.
 
  * Warnings about undefined functions are currently quenched during file compilation.
-   HOWEVER, we should record them on the, and reconcile them afterwards,
+   HOWEVER, we should record them on the side as we build, and reconcile them afterwards,
    before or after image creation. In other words, we must implement
    ``with-xcvb-compilation-unit`` in a way that actually defers warnings,
    rather than plainly drops them.
@@ -184,12 +271,11 @@ Here is the top of our TODO list at ITA:
      defined the macro.
 
 
+Other Top TODO Items [V1]
+-------------------------
+
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
-
- * Instrument the driver to dump timing information about the build in some side files:
-   how long did it take to build? to load each of the elements? to load all of them?
-   to actually compile the file? to actually dump the file?
 
  * Have a dependency optimizer that starts from whatever is declared
    (initially, what asdf-dependency-grovel provides, or even a linear ASDF::TRAVERSE-al;
@@ -276,6 +362,9 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    Xof suggests profiling the thing as it runs.
    I suggest properly extending IOLib or osicat to do the right thing.
 
+ * Allow individual lisp modules to override
+   the ``:build-depends-on`` inherited from their ``build.xcvb``.
+
  * In general, figure out what are the slow parts of XCVB, and optimize them.
 
  * Re-implement the ASDF backend, so ASDF users can use XCVB builds.
@@ -329,77 +418,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
  * Refactor the outdated ``test/mock/a/c/Makefile`` and the related builds into
    a Common Lisp equivalent of GNU hello. Move it outside of the XCVB tree.
 
-
-Enhancing Build Speed
-=====================
-
-After our initial implementation of XCVB for QRes, it appears that
-the size of QRes and the depth of the dependencies as used so far
-lead to a build time that is an order of magnitude slower
-than the serial build time with ASDF, on a quad-core machine.
-
-  Profiling the build:
-    To understand what is taking so long,
-    which files are clogging the build,
-    and how much more clever build strategies (see below) could help,
-    we should profile the build.
-    This is relatively straightforward:
-    edit the xcvb/driver so it will save aside the time spent
-    on loading and compiling the various files.
-    Then write some programs to analyze the results,
-    and compare how a different build strategy would help.
-
-  Building with forks:
-    Don't build with make, but by forking processes that cache a partial state of the image
-    with various CFASLs being loaded so far.
-    This may tremendously reduce the overhead currently due to loading CFASLs.
-    The advantage is that it can easily be automated with relatively little code (1 week).
-    However, because of the combinatorial explosion in which subset of the CFASLs is required
-    for building which file, this may or may not help as much as we'd like;
-    but how much this would help we can evaluate by profiling the build without having to code it.
-    The disadvantage is that we will have to make fork work with CCL again
-    (my previous patch to CCL has bitrotten and gbyers didn't like the idea;
-    so that would be a few more days of work to get it up to date).
-
-  Refactoring:
-    Rearrange our code so that the really needed forms that everyone depends on
-    do not come attached to other heavy code that isn't depended upon but slows down the build.
-    This can be done manually or semi-automatically (see below).
-    How much this may potentially help may be measured by decomposing the build in individual forms
-    (as msteele did for QPX), recomputing the dependency graph, and analyzing the profiling of a
-    build based on that.
-
-  Moving tests out of the way:
-    As a straightforward form of refactoring, we should move all the test files
-    out of the main build into unit-test subsystems are lisp test scripts.
-    This would both take a lot of pressure out of the build system,
-    and be a good way to formalize a systematic way to relate source files and test files,
-    e.g. by having unit-tests in a test/ directory with files named similarly to the tested file,
-    as is done by other CL test systems.
-
-  Distinguishing FOO-time dependencies:
-    It is possible that the load-time dependencies of files are much smaller than their
-    compile-time dependencies, and that the load-time dependencies of CFASL may be even smaller.
-    There is one way to determine that automatically:
-    systematically try to remove each dependency from each file, one at a time, and see whether it
-    still compiles without error, if possible to the same output (now that SBCL has somewhat
-    deterministic output), whether its fasl still loads without error,
-    and whether its cfasl still loads without error.
-    This can also be fully automated in a way that requires zero-maintenance afterwards
-    and provides a "lint" tool for dependencies.
-
-  Using SB-HEAPDUMP:
-    Instead of relying on the slow-loading FASL and CFASL,
-    use a more efficient method more akin to ``.o`` files.
-    Such a method currently exists for SBCL: SB-HEAPDUMP.
-    It doesn't currently exist for CCL but could conceivably be implemented
-    following the same model.
-    Modular chunks of dumped state could then be loaded more cheaply than FASLs
-    without implying the combinatorial explosion of having to save or fork
-    images for all possible partial load orders.
-    However, in addition to requiring technology we don't have on the CCL side,
-    it requires adherence to some package discipline we don't follow in QRes,
-    and for which we have no enforcement tool yet.
 
 
 Roadmap [Done]
@@ -608,9 +626,15 @@ Producing Executables [V3]
 Currently, ``cl-launch`` accepts an explicit initial image as input,
 and this can be used in a ``Makefile``
 to create an executable from an image produced by XCVB.
+This is done but needs to be documented in XCVB's README. [V1]
 
 In a second time [V3], XCVB should be extended to directly support
-all the relevant features from cl-launch.
+all the relevant features from cl-launch, although
+if the executable needs a wrapping script, things can be tricky.
+
+Additionally, when creating a standalone executable,
+some initializers and finalizers may have to be run as described in
+`Initialization and Finalization [V2]`_.
 
 
 Generalized Staged Images [Done]
@@ -713,7 +737,7 @@ Improve Makefile backend [V2]
 
 Create and document the following small features:
 
-  * give user control as to where generated objects go vs source code.
+  * give user control as to where generated objects go vs source code. [Done]
 
   * use Makefile variables as path prefix for most everything?
 
@@ -766,16 +790,6 @@ After the file is compiled, one may want to
   * more generally update meta-data
 
 
-Executables [V2]
-----------------
-
-When creating a standalone executable, some initializers and finalizers may have to be run as above.
-
-If the executable needs a wrapping script, things get even trickier.
-
-We may want to reuse cl-launch here, to leverage all the support already available.
-
-
 Tests [V2]
 ----------
 
@@ -815,12 +829,14 @@ We want a function to easily revert
 the changes made by the ASDF to XCVB conversion,
 so we may more easily clean up and experiment.
 
+This is done but must be tested and documented.
+
 
 Bootstrap [V3]
 --------------
 
-We may want to fully migrate all the existing Lisp world,
-*including* XCVB, from ASDF to XCVB.
+We may want to fully migrate all the existing Lisp world
+from ASDF to XCVB.
 
 The hardest part may well be extending and migrating asdf-dependency-grovel
 (see above), but it may well be worth it.
@@ -919,7 +935,7 @@ Ideas from discussion w/ jknight:
  * extending XCVB: allow people to export a procedural interface as in "rebuild me"
    rather than only a declarative interface "conform to my crazy internal graph representation". [V2]
    (Note that if you're using the Makefile backend, you can just add rules to a Makefile
-   that otherwise ``include``s the XCVB output.)
+   that otherwise ``include``'s the XCVB output.)
 
  * Makefile already doesn't like spaces in names (except implicit names from current path),
    so we must be using relative pathnames inside the Makefile by default. [Done]
