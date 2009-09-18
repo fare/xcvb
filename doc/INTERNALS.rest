@@ -454,6 +454,14 @@ See my rant "Who's responsible for that moving part?":
 http://fare.livejournal.com/139755.html
 
 
+Debugging XCVB
+--------------
+
+To debug XCVB, I use the following::
+
+	C-u M-x slime env SBCL_HOME=/usr/lib/sbcl xcvb repl
+
+
 TODO
 ----
 

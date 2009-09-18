@@ -88,3 +88,6 @@ Negatives are stored as NIL. Positives as grains.")
   "where to store object files")
 
 (defvar *tmp-directory* #p"/tmp/")
+
+(defvar *use-base-image* t
+  "Should we be using a base image for all builds?")

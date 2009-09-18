@@ -3,31 +3,42 @@
 (in-package :xcvb)
 
 (defclass static-traversal (simple-print-object-mixin)
-  ((grain-names ;;; grain names in the stack of things we try to create -- to avoid circularities
+  ((grain-names
     :initform nil
     :initarg :grain-names
-    :reader traversed-grain-names-r)
-   (dependencies-r ;;; dependencies discovered so far while examining the current computation
+    :reader traversed-grain-names-r
+    :documentation "grain names in the stack of things we try to create -- to avoid circularities")
+   (image-setup
+    :accessor image-setup
+    :documentation "xcvb-driver-command options to setup the image for the current computation")
+   (included-dependencies
+    :initform (make-hashset :test 'equal)
+    :accessor included-dependencies
+    :documentation "dependencies included in the image used by current computation, as a set")
+   (issued-dependencies
+    :initform (make-hashset :test 'equal)
+    :accessor issued-dependencies
+    :documentation "dependencies issued as part of current computation, as a set")
+   (dependencies-r
     :initform nil
-    :accessor traversed-dependencies-r)
-   (included-dependencies ;;; dependencies included in the current image
+    :accessor traversed-dependencies-r
+    :documentation "dependencies issued as part of the current computation, in reverse order")
+   (issued-load-commands
     :initform (make-hashset :test 'equal)
-    :accessor included-dependencies)
-   (issued-dependencies ;;; dependencies included in the current image
-    :initform (make-hashset :test 'equal)
-    :accessor issued-dependencies)
-   (issued-load-commands ;;; load commands issued so far to run the current compilation, as a set.
-    :initform (make-hashset :test 'equal)
-    :accessor issued-load-commands)
-   (load-commands-r ;;; load commands issued so far to run the current compilation, in reverse order.
+    :accessor issued-load-commands
+    :documentation "load commands issued so far to run the current compilation, as a set")
+   (load-commands-r
     :initform nil
-    :accessor traversed-load-commands-r)))
+    :accessor traversed-load-commands-r
+    :documentation "load commands issued so far to run the current compilation, in reverse order")))
 
 (defmethod dependency-already-included-p ((env static-traversal) grain)
+  (check-type grain grain)
   (or (gethash grain (included-dependencies env))
       (gethash grain (issued-dependencies env))))
 
 (defmethod issue-dependency ((env static-traversal) grain)
+  (check-type grain grain)
   (setf (gethash grain (issued-dependencies env)) t)
   (push grain (traversed-dependencies-r env)))
 
@@ -62,15 +73,6 @@
            :grain-names (cons spec current-grains-r))
           spec)))))
 
-(defun graph-for* (env specs)
-  (remove-duplicates
-   (mapcar #'(lambda (spec)
-	       (let ((grain (graph-for env spec)))
-		 (check-type grain grain)
-		 grain))
-	   (remove-duplicates specs :from-end t :test 'equal))
-   :from-end t))
-
 (defun graph-for-compiled (env spec)
   (graph-for env (compiled-dependency spec)))
 
@@ -81,8 +83,9 @@
   (graph-for-atom env name))
 
 (defun include-image-dependencies (env image)
-  (check-type image image-grain)
-  (setf (included-dependencies env) (image-included image)))
+  (when image
+    (check-type image image-grain)
+    (setf (included-dependencies env) (image-included image))))
 
 (defun graph-for-lisp-module (env name)
   (let* ((grain (resolve-absolute-module-name name))
@@ -96,17 +99,17 @@
 	  (error "graph-for-lisp-module: Need dependencies to generate file ~S.~%" fullname))
 	(dolist (target targets)
           (slot-makunbound target 'computation))
-	(let ((pre-image (pre-image-for env grain)))
-          (include-image-dependencies env pre-image)
-	  (load-command-for* env dependencies)
-          (setf (generator-computation generator)
-                (make-computation
-                 ()
-                 :outputs targets
-                 :inputs (traversed-dependencies env)
-                 :command
-                 `(:xcvb-driver-command (:image ,(fullname pre-image))
-                   ,@(traversed-load-commands env)))))))
+        (pre-image-for env grain)
+        (load-command-for* env dependencies)
+        (setf (generator-computation generator)
+              (make-computation
+               ()
+               :outputs targets
+               :inputs (traversed-dependencies env)
+               :command
+               `(:xcvb-driver-command
+                 ,(image-setup env)
+                 ,@(traversed-load-commands env))))))
     grain))
 
 (define-graph-for :build (env name)
@@ -126,12 +129,14 @@
         (make-phony-grain
          :name `(:build ,(fullname grain))
 	 :dependencies
-	 (progn (load-command-for*
-		 env (append (compile-dependencies grain) (load-dependencies grain)))
+	 (progn (load-command-for* env (compile-dependencies grain))
+                (load-command-for* env (load-dependencies grain))
 		(traversed-dependencies env))))))
 
 (define-graph-for :image (env name)
   (cond
+    ((null name) ; special: no image
+     nil)
     ((equal name "/_") ;; special: initial image
      (graph-for-image-grain env name nil nil))
     ((string-prefix<= "/_pre/" name)
@@ -153,43 +158,39 @@
 (defun pre-image-for (env grain)
   (let ((build (build-grain-for grain)))
     (check-type build build-grain)
-    (graph-for env `(:image ,(build-pre-image-name build)))))
+    (issue-image-named env (build-pre-image-name build))))
+
+(defun issue-image-named (env name)
+  (if name
+    (let ((image (graph-for env `(:image ,name))))
+      (issue-dependency env image)
+      (include-image-dependencies env image)
+      (setf (image-setup env) `(:image ,(fullname image)))
+      image)
+    (progn
+      (setf (image-setup env)
+            `(:load ,(loop
+                       :for dep :in *lisp-setup-dependencies*
+                       :for grain = (graph-for env dep)
+                       :do (issue-dependency env grain)
+                       :collect (fullname grain))))
+      nil)))
 
 (defun graph-for-image-grain (env name pre-image-name dependencies)
-  (with-nesting ()
-    (let ((pre-image
-           (when pre-image-name
-             (graph-for env `(:image ,pre-image-name))))))
-    (progn
-      (when pre-image-name
-        (include-image-dependencies env pre-image)))
-    (let ((pre-dependencies
-           (if pre-image
-             (list pre-image)
-             (graph-for* env *lisp-setup-dependencies*)))))
-    (progn
-      (load-command-for* env dependencies))
-    (let* ((dependencies
-            (append pre-dependencies (traversed-dependencies env)))
-           (included
-            (make-hashset :test 'equal
-                          :list dependencies
-                          :set (when pre-image (image-included pre-image))))
+  (let ((pre-image (issue-image-named env pre-image-name)))
+    (load-command-for* env dependencies)
+    (let* ((traversed (traversed-dependencies env))
            (grain
             (make-grain 'image-grain
                         :fullname `(:image ,name)
-                        :included included)))
-      (or (not pre-image-name)
-	  pre-image
-	  (error "pre-image is nil"))
+                        :included (make-hashset :test 'equal
+                                                :list traversed
+                                                :set (when pre-image (image-included pre-image))))))
       (make-computation ()
         :outputs (list grain)
-        :inputs dependencies
+        :inputs traversed
         :command
-        `(:xcvb-driver-command
-          ,(if pre-image-name
-               `(:image ,(fullname pre-image))
-               `(:load ,(mapcar #'fullname pre-dependencies)))
+        `(:xcvb-driver-command ,(image-setup env)
           (:create-image
            (:image ,name)
            ,@(traversed-load-commands env))))
@@ -222,12 +223,10 @@
   (let ((lisp (graph-for env fullname)))
     (check-type lisp lisp-grain)
     (handle-lisp-dependencies lisp)
-    (issue-dependency env lisp)
-    (let ((load-dependencies (load-dependencies lisp))
+    (let ((build-dependencies (build-dependencies lisp))
           (compile-dependencies (compile-dependencies lisp))
-          (build-dependencies (build-dependencies lisp))
-          (pre-image (pre-image-for env lisp)))
-      (include-image-dependencies env pre-image)
+          (load-dependencies (load-dependencies lisp)))
+      (pre-image-for env lisp)
       (load-command-for* env build-dependencies)
       (load-command-for* env compile-dependencies)
       (let ((outputs (fasl-grains-for-name fullname load-dependencies compile-dependencies
@@ -235,10 +234,9 @@
         (make-computation
          ()
          :outputs outputs
-         :inputs (cons pre-image (traversed-dependencies env))
+         :inputs (traversed-dependencies env)
          :command
-         `(:xcvb-driver-command
-           (:image ,(fullname pre-image))
+         `(:xcvb-driver-command ,(image-setup env)
            (:compile-lisp (,fullname)
             ,@(traversed-load-commands env))))
         outputs))))

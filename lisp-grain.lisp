@@ -147,11 +147,15 @@
        (eq :build (caar dependencies))
        (cadar dependencies)))
 
+(defun base-image-name ()
+  (when (or *use-base-image* (registered-grain `(:image "/_")))
+    "/_"))
+
 (defun build-pre-image-name (build-grain &optional traversed)
-  ;; TODO: catch infinite recursion in bad builds.
-  (when (member build-grain traversed)
-    (error "Circular build dependency of ~S" build-grain))
   (check-type build-grain build-grain)
+  (when (member build-grain traversed)
+    (error "Circular build dependency ~S"
+           (member build-grain (reverse traversed))))
   (handle-lisp-dependencies build-grain)
   (let* ((dependencies (build-dependencies build-grain))
          (pre-image-p (build-pre-image build-grain))
@@ -163,7 +167,8 @@
           (when starting-build
             (build-image-name starting-build))))
     (cond
-      ((null dependencies) "/_")
+      ((null dependencies)
+       (if pre-image-p "/_" (base-image-name)))
       ((and starting-build-image-name (null (cdr dependencies)))
        starting-build-image-name)
       (pre-image-p
@@ -172,8 +177,8 @@
        starting-build-image-name)
       (starting-build
        (build-pre-image-name starting-build (cons build-grain traversed)))
-      (t
-       "/_"))))
+      (t ; (not pre-image-p)
+       (base-image-name)))))
 
 (defun build-post-image-name (build-grain)
   ;; The closest build on top of which to load files to reach the state post loading the build.

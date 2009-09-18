@@ -294,6 +294,7 @@ The ``build.xcvb`` file for Exscribe is as follows::
                               (:asdf "fare-matcher") (:asdf "scribble")
                               (:asdf "cl-typesetting"))
            :depends-on ("exscribe" "exscribe-html" "exscribe-txt" "exscribe-typeset")
+           :pre-image t
            :build-image t))
 
 You don't need to specify all your files in the ``build.xcvb`` module form,
@@ -368,8 +369,8 @@ configuring variables that control your Lisp implementation,
 selecting compiler warnings you want to silence (see below `Warning Control`_),
 declaring features for conditional compilation based on some environment variables,
 initializing some pathname translation layer such as logical pathnames,
-extensions to the build system,
 loading specialized handlers for ASDF-DEPENDENCY-GROVEL when it is used,
+configuring or extending the XCVB driver itself,
 etc.,
 to name a few things that have been done as part of ITA Software's build.
 
@@ -379,6 +380,18 @@ following usual XCVB naming conventions.
 For instance, assuming your project has fullname ``/foo/bar``,
 you may create an XCVB module called ``setup.lisp`` under your build directory,
 and specify ``--setup /foo/bar/setup`` as arguments to ``xcvb make-makefile``.
+
+By default, XCVB will start the build by dumping an image
+starting from the specified implementation binary and image,
+and loading the XCVB driver followed by any setup you specified.
+This is often useful for performance reasons
+if your setup is non-trivial, or
+if there will be a large number of files being compiled from the initial setup
+(because their respective builds do not otherwise specify or inherit a pre-image).
+There are cases however, for instance in a small project with a trivial setup,
+where you will prefer to eschew the automating dumping of this initial base image.
+In these cases, you pass to ``xcvb make-makefile`` the option
+``--no-base-image``.
 
 
 Restrictions on your Lisp Code
@@ -621,11 +634,12 @@ before the compilation of each and every file in your build.
 
 In any case, whenever it compiles a build,
 XCVB will try to reuse an existing image if any is available,
-based on the first build dependency.
+based on the first dependency.
 Therefore, to maximize image reuse, make sure that the first dependency
 listed in a build's ``:build-depends-on`` is itself
 a build that has a post- or pre- image
-that already includes as many dependencies as possible.
+that already includes as many dependencies as possible,
+in which case your build will inherit an image from the former build.
 
 
 Additional Features
