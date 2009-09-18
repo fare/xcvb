@@ -13,8 +13,7 @@ directly into the dust bin of computer history.
 .. contents::
 ..
     1  memoization.lisp
-    2  asd-generator.lisp
-    3  operations.lisp
+    2  operations.lisp
 
 
 memoization.lisp
@@ -27,28 +26,6 @@ I originally intended to use it for interning elements
 of some classes where all slots are read-only.
 
 TODO: move to some other CL library, e.g. fare-utils, or its own.
-
-
-asd-generator.lisp
-------------------
-
-OUT-OF-DATE: should be rewritten as part of our refactoring.
-
-This file contains the code from our v0.1-prototype
-that used to take a dependency graph in the old format
-and write an asd file that can be used by asdf
-to compile the system specified by the graph.
-The entry point for this file was the write-asd-file function.
-The generated asd file would have one asdf module
-to load all the files/systems in the build-requires slot
-of the global build-module,
-and another module -- which depends on the first module --
-for all the other files/systems.
-
-The conversion to ASDF is lossy and the Makefile target
-should be preferred for development purposes,
-but the ASDF target should be good enough for deployment purposes
-when providing backwards compatibility with ASDF projects.
 
 
 operations.lisp

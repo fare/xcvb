@@ -39,15 +39,13 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "lisp-grain" :depends-on ("registry" "extract-target-properties"))
      (:file "names" :depends-on ("registry" "lisp-grain" "specials"))
      (:file "search-path" :depends-on ("registry" "specials" "portablish-pathnames"))
-     (:file "dependencies-interpreter" :depends-on ("names" "specials" "computations"))
+     (:file "normalize-dependency" :depends-on ("names" "specials" "grains"))
+     (:file "traversal" :depends-on ("names" "specials" "computations"))
+     (:file "dependencies-interpreter" :depends-on ("normalize-dependency" "traversal"))
      (:file "static-backends" :depends-on
             ("specials" "lisp-grain" "dependencies-interpreter" "logging"))
      (:file "makefile-backend" :depends-on ("static-backends" "string-escape" "computations"))
-
-     ;;; These files are not meaningful anymore, need to be re-written in the new framework:
-     ;;(:file "asd-generator" :depends-on (...)
-
-     ;;; These files may need some work before we officially release
+     (:file "asdf-backend" :depends-on ("dependencies-interpreter"))
      (:file "asdf-converter" :depends-on ("lisp-grain"))
      (:file "main" :depends-on ("static-backends" "search-path" "computations"))
      (:file "version" :depends-on ("specials"))))

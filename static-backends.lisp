@@ -2,13 +2,8 @@
 		("specials" "lisp-grain" "dependencies-interpreter" "logging")))
 (in-package :xcvb)
 
-(defclass static-traversal (simple-print-object-mixin)
-  ((grain-names
-    :initform nil
-    :initarg :grain-names
-    :reader traversed-grain-names-r
-    :documentation "grain names in the stack of things we try to create -- to avoid circularities")
-   (image-setup
+(defclass static-traversal (xcvb-traversal)
+  ((image-setup
     :accessor image-setup
     :documentation "xcvb-driver-command options to setup the image for the current computation")
    (included-dependencies
@@ -33,14 +28,8 @@
     :documentation "load commands issued so far to run the current compilation, in reverse order")))
 
 (defmethod dependency-already-included-p ((env static-traversal) grain)
-  (check-type grain grain)
   (or (gethash grain (included-dependencies env))
-      (gethash grain (issued-dependencies env))))
-
-(defmethod issue-dependency ((env static-traversal) grain)
-  (check-type grain grain)
-  (setf (gethash grain (issued-dependencies env)) t)
-  (push grain (traversed-dependencies-r env)))
+      (call-next-method)))
 
 (defmethod issue-load-command ((env static-traversal) command)
   (unless (gethash command (issued-load-commands env))
@@ -59,19 +48,10 @@
 (define-simple-dispatcher graph-for #'graph-for-atom)
 
 (defmethod graph-for ((env static-traversal) spec)
-  (let* ((current-grains-r (traversed-grain-names-r env))
-         (current-grains (reverse current-grains-r))
-         (circularity (member spec current-grains :test 'equal)))
-    (when circularity
-      (error "circularity in the dependencies:~%~{ ~S~%~}" circularity))
-    (call-with-grain-registration
-     spec
-     #'(lambda ()
-         (graph-for-dispatcher
-          (make-instance
-           'static-traversal
-           :grain-names (cons spec current-grains-r))
-          spec)))))
+  (call-with-grain-registration
+   spec
+   #'(lambda ()
+       (graph-for-dispatcher (next-traversal env spec) spec))))
 
 (defun graph-for-compiled (env spec)
   (graph-for env (compiled-dependency spec)))

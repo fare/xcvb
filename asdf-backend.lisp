@@ -1,3 +1,7 @@
+#+xcvb (module (:depends-on
+		("specials" "lisp-grain" "traversal" "logging")))
+(in-package :xcvb)
+
 ;;; TODO: rewrite this file according to the new XCVB internals
 ;;; i.e. create a file asdf-backend based on makefile-backend,
 ;;; and based on the output of static-backend, create an asd.
@@ -6,8 +10,33 @@
 ;;; (b) push these extensions for inclusion in upstream ASDF, or
 ;;; (c) just punt and have ASDF delegate to our in-image backend (if/when implemented)
 
-(in-package :xcvb)
+#|
+OUT-OF-DATE: should be rewritten as part of our refactoring.
 
+This file still contains bits from our v0.1-prototype
+that used to take a dependency graph in the old format
+and write an asd file that can be used by asdf
+to compile the system specified by the graph.
+The entry point for this file was the write-asd-file function.
+The generated asd file would have one asdf module
+to load all the files/systems in the build-requires slot
+of the global build-module,
+and another module -- which depends on the first module --
+for all the other files/systems.
+
+The conversion to ASDF is lossy and the Makefile target
+should be preferred for development purposes,
+but the ASDF target should be good enough for deployment purposes
+when providing backwards compatibility with ASDF projects.
+
+|#
+
+
+
+(defclass asdf-traversal (xcvb-traversal)
+  ())
+
+#|
 (defvar *visited-nodes* nil
   "A map of nodes that have already been visited
 when looking for asdf-systems in the dependency graph")
@@ -19,35 +48,8 @@ when looking for asdf-systems in the dependency graph")
   "The path that the asd file is being written to.
 All filepaths that show up in the asd file will be relative to this path.")
 
-
-(defgeneric find-asdf-systems (node)
-  (:documentation "Helper generic function for find-asdf-systems.
-Returns a list of the names of all the asdf-systems that this node depends on
-(or that any of its dependencies transitively depends on)"))
-
-(defmethod find-asdf-systems :around ((node dependency-graph-node))
-  ;; If this node has already been looked at, don't look at it again.
-  (unless (gethash (fullname node) *visited-nodes*)
-    ;; Add this node to the map of nodes already visited.
-    (setf (gethash (fullname node) *visited-nodes*) t)
-    (call-next-method)))
-
-(defmethod find-asdf-systems ((node asdf-system-node))
-  (list (name node)))
-
-(defmethod find-asdf-systems ((node dependency-graph-node-with-dependencies))
-  (remove-duplicates
-   (mapcan (lambda (dependency-node)
-             (find-asdf-systems dependency-node))
-           (append (compile-dependencies node) (load-dependencies node)))
-   :test #'equal))
-
-(defmethod find-asdf-systems ((node image-dump-node))
-  (find-asdf-systems (lisp-image node)))
-
-(defmethod find-asdf-systems ((node dependency-graph-node))
-  nil)
-
+(defvar *build-grain* nil
+  "blah")
 
 (defun write-asdf-system-header (filestream asdf-systems
                                  &optional (build-grain *build-grain*))
@@ -67,13 +69,7 @@ Returns a list of the names of all the asdf-systems that this node depends on
   (:documentation "Writes information about the given node and its dependencies
 to the filestream that can be put in the components section of an asd file"))
 
-
-(defmethod write-node-to-asd-file (filestream (node lisp-image-node))
-  (dolist (dep (append (compile-dependencies node)
-                       (load-dependencies node)))
-    (write-node-to-asd-file filestream dep)))
-
-(defmethod write-node-to-asd-file (filestream (node object-file-node))
+(defmethod write-node-to-asd-file (filestream node) ;;object-file-node
   (unless (or (gethash (namestring (make-pathname :type "fasl"
                                                   :defaults (fullname node)))
                        *written-nodes*) ;NUN
@@ -98,11 +94,6 @@ to the filestream that can be put in the components section of an asd file"))
                                                       *output-path*)))) ;NUN?
                (remove-if-not (lambda (dep) (typep dep 'object-file-node))
                               dependencies))))))
-
-
-(defmethod write-node-to-asd-file (filestream (node dependency-graph-node))
-  (declare (ignore filestream node)))
-
 
 (defun write-asd-file (source-path output-path)
   "Writes an asd file to output-path
@@ -136,3 +127,4 @@ that can be used to compile the file at source-path with asdf"
              ;;This is fragile!
              (system-name (subseq system-name 1 (- (length system-name) 1))))
         (format out "~12,0T)))~%~%(cl:pushnew :~A *features*)" system-name)))))
+|#
