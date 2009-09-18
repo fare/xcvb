@@ -31,28 +31,84 @@ when providing backwards compatibility with ASDF projects.
 
 |#
 
-
-
 (defclass asdf-traversal (xcvb-traversal)
   ())
 
-#|
-(defvar *visited-nodes* nil
-  "A map of nodes that have already been visited
-when looking for asdf-systems in the dependency graph")
+(defmethod issue-load-command ((env asdf-traversal) command)
+  (declare (ignorable env command))
+  (values))
 
-(defvar *written-nodes* nil
-  "A map of nodes that have already been written to the asd file.")
+(defvar *asdf-systems-superseded* (make-hashset :test 'equal)
+  "A list of asdf system we supersede")
+
+(defvar *asdf-system-dependencies* nil
+  "A list of asdf system we depend upon")
+
+(defmethod issue-dependency ((env asdf-traversal) (grain lisp-grain))
+  (let* ((build (build-grain-for grain)))
+    (if (build-in-asdf-target-p build)
+        (call-next-method)
+        (dolist (system (supersedes-asdf build))
+          (pushnew system *asdf-system-dependencies* :test 'equal))))
+  (values))
+
+(defmethod issue-dependency ((env asdf-traversal) (grain fasl-grain))
+  (issue-dependency env (graph-for env `(:lisp ,(second (fullname grain))))))
+
+(defmethod load-command-for-lisp ((env asdf-traversal) name)
+  (load-command-for-fasl env name))
+
+(define-graph-for :fasl ((env asdf-traversal) name)
+  (check-type name string)
+  (let* ((grain (resolve-absolute-module-name name))
+	 (fullname (if grain (fullname grain) (error "Couldn't resolve ~S to a lisp module" name)))
+	 (generator (gethash fullname *generators*)))
+    (check-type grain lisp-grain)
+    (handle-lisp-dependencies grain)
+    (let ((dependencies
+           (append (build-dependencies grain)
+                   (when generator (generator-dependencies generator))
+                   (compile-dependencies grain)
+                   (load-dependencies grain))))
+      (load-command-for* env dependencies)
+      (make-grain 'fasl-grain :fullname `(:fasl ,name)
+                  :load-dependencies (traversed-dependencies env)))))
+
+(define-graph-for :lisp ((env asdf-traversal) name)
+  (resolve-absolute-module-name name))
+
+(defun build-in-asdf-target-p (build)
+  (let ((asdfs (supersedes-asdf build)))
+    (and asdfs (intersection asdfs *asdf-systems-superseded* :test 'equal) t)))
+
+(defmethod graph-for-build-grain ((env asdf-traversal) grain)
+  (let ((asdfs (supersedes-asdf grain)))
+    (cond
+      ((build-in-asdf-target-p grain)
+       (load-command-for* env (compile-dependencies grain))
+       (load-command-for* env (load-dependencies grain)))
+      (asdfs
+       (dolist (system asdfs)
+         (pushnew system *asdf-system-dependencies* :test 'equal)))
+      (t
+       (error "Targets ~S depend on ~S but it isn't in an ASDF"
+              (traversed-dependencies-r env) (fullname grain))))))
+
+(define-graph-for :asdf ((env asdf-traversal) system-name)
+  (unless (member system-name *asdf-systems-superseded* :test 'equal)
+    (pushnew system-name *asdf-system-dependencies* :test 'equal))
+  (make-asdf-grain :name system-name
+                   :implementation *lisp-implementation-type*))
+
+
+#|
 
 (defvar *output-path* nil
   "The path that the asd file is being written to.
 All filepaths that show up in the asd file will be relative to this path.")
 
-(defvar *build-grain* nil
-  "blah")
-
 (defun write-asdf-system-header (filestream asdf-systems
-                                 &optional (build-grain *build-grain*))
+                                 &optional build-grain)
   "Writes the information from the build grain to the asdf file"
   (let* ((fullname (fullname build-grain))
          (pathname (portable-pathname-from-string fullname :allow-relative nil))
@@ -95,18 +151,23 @@ to the filestream that can be put in the components section of an asd file"))
                (remove-if-not (lambda (dep) (typep dep 'object-file-node))
                               dependencies))))))
 
-(defun write-asd-file (source-path output-path)
+
+
+(defun write-asd-file (&key build-names output-path asdf-name)
   "Writes an asd file to output-path
-that can be used to compile the file at source-path with asdf"
-  (with-open-file (out output-path :direction :output :if-exists :supersede)
-    (let* ((dependency-graph (create-dependency-graph source-path))
-           (build-requires-graph (create-lisp-image-node
-                                  (build-requires *build-grain*)))
-           (*visited-nodes* (make-hash-table :test #'equal))
-           (asdf-systems (append
-                          (find-asdf-systems build-requires-graph)
-                          (find-asdf-systems dependency-graph)))
-           (*output-path* output-path))
+that can be used to compile the system of given fullname.
+Declare asd system as ASDF-NAME."
+  (let* ((*use-cfasls* nil)
+         (asdf-name (coerce-asdf-system-name
+                     (or asdf-name (first (supersedes-asdf
+                                           (registered-build (first build-names))))))))
+    (dolist (name build-names)
+      (graph-for (make-instance 'asdf-traversal) name))
+         (asdf-systems (append
+                        (find-asdf-systems build-requires-graph)
+                        (find-asdf-systems dependency-graph)))
+         (*output-path* output-path))
+      (with-open-file (out output-path :direction :output :if-exists :supersede)
       (write-asdf-system-header out asdf-systems)
       (format out
               "~2,0T:components~%~2,0T((:grain \"build-requires-files\"~%~
@@ -120,11 +181,6 @@ that can be used to compile the file at source-path with asdf"
       ;; TODO: explain the issue with nodes that appear twice
       (let ((*written-nodes* (make-hash-table :test #'equal)))
         (write-node-to-asd-file out dependency-graph))
-      (let* ((system-name (namestring ;NUN
-                           (make-pathname :name nil
-                                          :type nil
-                                          :defaults (fullname *build-grain*))))
-             ;;This is fragile!
-             (system-name (subseq system-name 1 (- (length system-name) 1))))
-        (format out "~12,0T)))~%~%(cl:pushnew :~A *features*)" system-name)))))
+      (let* ((system-name output-path))
+        (format out "~12,0T)))~%" system-name)))))
 |#

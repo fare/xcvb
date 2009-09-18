@@ -4,7 +4,7 @@
 
 ;;; LOAD-COMMAND-FOR
 
-(define-simple-dispatcher load-command-for #'load-command-for-atom)
+(define-simple-dispatcher load-command-for #'load-command-for-atom :generic)
 
 (defun load-command-for (env spec)
   (load-command-for-dispatcher env spec))

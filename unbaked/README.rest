@@ -42,3 +42,9 @@ In practice, this seems to have been completely superseded by
 the "dependencies" language as specified in ``dependencies-interpreter.lisp``
 and its backends in ``static-backends.lisp``.
 
+
+parse-formals.lisp
+------------------
+
+Attempt to parse CL formals to build arity checkers.
+Only support formals for LAMBDA and DEFUN, not for DEFMETHOD.

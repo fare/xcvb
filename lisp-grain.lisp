@@ -56,8 +56,9 @@
                 (append common-dependencies
                         (normalize load-depends-on)))))
       (when (build-grain-p grain)
-        (with-slots (build-depends-on build-dependencies) grain
-          (setf build-dependencies (normalize build-depends-on))))))
+        (with-slots (build-depends-on build-dependencies supersedes-asdf) grain
+          (setf build-dependencies (normalize build-depends-on)
+                supersedes-asdf (mapcar #'coerce-asdf-system-name supersedes-asdf))))))
   (values))
 
 ;; Lisp grain extension form for generating Lisp files.

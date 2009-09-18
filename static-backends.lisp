@@ -36,38 +36,24 @@
     (setf (gethash command (issued-load-commands env)) t)
     (push command (traversed-load-commands-r env))))
 
-(defmethod traversed-dependencies ((env static-traversal))
-  (reverse (traversed-dependencies-r env)))
-
 (defmethod traversed-load-commands ((env static-traversal))
   (reverse (traversed-load-commands-r env)))
 
 (defmethod load-command-issued-p ((env static-traversal) command)
   (values (gethash command (issued-load-commands env))))
 
-(define-simple-dispatcher graph-for #'graph-for-atom)
-
-(defmethod graph-for ((env static-traversal) spec)
-  (call-with-grain-registration
-   spec
-   #'(lambda ()
-       (graph-for-dispatcher (next-traversal env spec) spec))))
-
 (defun graph-for-compiled (env spec)
   (graph-for env (compiled-dependency spec)))
 
-(defmethod graph-for-atom (env (name string))
-  (graph-for-lisp-module env name))
-
-(define-graph-for :lisp (env name)
-  (graph-for-atom env name))
+(defmethod graph-for-atom (env name)
+  (error "invalid normalized dependency ~S" name))
 
 (defun include-image-dependencies (env image)
   (when image
     (check-type image image-grain)
     (setf (included-dependencies env) (image-included image))))
 
-(defun graph-for-lisp-module (env name)
+(define-graph-for :lisp ((env static-traversal) name)
   (let* ((grain (resolve-absolute-module-name name))
 	 (fullname (if grain (fullname grain) (error "Couldn't resolve ~S to a lisp module" name)))
 	 (generator (gethash fullname *generators*)))
@@ -76,7 +62,7 @@
       (let ((dependencies (append (build-dependencies grain) (generator-dependencies generator)))
 	    (targets (generator-targets generator)))
 	(unless dependencies
-	  (error "graph-for-lisp-module: Need dependencies to generate file ~S.~%" fullname))
+	  (error "graph-for-lisp: Need dependencies to generate file ~S.~%" fullname))
 	(dolist (target targets)
           (slot-makunbound target 'computation))
         (pre-image-for env grain)
@@ -98,11 +84,13 @@
 (define-graph-for :compile-build (env name)
   (graph-for-build-named env name))
 
-(defun graph-for-build-named (env name)
+(defmethod graph-for-build-named (env name)
   (graph-for-build-grain env (registered-build name)))
 
+(defmethod graph-for-build-grain :before (env (grain build-grain))
+  (handle-lisp-dependencies grain))
+
 (defmethod graph-for-build-grain ((env static-traversal) (grain build-grain))
-  (handle-lisp-dependencies grain)
   (let ((post-image-name (build-image-name grain)))
     (if post-image-name
         (graph-for env `(:image ,post-image-name))
@@ -113,7 +101,7 @@
                 (load-command-for* env (load-dependencies grain))
 		(traversed-dependencies env))))))
 
-(define-graph-for :image (env name)
+(define-graph-for :image ((env static-traversal) name)
   (cond
     ((null name) ; special: no image
      nil)
@@ -187,25 +175,26 @@
    :in in
    :fullname `(:source ,name :in ,in)))
 
-(define-graph-for :asdf (env system-name)
+(define-graph-for :asdf ((env static-traversal) system-name)
   (declare (ignore env))
   (make-asdf-grain :name system-name
                    :implementation *lisp-implementation-type*))
 
-(define-graph-for :fasl (env lisp-name)
+(define-graph-for :fasl ((env static-traversal) lisp-name)
   (first (graph-for-fasls env lisp-name)))
 
-(define-graph-for :cfasl (env lisp-name)
+(define-graph-for :cfasl ((env static-traversal) lisp-name)
   (second (graph-for-fasls env lisp-name)))
 
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
-  (let ((lisp (graph-for env fullname)))
+  (let ((lisp (graph-for-lisp env fullname)))
     (check-type lisp lisp-grain)
     (handle-lisp-dependencies lisp)
     (let ((build-dependencies (build-dependencies lisp))
           (compile-dependencies (compile-dependencies lisp))
           (load-dependencies (load-dependencies lisp)))
+      (issue-dependency env lisp)
       (pre-image-for env lisp)
       (load-command-for* env build-dependencies)
       (load-command-for* env compile-dependencies)

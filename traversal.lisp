@@ -41,18 +41,23 @@
     :accessor traversed-dependencies-r
     :documentation "dependencies issued as part of the current computation, in reverse order")))
 
-(defmethod graph-for :around ((env xcvb-traversal) spec)
+(defmethod graph-for ((env xcvb-traversal) spec)
   (let* ((current-grains-r (traversed-grain-names-r env)))
     (when (member spec current-grains-r :test 'equal)
       (error "circularity in the dependencies:~%~{ ~S~%~}"
              (member spec (reverse current-grains-r) :test 'equal)))
-    ;; the next-method should not forget to pass downwards (next-traversal env spec)
-    (call-next-method)))
+    (call-with-grain-registration
+     spec
+     #'(lambda ()
+         (graph-for-dispatcher (next-traversal env spec) spec)))))
 
 (defmethod next-traversal ((env xcvb-traversal) spec)
   (make-instance
    (class-of env)
    :grain-names (cons spec (traversed-grain-names-r env))))
+
+(defmethod traversed-dependencies ((env xcvb-traversal))
+  (reverse (traversed-dependencies-r env)))
 
 (defmethod dependency-already-included-p :before (env grain)
   (check-type env xcvb-traversal)
@@ -76,3 +81,5 @@
 
 (defmacro with-dependency-loading ((env grain) &body body)
   `(call-with-dependency-loading ,env ,grain (lambda () ,@body)))
+
+(define-simple-dispatcher graph-for #'graph-for-atom :generic)
