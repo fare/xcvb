@@ -769,6 +769,9 @@ as an upper-case string or a lower-case keyword (which will be case-converted).
 These things are implementation-dependent, and so often used in conjunction
 with ``:when`` or ``:cond``.
 
+Example::
+	... :depends-on (... (when (:featurep :sbcl) (:require :sb-posix)) ...)
+
 
 XCVB and ASDF
 =============

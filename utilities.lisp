@@ -63,7 +63,6 @@
        (string= x y :end2 (length x))))
 
 
-
 ;;; List functions
 (defun proper-list-p (x)
   "Returns T if X is a proper list, NIL if it isn't. Checks for circularity"

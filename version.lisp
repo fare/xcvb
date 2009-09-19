@@ -1,3 +1,2 @@
 #+xcvb (module (:depends-on ("specials")))
-
-(cl:defparameter xcvb:*xcvb-version* "0.375")
+(cl:defparameter xcvb:*xcvb-version* "0.376")

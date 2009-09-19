@@ -120,6 +120,11 @@ And so the priority at ITA is to solve this performance issue.
     without having to maintain a dual build system.
     A full incremental enforcing build could be performed in parallel
     as part of our precheckin.
+    Actually having an ASDF backend (see `ASDF backend [V1]`_) means that
+    we not only get the serial build,
+    we also get the non-enforcing parallel build (POIU),
+    an integration into existing tools,
+    and a happier community.
 
   Profiling the build:
     To understand what is taking so long,
@@ -142,7 +147,8 @@ And so the priority at ITA is to solve this performance issue.
     but how much this would help we can evaluate by profiling the build without having to code it.
     The disadvantage is that we will have to make fork work with CCL again
     (my previous patch to CCL has bitrotten and gbyers didn't like the idea;
-    so that would be a few more days of work to get it up to date).
+    so that would be a few more days of work to get it up to date;
+    note that just by adding fork to CCL we will be able to use POIU on it).
 
   Refactoring:
     Rearrange our code so that the really needed forms that everyone depends on
@@ -193,9 +199,7 @@ Here is the top of our TODO list at ITA:
 
  * Make XCVB fast on our large system, on which it currently builds an order of magnitude
    slower than the ASDF build, on a quad-core system.
-   See `Enhancing Build Speed [V1]`_.
-
- * Move tests outside from the system itself - speed compile, etc.
+   See above `Enhancing Build Speed [V1]`_.
 
  * Apply XCVB to some actual big projects at ITA.
 
@@ -372,9 +376,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
  * Allow individual lisp modules to override
    the ``:build-depends-on`` inherited from their ``build.xcvb``.
 
- * Re-implement the ASDF backend, so ASDF users can use XCVB builds.
-   See `ASDF backend [V1]`_
-
  * Make XCVB independent from ``cl-launch``
    by implementing the missing functionality
    (init forms, resume function,
@@ -383,8 +384,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
  * [Fixed in SBCL 1.0.31.3 - remove this note when 1.0.32 is released]
    Get SBCL bug 411925 https://bugs.launchpad.net/bugs/411925 fixed
    so making images from images should work.
-
- * Expand the migration code from ASDF. See `Migration from ASDF [V1]`_.
 
  * Have a test suite for XCVB that includes automated migration of some benchmark ASDF systems
    (e.g. historical tarballs of well-known systems?)
@@ -405,10 +404,15 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
 
  * In some future, XCVB should control make itself, have a debug option,
    and drop you at the REPL of the failing Lisp file with useful restarts.
-   Also, there is now a ``xcvb-driver:debugging`` primitive.
-   Make it possible to easily re-invoke the failing command with debugging enabled;
+   We should make it possible to easily re-invoke the failing command.
    maybe ``xcvb.mk`` should always include a ${DEBUGGING} statement in its output?
-   Or should the ``driver.lisp`` check for some environment variable (ugh)?
+   As a cheap solution, we currently have ``driver.lisp`` check
+   for some environment variable (yuck): the ``xcvb-driver:debugging`` primitive
+   will be called if the shell variable ``XCVB_DEBUGGING`` is exported and non-nil
+   (see also ``XCVB_PROFILING``).
+   A good way to run with debugging enabled when a failure has been detected
+   it to just:
+   ``make -j -f xcvb.mk || XCVB_DEBUGGING=t make -f xcvb.mk``
 
  * Starting whenever we have users who actually use XCVB to bootstrap XCVB,
    we'll want ``driver.lisp`` to provide backwards compatibility.
@@ -468,11 +472,11 @@ i.e. things that do not modify the deep semantic model of XCVB,
 but are necessary to make it usable.
 
 
-Migration from ASDF [V1]
+Migration from ASDF [V2]
 ------------------------
 
-We can already do simple cases
-with a proper command-line interface.
+We already have what we need for [V1]:
+we can already do simple cases with a proper command-line interface.
 See the ``README.rest``.
 
 Now, we need to handle more complex cases involving migrating
@@ -554,6 +558,8 @@ so that ASDF may dynamically invoke XCVB when such systems
 are to be compiled.
 
 Add a test suite for the ASDF backend.
+
+A preliminary version is written. It needs to be tested and documented.
 
 
 Centralized Dependency Declaration [V1]

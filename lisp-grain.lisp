@@ -210,3 +210,8 @@
 (defmethod compile-dependencies ((grain asdf-grain))
   nil)
 
+(defmethod print-object ((x grain) stream)
+  (if (member (type-of x) *print-concisely*)
+      (print-unreadable-object (x stream :type t :identity nil)
+        (format stream "~S" (slot-value x 'fullname)))
+      (call-next-method)))

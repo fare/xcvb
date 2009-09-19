@@ -91,3 +91,5 @@ Negatives are stored as NIL. Positives as grains.")
 
 (defvar *use-base-image* t
   "Should we be using a base image for all builds?")
+
+(defvar *print-concisely* '(build-grain lisp-grain fasl-grain))

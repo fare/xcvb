@@ -156,8 +156,45 @@
   (reset-variables)
   (when xcvb-path
     (set-search-path! xcvb-path))
+  (search-search-path)
   (show-search-path))
 
+(defparameter +xcvb-to-asdf-option-spec+
+  '((("build" #\b) :type string :optional nil :list t :documentation "Specify a build to convert (can be repeated)")
+    (("name" #\n) :type string :optional t :documentation "name of the new ASDF system")
+    (("output-path" #\o) :type string :optional t :documentation "pathname for the new ASDF system")
+    (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
+    (("object-directory" #\O) :type string :optional t :documentation "specify object directory (default: obj)")
+    (("lisp-implementation" #\i) :type string :optional t :documentation "specify type of Lisp implementation (default: sbcl)")
+    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+    (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
+
+(defun xcvb-to-asdf-command (arguments &key
+                             build name output-path verbosity xcvb-path
+                             lisp-implementation lisp-binary-path
+                             object-directory)
+  (when arguments
+    (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
+  (reset-variables)
+  (when verbosity
+    (setf *xcvb-verbosity* verbosity))
+  (when xcvb-path
+    (set-search-path! xcvb-path))
+  (when object-directory
+    (setf *object-directory* ;; strip last "/"
+          (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
+  (when lisp-implementation
+    (setf *lisp-implementation-type*
+          (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+  (when lisp-binary-path
+    (setf *lisp-executable-pathname* lisp-binary-path))
+  (extract-target-properties)
+  (read-target-properties)
+  (search-search-path)
+  (write-asd-file
+   :asdf-name name
+   :build-names (mapcar #'coerce-asdf-system-name build)
+   :output-path output-path))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Command Spec ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -183,6 +220,9 @@ a chance to load and/or configure ASDF itself and any extension thereof.")
     (("remove-xcvb" "rm-x" "rx") remove-xcvb-command +remove-xcvb-option-spec+
      "Remove XCVB modules from files in build"
      "Given an XCVB build file, removes the XCVB modules from each of the files listed in the build file.")
+    (("xcvb-to-asdf" "x2a") xcvb-to-asdf-command +xcvb-to-asdf-option-spec+
+     "Extract an ASDF system from XCVB"
+     "Automatically extract an ASDF system from one or many XCVB builds.")
     (("show-search-path" "search-path" "ssp") show-search-path-command +show-search-path-option-spec+
      "Show builds in the specified XCVB path"
      "Show builds in the implicitly or explicitly specified XCVB path.

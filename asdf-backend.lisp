@@ -38,6 +38,9 @@ when providing backwards compatibility with ASDF projects.
   (declare (ignorable env command))
   (values))
 
+(defvar *target-builds* (make-hashset :test 'equal)
+  "A list of asdf system we supersede")
+
 (defvar *asdf-systems-superseded* (make-hashset :test 'equal)
   "A list of asdf system we supersede")
 
@@ -46,7 +49,7 @@ when providing backwards compatibility with ASDF projects.
 
 (defmethod issue-dependency ((env asdf-traversal) (grain lisp-grain))
   (let* ((build (build-grain-for grain)))
-    (if (build-in-asdf-target-p build)
+    (if (build-in-target-p build)
         (call-next-method)
         (dolist (system (supersedes-asdf build))
           (pushnew system *asdf-system-dependencies* :test 'equal))))
@@ -65,26 +68,35 @@ when providing backwards compatibility with ASDF projects.
 	 (generator (gethash fullname *generators*)))
     (check-type grain lisp-grain)
     (handle-lisp-dependencies grain)
-    (let ((dependencies
-           (append (build-dependencies grain)
-                   (when generator (generator-dependencies generator))
-                   (compile-dependencies grain)
-                   (load-dependencies grain))))
+    (issue-dependency env grain)
+    (let* ((dependencies
+            (remove-duplicates
+             (append (build-dependencies grain)
+                     (when generator (generator-dependencies generator))
+                     (compile-dependencies grain)
+                     (load-dependencies grain))
+             :test 'equal :from-end t))
+           (fasl
+            (make-grain 'fasl-grain :fullname `(:fasl ,name)
+                        :load-dependencies ())))
       (load-command-for* env dependencies)
-      (make-grain 'fasl-grain :fullname `(:fasl ,name)
-                  :load-dependencies (traversed-dependencies env)))))
+      (make-computation
+       ()
+       :outputs (list fasl)
+       :inputs (traversed-dependencies env)
+       :command nil)
+      fasl)))
 
 (define-graph-for :lisp ((env asdf-traversal) name)
   (resolve-absolute-module-name name))
 
-(defun build-in-asdf-target-p (build)
-  (let ((asdfs (supersedes-asdf build)))
-    (and asdfs (intersection asdfs *asdf-systems-superseded* :test 'equal) t)))
+(defun build-in-target-p (build)
+  (gethash (fullname build) *target-builds*))
 
 (defmethod graph-for-build-grain ((env asdf-traversal) grain)
   (let ((asdfs (supersedes-asdf grain)))
     (cond
-      ((build-in-asdf-target-p grain)
+      ((build-in-target-p grain)
        (load-command-for* env (compile-dependencies grain))
        (load-command-for* env (load-dependencies grain)))
       (asdfs
@@ -95,92 +107,86 @@ when providing backwards compatibility with ASDF projects.
               (traversed-dependencies-r env) (fullname grain))))))
 
 (define-graph-for :asdf ((env asdf-traversal) system-name)
-  (unless (member system-name *asdf-systems-superseded* :test 'equal)
+  (unless (gethash system-name *asdf-systems-superseded*)
     (pushnew system-name *asdf-system-dependencies* :test 'equal))
   (make-asdf-grain :name system-name
                    :implementation *lisp-implementation-type*))
 
-
-#|
-
-(defvar *output-path* nil
-  "The path that the asd file is being written to.
-All filepaths that show up in the asd file will be relative to this path.")
-
-(defun write-asdf-system-header (filestream asdf-systems
-                                 &optional build-grain)
-  "Writes the information from the build grain to the asdf file"
-  (let* ((fullname (fullname build-grain))
-         (pathname (portable-pathname-from-string fullname :allow-relative nil))
-         (system-name (string-downcase (second (pathname-directory pathname)))))
-    (format filestream "~&(asdf:defsystem :~A~%" system-name))
-  (dolist (slot '(author maintainer version licence description long-description))
-    (when (slot-boundp build-grain slot)
-      (format filestream "~2,0T:~(~A~) ~S~%" slot (slot-value build-grain slot))))
-  (if asdf-systems
-    (format filestream "~2,0T:depends-on (~{:~A~^ ~})~%" asdf-systems)))
-
-
-(defgeneric write-node-to-asd-file (filestream node)
-  (:documentation "Writes information about the given node and its dependencies
-to the filestream that can be put in the components section of an asd file"))
-
-(defmethod write-node-to-asd-file (filestream node) ;;object-file-node
-  (unless (or (gethash (namestring (make-pathname :type "fasl"
-                                                  :defaults (fullname node)))
-                       *written-nodes*) ;NUN
-              (gethash (namestring (make-pathname :type "cfasl"
-                                                  :defaults (fullname node)))
-                       *written-nodes*));If this node has already been written to the makefile, don't write it again. ;NUN
-    (setf (gethash (fullname node) *written-nodes*) t);Add this node to the map of nodes already written to the makefile
-    (let ((dependencies (union (rest (compile-dependencies node))
-                               (load-dependencies node))))
-      (dolist (dep dependencies)
-        (write-node-to-asd-file filestream dep))
-      (format filestream "~13,0T(:file ~s~@[ :depends-on ~s~])~%"
-              (namestring (make-pathname
-                           :type nil
-                           :defaults (enough-namestring (source-filepath node)
-                                                        *output-path*))) ;NUN?
-              (mapcar
-               (lambda (node) (namestring (make-pathname
-                                           :type nil
-                                           :defaults (enough-namestring
-                                                      (source-filepath node)
-                                                      *output-path*)))) ;NUN?
-               (remove-if-not (lambda (dep) (typep dep 'object-file-node))
-                              dependencies))))))
-
-
+(defun write-asd-prelude (s)
+  (format s
+   ";;; This file was automatically generated by XCVB ~A with the arguments~%~
+    ;;;    ~{~A~^ ~}~%~
+    ;;; It may have been specialized to the target implementation ~A~%~
+    ;;; with the following features:~%~
+    ;;;    ~S~%~%~
+   (in-package :asdf)~%~%"
+   *xcvb-version* cl-launch:*arguments* *lisp-implementation-type* *features*))
 
 (defun write-asd-file (&key build-names output-path asdf-name)
-  "Writes an asd file to output-path
-that can be used to compile the system of given fullname.
+  "Writes an asd file to OUTPUT-PATH
+covering the builds specified by BUILD-NAMES.
 Declare asd system as ASDF-NAME."
-  (let* ((*use-cfasls* nil)
-         (asdf-name (coerce-asdf-system-name
-                     (or asdf-name (first (supersedes-asdf
-                                           (registered-build (first build-names))))))))
-    (dolist (name build-names)
-      (graph-for (make-instance 'asdf-traversal) name))
-         (asdf-systems (append
-                        (find-asdf-systems build-requires-graph)
-                        (find-asdf-systems dependency-graph)))
-         (*output-path* output-path))
-      (with-open-file (out output-path :direction :output :if-exists :supersede)
-      (write-asdf-system-header out asdf-systems)
-      (format out
-              "~2,0T:components~%~2,0T((:grain \"build-requires-files\"~%~
-~12,0T:pathname #p\".\"~%~12,0T:components~%~12,0T(")
-      (let ((*written-nodes* (make-hash-table :test #'equal)))
-        (write-node-to-asd-file out build-requires-graph))
-      (format out
-              "~12,0T))~%~3,0T(:grain \"main-files\"~%~
-~12,0T:pathname #p\".\"~%~12,0T:depends-on(\"build-requires-files\")~%~
-~12,0T:components~%~12,0T(")
-      ;; TODO: explain the issue with nodes that appear twice
-      (let ((*written-nodes* (make-hash-table :test #'equal)))
-        (write-node-to-asd-file out dependency-graph))
-      (let* ((system-name output-path))
-        (format out "~12,0T)))~%" system-name)))))
-|#
+  (assert (consp build-names))
+  (let* ((builds (mapcar #'registered-build build-names))
+         (first-build (first builds))
+         (asdf-name
+          (coerce-asdf-system-name
+           (or asdf-name (first (supersedes-asdf first-build)))))
+         (output-path (ensure-absolute-pathname output-path))
+         (output-dir (pathname-directory-pathname output-path))
+         (output-path
+          (merge-pathnames
+           output-path
+           (merge-pathnames
+            (make-pathname :name asdf-name :type "asd")
+            (grain-pathname first-build))))
+         (*target-builds* (make-hashset :test 'equal :list (mapcar #'fullname builds)))
+         (*asdf-systems-superseded*
+          (make-hashset
+           :test 'equal
+           :list (loop :for b :in builds
+                   :nconc (mapcar #'coerce-asdf-system-name
+                                  (supersedes-asdf b)))))
+         (*use-cfasls* nil))
+    (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
+    (dolist (b builds)
+      (graph-for-build-grain (make-instance 'asdf-traversal) b))
+    (log-format 6 "T=~A creating asd file ~A~%" (get-universal-time) output-path)
+    (with-open-file (out output-path :direction :output :if-exists :supersede)
+      (with-standard-io-syntax
+        (let* ((form (make-asdf-form asdf-name (fullname first-build)))
+               (*print-escape* nil)
+               (*package* (find-package :asdf))
+               (*print-case* :downcase)
+               (*default-pathname-defaults* output-dir))
+          (write-asd-prelude out)
+          (write form :stream out :pretty t :miser-width 79))))))
+
+(defun keywordify-asdf-name (name)
+  (kintern "~:@(~A~)" name))
+
+(defun make-asdf-form (asdf-name build &aux (prefix (strcat build "/")))
+  (flet ((aname (x)
+           (let ((n (fullname x)))
+             (if (string-prefix<= prefix n)
+               (subseq n (length prefix))
+               n))))
+    `(asdf:defsystem ,(keywordify-asdf-name asdf-name)
+       :depends-on ,(mapcar 'keywordify-asdf-name (reverse *asdf-system-dependencies*))
+       :components ,(loop :for computation :in (reverse *computations*)
+                      :for fasl = (first (computation-outputs computation))
+                      :for lisp = (first (computation-inputs computation))
+                      :for deps = (rest (computation-inputs computation))
+                      :for build = (and lisp (build-grain-for lisp))
+                      :for includedp = (and build (build-in-target-p build))
+                      :for depends-on = (loop :for dep :in deps
+                                          :when (eq (type-of dep) 'lisp-grain)
+                                          :collect (aname dep))
+                      :for name = (and lisp (aname lisp))
+                      :for pathname = (and lisp (asdf-dependency-grovel::strip.lisp
+                                                 (enough-namestring (grain-pathname lisp))))
+                      :when includedp :collect
+                      `(:file ,name
+                              ,@(unless (and (equal name pathname) (not (find #\/ name)))
+                                        `(:pathname pathname))
+                              ,@(when depends-on `(:depends-on ,depends-on)))))))

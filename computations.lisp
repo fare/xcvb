@@ -108,6 +108,14 @@
     (make-nop-computation dependencies (list grain))
     grain))
 
+(defmethod print-object ((x computation) stream)
+  (print-unreadable-object (x stream :type t :identity nil)
+    (with-slots (inputs outputs command) x
+    (format stream ":inputs ~S :outputs ~S :command ~S"
+            (mapcar #'fullname inputs)
+            (mapcar #'fullname outputs)
+            command))))
+
 ;;; TODO: use a more declarative model to describe the various types of objects
 ;;; and the types of relations between them within a given first-class context,
 ;;; so that there can be pure functions from context to context,

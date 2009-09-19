@@ -130,9 +130,7 @@
 
 (defun show-search-path ()
   "Show registered builds"
-  (search-search-path)
-  (format t "~&Registered search paths:~{~% ~S~}~%"
-          *search-path*)
+  (format t "~&Registered search paths:~{~% ~S~}~%" *search-path*)
   (format t "~%Builds found in the search paths:~%")
   (loop :for (fullname . entry) :in (sort (hash-table->alist *grains*) #'string<
                                           :key (lambda (x) (princ-to-string (car x)))) :do
