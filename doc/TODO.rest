@@ -21,9 +21,9 @@ and background on the design and ultimate goals of XCVB.
       1.3  Other Top TODO Items [V1]
     2   Roadmap [Done]
     3   Usability Issues [V1]
-      3.1   Migration from ASDF [V1]
+      3.1   Migration from ASDF [V2]
       3.2   In-image loading [V1]
-      3.3   ASDF backend [V1]
+      3.3   ASDF backend [Done]
       3.4   Centralized Dependency Declaration [V1]
       3.5   Exploded File Dependencies [V1]
       3.6   Lack of Manual [V1]
@@ -33,17 +33,15 @@ and background on the design and ultimate goals of XCVB.
       3.10  Configurability of the build image [Done]
       3.11  Conditional Build [Done]
     4   Features [V2]
-      4.1   Improve Makefile backend [V2]
-      4.2   Abstract Away Paths [V2]
-      4.3   Initialization and Finalization [V2]
-      4.4   Tests [V2]
-      4.5   Dependency grovelling [V2]
-      4.6   Revert [V2]
-      4.7   Bootstrap [V3]
-      4.8   Same source, multiple compilers [V4]
-      4.9   Correctly handling C libraries [V4]
-      4.10  Dynamic compilation [V4]
-      4.11  Bug hunting [V5]
+      4.1  Improve Makefile backend [V2]
+      4.2  Abstract Away Paths [V2]
+      4.3  Initialization and Finalization [V2]
+      4.4  Tests [V2]
+      4.5  Dependency grovelling [V2]
+      4.6  Bootstrap [V3]
+      4.7  Same source, multiple compilers [V4]
+      4.8  Correctly handling C libraries [V4]
+      4.9  Bug hunting [V5]
     5   Ideas from jknight [V2]
     6   The semantics of dependencies [V2]
       6.1  Computed Lisp files [V2]
@@ -113,38 +111,41 @@ lead to a build time that is an order of magnitude slower
 than the serial build time with ASDF, on a quad-core machine.
 And so the priority at ITA is to solve this performance issue.
 
-  Serial build:
-    provide a non-enforcing serial build that brings the speed of ASDF
-    while using XCVB. This won't provide the same safety features of XCVB,
-    but will allow transition to XCVB while we fix the performance issues
-    without having to maintain a dual build system.
-    A full incremental enforcing build could be performed in parallel
-    as part of our precheckin.
-    Actually having an ASDF backend (see `ASDF backend [V1]`_) means that
-    we not only get the serial build,
-    we also get the non-enforcing parallel build (POIU),
-    an integration into existing tools,
-    and a happier community.
+  Non-enforcing build:
+    Provide a non-enforcing serial build using the `ASDF backend [Done]`_.
+    It will bring the compilation speed of ASDF or POIU
+    while XCVB can still provide the safety and maintainability
+    that are currently lacking.
+
+      * Modify the QRes Makefile to use this feature.
+        Hackers looking for a quicker build would use this with POIU.
+
+      * Modify precheckin to do an incremental build in parallel,
+        so safety is preserved.
+
+      * For POIU to work with CCL, redo a singlethreaded patch of CCL
+        (the previous one was victim of bit-rot).
+        without having to maintain two sets of dependencies.
 
   Profiling the build:
-    To understand what is taking so long,
+    Understand what is causing the performance problem,
     which files are clogging the build,
-    and how much more clever build strategies (see below) could help,
-    we should profile the build.
-    This is relatively straightforward:
-    edit the xcvb/driver so it will save aside the time spent
-    on loading and compiling the various files,
-    then write some programs to analyze the results,
-    and compare how a different build strategy would help.
+    and how much more clever build strategies (see below) could help.
+
+      * Add profiling information to xcvb/driver. [Done]
+
+      * Analyze statistics gathered so far.
 
   Building with forks:
-    Don't build with make, but by forking processes that cache a partial state of the image
+    Don't build with make, but by forking processes
+    that cache a partial state of the image
     with various CFASLs being loaded so far.
     This may tremendously reduce the overhead currently due to loading CFASLs.
     The advantage is that it can easily be automated with relatively little code (1 week).
     However, because of the combinatorial explosion in which subset of the CFASLs is required
     for building which file, this may or may not help as much as we'd like;
-    but how much this would help we can evaluate by profiling the build without having to code it.
+    but how much this would help we can evaluate by using the above analysis
+    without having to do the hard part of the code.
     The disadvantage is that we will have to make fork work with CCL again
     (my previous patch to CCL has bitrotten and gbyers didn't like the idea;
     so that would be a few more days of work to get it up to date;
@@ -192,18 +193,20 @@ And so the priority at ITA is to solve this performance issue.
     it requires adherence to some package discipline we don't follow in QRes,
     and for which we have no enforcement tool yet.
 
+
 Top ITA TODO [V1]
 -----------------
 
 Here is the top of our TODO list at ITA:
 
- * Make XCVB fast on our large system, on which it currently builds an order of magnitude
-   slower than the ASDF build, on a quad-core system.
-   See above `Enhancing Build Speed [V1]`_.
+  Fix our performance issue:
+    Provide for fast compilation of QRes with XCVB.
+    The enforcing build of QRes is an order of magnitude slower than the ASDF build
+    (on a quad-core system). See above `Enhancing Build Speed [V1]`_.
 
- * Apply XCVB to some actual big projects at ITA.
+  Finish applying XCVB to QRes:
 
-   + Complete the EVAL-WHEN cleanup of ITA code. [Mostly Done]
+   + Complete the EVAL-WHEN cleanup of QRes. [Mostly Done]
 
    + Implement the removal of XCVB module statements, so (a copy of) a migrated
      system may easily be de-a2x'ed, leaving only the EVAL-WHEN and other fixes,
@@ -306,16 +309,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
  * Filter out :static-file from consideration by a2x -- or maybe not:
    hopefully, ASDF 1.366 will have saner component-relative-pathname methods that don't
    create crazy pathnames with dots in the name and a null type.
-
- * Extend the ``command-line-arguments`` library to allow for better self-documentation
-   of option specifications with ``:documentation`` keyword arguments to options,
-   that can be trivially used to generate help for command options and sub-command options
-   (think about ``svn`` or ``git`` calling conventions).
-   Maybe make that an extension to command-line-arguments, that itself uses
-   a more general tool to display stuff on a terminal while respecting terminal width;
-   or that actually outputs HTML and uses lynx -dump.
-   Or that outputs HTML and invokes a browser.
-   Use that to generate XCVB internal help.
 
  * When identifying a file dependency,
    make the distinction between ``:source``, ``:object`` or ``:file``
@@ -503,8 +496,15 @@ In-image loading [V1]
 
 Provide support for XCVB to be able to handle
 compiling and loading a system into the current Lisp image.
+(In addition or replacement to the ASDF backend).
 
 This support is to be provided by a small and simple build ``/xcvb/master``.
+The thin layer will collect the information about the running system
+and about objects already loaded in it,
+as well as the additional systems required and any options configuring the build,
+then invoke (with run-program or equivalent) an XCVB process
+that will build any additional file and print a form (in yet another DSL)
+to be evaluated by the calling process so it may be suitably enhanced.
 
 For better determinism, in-image loading will by default
 delegate all compilation to some slave sub-process using the
@@ -543,8 +543,8 @@ whereby extensions are to be loaded in the current XCVB image.
 So the X of XCVB is a lie until such feature is implemented.
 
 
-ASDF backend [V1]
------------------
+ASDF backend [Done]
+-------------------
 
 It is understood that ASDF can never fully implement
 all the features required for XCVB.
@@ -833,16 +833,6 @@ between ``:compile-toplevel`` and ``:load-toplevel`` side-effects to
 the evaluation environment.
 
 
-Revert [V2]
------------
-
-We want a function to easily revert
-the changes made by the ASDF to XCVB conversion,
-so we may more easily clean up and experiment.
-
-This is done but must be tested and documented.
-
-
 Bootstrap [V3]
 --------------
 
@@ -900,18 +890,6 @@ the Lisp image can find them when it needs them later.
 
 For static objects, it should be able to recompile the Lisp runtime to include them.
 This will require some synchronization with CFFI.
-
-
-Dynamic compilation [V4]
-------------------------
-
-XCVB should have a thin layer that enables to call it from an interactive environment,
-and request the loading of some system.
-
-The thin layer will collect the information about the running system
-and about objects already loaded in it, as well as the additional systems required,
-then invoke (with fork+exec) an XCVB process that will build any additional file
-and print a form to be evaluated by the calling process so it may be suitably enhanced.
 
 
 Bug hunting [V5]
@@ -1061,7 +1039,7 @@ Type-Checking [V4]
 ------------------
 
 XCVB uses some poor-man's mechanism for writing in a decentralized way
-code that can handle "little languages" that are thus easy to extend: 
+code that can handle "little languages" that are thus easy to extend:
 ``define-simple-dispatcher``.
 
 At some point we might probably want to systematize

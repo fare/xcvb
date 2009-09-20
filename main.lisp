@@ -121,7 +121,7 @@
      :documentation "Specify XCVB build to remove modules from")
     (("xcvb-path" #\x) :type string :optional t
      :documentation "override your XCVB_PATH")
-    (("verbosity" #\v) :type integer :optional t :default 5 :documentation "set verbosity (default: 5)")))
+    (("verbosity" #\v) :type integer :optional t :initial-value 5 :documentation "set verbosity (default: 5)")))
 
 (defun remove-xcvb-command (arguments &key xcvb-path verbosity build)
   ;;(declare (ignore xcvb-path verbosity))

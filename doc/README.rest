@@ -38,11 +38,16 @@ enforced locally-declared dependencies.
       5.2  Data Dependencies
       5.3  Conditional Dependencies
       5.4  Warning Control
-      5.5  CL:Require
-    6  XCVB and ASDF
-      6.1  Depending on ASDF systems
-      6.2  ASDF systems depending on XCVB builds
-      6.3  Converting your ASDF systems
+      5.5  CL:REQUIRE
+    6  Troubleshooting an XCVB build
+      6.1  Debugging
+      6.2  Profiling
+    7  XCVB and ASDF
+      7.1  XCVB builds depending on ASDF systems
+      7.2  ASDF systems depending on XCVB builds
+      7.3  Converting XCVB builds into ASDF systems
+      7.4  Converting ASDF systems into XCVB builds
+      7.5  Undoing a conversion to XCVB
 
 
 About XCVB
@@ -226,8 +231,8 @@ with notable contributions from Joyce Chen and Matthew Steele.
 In late August 2009, we released XCVB 0.366
 which successfully compiled a large system at ITA.
 
-We are working hard towards making a 1.0 release usable by
-random Common Lisp programmer by the end of 2009.
+We are working hard towards making a 1.0 release
+usable by random Common Lisp programmer by the end of 2009.
 
 Subscribe to one of our mailing-lists
 if you're interested in learning about our progress
@@ -759,7 +764,7 @@ In more advanced cases, you may can define your own predicate to
 discriminate the conditions you're looking to keep or eliminate.
 
 
-CL:Require
+CL:REQUIRE
 ----------
 
 Any dependency of the form ``(:require :foo)`` will be interpreted as
@@ -773,11 +778,48 @@ Example::
 	... :depends-on (... (when (:featurep :sbcl) (:require :sb-posix)) ...)
 
 
+Troubleshooting an XCVB build
+=============================
+
+Debugging
+---------
+
+When you encounter an issue in your build,
+you can try to restart the offending compilation
+with debugging enabled.
+To enable debugging,
+define the shell variable ``XCVB_DEBUGGING`` as some non-empty string
+and export it.
+
+The standard way to do that would be to build your software with::
+
+	make -j -f xcvb.mk || XCVB_DEBUGGING=t make -f xcvb.mk
+
+This will automatically invoke a debugging build of the first failing component
+when an error is found, otherwise happily compiling your system in parallel.
+
+What the ``XCVB_DEBUGGING`` variable does is cause the
+the ``xcvb-driver:debugging`` primitive to be called.
+If you want to do in-depth debugging as you initially port things to XCVB,
+you can also call this function in your Lisp setup.
+
+
+Profiling
+---------
+
+If you want to understand where exactly the build is spending its time,
+you can define the shell variable ``XCVB_PROFILING`` as a non-empty string
+and export it.
+
+This will cause the XCVB driver to output lines of timing information
+that you can thereafter read and analyze.
+
+
 XCVB and ASDF
 =============
 
-Depending on ASDF systems
--------------------------
+XCVB builds depending on ASDF systems
+-------------------------------------
 
 You may in some ``(module ...)`` declaration include a dependency on ``(:asdf "foo")``
 which XCVB will interpret as requiring the loading of such an ASDF
@@ -837,17 +879,22 @@ may contain the usual ASDF hackery, including such snippets as::
 ASDF systems depending on XCVB builds
 -------------------------------------
 
-A current limitation of both XCVB and ASDF is that
+A current limitation of ASDF is that
 ASDF systems cannot at this time depend on XCVB builds.
 
-Therefore, any ASDF system that depends on software that may be build with XCVB
-will have to actually depend on some software built with ASDF itself.
-This may be done by maintaining the ``.asd`` system for said software.
+However, you can easily extract an ASDF system from one or more XCVB builds,
+and use that as a system that other ASDF systems may depend upon.
+(See paragraph below.)
+Or you can use a manually maintained ``.asd`` file that covers
+the same software as an XCVB build.
 
-There may at this point be "interesting" conflicts if some software is loaded
-both as an ASDF system and an XCVB build.
-If such conflict bites you, you may want to convert to XCVB
-any system that causes this conflict.
+Now, there may at this point be "interesting" conflicts
+if some software is loaded both as an ASDF system and an XCVB build
+(say, because some XCVB build A depends on an ASDF system B
+that depends on an ASDF system C, while some other XCVB build D
+depends on same software C but as an XCVB build).
+If such conflict bites you, the best solution will be to convert
+all dependencies to use XCVB (in the above example, convert B to XCVB).
 
 As a kluge, if you really don't want to convert such system to XCVB,
 you may hack your XCVB ``build.xcvb`` specifications
@@ -862,8 +909,56 @@ and/or comment out said ``:supersedes-asdf`` declaration.
 Contact the authors of XCVB if any help is required.
 
 
-Converting your ASDF systems
-----------------------------
+Converting XCVB builds into ASDF systems
+----------------------------------------
+
+It is possible to automatically convert one or more XCVB builds into an ASDF system.
+
+This can be used to allow ASDF-based toolchains to depend
+on software packaged with XCVB (see paragraph above).
+This can also allow XCVB-enabled software to be built faster
+(because without dependency enforcement) with ASDF or POIU,
+all the while being able to enforce and check dependencies as part of development.
+
+The conversion is automatic, but "flattens" features
+that are not supported by ASDF without an extension:
+
+  * Generated files will be not be marked specially on the ASDF side;
+    it is assumed that by the time the dependencies have been compiled and loaded,
+    the generated files will be there.
+    Recent versions of ASDF should be satisfied with that.
+
+  * Conditional dependencies are expanded according to the implementation specified for XCVB.
+    As a limitation of our automated conversion process, we don't try to convert conditionals
+    such as ``(:when (:featurep :sbcl) ...)`` into the idiom ``#+sbcl ...``
+    (because the general case is not completely trivial and would require us
+    to rewrite our own pretty printer).
+
+  * Require dependencies must somehow be provided
+    (e.g. by having the ``.asd`` file or some Lisp file call ``(cl:require ...)``
+    with the desired feature before the feature is used;
+    possibly in an ``EVAL-WHEN`` at the beginning of the file where the feature is used.)
+
+If you are using a simple build that does not using any such extensions to ASDF,
+then the produced ASDF file will be a faithful representation of the XCVB build.
+If you use any such extension, then the produced ASDF file will be but an extract
+that will allow you to compile your software with the specified implementation,
+but will not constitute a general ASDF file unless you edit it by hand
+to make proper use of ASDF extensions.
+
+To convert, use a command such as::
+
+	xcvb xcvb-to-asdf \
+        	--build /fullname/of/some/build
+                --build /fullname/of/some/other/optional/build
+                --name desired-name-of-asdf
+                --output-path /element/of/an/output/path.asd
+
+See ``xcvb help xcvb-to-asdf`` for more options for this command.
+
+
+Converting ASDF systems into XCVB builds
+----------------------------------------
 
 In simple cases, you may convert a system from ASDF to XCVB with a command such as::
 
@@ -920,3 +1015,21 @@ Additionally, figuring out the dependencies between your Lisp modules
 may not suffice to obtain a system that compiles with XCVB.
 You will still have to edit your code so that it follows the
 `Restrictions on your Lisp Code`_, most notably regarding the proper usage of ``eval-when``.
+
+
+Undoing a conversion to XCVB
+----------------------------
+
+If for whatever reason, you want to undo the conversion to XCVB, you can use::
+
+	xcvb remove-xcvb --build /mybuild
+
+And it will remove the ``build.xcvb`` file and
+all ``#+xcvb (module ...)`` forms from your Lisp files.
+
+Even if you want to keep using XCVB in the future,
+this can be useful to get a patch of all the non-XCVB modifications you had to do
+(like inserting ``EVAL-WHEN``'s and fixing some evil macros)
+to get the software running, and commit them (or send them upstream) separately.
+Just be sure to keep your XCVB modifications in a backup, branch, committed baseline, etc.,
+if you don't want to have to redo them manually.
