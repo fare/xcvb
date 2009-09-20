@@ -124,8 +124,8 @@ And so the priority at ITA is to solve this performance issue.
         so safety is preserved.
 
       * For POIU to work with CCL, redo a singlethreaded patch of CCL
-        (the previous one was victim of bit-rot).
-        without having to maintain two sets of dependencies.
+        (my previous patch to CCL has bitrotten and gbyers didn't like the idea;
+        so that would be a few more days of work to get it up to date)
 
   Profiling the build:
     Understand what is causing the performance problem,
@@ -134,7 +134,12 @@ And so the priority at ITA is to solve this performance issue.
 
       * Add profiling information to xcvb/driver. [Done]
 
-      * Analyze statistics gathered so far.
+      * Analyze statistics gathered so far with simple tools:
+        see which files stand out, etc.
+
+      * Implement the various alternate build strategies below,
+        with a stub that just adds the previously measured times
+        instead of actually loading and compiling stuff.
 
   Building with forks:
     Don't build with make, but by forking processes
@@ -146,10 +151,7 @@ And so the priority at ITA is to solve this performance issue.
     for building which file, this may or may not help as much as we'd like;
     but how much this would help we can evaluate by using the above analysis
     without having to do the hard part of the code.
-    The disadvantage is that we will have to make fork work with CCL again
-    (my previous patch to CCL has bitrotten and gbyers didn't like the idea;
-    so that would be a few more days of work to get it up to date;
-    note that just by adding fork to CCL we will be able to use POIU on it).
+    The disadvantage is that we may have to make fork work with CCL again (see about POIU above).
 
   Refactoring:
     Rearrange our code so that the really needed forms that everyone depends on
@@ -163,6 +165,7 @@ And so the priority at ITA is to solve this performance issue.
 
   Moving tests out of the way:
     As a straightforward form of refactoring, we should move all the test files
+    and as much as possible of their support
     out of the main build into unit-test subsystems are lisp test scripts.
     This would both take a lot of pressure out of the build system,
     and be a good way to formalize a systematic way to relate source files and test files,
@@ -180,7 +183,7 @@ And so the priority at ITA is to solve this performance issue.
     This can also be fully automated in a way that requires zero-maintenance afterwards
     and provides a "lint" tool for dependencies.
 
-  Automatic dependency optimizer:
+  Brute force automatic dependency optimizer:
     start from whatever is declared
     (initially, what asdf-dependency-grovel provides, or even a linear ASDF::TRAVERSE-al;
     in any case, a known-working order), and strip dependencies to a minimum.
@@ -234,6 +237,8 @@ Here is the top of our TODO list at ITA:
    + Collect differences on ITA library dependencies into diffs.
      Publish them in the XCVB releases/ directory.
      Send them to upstream maintainers.
+
+   + Actually merge with trunk.
 
  * Figure out the shortest path from here to providing incremental testing
    for unit-tests and regression scripts. What state needs to be maintained?

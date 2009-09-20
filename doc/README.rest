@@ -40,8 +40,9 @@ enforced locally-declared dependencies.
       5.4  Warning Control
       5.5  CL:REQUIRE
     6  Troubleshooting an XCVB build
-      6.1  Debugging
-      6.2  Profiling
+      6.1  Debugging the built system
+      6.2  Debugging the build
+      6.3  Profiling the build
     7  XCVB and ASDF
       7.1  XCVB builds depending on ASDF systems
       7.2  ASDF systems depending on XCVB builds
@@ -102,7 +103,7 @@ Or if you are a project member, you can obtain write access using::
 
 You can also browse the repository at either of these:
 
-	http://common-lisp.net/gitweb?p=projects/xcvb/xcvb.git;a=summary
+	http://common-lisp.net/gitweb?p=projects/xcvb/xcvb.git
 
 	http://github.com/fare/xcvb/tree/master
 
@@ -369,7 +370,7 @@ before you start to compile files and build images with it.
 
 Such setup may include
 proclaiming optimization settings,
-loading and configuring ASDF (see below `Depending on ASDF systems`_),
+loading and configuring ASDF (see below `XCVB builds depending on ASDF systems`_),
 configuring variables that control your Lisp implementation,
 selecting compiler warnings you want to silence (see below `Warning Control`_),
 declaring features for conditional compilation based on some environment variables,
@@ -470,19 +471,8 @@ that uses the same trick.
 Requiring System Components
 ---------------------------
 
-At this time, XCVB doesn't include special support for implementation-dependent components
-that may be loaded into your Lisp system via ``(cl:require ...)``.
-For instance, such popular components include ``:sb-posix`` and ``:sb-bsd-sockets`` under SBCL.
-
-You may load such components by including the following in your initial package definition file,
-after your ``(cl:in-package :cl-user)`` statement,
-and before any ``(defpackage ...)`` clause that may import from the system::
-
-	(eval-when (:compile-toplevel :load-toplevel :execute)
-          #+sbcl (require :sb-posix))
-
-It is *NOT* OK to (conditionally or not) declare a dependency on an ASDF system for ``:sb-posix``,
-as do some ``.asd`` files of some popular Lisp libraries, as this is not guaranteed to work.
+XCVB now includes special support for implementation-dependent components
+that may be loaded into your Lisp system via ``(cl:require ...)``. See `CL:REQUIRE`_ below.
 
 
 Combining Multiple Projects
@@ -771,20 +761,62 @@ Any dependency of the form ``(:require :foo)`` will be interpreted as
 the need to call ``CL:REQUIRE`` to load the implementation-dependent feature ``:foo``.
 The argument can be a string or a keyword, and is usually written
 as an upper-case string or a lower-case keyword (which will be case-converted).
+
 These things are implementation-dependent, and so often used in conjunction
 with ``:when`` or ``:cond``.
+For instance, such popular components
+include ``:sb-posix`` and ``:sb-bsd-sockets`` under SBCL.
+In your ``build.xcvb`` you would use::
 
-Example::
-	... :depends-on (... (when (:featurep :sbcl) (:require :sb-posix)) ...)
+	:depends-on (... (when (:featurep :sbcl) (:require :sb-posix)) ...)
+
+In ASDF, you might either call ``#+sbcl (require :sb-posix)`` directly in the ``.asd`` file,
+or rely on these features also having a corresponding ASDF definition
+and specify in your ``defsystem`` form::
+
+	:depends-on (... #+sbcl :sb-posix ...)
+
+In this case, the same trick of depending on ``(:asdf :sb-posix)`` in your ``build.xcvb`` may work.
+
+If you need some magic side-effects before or after requiring the feature,
+you are better off doing it in your `Lisp setup`_ file.
+But if you are doing it for a modular component rather than a complete build you control,
+you may also do things the hard way and require such features
+by including the following in your initial package definition file,
+after your ``(cl:in-package :cl-user)`` statement,
+and before any ``(defpackage ...)`` clause that may import from the system::
+
+	(eval-when (:compile-toplevel :load-toplevel :execute)
+          #+sbcl (require :sb-posix))
 
 
 Troubleshooting an XCVB build
 =============================
 
-Debugging
----------
+Debugging the built system
+--------------------------
 
-When you encounter an issue in your build,
+Assuming your system builds, you may want to debug it with SLIME_.
+
+.. _SLIME: http://common-lisp.net/project/slime/
+
+If you build an image, you can load it with::
+
+	C-u M-x slime sbcl --core obj/mybuild.image
+
+If you build an executable, you can have it offer a REPL like XCVB does
+(see the implementation of ``xcvb repl`` in ``xcvb/main.lisp``) and use::
+
+	C-u M-x slime env SBCL_HOME=/usr/lib/sbcl xcvb repl
+
+You can then use ``C-c C-k`` to compile the files you modify.
+When you're satisfied, check that it still builds from clean with ``make``.
+
+
+Debugging the build
+-------------------
+
+When you encounter an issue in the build itself,
 you can try to restart the offending compilation
 with debugging enabled.
 To enable debugging,
@@ -804,8 +836,8 @@ If you want to do in-depth debugging as you initially port things to XCVB,
 you can also call this function in your Lisp setup.
 
 
-Profiling
----------
+Profiling the build
+-------------------
 
 If you want to understand where exactly the build is spending its time,
 you can define the shell variable ``XCVB_PROFILING`` as a non-empty string
