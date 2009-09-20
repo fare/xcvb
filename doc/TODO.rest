@@ -180,6 +180,22 @@ And so the priority at ITA is to solve this performance issue.
     This can also be fully automated in a way that requires zero-maintenance afterwards
     and provides a "lint" tool for dependencies.
 
+  Automatic dependency optimizer:
+    start from whatever is declared
+    (initially, what asdf-dependency-grovel provides, or even a linear ASDF::TRAVERSE-al;
+    in any case, a known-working order), and strip dependencies to a minimum.
+    For each dependency that isn't confirmed known-needed (starting from the last to the first),
+    try recompiling without said dependency. If there was an error, it is definitely needed.
+    If the FASL and CFASL are identical, it was definitely not needed. If there was no error but
+    different output, then mark as known unknown (can be made known known by testing, if a test
+    suite is available -- in a first pass, keep all the known unknown).
+    Importantly, distinguish compile-depends-on, load-depends-on and even cload-depends-on
+    (for loading the cfasl) - with the "does it error out" test only for loading.
+    Once some known-needed dependencies of some file are determined, propagating this dependency to
+    other files that depend on the former will of course be instrumental in avoiding pointless
+    attempts at doing without said dependencies; which is why attempts should be queued in a
+    "brings most information" order.
+
   Using SB-HEAPDUMP:
     Instead of relying on the slow-loading FASL and CFASL,
     use a more efficient method more akin to ``.o`` files.
@@ -208,13 +224,12 @@ Here is the top of our TODO list at ITA:
 
    + Complete the EVAL-WHEN cleanup of QRes. [Mostly Done]
 
-   + Implement the removal of XCVB module statements, so (a copy of) a migrated
-     system may easily be de-a2x'ed, leaving only the EVAL-WHEN and other fixes,
-     that may be merged upstream before we are ready to get module statements
-     themselves merged. (Note: a lot of those EVAL-WHEN bugs are indeed bugs
-     even when compiling with ASDF, and will show in case an incremental compilation
-     when some of the files are already compiled but others not.)
-     [Done but not tested]
+   + Run tests on the XCVB-compiled system.
+
+   + Re-branch based on a recent trunk.
+
+   + Use ``remove-xcvb`` to extract the non-XCVB changes needed by QRes,
+     and integrate those fixes into trunk.
 
    + Collect differences on ITA library dependencies into diffs.
      Publish them in the XCVB releases/ directory.
@@ -250,7 +265,10 @@ Here is the top of our TODO list at ITA:
    + Preparing the makefile erases the success witnesses.
 
    + To evaluate the progress of tests, regressions, etc., said state can be
-     registered in some test state maintenance server.
+     registered in some side file, based on crypto checksums of source, fasl, etc.
+
+   + Test state can be shared between machines in a test server instead
+     of local files.
 
  * Warnings about undefined functions are currently quenched during file compilation.
    HOWEVER, we should record them on the side as we build, and reconcile them afterwards,
@@ -282,7 +300,8 @@ Here is the top of our TODO list at ITA:
 
    + The check would issue precise error messages describing which file referenced which
      undefined function, or which file used a macro without depending on the file that
-     defined the macro.
+     defined the macro. NB: *This is important for the dependency optimizer* since
+     it can help detect dependencies that are required indeed.
 
 
 Other Top TODO Items [V1]
@@ -291,20 +310,25 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
- * Have a dependency optimizer that starts from whatever is declared
-   (initially, what asdf-dependency-grovel provides, or even a linear ASDF::TRAVERSE-al;
-   in any case, a known-working order), and strip them to a minimum.
-   For each dependency that isn't confirmed known-needed (starting from the last to the first),
-   try recompiling without said dependency. If there was an error, it is definitely needed.
-   If the FASL and CFASL are identical, it was definitely not needed. If there was no error but
-   different output, then mark as known unknown (can be made known known by testing, if a test
-   suite is available -- in a first pass, keep all the known unknown).
-   Importantly, distinguish compile-depends-on, load-depends-on and even cload-depends-on
-   (for loading the cfasl) - with the "does it error out" test only for loading.
-   Once some known-needed dependencies of some file are determined, propagating this dependency to
-   other files that depend on the former will of course be instrumental in avoiding pointless
-   attempts at doing without said dependencies; which is why attempts should be queued in a
-   "brings most information" order.
+ * Write a comprehensive test suite for XCVB.
+   This could be a good way for a hacker to start without knowing much about how XCVB works:
+   collect a list of things it does, write a Makefile to test them all, etc.
+   As failures are detected and fixed, knowledge will seep in. The test suite would include:
+
+   + automated migration of some benchmark ASDF systems
+     (e.g. XCVB's own code and dependencies, copied in a test directory).
+
+   + converting back to ASDF, undoing the migration with ``remove-xcvb``,
+     double checking that converting back and forth is a projection
+     (i.e. idempotent after the first time).
+
+   + have a mechanism to run the test-suite on a tarball after it is made but before it is released.
+
+ * Refactor the outdated ``test/mock/a/c/Makefile`` and the related builds into
+   a Common Lisp equivalent of GNU hello. Move it outside of the XCVB tree.
+
+ * Propose a patch to ASDF that merges ``XCVB_PATH`` and some hypothetical ``ASDF_PATH``
+   into a ``COMMON_LISP_PATH`` to find Lisp dependencies?
 
  * Filter out :static-file from consideration by a2x -- or maybe not:
    hopefully, ASDF 1.366 will have saner component-relative-pathname methods that don't
@@ -378,9 +402,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    Get SBCL bug 411925 https://bugs.launchpad.net/bugs/411925 fixed
    so making images from images should work.
 
- * Have a test suite for XCVB that includes automated migration of some benchmark ASDF systems
-   (e.g. historical tarballs of well-known systems?)
-
  * For a binary release, issue a standalone clisp binary?
 
  * Implement `Exploded File Dependencies [V1]`_ then `Centralized Dependency Declaration [V1]`_.
@@ -395,31 +416,14 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    (where the default value of ``PARALLELIZE`` is ``-j``).
    Document that.
 
- * In some future, XCVB should control make itself, have a debug option,
-   and drop you at the REPL of the failing Lisp file with useful restarts.
-   We should make it possible to easily re-invoke the failing command.
-   maybe ``xcvb.mk`` should always include a ${DEBUGGING} statement in its output?
-   As a cheap solution, we currently have ``driver.lisp`` check
-   for some environment variable (yuck): the ``xcvb-driver:debugging`` primitive
-   will be called if the shell variable ``XCVB_DEBUGGING`` is exported and non-nil
-   (see also ``XCVB_PROFILING``).
-   A good way to run with debugging enabled when a failure has been detected
-   it to just:
-   ``make -j -f xcvb.mk || XCVB_DEBUGGING=t make -f xcvb.mk``
+ * In some future, have a more robust way to debug than using ``${XCVB_DEBUGGING}``.
+   When XCVB controls the build, it should provide a way to debug, too.
 
  * Starting whenever we have users who actually use XCVB to bootstrap XCVB,
    we'll want ``driver.lisp`` to provide backwards compatibility.
    i.e. we can no longer change the semantics of ``:compile-lisp``.
    Instead, we must keep the old ``:compile-lisp`` and possibly provide new versions
    under a different name, such as ``:compile-lisp/2``.
-
- * Have an extensive test-suite to run before any tarball is pushed to the release directory.
-
- * Have a test-suite that validates the release-tarball before to publish it.
-
- * Refactor the outdated ``test/mock/a/c/Makefile`` and the related builds into
-   a Common Lisp equivalent of GNU hello. Move it outside of the XCVB tree.
-
 
 
 Roadmap [Done]
