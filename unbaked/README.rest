@@ -14,6 +14,8 @@ directly into the dust bin of computer history.
 ..
     1  memoization.lisp
     2  operations.lisp
+    3  parse-formals.lisp
+    4  macros.lisp
 
 
 memoization.lisp
@@ -48,3 +50,12 @@ parse-formals.lisp
 
 Attempt to parse CL formals to build arity checkers.
 Only support formals for LAMBDA and DEFUN, not for DEFMETHOD.
+
+
+macros.lisp
+-----------
+
+General purpose macros that we ended up not using.
+
+TODO: move them to some general CL utilities library,
+if the equivalent doesn't already exist.

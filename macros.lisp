@@ -47,17 +47,39 @@ Otherwise, signal an error."
   (defun keywordify (x)
     (with-standard-io-syntax (kintern "~A" x))))
 
-;;; Collecting data
-
-(defmacro while-collecting ((&rest collectors) &body body)
-  (let ((vars (mapcar #'(lambda (x) (gensym (symbol-name x))) collectors))
-        (initial-values (mapcar (constantly nil) collectors)))
-    `(let ,(mapcar #'list vars initial-values)
-       (flet ,(mapcar #'(lambda (c v) `(,c (x) (push x ,v))) collectors vars)
-         ,@body
-         (values ,@(mapcar #'(lambda (v) `(nreverse ,v)) vars))))))
-
-
+;;; Nesting binding forms (from a suggestion by marco baringer)
 (defmacro with-nesting (() &rest things)
   (reduce #'(lambda (outer inner) (append outer (list inner)))
           things :from-end t))
+
+;;; Simple Dispatcher
+
+(defun simple-dispatcher (atom-processor function-hash environment expression)
+  (if (consp expression)
+    (let* ((head (car expression))
+           (arguments (cdr expression))
+           (function (or (gethash head function-hash)
+                         (error "undefined function in ~S" expression))))
+      (apply function environment arguments))
+    (funcall atom-processor environment expression)))
+
+(defmacro define-simple-dispatcher (name atom-interpreter &optional gf)
+  (let ((hash-name (fintern t "*~A-FUNCTIONS*" name))
+        (registrar-name (fintern t "REGISTER-~A" name))
+        (definer-name (fintern t "DEFINE-~A" name))
+        (dispatcher-name (fintern t "~A-DISPATCHER" name)))
+    `(progn
+       (defvar ,hash-name (make-hash-table :test 'eql))
+       (defun ,registrar-name (symbol function)
+         (setf (gethash symbol ,hash-name) function))
+       (defmacro ,definer-name (symbol formals &body body)
+         (let ((fname (fintern t "~A-~A" ',name symbol)))
+           `(progn
+              (,(if ',gf 'defmethod 'defun)
+                ,(fintern t "~A-~A" ',name symbol) ,formals ,@body)
+              (,',registrar-name ',symbol ',fname))))
+       (defun ,dispatcher-name (environment expression)
+         (simple-dispatcher
+          ,atom-interpreter
+          ,hash-name
+          environment expression)))))

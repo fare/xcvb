@@ -12,338 +12,102 @@ it may or may not be up to date.
 
 .. contents::
 ..
-    1  Current Files
-      1.1   driver.lisp
-      1.2   pkgdcl.lisp
-      1.3   macros.lisp
-      1.4   utilities.lisp
-      1.5   specials.lisp
-      1.6   logging.lisp
-      1.7   grains.lisp
-      1.8   computations.lisp
-      1.9   portablish-pathnames.lisp
-      1.10  registry.lisp
-      1.11  lisp-invocation.lisp
-      1.12  extract-target-properties.lisp
-      1.13  lisp-grain.lisp
-      1.14  names.lisp
-      1.15  search-path.lisp
-      1.16  dependencies-interpreter.lisp
-      1.17  static-backends.lisp
-      1.18  string-escape.lisp
-      1.19  makefile-backend.lisp
-      1.20  asdf-converter.lisp
-      1.21  main.lisp
-    2  Good places to extend XCVB
-      2.1  Extending the driver
-      2.2  Simple dispatchers as extension points
-      2.3  Enriching the system
-      2.4  Dynamic XCVB extensions
-    3  Notes
-      3.1  Fullnames
-      3.2  Eager vs Lazy Module Scanning
-      3.3  Filesystem Access
-      3.4  TODO
+    1  Design Notes
+      1.1  Introduction
+      1.2  Debugging XCVB
+      1.3  Fullnames
+      1.4  Eager vs Lazy Module Scanning
+      1.5  Filesystem Access
+    2  Current Files
+      2.1   driver.lisp
+      2.2   pkgdcl.lisp
+      2.3   macros.lisp
+      2.4   conditions.lisp
+      2.5   utilities.lisp
+      2.6   specials.lisp
+      2.7   logging.lisp
+      2.8   grains.lisp
+      2.9   portablish-pathnames.lisp
+      2.10  registry.lisp
+      2.11  computations.lisp
+      2.12  lisp-invocation.lisp
+      2.13  string-escape.lisp
+      2.14  extract-target-properties.lisp
+      2.15  lisp-grain.lisp
+      2.16  names.lisp
+      2.17  search-path.lisp
+      2.18  normalize-dependency.lisp
+      2.19  traversal.lisp
+      2.20  dependencies-interpreter.lisp
+      2.21  static-backends.lisp
+      2.22  makefile-backend.lisp
+      2.23  asdf-backend.lisp
+      2.24  asdf-converter.lisp
+      2.25  main.lisp
+      2.26  version.lisp
+    3  Good places to extend XCVB
+      3.1  Extending the driver
+      3.2  Simple dispatchers as extension points
+      3.3  Enriching the system
+      3.4  Dynamic XCVB extensions
+    4  High-level description
+      4.1  XCVB's Architecture
+      4.2  Grains and Types
+        4.2.1  Initial, Final and in-between
+        4.2.2  Persistent vs Transient
+        4.2.3  Intention vs Extension
+        4.2.4  Names
+        4.2.5  Generated "source" code
+      4.3  Plans
+        4.3.1  Build Graph
+        4.3.2  Computations
+        4.3.3  Actionable operations
+        4.3.4  Complete plan
+        4.3.5  Plan transformation
+        4.3.6  Reference model
+        4.3.7  Dependencies
+      4.4  Operators
+        4.4.1  Abstracting Operations
+        4.4.2  Generating computation and hashes
+        4.4.3  Graph building
+      4.5  Notes
 
 
-Current Files
-=============
+Design Notes
+============
 
-General TODO: remove cruft.
-
-driver.lisp
------------
-
-A small collection of utilities to be compiled into buildee processes
-so as to provide an abstraction layer for XCVB to compile files.
-
-Assuming ASDF is already loaded, the driver will also include
-ASDF-specific extensions, including the ability to load ASDF systems
-and to determine whether or not ASDF systems need to be re-compiled.
-
-Therefore, you must make sure to load ASDF *before* the driver
-if you want the XCVB to properly support ASDF in the target system.
-
-
-pkgdcl.lisp
------------
-
-This file creates the XCVB package and exports the necessary symbols.
-
-TODO: before we release, edit this file and make sure that
-we export all those defined symbols that we want users to use,
-and only those symbols.
-
-
-macros.lisp
------------
-
-A collection of general-purpose macros.
-
-TODO: Most of them should be moved to a library that XCVB would depend upon.
-
-
-utilities.lisp
---------------
-
-A collection of utility functions.
-Also defines many conditions.
-
-TODO: move conditions to another file.
-
-TODO: Most utilities should be moved to a library that XCVB would depend upon.
-
-
-specials.lisp
--------------
-
-A collection of global variables,
-many of which can be used to customize the behavior of the user-visible parts XCVB.
-
-
-logging.lisp
+Introduction
 ------------
 
-A trivial facility for logging messages directed to the user,
-depending on a varying degree of verbosity.
+This file tries to document the internals of XCVB.
+It is meant as a general guide to the code;
+the code itself should be pretty straightforward
+once you understand the underlying concepts.
 
+For a general introduction to XCVB, see `README.rest`_.
 
-grains.lisp
------------
+For a high-level view of the general concepts behind XCVB,
+see section `High-level description`_.
+For a guide to the files currently in the build,
+see section `Current Files`_.
+For a few ideas where to start extending XCVB,
+see section `Good places to extend XCVB`_.
+This section `Design Notes`_ is for general purpose notes,
+and assumes you are familiar with XCVB already.
 
-Definition of the main datastructures of XCVB and helper functions.
+For known issues and things to actually work on, see `TODO.rest`_.
 
-Grains are nodes in the planning graph representing
-files, phonies or transient states,
-and as far as the Makefile backend goes, correspond to Makefile targets.
+.. _README.rest: http://common-lisp.net/project/xcvb/doc/README.html
+.. _TODO.rest: http://common-lisp.net/project/xcvb/doc/TODO.html
 
-For other backends, grains may be a more general state,
-including things like "a running image where such libraries are loaded".
-They are named "grains" after reading
-'BUILD: A tool for maintaining consistency in modular systems'
-by Richard Elliot Robbins, 1985.
-ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
 
+Debugging XCVB
+--------------
 
-computations.lisp
------------------
+To debug XCVB, I use the following::
 
-Computations are nodes in the planning graph
-representing computations that thake some grains as input
-and create some other grains as output.
-In the Makefile backend, they correspond to the Makefile rules.
+	C-u M-x slime env SBCL_HOME=/usr/lib/sbcl xcvb repl
 
-
-portablish-pathnames.lisp
--------------------------
-
-Abstraction layer to ensure that XCVB uses reasonably portable names when naming modules.
-
-Everywhere that hierarchical module names are involved,
-XCVB uses the "``/``" character as a pathname directory separator,
-in a way that is guaranteed to work portably, however things may vary depending on
-Lisp implementation, Operating system, pathname host and device.
-Also, XCVB will only accept module names where all characters are valid: ``[-_.,A-Za-z0-9]``.
-
-We might eventually be using some existing library for dealing with namestrings sensibly,
-mostly bypassing the unreliable CL pathnames.
-Stelian Ionescu may be working on something like that soon for zeta-streams.
-In the meantime, we'll use our own library portablish-pathnames
-to get rid of these non-portable things.
-
-
-registry.lisp
--------------
-
-Handles the mapping from fullname to grain,
-and conflicts when multiple builds claim the same name.
-
-
-lisp-invocation.lisp
---------------------
-
-Handles the invocation of the target lisp system,
-abstracting away the differences between implementations.
-
-
-extract-target-properties.lisp
-------------------------------
-
-Functions to extract from the target Lisp (the one that will run code)
-various information such as the ``*features*``,
-whether CFASLs are supported, etc.
-
-
-lisp-grain.lisp
----------------
-
-Handles parsing module forms in lisp grains,
-including the naming of other modules within a module form.
-
-
-names.lisp
-----------
-
-Handles the mapping from file to fullname and fullname to file.
-This includes recursing in the case that the fullname is
-inherited from a build.xcvb up the filesystem tree.
-
-
-search-path.lisp
-----------------
-
-Handles the search path where XCVB goes looking for available builds.
-Shell variable ``XCVB_PATH`` or Lisp variable ``xcvb:*search-path*``.
-
-
-dependencies-interpreter.lisp
------------------------------
-
-This file contains the substance of XCVB's dependency little language,
-independently from the backend being used.
-
-
-static-backends.lisp
---------------------
-
-Builds a static graph, for use with GNU Make, ASDF, and other static backends.
-
-
-string-escape.lisp
-------------------
-
-Handles escaping strings, for use in shell invocations and/or
-``Makefile`` commands.
-
-
-makefile-backend.lisp
----------------------
-
-This is our new makefile backend,
-iterating over computations to create Makefile rules.
-
-
-asdf-converter.lisp
--------------------
-
-This file contains the code to take an ASDF system
-and write a build.xcvb file for it
-and add module forms to the top of all the source files in the system,
-so that XCVB can now be used to compile the system.
-
-The entry point to this file is the function ASDF-TO-XCVB,
-(or the corresponding command-line command).
-It take as a parameter one SYSTEM or a list of several SYSTEMS
-to merge and convert together so they may be built with XCVB.
-The converter will first use ``asdf-dependency-grovel``
-to compute the actual dependencies within your system(s),
-thus generating a list of components;
-then it will then process that list of components
-and create or update a build.xcvb and update all source files
-to insert a module statement,
-keeping any manual rules from a previously added module statement
-but otherwise overriding the main data.
-
-
-main.lisp
----------
-
-The main entry file,
-with XCVB's command-line interface.
-
-
-
-Good places to extend XCVB
-==========================
-
-Extending the driver
---------------------
-
-So as to remain minimal, the ``driver`` includes a cruder mechanism
-for the semantics of its command language: the macro ``run``
-maps keywords to functions by looking for the function definition
-of a symbol of the same name as given keyword in the package ``:xcvb-driver``.
-
-Therefore, to extend the command language for the driver's command language,
-just define functions in said package, and make sure the files defining these
-functions are loaded before these commands are used
-(e.g. by listing them first in dependencies).
-
-
-Simple dispatchers as extension points
---------------------------------------
-
-XCVB defines many extensible "little languages"
-that are processed through uses of the macro ``define-simple-dispatcher``.
-These little-languages are built atop the SEXP-syntax:
-an element is either an atom or list;
-the dispatching function distinguishes atom from lists;
-atoms have their own semantic function;
-the semantics of a list is dispatched to a function
-that depends on the head of the list
-(its first element, usually a keyword).
-Semantic functions take as first argument an environment,
-and the rest of their arguments is whatever follows the head of the list.
-
-If you want extensibility for the atom semantic function,
-you can use a CLOS generic function.
-However, for easy readability and debuggability,
-most of the existing code tries to use
-simple languages that only use lists, keywords and strings
-as inputs and outputs of the various functions.
-We propose that you should stick to this convention for now.
-
-
-Enriching the system
---------------------
-
-The simplest such extension point is ``normalize-dependency``
-in ``dependencies-interpreter.lisp``.
-Its input is utterances in the input language for dependencies,
-and its output is utterances in a restricted variant of this language
-where names are resolved:
-names do not depend anymore on the context of the grain
-in which they were uttered,
-build names are distinguished from fasl names,
-superseded ASDF systems are replaced by superseding builds.
-When you wish to add a new type of dependencies to the input language,
-you'll need to extend this function.
-
-If you wish to extend the output language,
-you'll similarly need to extend the "simple dispatchers"
-that process this output language,
-currently the simple-dispatchers ``load-command-for``
-and ``dependency-namestring``.
-That will probably also mean adding new graph nodes,
-with appropriate simple-dispatchers in ``static-backends.lisp``
-and ``makefile-backend.lisp``.
-
-Finally, we have reserved a place for "extension forms" in the module syntax.
-Currently, we just use it for an experimental way to have generated files in XCVB.
-See the simple-dispatcher for ``handle-extension-form``.
-
-Along the way, you may have to modify more files,
-maybe create an additional one for your feature,
-maybe create more little languages, more simple-dispatchers,
-more global data-structures.
-
-
-Dynamic XCVB extensions
------------------------
-
-The "X" of "XCVB", while not completely a lie,
-is not very developed at this time.
-
-If you have the need for dynamic extensions, though,
-it would be easy enough to provide a command line interface
-for loading new code before to re-process the rest of the command-line arguments.
-The new code could extend or override existing simple-dispatchers,
-define new functions, push new command-line handlers.
-Loading extensions could also be done as part of parsing build modules.
-
-
-Notes
-=====
 
 Fullnames
 ---------
@@ -454,15 +218,798 @@ See my rant "Who's responsible for that moving part?":
 http://fare.livejournal.com/139755.html
 
 
-Debugging XCVB
+Current Files
+=============
+
+General TODO: remove cruft.
+
+driver.lisp
+-----------
+
+A collection of utilities and trivial domain-specific languages
+to be compiled into buildee processes
+so as to provide an abstraction layer for XCVB to compile files.
+
+The driver includes support for ASDF,
+that can be loaded either before or after the driver is loaded,
+but must obviously be loaded before it is used.
+
+The driver also includes some support for filtering error messages,
+support for debugging and profiling, etc.
+
+
+pkgdcl.lisp
+-----------
+
+This file creates the XCVB package and exports the necessary symbols.
+
+TODO: before we release 1.0, edit this file and make sure that
+we export all those defined symbols that we want users to use,
+and only those symbols.
+Or maybe not. Maybe it is best if we stop worrying about packages,
+and think of a better way to achieve modularity in CL.
+For instance, copy some advanced Scheme module system.
+
+
+macros.lisp
+-----------
+
+A collection of general-purpose macros.
+
+TODO: Most of them should be moved to a library that XCVB would depend upon.
+
+
+conditions.lisp
+---------------
+
+Conditions, errors, etc.
+This file is under-used.
+
+
+utilities.lisp
 --------------
 
-To debug XCVB, I use the following::
+A collection of utility functions.
+Also defines many conditions.
 
-	C-u M-x slime env SBCL_HOME=/usr/lib/sbcl xcvb repl
+TODO: move conditions to another file.
+
+TODO: Most utilities should be moved to a library that XCVB would depend upon.
 
 
-TODO
-----
+specials.lisp
+-------------
 
-For issues and TODO items, see TODO.rest.
+A collection of global variables,
+many of which can be used to customize the behavior of the user-visible parts XCVB.
+
+
+logging.lisp
+------------
+
+A trivial facility for logging messages directed to the user,
+depending on a varying degree of verbosity.
+
+
+grains.lisp
+-----------
+
+Definition of the main datastructures of XCVB and helper functions.
+
+Grains are nodes in the planning graph representing
+files, phonies or transient states,
+and as far as the Makefile backend goes, correspond to Makefile targets.
+
+For other backends, grains may be a more general state,
+including things like "a running image where such libraries are loaded".
+They are named "grains" after reading
+'BUILD: A tool for maintaining consistency in modular systems'
+by Richard Elliot Robbins, 1985.
+ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
+
+See `High-level description`_.
+
+
+portablish-pathnames.lisp
+-------------------------
+
+Abstraction layer to ensure that XCVB uses reasonably portable names when naming modules.
+
+Everywhere that hierarchical module names are involved,
+XCVB uses the "``/``" character as a pathname directory separator,
+in a way that is guaranteed to work portably, however things may vary depending on
+Lisp implementation, Operating system, pathname host and device.
+Also, XCVB will only accept module names where all characters are valid: ``[-_.,A-Za-z0-9]``.
+
+We might eventually be using some existing library for dealing with namestrings sensibly,
+mostly bypassing the unreliable CL pathnames.
+Stelian Ionescu may be working on something like that soon for zeta-streams.
+In the meantime, we'll use our own library portablish-pathnames
+to get rid of these non-portable things.
+
+
+registry.lisp
+-------------
+
+Handles the mapping from fullname to grain,
+and conflicts when multiple builds claim the same name.
+
+
+computations.lisp
+-----------------
+
+Computations are nodes in the planning graph
+representing computations that thake some grains as input
+and create some other grains as output.
+In the Makefile backend, they correspond to the Makefile rules.
+
+
+lisp-invocation.lisp
+--------------------
+
+Handles the invocation of the target lisp system,
+abstracting away the differences between implementations.
+
+
+string-escape.lisp
+------------------
+
+Handles escaping strings, for use in shell invocations and/or
+``Makefile`` commands.
+
+
+extract-target-properties.lisp
+------------------------------
+
+Functions to extract from the target Lisp (the one that will run code)
+various information such as the ``*features*``,
+whether CFASLs are supported, etc.
+
+
+lisp-grain.lisp
+---------------
+
+Handles parsing module forms in lisp grains,
+including the naming of other modules within a module form.
+
+
+names.lisp
+----------
+
+Handles the mapping from file to fullname and fullname to file.
+This includes recursing in the case that the fullname is
+inherited from a build.xcvb up the filesystem tree.
+
+
+search-path.lisp
+----------------
+
+Handles the search path where XCVB goes looking for available builds.
+Shell variable ``XCVB_PATH`` or Lisp variable ``xcvb:*search-path*``.
+
+
+normalize-dependency.lisp
+-------------------------
+
+This file maps the user-level dependency language to an internal dependency language
+that is stricter, where all names have been resolved to a context-independent fullname,
+builds have been distinguished from Lisp files, etc.
+
+Plus some utilities to deconstruct this internal representation.
+
+
+traversal.lisp
+--------------
+
+This file contains the backend-independent API and support
+for traversing the implicit graph of grains and dependencies
+and create explicit computations out of it.
+
+
+dependencies-interpreter.lisp
+-----------------------------
+
+This file contains the other backend-independent part
+of the handling of XCVB's dependency little language:
+mapping from dependency expression
+to the traversal of grains
+and issuing of load commands for such.
+
+
+static-backends.lisp
+--------------------
+
+Builds a static graph, for use with GNU Make, ASDF, and other static backends.
+
+
+makefile-backend.lisp
+---------------------
+
+This is our makefile backend,
+using the static backend traversal and
+iterating over computations to create Makefile rules.
+
+
+asdf-backend.lisp
+-----------------
+
+This is our ASDF backend,
+traversing the graph in a simplified way and
+iterating over computations to create an ASDF defsystem.
+
+
+asdf-converter.lisp
+-------------------
+
+This file contains the code to take an ASDF system
+and write a build.xcvb file for it
+and add module forms to the top of all the source files in the system,
+so that XCVB can now be used to compile the system.
+
+The entry point to this file is the function ASDF-TO-XCVB,
+(or the corresponding command-line command).
+It take as a parameter one SYSTEM or a list of several SYSTEMS
+to merge and convert together so they may be built with XCVB.
+The converter will first use ``asdf-dependency-grovel``
+to compute the actual dependencies within your system(s),
+thus generating a list of components;
+then it will then process that list of components
+and create or update a build.xcvb and update all source files
+to insert a module statement,
+keeping any manual rules from a previously added module statement
+but otherwise overriding the main data.
+
+
+main.lisp
+---------
+
+The main entry file,
+with XCVB's command-line interface.
+
+
+version.lisp
+------------
+
+The version of the current XCVB release.
+
+
+
+Good places to extend XCVB
+==========================
+
+Extending the driver
+--------------------
+
+So as to remain minimal, the ``driver`` includes a cruder mechanism
+for the semantics of its command language: the macro ``run``
+maps keywords to functions by looking for the function definition
+of a symbol of the same name as given keyword in the package ``:xcvb-driver``.
+
+Therefore, to extend the command language for the driver's command language,
+just define functions in said package, and make sure the files defining these
+functions are loaded before these commands are used
+(e.g. by listing them first in dependencies).
+
+
+Simple dispatchers as extension points
+--------------------------------------
+
+XCVB defines many extensible "little languages"
+that are processed through uses of the macro ``define-simple-dispatcher``.
+These little-languages are built atop the SEXP-syntax:
+an element is either an atom or list;
+the dispatching function distinguishes atom from lists;
+atoms have their own semantic function;
+the semantics of a list is dispatched to a function
+that depends on the head of the list
+(its first element, usually a keyword).
+Semantic functions take as first argument an environment,
+and the rest of their arguments is whatever follows the head of the list.
+
+If you want extensibility for the atom semantic function,
+you can use a CLOS generic function.
+However, for easy readability and debuggability,
+most of the existing code tries to use
+simple languages that only use lists, keywords and strings
+as inputs and outputs of the various functions.
+We propose that you should stick to this convention for now.
+
+
+Enriching the system
+--------------------
+
+The simplest such extension point is ``normalize-dependency``
+in ``normalize-dependency.lisp``.
+Its input is utterances in the input language for dependencies,
+and its output is utterances in a restricted variant of this language
+where names are resolved:
+names do not depend anymore on the context of the grain
+in which they were uttered,
+build names are distinguished from fasl names,
+superseded ASDF systems are replaced by superseding builds.
+When you wish to add a new type of dependencies to the input language,
+you'll need to extend this function.
+
+If you wish to extend the output language,
+you'll similarly need to extend the "simple dispatchers"
+that process this output language,
+currently the simple-dispatchers ``load-command-for``
+and ``dependency-namestring``.
+That will probably also mean adding new graph nodes,
+with appropriate simple-dispatchers in ``static-backends.lisp``
+and ``makefile-backend.lisp``.
+
+Finally, we have reserved a place for "extension forms" in the module syntax.
+Currently, we just use it for an experimental way to have generated files in XCVB.
+See the simple-dispatcher for ``handle-extension-form``.
+
+Along the way, you may have to modify more files,
+maybe create an additional one for your feature,
+maybe create more little languages, more simple-dispatchers,
+more global data-structures.
+
+
+Dynamic XCVB extensions
+-----------------------
+
+The "X" of "XCVB", while not completely a lie,
+is not very developed at this time.
+
+If you have the need for dynamic extensions, though,
+it would be easy enough to provide a command line interface
+for loading new code before to re-process the rest of the command-line arguments.
+The new code could extend or override existing simple-dispatchers,
+define new functions, push new command-line handlers.
+Loading extensions could also be done as part of parsing build modules.
+
+
+High-level description
+======================
+
+At some point, this section should be updated and cleaned up.
+
+
+XCVB's Architecture
+-------------------
+
+It's OK that we started with hand-coding the behaviour of XCVB in Lisp
+but eventually, we should have a domain-specific language to describe
+the structure of the dependency graph and the operations used to build it.
+
+For XCVB version 1, we want to cleanup the internals. [Done]
+
+For XCVB version 2, we want to have a sensible basic design
+for arbitrary Lisp code.
+
+For XCVB version 4, we want to have a fully generalized design
+that can handle arbitrary operations used to build projects
+using any kind of programming language or compiler, not just Lisp.
+
+For the sake of avoiding ambiguity and starting from existing knowledge,
+we'll try to reuse the vocabulary defined in MIT AITR-874
+to describe the concepts at hand.
+
+
+Grains and Types
+----------------
+
+*Grains* are the units of data that the build deals with.
+
+Grains come in many *types*
+themselves hierarchically organized in subtypes and supertypes.
+Main types include files and running processes;
+subtypes of files include Lisp source files, C source and header files,
+shell scripts, python scripts or perl scripts,
+ReST documents, FASL files (that come in as many variants
+as there are combinations of Lisp implementations and various options),
+linker object files (for many architectures),
+executable files (for as many architectures),
+test report files, etc.
+Types of processes include Lisp compilation processes,
+C compilation processes, etc.
+
+
+Initial, Final and in-between
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some grains are the inputs of the overall build, they are the *initial* grains.
+They include the *source* code and data
+(usually kept under revision control and otherwise part of the source archive),
+user-specified *configuration* (edited by users to fit their local configuration),
+and any file (such as a compiler) or process (some daemon) in the running *environment*
+that is used during the build.
+Anything else is a *derived* grain.
+
+Some grains are the outputs of the overall build, they are the *final* grains.
+They are anything sought for by the user,
+usually deliverable files needed for some software installation.
+
+Some grains may be both initial and final,
+for instance data files that are copied over as is
+from the source archive to the final installation.
+Some grains are neither initial nor final, they are called *intermediate* grains,
+and are usually thrown away after the build.
+
+For *bootstrapping* purposes, the content of a final grain
+is sometimes copied into what will be a source grain in future sessions.
+Within a given build session, though, we will distinguish
+the initial grain
+(that may be the copy of a final grain from a previous session)
+from the final grain
+(that may be copied as an initial grain for a next session).
+
+
+Persistent vs Transient
+^^^^^^^^^^^^^^^^^^^^^^^
+
+A *session* is a given run of XCVB.
+
+Grains are *persistent* if their contents remain accessible from session to session.
+They are stored on disk or some other permanent media.
+Typically, persistent grains are files.
+Persistent grains cannot spontaneously compute.
+
+Grains are *transient* when their contents disappear between sessions.
+Typically, transient grains are processes.
+Transient grains do the computations.
+They can transform inputs into outputs, and in between maintain active state.
+They often are born and die within a session,
+and may not be trusted to survive until a next session
+(although if the build is used to monitoring updates to a live robust system,
+they may well be).
+
+
+Intention vs Extension
+^^^^^^^^^^^^^^^^^^^^^^
+
+We must distinguish file path from file contents,
+process id and process state.
+
+File *contents* are pure extensional data,
+while file *names* are intentional anchors.
+Similarly, running *processes* are the intentional agents,
+whereas *process states* are the extensional states.
+
+In a given *session*,
+the mapping of name (intention) to contents (extension)
+is assumed to not change.
+Otherwise, an error condition is detected,
+and the build may be aborted or restarted as a new session.
+In a given session,
+it may thus be assumed that a file behaves
+like persistent pure functional data,
+deterministically yielding the same contents every time it is read.
+
+On the other hand,
+the mapping from processes (intention) to process states (extension)
+is likely to change a lot during a session
+(and a fortiori between sessions).
+The computation that happens in a given process consumes
+its input state that is lost as it produce its output state.
+Process state is thus behaves like a linear pure functional data.
+Processes may be created with an birth state,
+or die and cease to have a state.
+
+Process state is often considered up to some gross equivalence
+that neglects details such as process id, etc.
+If you may neglect a small driver that forks the processes
+and executes requested tasks,
+or dumps images and resumes from them,
+then you may be able to explicitly duplicate the state of a running process.
+So as to be able to reinstate a desired state
+on another machine or in another session,
+the build needs to be able to reconstruct such state
+from persistent data (e.g. by dumping an image),
+up to the desired equivalence.
+
+
+Names
+^^^^^
+
+A grain can have many names.
+Its *fullname* is how it is named in the build graph.
+A file's *path* indicates where in the filesystem the grain is stored.
+Its *contenthash* is a cryptographic checksum of its contents.
+Its *buildhash* is a cryptographic checksum
+of the abstract computation used to compute the contents of the file
+and of the buildhashes of any inputs used during the computation.
+
+A cache mapping buildhash to contenthash and contenthash to contents
+can help save actual computation time in repeated or distributed builds.
+
+
+Generated "source" code
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Generated code files count as derived grains, not source,
+since they need not be part of the source archive
+and are not checked in to revision control system
+(unless they are indeed bootstrapped,
+in which case the derived final file of a build
+may be initial source file for the next).
+
+They may make the build more complex in that
+the build needs to know the associated dependencies
+before it may plan how to build the derived grains,
+yet may not be able to know these dependencies
+before the Lisp file is generated.
+
+In simple cases, the dependencies can be identified
+before the file is generated,
+as special off-file declarations in the generating source code.
+
+In other cases, the build system may have to update
+its build graph after the file is computed,
+possibly doing a recursive call to the main build entry point.
+
+
+Plans
+-----
+
+Build Graph
+^^^^^^^^^^^
+
+The plan is a build graph
+that contains nodes that represent the intensional grains,
+and nodes that represent the intensional computations
+that will derive output grains from input grains,
+from the initial ones up to the final ones.
+
+As the builder executes the plan,
+it computes the extensions of derived grains
+from the extensions of former grains.
+
+At the beginning of a session,
+only the initial extensions are available.
+At the end of a session,
+the final extensions are computed.
+
+The plan is static if it doesn't need to be updated
+based on the extension of any derived grain.
+The plan is dynamic if it new nodes need to be created
+during a given session.
+
+
+Computations
+^^^^^^^^^^^^
+
+Computations are nodes in the build graph,
+that join together a set of input grains to a set of the output grains.
+
+A computation node represents an actual computation whereby the output grains
+can be computed from the input grains when the latter are available.
+
+The computation may involve creating processes or talking to existing processes;
+these processes will change state, including being born and dying,
+as they run the specified commands,
+creating output grains as they consume input grains.
+
+For caching purposes, a computation also specifies how to compute a buildhash
+identifying each of the outputs of the operation
+from the buildhashes of inputs.
+
+
+Actionable operations
+^^^^^^^^^^^^^^^^^^^^^
+
+In a given backend (i.e. ``Makefile``, ASDF, etc.),
+not all operations are permitted.
+For instance with make, you can't duplicate a process state with fork,
+whereas you could with a future native backend.
+Additionally, some Lisp compilers have operations that other compilers don't.
+For instance, you can't load then dump --
+instead you link with a special process.
+An operation that can actually be executed is called *actionable*.
+
+And so whether operations are decomposed into basic elements
+or grouped in actionable wholes depends on the specific target.
+Also, multiple operations may lead to the "same" outcome
+up to the desired equivalence, and operations may be combined
+in different ways.
+Some combinations may be preferred to others,
+especially if the some are valid operations on the target
+whereas the others are not,
+but also if some operations are reputedly slow
+whereas others are expected to be fast.
+
+
+Complete plan
+^^^^^^^^^^^^^
+
+In a complete plan, all operations are actionable.
+Moreover, initial grains are never the output parameter of an operation,
+and derived grains appear as the output parameter of an operation
+exactly once in the build graph.
+
+
+Plan transformation
+^^^^^^^^^^^^^^^^^^^
+
+From the module declarations, a model may be constructed
+of which modules contain compile-time or load-time references
+to which other modules,
+and otherwise depends on which modules at build-time, etc.
+This reference model constitutes a build graph,
+but may not be an actionable build graph,
+and may notably include intermediate grains
+representing process states that may be not be reachable
+in the specific target environment
+that the build session will take place in.
+
+Thus, the build system may have to transform its plan
+both for the purpose of correctness and
+for purpose of performance optimization.
+A build session with start by computing the reference model
+from the extension of the initial grains,
+and from the build request,
+then apply configuration-dependent transformations
+to that plan to create a complete plan.
+
+
+Reference model
+^^^^^^^^^^^^^^^
+
+We possibly may want to fully distinguish the reference model
+as something distinct from a build graph, just like the AITR-874 author.
+Then we could handle reference classes such as:
+
+  * ``(:package-ref A B)`` - A uses a package defined in B (before to either compile or load A, load B).
+  * ``(:macro-calls A B)`` - A uses a (reader)macro in B (before to compile A, load B).
+  * ``(:calls A B)`` - code in A calls code in B (before you run code in A, load B).
+  * ``(:setup-calls A B)`` - while loading A there are calls to code in B (load B before you load A).
+
+Note that the current XCVB model of ``:depends``, ``:load-depends``, ``:compile-depends``
+corresponds loosely to ``:package-ref``, ``:setup-calls``, ``:macro-calls``.
+We may want to add a ``:run-depends`` to add the functionality of ``:calls``.
+
+
+Dependencies
+^^^^^^^^^^^^
+
+The *declared* dependencies of a node
+(or declared inputs of an operation)
+are computed by the operator that creates the operation node,
+and include all the grains that must be available
+before the operation may be computed.
+They are established at the beginning of the session
+at the time the actionable plan is created,
+and do not change for a static plan,
+but may be updated for a dynamic plan,
+in which case an operation that will update the dependencies
+might itself be required as part of the plan
+before the operation may be computed.
+
+The *effective* dependencies of a node
+(or effective inputs of an operation)
+include any grains that were actually consulted in computing the operation.
+In a static build, these effective dependencies
+will be the same as the declared dependencies.
+In a dynamic build, which dependencies were or weren't included
+may sometimes be discovered only after the fact.
+If they are found to contain grains that weren't available,
+a condition is raised, and
+the build session may be aborted,
+or the required grains may be computed
+before the operation may be restarted.
+
+Note that when an object file itself hasn't changed as a result of a computation,
+but one its dependencies (or the list of dependencies itself) has changed,
+then one may have to recompile all files that depend on it.
+This is taken into account by digesting not just the direct dependencies,
+all the transitive dependencies loaded before the computation.
+And so, if building a propagation network for recompilation,
+the list of dependencies itself is to be part of
+the network that triggers updates to a compilation,
+not just the individual dependencies listed.
+
+
+Operators
+---------
+
+Abstracting Operations
+^^^^^^^^^^^^^^^^^^^^^^
+
+*operators* are methods that create concrete operations
+out of various parameters.
+
+Parameters may include input grains, output grains,
+options (which compiler/flags to use), etc.
+
+Note however, that the inputs and outputs
+of one of the operations created by an operator
+need not be those given as parameter by the operator.
+For instance, an operator may create intermediate grains,
+add detected dependencies, recurse by calling other operators, etc.
+(Operators correspond loosely to what AITR-874 calls
+request-handlers and reference-handlers,
+or to what ASDF calls operations).
+
+A same grain can be used as the parameter to multiple operations,
+or to the same operator in multiple instances with different other parameters.
+For instance, a file may be both compiled
+and processed for documentation extraction.
+Or it may be compiled for speed in one case,
+compiled for code coverage in another case,
+and compiled with serializable continuations in a third case.
+
+
+Generating computation and hashes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The computation, the static buildhash,
+and the algorithm to compute the dynamic buildhash
+may all be obtained from the same specification
+of the relationship between outputs and inputs,
+at the time the operator is instantiated.
+
+Say the operation has some specification like::
+
+  (:compile-lisp :loading (fasl1 fasl2)
+		 :source lisp3 :target fasl3
+		 :lisp-compiler image4 :options (o5 o6 o7))
+
+Then the evaluator would invoke the specified Lisp image
+with the proper options to load the specified fasls
+and compile the source file into the target fasl.
+
+The direct hash of a grain would be a cryptographic hash of
+its specification (type and module name)
+followed by the hash of its file contents
+(or for a process,
+the hashes of the binary images and configuration files used
+to start the daemon).
+
+The static buildhash of each output grain
+can be obtained in advance of any computation
+with a cryptographic hash of the concatenation of the specification,
+something that identifies which output is considered
+(say ``"(1)"`` for the first output,
+or ``"(2 3)"`` for the third file in the second list of outputs,
+or just the output module name),
+and the successive static buildhashes of each of the inputs,
+with the static buildhash of an initial grain being its direct hash.
+
+The dynamic buildhash of each output would be computed in a similar way
+right before (for a static computation)
+or right after (for a dynamic computation)
+the computation, by hashing the concatenation of the specification,
+of the output identifier, and the successive direct hashes
+of each declared input (for a static build)
+or effective input (for a dynamic build).
+
+The hashing algorithm used for all hashing by XCVB will be
+a Tiger Tree Hash (TTH).
+
+Hashes can be used to index a cache of already computed objects.
+Static builds with only static computations
+may use the static buildhash to index objects in the cache
+in advance of any computation --
+and by looking for final objects directly at the top of the graph
+skipping unneeded intermediate grains.
+Dynamic builds or builds with dynamic computations
+must use dynamic buildhash to index objects in the cache
+and must rebuild all grains from the ground up.
+Builds with both static and dynamic elements are conceivable.
+
+
+Graph building
+^^^^^^^^^^^^^^
+
+A build starts with an initial request:
+an operator is called with a set of input parameters.
+
+
+Notes
+-----
+
+To preserve incremental compilation with a central dependency declaration,
+you could explode the central declaration.
+Each files at the time
+that you initialize when creating the ``xcvb.mk``
+and update (if needed) each time you re-compile a file.
+Each compiled file would have a corresponding dependencies file
+caching which dependencies were used during the compilation of it,
+stored in the ``obj/`` directory and updated when it changed. Lots of infrastructure, but doable.
+
+
+

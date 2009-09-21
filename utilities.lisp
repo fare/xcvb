@@ -2,25 +2,6 @@
 
 (in-package :xcvb)
 
-;;; Conditions
-
-(define-condition dependency-cycle (simple-error)
-  ;; This condition is signaled if the dependency graph has any cycles in it.
-  ())
-
-(define-condition syntax-error (simple-error)
-  ;; Condition is signaled if there is some syntax error in some user-specified data
-  ())
-
-(define-condition grain-not-found (simple-error)
-  ;; Condition is signaled if there is some syntax error in some user-specified data
-  ())
-
-(defun simply-error (simple-error control &rest args)
-  (error (or simple-error 'simple-error)
-         :format-control control :format-arguments args))
-
-
 ;;; String functions
 
 (define-modify-macro funcallf (f &rest args) xfuncall)
@@ -90,38 +71,6 @@
            (cond
              ((zerop i) (return (null l)))
              ((null l) (return nil))))))
-
-;;; Simple Dispatcher
-
-(defun simple-dispatcher (atom-processor function-hash environment expression)
-  (if (consp expression)
-    (let* ((head (car expression))
-           (arguments (cdr expression))
-           (function (or (gethash head function-hash)
-                         (error "undefined function in ~S" expression))))
-      (apply function environment arguments))
-    (funcall atom-processor environment expression)))
-
-(defmacro define-simple-dispatcher (name atom-interpreter &optional gf)
-  (let ((hash-name (fintern t "*~A-FUNCTIONS*" name))
-        (registrar-name (fintern t "REGISTER-~A" name))
-        (definer-name (fintern t "DEFINE-~A" name))
-        (dispatcher-name (fintern t "~A-DISPATCHER" name)))
-    `(progn
-       (defvar ,hash-name (make-hash-table :test 'eql))
-       (defun ,registrar-name (symbol function)
-         (setf (gethash symbol ,hash-name) function))
-       (defmacro ,definer-name (symbol formals &body body)
-         (let ((fname (fintern t "~A-~A" ',name symbol)))
-           `(progn
-              (,(if ',gf 'defmethod 'defun)
-                ,(fintern t "~A-~A" ',name symbol) ,formals ,@body)
-              (,',registrar-name ',symbol ',fname))))
-       (defun ,dispatcher-name (environment expression)
-         (simple-dispatcher
-          ,atom-interpreter
-          ,hash-name
-          environment expression)))))
 
 ;;; CLOS magic (depends on closer-mop) (from philip-jose)
 

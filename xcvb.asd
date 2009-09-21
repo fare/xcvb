@@ -25,6 +25,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
     :components
     ((:file "driver")
      (:file "pkgdcl" :depends-on ("driver"))
+     (:file "conditions" :depends-on ("pkgdcl"))
      (:file "macros" :depends-on ("pkgdcl"))
      (:file "utilities" :depends-on ("macros"))
      (:file "specials" :depends-on ("utilities"))
