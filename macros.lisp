@@ -9,11 +9,12 @@
 This version by Paul Graham in On Lisp.
 Mostly the same as cliki's WITH-UNIQUE-NAMES."
   ;; Note: we probably should be using it from alexandria or something
-  `(let ,(mapcar #'(lambda (s) `(,s (gensym))) syms) ,@body))
+  `(let ,(mapcar #'(lambda (s) `(,s (gensym ,(symbol-name s)))) syms) ,@body))
 
+(define-modify-macro funcallf (f &rest args) xfuncall)
 
 (defmacro with-output ((out &optional (obj out)) &body body)
-  `(call-with-output ,obj (lambda (,out) ,@body)))
+  `(call-with-output ,obj #'(lambda (,out) ,@body)))
 
 (defun call-with-output (obj fun)
   "Calls FUN with an actual stream argument, behaving like FORMAT with respect to stream'ing:
@@ -30,9 +31,7 @@ Otherwise, signal an error."
     (null
      (with-output-to-string (s) (funcall fun s)))
     ((and string (satisfies array-has-fill-pointer-p))
-     (with-output-to-string (s obj)
-       (funcall fun s)))))
-
+     (with-output-to-string (s obj) (funcall fun s)))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun fintern (package format &rest rest)

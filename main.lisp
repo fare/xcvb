@@ -49,12 +49,12 @@
  '((("build" #\b) :type string :optional nil :documentation "specify what system to build")
    (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
    (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
-   (("output-path" #\o) :type string :optional t :documentation "specify output path (default: xcvb.mk)")
-   (("object-directory" #\O) :type string :optional t :documentation "specify object directory (default: obj)")
-   (("lisp-implementation" #\i) :type string :optional t :documentation "specify type of Lisp implementation (default: sbcl)")
+   (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
+   (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
+   (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
    (("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")
-   (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")
+   (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
    (("base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
    (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
 
@@ -92,6 +92,8 @@
     (search-search-path)
     (write-makefile (canonicalize-fullname build) :output-path output-path)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ASDF to XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defparameter +asdf-to-xcvb-option-spec+
   '((("system" #\b) :type string :optional nil :list t :documentation "Specify a system to convert (can be repeated)")
     (("base" #\B) :type string :optional t :documentation "Base pathname for the new build")
@@ -115,6 +117,8 @@
    :systems-to-preload (mapcar #'coerce-asdf-system-name preload)
    :base-pathname (when base (ensure-pathname-is-directory base))
    :verbose (and verbosity (> verbosity 5))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Remove XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +remove-xcvb-option-spec+
   '((("build" #\b) :type string :optional nil
@@ -147,6 +151,8 @@
           (remove-module-from-file path)))
       (delete-file (grain-pathname build)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Show Search Path ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defparameter +show-search-path-option-spec+
   '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
 
@@ -159,20 +165,20 @@
   (search-search-path)
   (show-search-path))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XCVB to ASDF ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defparameter +xcvb-to-asdf-option-spec+
   '((("build" #\b) :type string :optional nil :list t :documentation "Specify a build to convert (can be repeated)")
     (("name" #\n) :type string :optional t :documentation "name of the new ASDF system")
     (("output-path" #\o) :type string :optional t :documentation "pathname for the new ASDF system")
     (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
-    (("object-directory" #\O) :type string :optional t :documentation "specify object directory (default: obj)")
-    (("lisp-implementation" #\i) :type string :optional t :documentation "specify type of Lisp implementation (default: sbcl)")
+    (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
     (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
-    (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
+    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")))
 
 (defun xcvb-to-asdf-command (arguments &key
                              build name output-path verbosity xcvb-path
-                             lisp-implementation lisp-binary-path
-                             object-directory)
+                             lisp-implementation lisp-binary-path)
   (when arguments
     (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
   (reset-variables)
@@ -180,9 +186,6 @@
     (setf *xcvb-verbosity* verbosity))
   (when xcvb-path
     (set-search-path! xcvb-path))
-  (when object-directory
-    (setf *object-directory* ;; strip last "/"
-          (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
   (when lisp-implementation
     (setf *lisp-implementation-type*
           (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
@@ -195,6 +198,56 @@
    :asdf-name name
    :build-names (mapcar #'coerce-asdf-system-name build)
    :output-path output-path))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; non-enforcing makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter +non-enforcing-makefile-option-spec+
+ '((("build" #\b) :type string :optional nil :list t :documentation "specify a (series of) system(s) to build")
+   (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
+   (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
+   (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
+   (("output-path" #\o) :type string :initial-value "xcvb-ne.mk" :documentation "specify output path")
+   (("object-directory" #\O) :type string :initial-value "obj-ne" :documentation "specify object directory")
+   (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
+   (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+   (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
+;  (("use-poiu" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")
+;  (("force-cfasl" #\C) :type boolean :optional t :initial-value nil :documentation "force use of CFASL")
+   (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
+
+(defun non-enforcing-makefile (arguments &key
+                               build base-image setup xcvb-path
+                               output-path object-directory
+                               lisp-implementation lisp-binary-path
+                               verbosity #|use-poiu force-cfasl profiling|#)
+  (reset-variables)
+  (when arguments
+    (error "Invalid arguments to non-enforcing-makefile"))
+  (when xcvb-path
+    (set-search-path! xcvb-path))
+  (when setup
+    (setf *lisp-setup-dependencies*
+          (append *lisp-setup-dependencies* `((:lisp ,setup)))))
+  (when verbosity
+    (setf *xcvb-verbosity* verbosity))
+  (when output-path
+    (setf *default-pathname-defaults*
+          (ensure-absolute-pathname (pathname-directory-pathname output-path))))
+  (when object-directory
+    (setf *object-directory* ;; strip last "/"
+          (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
+  (when lisp-implementation
+    (setf *lisp-implementation-type*
+          (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+  (when lisp-binary-path
+    (setf *lisp-executable-pathname* lisp-binary-path))
+  (extract-target-properties)
+  (read-target-properties)
+  ;;(setf *use-cfasls* force-cfasl)
+  (setf *use-base-image* base-image)
+  (search-search-path)
+  (write-non-enforcing-makefile (mapcar #'canonicalize-fullname build) :output-path output-path))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Command Spec ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -223,6 +276,11 @@ a chance to load and/or configure ASDF itself and any extension thereof.")
     (("xcvb-to-asdf" "x2a") xcvb-to-asdf-command +xcvb-to-asdf-option-spec+
      "Extract an ASDF system from XCVB"
      "Automatically extract an ASDF system from one or many XCVB builds.")
+#|    (("non-enforcing-makefile" "nemk" "nm") non-enforcing-makefile +non-enforcing-makefile-option-spec+
+     "Create some Makefile for a non-enforcing build"
+     "Create some Makefile for a non-enforcing build,
+that will use ASDF or POIU to create one or a series of images each containing
+the previous image, a build and its dependencies.")|#
     (("show-search-path" "search-path" "ssp") show-search-path-command +show-search-path-option-spec+
      "Show builds in the specified XCVB path"
      "Show builds in the implicitly or explicitly specified XCVB path.

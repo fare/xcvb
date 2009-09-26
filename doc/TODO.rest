@@ -78,7 +78,8 @@ Current Developments [V1]
 Following a complete rewrite the XCVB 0.3 series has been released in July 2009.
 We've got a Makefile backend with which we can recompile XCVB itself,
 compile a number of free software Lisp libraries,
-and handle a large system at ITA.
+and handle a large system at ITA;
+also an ASDF backend, and more.
 
 
 Enhancing Build Speed [V1]

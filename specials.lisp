@@ -46,7 +46,7 @@ Default: whatever's the default for your implementation.")
 Autodetected from the target Lisp system.")
 
 (defparameter +xcvb-setup-dependencies+
-  '((:lisp "/xcvb/driver"))
+  '((:fasl "/xcvb/driver"))
   "Special Lisp dependencies to load into the initial buildee image for XCVB")
 
 (defparameter *lisp-setup-dependencies* +xcvb-setup-dependencies+

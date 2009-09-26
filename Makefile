@@ -74,7 +74,7 @@ xcvb.mk: force
 PARALLELIZE := -j
 
 obj/xcvb.image: xcvb.mk
-	${MAKE} -f xcvb.mk ${PARALLELIZE} $@
+	${MAKE} -f xcvb.mk ${PARALLELIZE} $@ || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk $@
 
 xcvb-using-xcvb: obj/xcvb.image
 	${MAKE} xcvb-bootstrapped-install

@@ -188,24 +188,36 @@
 
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
-  (let ((lisp (graph-for-lisp env fullname)))
+  (let ((lisp (graph-for-lisp env fullname))
+        (specialp (member `(:fasl ,fullname) *lisp-setup-dependencies* :test #'equal)))
     (check-type lisp lisp-grain)
     (handle-lisp-dependencies lisp)
-    (let ((build-dependencies (build-dependencies lisp))
+    (let ((build-dependencies (unless specialp (build-dependencies lisp)))
           (compile-dependencies (compile-dependencies lisp))
           (load-dependencies (load-dependencies lisp)))
       (issue-dependency env lisp)
-      (pre-image-for env lisp)
-      (load-command-for* env build-dependencies)
+      (unless specialp
+        (pre-image-for env lisp)
+        (load-command-for* env build-dependencies))
       (load-command-for* env compile-dependencies)
-      (let ((outputs (fasl-grains-for-name fullname load-dependencies compile-dependencies
-                                           build-dependencies)))
+      (let* ((outputs (fasl-grains-for-name fullname load-dependencies compile-dependencies
+                                            build-dependencies)))
+        (when specialp
+          (setf outputs (list (car outputs))))
         (make-computation
          ()
          :outputs outputs
          :inputs (traversed-dependencies env)
          :command
-         `(:xcvb-driver-command ,(image-setup env)
-           (:compile-lisp (,fullname)
-            ,@(traversed-load-commands env))))
+         (if (not specialp)
+           `(:xcvb-driver-command
+             ,(image-setup env)
+             (:compile-lisp (,fullname) ,@(traversed-load-commands env)))
+           `(:xcvb-driver-command
+             (:load ,(mapcar #'remove-load-file (traversed-load-commands env)))
+             (:compile-file-directly ,fullname))))
         outputs))))
+
+(defun remove-load-file (x)
+  (assert (and (list-of-length-p 2 x) (eq (first x) :load-file)))
+  (second x))

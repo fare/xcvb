@@ -238,11 +238,22 @@ will create the desired content. An atomic rename() will have to be performed af
   (list (shell-tokens-to-Makefile argv str)))
 
 (defun xcvb-driver-commands-to-shell-token (commands)
-  (with-output-to-string (s)
-    (format s "(xcvb-driver:run ")
-    (dolist (c commands)
-      (text-for-xcvb-driver-command s c))
-    (format s ")")))
+  (cond
+    ((eq :compile-file-directly (caar commands))
+     (destructuring-bind ((cfd name)) commands
+       (declare (ignore cfd))
+       (quit-form :code
+        (format nil "(multiple-value-bind (output warningp failurep) ~
+                         (funcall 'compile-file ~S :output-file ~S) ~
+                       (if (or (not output) warningp failurep) 1 0))"
+                (dependency-namestring name)
+                (tempname-target (dependency-namestring `(:fasl ,name)))))))
+    (t
+     (with-output-to-string (s)
+       (format s "(xcvb-driver:run ")
+       (dolist (c commands)
+         (text-for-xcvb-driver-command s c))
+       (format s ")")))))
 
 (defgeneric grain-pathname-text (grain))
 
@@ -317,3 +328,35 @@ will create the desired content. An atomic rename() will have to be performed af
                    (setf asdf-grains out)
                    (return in)))))
 |#
+
+
+(defun write-non-enforcing-makefile (build-names &key output-path)
+  "Write a Makefile to output-path with information about how to compile the specified BUILD
+in a fast way that doesn't enforce dependencies."
+  (error "Not implemented Yet")
+  (let* ((*print-pretty* nil); otherwise SBCL will slow us down a lot.
+         (builds (mapcar #'registered-build build-names))
+         (last-build (first (last builds)))
+         (default-output-path (merge-pathnames "xcvb-ne.mk" (grain-pathname last-build)))
+         (output-path (if output-path (merge-pathnames output-path default-output-path) default-output-path))
+         (makefile-path (ensure-absolute-pathname output-path))
+         (makefile-dir (pathname-directory-pathname makefile-path))
+         (*default-pathname-defaults* makefile-dir)
+         (*makefile-target-directories* nil)
+         (*makefile-phonies* nil))
+    (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
+    ;;XXXX (graph-for-build-grain (make-instance 'static-traversal) build)
+    ;;XXXX also create .asd files for each stage... poiu-
+    (log-format 6 "T=~A building makefile~%" (get-universal-time))
+    (let ((body
+           (with-output-to-string (s)
+             (dolist (computation *computations*)
+               (write-computation-to-makefile s computation)))))
+      (with-open-file (out makefile-path
+                           :direction :output
+                           :if-exists :supersede)
+        (log-format 6 "T=~A printing makefile~%" (get-universal-time))
+        (write-makefile-prelude out)
+        (princ body out)
+        (write-makefile-conclusion out))))
+        (log-format 6 "T=~A done~%" (get-universal-time)))

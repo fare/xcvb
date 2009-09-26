@@ -4,8 +4,6 @@
 
 ;;; String functions
 
-(define-modify-macro funcallf (f &rest args) xfuncall)
-
 (defun xfuncall (x f &rest args)
   (apply f x args))
 
@@ -64,13 +62,12 @@
 
 (defun list-of-length-p (n x)
   (check-type n (integer 0 *))
-  (and (listp x)
-       (loop
-           :for l = x :then (cdr l)
-           :for i :downfrom n :do
-           (cond
-             ((zerop i) (return (null l)))
-             ((null l) (return nil))))))
+  (loop
+    :for l = x :then (cdr l)
+    :for i :downfrom n :do
+    (cond
+      ((zerop i) (return (null l)))
+      ((not (consp l)) (return nil)))))
 
 ;;; CLOS magic (depends on closer-mop) (from philip-jose)
 
