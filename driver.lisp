@@ -151,7 +151,8 @@ This is designed to abstract away the implementation specific quit forms."
      sb-kernel:uninteresting-redefinition
      sb-kernel:undefined-alien-style-warning
      sb-ext:implicit-generic-function-warning
-     sb-kernel:lexical-environment-too-complex)
+     sb-kernel:lexical-environment-too-complex
+     "Couldn't grovel for ~A (unknown to the C compiler).")
    )
   "Conditions that may be skipped. type symbols, predicates or strings")
 

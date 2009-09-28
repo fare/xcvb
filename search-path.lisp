@@ -132,12 +132,14 @@
   "Show registered builds"
   (format t "~&Registered search paths:~{~% ~S~}~%" *search-path*)
   (format t "~%Builds found in the search paths:~%")
-  (loop :for (fullname . entry) :in (sort (hash-table->alist *grains*) #'string<
-                                          :key (lambda (x) (princ-to-string (car x)))) :do
-        (etypecase entry
-          (build-grain
-           (if (and (consp fullname) (eq (car fullname) :supersedes-asdf))
-               (format t " (:ASDF ~S) superseded by (:BUILD ~S)~%" (cadr fullname) (fullname entry))
-               (format t " (:BUILD ~S) in ~S~%" fullname (grain-pathname entry))))
-          (build-registry-conflict
-           (format t " CONFLICT for ~S between ~S~%" fullname (brc-pathnames entry))))))
+  (flet ((entry-string (x)
+           (destructuring-bind (fullname . entry) x
+             (etypecase entry
+               (build-grain
+                (if (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf))
+                    (format nil " (:ASDF ~S) superseded by (:BUILD ~S)~%"
+                            (second fullname) (fullname entry))
+                    (format nil " (:BUILD ~S) in ~S~%" fullname (grain-pathname entry))))
+               (build-registry-conflict
+                (format nil " CONFLICT for ~S between ~S~%" fullname (brc-pathnames entry)))))))
+    (map () #'princ (sort (mapcar #'entry-string (hash-table->alist *grains*)) #'string<))))
