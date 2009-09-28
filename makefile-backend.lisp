@@ -42,16 +42,24 @@
         (log-format 6 "T=~A done~%" (get-universal-time)))
 
 (defun write-makefile-prelude (&optional stream)
-  (let ((directories (join-strings " " (mapcar #'escape-string-for-Makefile *makefile-target-directories*))))
+  (let ((directories
+         (join-strings " "
+                       (mapcar #'escape-string-for-Makefile
+                               *makefile-target-directories*))))
     (format stream "~
-### This file was automatically created by XCVB ~A
+### This file was automatically created by XCVB ~A with the arguments~%~
+### ~{~A~^ ~}~%~
+### It may have been specialized to the target implementation ~A~%~
+### with the following features:~%~
+###   ~S~%~%~
 ### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.
 
 XCVB_EOD :=
 ifneq ($(wildcard ~A),~A)
   XCVB_EOD := xcvb-ensure-object-directories
 endif~2%"
-            *xcvb-version* directories directories)
+            *xcvb-version* cl-launch:*arguments* *lisp-implementation-type* *features*
+            directories directories)
     (flet ((export-directory (x)
              (format stream "~%~A ?= ~A~%export ~A~%~%"
                      x (but-last-char (namestring *lisp-implementation-directory*)) x)))
@@ -313,50 +321,3 @@ will create the desired content. An atomic rename() will have to be performed af
                       (mapcar #'asdf-grain-system-name asdf-grains)))
        s)
       (format s " || echo force)"))))
-
-#|
-;; This should be generalized and moved to some generic file
-(defun group-grains-by-implementation (asdf-grains)
-    (loop :while asdf-grains :collect
-      (loop
-        :with implementation = (asdf-grain-implementation (first asdf-grains))
-        :for grain :in asdf-grains
-        :when (equal implementation (asdf-grain-implementation grain))
-        :collect grain :into in
-        :else :collect grain :into out
-        :finally (progn
-                   (setf asdf-grains out)
-                   (return in)))))
-|#
-
-
-(defun write-non-enforcing-makefile (build-names &key output-path)
-  "Write a Makefile to output-path with information about how to compile the specified BUILD
-in a fast way that doesn't enforce dependencies."
-  (error "Not implemented Yet")
-  (let* ((*print-pretty* nil); otherwise SBCL will slow us down a lot.
-         (builds (mapcar #'registered-build build-names))
-         (last-build (first (last builds)))
-         (default-output-path (merge-pathnames "xcvb-ne.mk" (grain-pathname last-build)))
-         (output-path (if output-path (merge-pathnames output-path default-output-path) default-output-path))
-         (makefile-path (ensure-absolute-pathname output-path))
-         (makefile-dir (pathname-directory-pathname makefile-path))
-         (*default-pathname-defaults* makefile-dir)
-         (*makefile-target-directories* nil)
-         (*makefile-phonies* nil))
-    (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
-    ;;XXXX (graph-for-build-grain (make-instance 'static-traversal) build)
-    ;;XXXX also create .asd files for each stage... poiu-
-    (log-format 6 "T=~A building makefile~%" (get-universal-time))
-    (let ((body
-           (with-output-to-string (s)
-             (dolist (computation *computations*)
-               (write-computation-to-makefile s computation)))))
-      (with-open-file (out makefile-path
-                           :direction :output
-                           :if-exists :supersede)
-        (log-format 6 "T=~A printing makefile~%" (get-universal-time))
-        (write-makefile-prelude out)
-        (princ body out)
-        (write-makefile-conclusion out))))
-        (log-format 6 "T=~A done~%" (get-universal-time)))

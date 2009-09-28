@@ -1,42 +1,28 @@
-#+xcvb (module (:depends-on
-		("specials" "lisp-grain" "traversal" "logging")))
+#+xcvb
+(module
+ (:compile-depends-on ("simplifying-traversal")
+  :load-depends-on ("simplifying-traversal" "logging")))
+
 (in-package :xcvb)
 
-;;; TODO: rewrite this file according to the new XCVB internals
-;;; i.e. create a file asdf-backend based on makefile-backend,
-;;; and based on the output of static-backend, create an asd.
-;;; If any ASDF extensions are required, then
-;;; (a) have a system "xcvb-extensions.asd" that provides them
-;;; (b) push these extensions for inclusion in upstream ASDF, or
-;;; (c) just punt and have ASDF delegate to our in-image backend (if/when implemented)
-
 #|
-OUT-OF-DATE: should be rewritten as part of our refactoring.
+The conversion to ASDF is lossy. We handle the simple base cases perfectly,
+but beyond that, we currently output something that will hopefully work
+well enough to load a system, but that will not encode such information as
+conditional compilation, generated files, etc.
 
-This file still contains bits from our v0.1-prototype
-that used to take a dependency graph in the old format
-and write an asd file that can be used by asdf
-to compile the system specified by the graph.
-The entry point for this file was the write-asd-file function.
-The generated asd file would have one asdf module
-to load all the files/systems in the build-requires slot
-of the global build-module,
-and another module -- which depends on the first module --
-for all the other files/systems.
+This should be good enough for deployment purposes, or as the basis on which
+a hacker may manually flesh out a full-fledged ASDF system.
 
-The conversion to ASDF is lossy and the Makefile target
-should be preferred for development purposes,
-but the ASDF target should be good enough for deployment purposes
-when providing backwards compatibility with ASDF projects.
-
+TODO to make it more correct:
+(a) have a system "xcvb-extensions.asd" that extends ASDF to have the missing
+  features provided by XCVB.
+(b) push these extensions for inclusion in upstream ASDF, and/or
+(c) just punt and have ASDF delegate to our in-image backend (if/when implemented)
 |#
 
-(defclass asdf-traversal (xcvb-traversal)
+(defclass asdf-traversal (simplifying-traversal)
   ())
-
-(defmethod issue-load-command ((env asdf-traversal) command)
-  (declare (ignorable env command))
-  (values))
 
 (defvar *target-builds* (make-hashset :test 'equal)
   "A list of asdf system we supersede")

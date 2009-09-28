@@ -296,16 +296,18 @@ The ``build.xcvb`` file for Exscribe is as follows::
 	#+xcvb
         (module
           (:fullname "fare.tunes.org/exscribe"
-           :build-depends-on ((:asdf "cl-launch") (:asdf "fare-utils")
-                              (:asdf "fare-matcher") (:asdf "scribble")
-                              (:asdf "cl-typesetting"))
+           :nicknames ("exscribe")
+           :supersedes-asdf ("exscribe")
+           :build-depends-on ("cl-launch" "fare-utils"
+                              "fare-matcher" "scribble"
+                              "cl-typesetting")
            :depends-on ("exscribe" "exscribe-html" "exscribe-txt" "exscribe-typeset")
            :pre-image t
            :build-image t))
 
 You don't need to specify all your files in the ``build.xcvb`` module form,
 only those containing the functions you really care about,
-since the dependencies will be automatically identified and loaded.
+since the load dependencies will be automatically identified and loaded.
 
 
 Compiling with XCVB

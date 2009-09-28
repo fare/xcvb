@@ -33,43 +33,41 @@ and background on the design and ultimate goals of XCVB.
       3.10  Configurability of the build image [Done]
       3.11  Conditional Build [Done]
     4  Features [V2]
-      4.1  Improve Makefile backend [V2]
-      4.2  Abstract Away Paths [V2]
-      4.3  Initialization and Finalization [V2]
-      4.4  Tests [V2]
-      4.5  Dependency grovelling [V2]
-      4.6  Bootstrap [V3]
-      4.7  Same source, multiple compilers [V4]
-      4.8  Correctly handling C libraries [V4]
-      4.9  Bug hunting [V5]
-    5  Ideas from jknight [V2]
-    6  The semantics of dependencies [V2]
-      6.1  Computed Lisp files [V2]
-      6.2  Tests [V2]
-      6.3  Crypto Check [V3]
-      6.4  Template Instantiations [V5]
-    7  Internals [V4]
-      7.1  Type-Checking [V4]
-      7.2  Error handling [V4]
-    8  Advanced Build Issues [V3]
-      8.1   Read the classics [V3]
-      8.2   distclc [V3]
-      8.3   clcache [V3]
-      8.4   XCVB as its own backend [V3]
-      8.5   Push for better control of file source location [V3]
-      8.6   Push for better control of in-file source location [V4]
-      8.7   Push for more determinism in Lisp compilers [V5]
-      8.8   Push for First-class PCLSRing in Lisp compilers [V5]
-      8.9   Support dependencies for modules written in other languages [V4]
-      8.10  Mixing and Matching compilers [V5]
-      8.11  Constraint-based goal language [V6]
-    9  A Real Module System [V3]
-      9.1  Syntax Extensions [V3]
-      9.2  Automatic Package management [V5]
-      9.3  Better Namespace Management [V5]
-      9.4  Hooks into the Module Naming Resolution [V5]
-      9.5  Packaging and Distribution [V5]
-      9.6  More bibliography [V5]
+      4.1   Improve Makefile backend [V2]
+      4.2   Abstract Away Paths [V2]
+      4.3   Initialization and Finalization [V2]
+      4.4   Tests [V2]
+      4.5   Dependency grovelling [V2]
+      4.6   Bootstrap [V3]
+      4.7   Same source, multiple compilers [V4]
+      4.8   Correctly handling C libraries [V4]
+      4.9   Bug hunting [V5]
+      4.10  Ideas from jknight [V2]
+      4.11  Computed Lisp files [V2]
+      4.12  Crypto Check [V3]
+      4.13  Template Instantiations [V5]
+    5  Internals [V4]
+      5.1  Type-Checking [V4]
+      5.2  Error handling [V4]
+    6  Advanced Build Issues [V3]
+      6.1   Read the classics [V3]
+      6.2   distclc [V3]
+      6.3   clcache [V3]
+      6.4   XCVB as its own backend [V3]
+      6.5   Push for better control of file source location [V3]
+      6.6   Push for better control of in-file source location [V4]
+      6.7   Push for more determinism in Lisp compilers [V5]
+      6.8   Push for First-class PCLSRing in Lisp compilers [V5]
+      6.9   Support dependencies for modules written in other languages [V4]
+      6.10  Mixing and Matching compilers [V5]
+      6.11  Constraint-based goal language [V6]
+    7  A Real Module System [V3]
+      7.1  Syntax Extensions [V3]
+      7.2  Automatic Package management [V5]
+      7.3  Better Namespace Management [V5]
+      7.4  Hooks into the Module Naming Resolution [V5]
+      7.5  Packaging and Distribution [V5]
+      7.6  More bibliography [V5]
 
 
 Current Developments [V1]
@@ -172,8 +170,8 @@ And so the priority at ITA is to solve this performance issue.
     If the FASL and CFASL are identical, it was definitely not needed. If there was no error but
     different output, then mark as known unknown (can be made known known by testing, if a test
     suite is available -- in a first pass, keep all the known unknown).
-    Importantly, distinguish compile-depends-on, load-depends-on and even cload-depends-on
-    (for loading the cfasl) - with the "does it error out" test only for loading.
+    Importantly, distinguish ``:compile-depends-on``, ``:load-depends-on`` and even ``:cload-depends-on``
+    (for loading the CFASL) - with the "does it error out" test only for loading.
     Once some known-needed dependencies of some file are determined, propagating this dependency to
     other files that depend on the former will of course be instrumental in avoiding pointless
     attempts at doing without said dependencies; which is why attempts should be queued in a
@@ -223,39 +221,7 @@ Here is the top of our TODO list at ITA:
    + Actually merge with trunk.
 
  * Figure out the shortest path from here to providing incremental testing
-   for unit-tests and regression scripts. What state needs to be maintained?
-
-   + Test reports are file grains that depend on the properly compiled
-     fasls or images that are being tested.
-
-   + A test report is a file the first form of which is
-     a simple SEXP to be read,
-     following some standardized structure to specify overall success,
-     status of individual tests (including error message, maybe
-     information as to last success, etc.).
-
-   + For the sake of interoperability, we may specify a translation
-     from said S-Expression test result format to XML
-     that complies with what JUnit expects.
-     (Suggestion by Robert Goldman <rpgoldman@sift.info>)
-
-   + In collaboration with folks from BBN, rpg's colleague John Maraist
-     has built this capability into his NST test framework.
-     This means that a large system with Java components can all be tested together.
-
-   + From the test reports, a success witness (empty file) may be created
-     on success.
-
-   + The success witness fails to be created when the test wasn't a success,
-     and the process returns with an error code for make to catch.
-
-   + Preparing the makefile erases the success witnesses.
-
-   + To evaluate the progress of tests, regressions, etc., said state can be
-     registered in some side file, based on crypto checksums of source, fasl, etc.
-
-   + Test state can be shared between machines in a test server instead
-     of local files.
+   for unit-tests and regression scripts. See `Tests [V2]`_.
 
  * Warnings about undefined functions are currently quenched during file compilation.
    HOWEVER, we should record them on the side as we build, and reconcile them afterwards,
@@ -296,6 +262,28 @@ Other Top TODO Items [V1]
 
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
+
+ * Modify the Makefile backend to individualize the directory dependencies:
+   each target should only depend on the directory where the target itself lives,
+   as in::
+
+        XCVB_create_path/to :=
+	ifneq ($(wildcard path/to),path/to)
+          XCVB_create_path/to := create_path/to
+          create_path/to:
+        	mkdir -p path/to
+        endif
+	path/to/target: dependencies... $(XCVB_create_path/to)
+
+   or maybe simply::
+
+	path/to/target: dependencies...
+		mkdir -p path/to
+                ...
+
+   This will become more important once we have good fine-grained dependencies
+   through cryptographic checksums, so that we know exactly what to rebuild or not to rebuild
+   even when the global dependencies change (which is not the case currently).
 
  * Write a comprehensive test suite for XCVB.
    This could be a good way for a hacker to start without knowing much about how XCVB works:
@@ -795,10 +783,55 @@ After the file is compiled, one may want to
 Tests [V2]
 ----------
 
-Test modules should be run when their dependencies have changed;
-i.e. after they have been compiled into a FASL,
-they should be loaded and create a report of whether the run was successful.
+XCVB should have an interface to specially run (or skip) tests.
+
+In the default (incremental) mode, test modules would be run
+if and only if their declared dependencies have changed.
+The test modules would be compiled into a FASL then loaded
+and create a report of whether the run was successful.
 Reports can further be collected for statistics, etc.
+
+Tests don't just output a summary,
+they also have a status that affects the build.
+For instance a test that runs to completion
+and successfully creates a valid report
+may detect issues that flag the build as a whole as invalid.
+
+What state needs to be maintained?
+
+   + Test reports are file grains that depend on the properly compiled
+     fasls or images that are being tested.
+
+   + A test report is a file the first form of which is
+     a simple SEXP to be read,
+     following some standardized structure to specify overall success,
+     status of individual tests (including error message, maybe
+     information as to last success, etc.).
+
+   + For the sake of interoperability, we may specify a translation
+     from said S-Expression test result format to XML
+     that complies with what JUnit expects.
+     (Suggestion by Robert Goldman <rpgoldman@sift.info>)
+
+   + In collaboration with folks from BBN, rpg's colleague John Maraist
+     has built this capability into his NST test framework.
+     This means that a large system with Java components can all be tested together.
+
+   + From the test reports, a success witness (empty file) may be created
+     on success.
+
+   + The success witness fails to be created when the test wasn't a success,
+     and the process returns with an error code for make to catch.
+
+   + Preparing the makefile erases the success witnesses.
+
+   + To evaluate the progress of tests, regressions, etc., said state can be
+     registered in some side file, based on crypto checksums of source, fasl, etc.
+
+   + Test state can be shared between machines in a test server instead
+     of local files.
+
+XCVB should be able to thus synthesize and associate diagnostics to the overall build.
 
 
 Dependency grovelling [V2]
@@ -901,7 +934,7 @@ some of which having been found and fixed bug not others.
 
 
 Ideas from jknight [V2]
-=======================
+-----------------------
 
 Ideas from discussion w/ jknight:
 
@@ -935,10 +968,6 @@ Ideas from discussion w/ jknight:
 
  * do away with all calls to truename. [Done]
 
-
-The semantics of dependencies [V2]
-==================================
-
 Computed Lisp files [V2]
 ------------------------
 
@@ -951,20 +980,6 @@ after the Lisp file has been created.
 
 For the independent backend, this means that the dependency graph
 can grow new nodes and arcs as some files are discovered.
-
-
-Tests [V2]
-----------
-
-XCVB should also have an interface to specially run (or skip) tests.
-
-Tests don't just output a summary,
-they also have a status that affects the build.
-For instance a test that runs to completion
-and successfully creates a valid report
-may detect issues that flag the build as a whole as invalid.
-
-XCVB should be able to thus synthesize and associate diagnostics to the overall built.
 
 
 Crypto Check [V3]

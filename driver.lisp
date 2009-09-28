@@ -1,5 +1,5 @@
 ;;; XCVB driver to be compiled in buildee images
-;;; (largely inspired from cl-launch, a bit by qres-build + hacks by fare & sbrody)
+;;; (largely inspired from cl-launch, a bit by qres-build + hacks by sbrody)
 
 #+xcvb
 (module
@@ -157,7 +157,6 @@ This is designed to abstract away the implementation specific quit forms."
   "Conditions that may be skipped. type symbols, predicates or strings")
 
 (defun uninteresting-condition-p (condition)
-  ;; TODO: do something interesting, extensible and semi-portable here.
   (loop :for x :in *uninteresting-conditions* :thereis
         (etypecase x
           (symbol (typep condition x))
@@ -227,7 +226,9 @@ This is designed to abstract away the implementation specific quit forms."
 				  (second name))
 				 ((sb-pcl::slot-accessor)
 				  (assert (eq :global (second name)))
-				  (setf kind :sb-pcl-global-slot-accessor)
+				  (assert (eq 'boundp (fourth name)))
+				  (assert (null (nthcdr 4 name)))
+				  (setf kind :sb-pcl-global-boundp-slot-accessor)
 				  (third name))))
                               (t
                                (assert (member kind '(:function :variable :type)) ())
@@ -347,9 +348,9 @@ This is designed to abstract away the implementation specific quit forms."
 (defun asdf-call (x &rest args)
   (apply 'call :asdf x args))
 
-(defun load-asdf (x)
+(defun load-asdf (x &key parallel) ;; parallel loading requires POIU
   (with-profiling `(:asdf ,x)
-    (asdf-call :oos (asdf-symbol :load-op) x)))
+    (asdf-call :oos (asdf-symbol (if parallel :parallel-load-op :load-op)) x)))
 
 (defun cl-require (x)
   (with-profiling `(:require ,x)
