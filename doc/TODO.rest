@@ -90,8 +90,8 @@ than the serial build time with ASDF, on a quad-core machine.
 And so the priority at ITA is to solve this performance issue.
 
   Non-enforcing build:
-    Provide a non-enforcing serial build using the `ASDF backend [Done]`_.
-    It will bring the compilation speed of ASDF or POIU
+    XCVB now provides a non-enforcing serial build.
+    It brings the compilation speed of ASDF or POIU
     while XCVB can still provide the safety and maintainability
     that are currently lacking.
 
@@ -101,9 +101,7 @@ And so the priority at ITA is to solve this performance issue.
       * Modify precheckin to do an incremental build in parallel,
         so safety is preserved.
 
-      * For POIU to work with CCL, redo a singlethreaded patch of CCL
-        (my previous patch to CCL has bitrotten and gbyers didn't like the idea;
-        so that would be a few more days of work to get it up to date)
+      * Make sure POIU works the single-threaded CCL I updated.
 
   Profiling the build:
     Understand what is causing the performance problem,
@@ -129,7 +127,6 @@ And so the priority at ITA is to solve this performance issue.
     for building which file, this may or may not help as much as we'd like;
     but how much this would help we can evaluate by using the above analysis
     without having to do the hard part of the code.
-    The disadvantage is that we may have to make fork work with CCL again (see about POIU above).
 
   Refactoring:
     Rearrange our code so that the really needed forms that everyone depends on

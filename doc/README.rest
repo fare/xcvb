@@ -49,6 +49,7 @@ enforced locally-declared dependencies.
       7.3  Converting XCVB builds into ASDF systems
       7.4  Converting ASDF systems into XCVB builds
       7.5  Undoing a conversion to XCVB
+      7.6  Fast non-enforcing builds using POIU
 
 
 About XCVB
@@ -352,7 +353,7 @@ using this output file in the following way::
 
 Where ``obj`` is the object directory
 (which can be overridden with option ``--object-directory`` of ``make-makefile``),
-``-j`` specifies a parallel build (avoid it when debugging),
+``-j`` specifies a parallel build (also see ``make`` option ``-l``),
 and ``foo/bar.image`` would be the name of the image for your project
 (assuming its build has fullname ``/foo/bar`` and declares ``:build-image t``.)
 
@@ -652,7 +653,7 @@ Statements of generated files are to be included amongst the
 i.e. after the list of keyword options
 ``(:fullname ... :depends-on ...)``.
 
-Here is the current temporary syntax::
+Here is the syntax::
 
 	(:generate
          ((:lisp "lists"
@@ -861,7 +862,7 @@ with ``(asdf:oos 'asdf:load-op "foo")``.
 
 However, if amongst your dependencies there are any ASDF systems
 that haven't yet been converted to XCVB,
-then you'll need a setup file (as per `Lisp Setup`_)
+then you'll probably need a setup file (as per `Lisp Setup`_)
 to load ASDF and configure its ``*central-registry*``.
 
 In simple cases, your personal ``setup.lisp`` may be as simple as the following::
@@ -883,13 +884,10 @@ In yet harder cases, a robust semi-portable ``setup.lisp``
 may contain the usual ASDF hackery, including such snippets as::
 
 	(in-package :cl-user)
-        (eval-when (:compile-toplevel :load-toplevel)
+        (eval-when (:compile-toplevel :load-toplevel :execute)
           (defun get-env-var (x)
             #+sbcl (sb-ext:posix-getenv x)
             #+clozure (ccl:getenv x))
-          (let ((use-poiu (get-env-var "USE_POIU")))
-            (when (and use-poiu (not (equal use-poiu "")))
-              (pushnew :parallel-build *features*)))
           (defparameter *l* (make-pathname :name nil :type nil :defaults *load-pathname*))
           (unless (and (find-package :asdf) (find-symbol "SYSTEM" :asdf))
             (block asdf-load
@@ -899,15 +897,18 @@ may contain the usual ASDF hackery, including such snippets as::
                               (load (merge-pathnames "libs/asdf/asdf.lisp" *l*))
                               (return-from asdf-load nil))))
                 (require :asdf)))))
-        #+parallel-build
-        (unless (find-symbol "PARALLEL-LOAD-OP" :asdf)
-          (load (merge-pathnames "libs/poiu/poiu.lisp" *l*)))
-        (let* ((asds (directory (merge-pathnames #P"**/*.asd" *l*)))
-               (asd-dirs (remove-duplicates (mapcar #'pathname-directory asds) :test #'equal)))
-           (dolist (subdir asd-dirs)
-             (unless (search '("_darcs" "pristine") subdir :test #'equal)
-               (pushnew (namestring (make-pathname :directory subdir)) asdf:*central-registry*
-                        :test #'equal))))
+        (eval-when (:compile-toplevel :load-toplevel :execute)
+          (let* ((asds (directory (merge-pathnames #P"**/*.asd" *l*)))
+                 (asd-dirs (remove-duplicates (mapcar #'pathname-directory asds) :test #'equal)))
+             (dolist (subdir asd-dirs)
+               (unless (search '("_darcs" "pristine") subdir :test #'equal)
+                 (pushnew (namestring (make-pathname :directory subdir)) asdf:*central-registry*
+                          :test #'equal))))
+          (let ((use-poiu (get-env-var "USE_POIU")))
+            (when (and use-poiu (not (equal use-poiu "")))
+              (pushnew :parallel-build *features*))
+              (unless (find-symbol "PARALLEL-LOAD-OP" :asdf)
+                (asdf:oos 'asdf:load-op :poiu))))
 
 
 ASDF systems depending on XCVB builds
@@ -950,9 +951,12 @@ It is possible to automatically convert one or more XCVB builds into an ASDF sys
 
 This can be used to allow ASDF-based toolchains to depend
 on software packaged with XCVB (see paragraph above).
+
 This can also allow XCVB-enabled software to be built faster
 (because without dependency enforcement) with ASDF or POIU,
 all the while being able to enforce and check dependencies as part of development.
+However see below `Fast non-enforcing builds using POIU`_
+for how such use has been integrated in XCVB.
 
 The conversion is automatic, but "flattens" features
 that are not supported by ASDF without an extension:
@@ -1067,3 +1071,32 @@ this can be useful to get a patch of all the non-XCVB modifications you had to d
 to get the software running, and commit them (or send them upstream) separately.
 Just be sure to keep your XCVB modifications in a backup, branch, committed baseline, etc.,
 if you don't want to have to redo them manually.
+
+
+Fast non-enforcing builds using POIU
+------------------------------------
+
+If you have a very large body of Lisp code,
+you can use the non-enforcing backend of XCVB to build it fast
+in parallel with POIU_::
+
+	xcvb nm --build stage1 --build stage2 --build foo --parallel
+        make -f xcvb-ne.mk
+
+.. _POIU: http://common-lisp.net/project/qitab/
+
+This will create a non-enforcing Makefile (default name ``xcvb-ne.mk``)
+that plainly creates a series of images for each of the builds,
+culminating with the last one, where for each stage
+the dependencies are compiled with ASDF,
+or with POIU if the ``--parallel`` option is specified.
+
+See ``xcvb help non-enforcing-makefile`` for more options for this command.
+
+This backend provides fast compilation for your big projects,
+though you may want to at least keep the slower enforcing compilation running
+as part of your tests to detect and debug missed dependencies.
+
+Note that POIU only supports SBCL and CCL at this time.
+If you are using another implementation, you should either use ASDF
+or extend POIU to support your implementation.
