@@ -92,7 +92,9 @@
   ;; It took 5.8 seconds on my machine, whereas what's below takes .56 seconds
   ;; I haven't timed it with other implementations -- they might or might not need the same hack.
   ;; TODO: profile it and fix SBCL.
-  #-sbcl (directory (merge-pathnames +all-builds-path+ root) #+sbcl #+sbcl :resolve-symlinks nil)
+  #-sbcl
+  (directory (merge-pathnames +all-builds-path+ root)
+                    #+sbcl #+sbcl :resolve-symlinks nil)
   #+sbcl
   (let* ((root-string (namestring root))
          (build-file-name

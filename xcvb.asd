@@ -48,7 +48,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
      (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging"))
      (:file "makefile-backend" :depends-on ("static-backends" "string-escape" "computations"))
-     (:file "ne-makefile-backend" :depends-on ("makefile-backend" "simplifying-traversal"))
+     (:file "ne-makefile-backend"
+            :depends-on ("makefile-backend" "asdf-backend" "simplifying-traversal"))
      (:file "asdf-converter" :depends-on ("lisp-grain"))
      (:file "main" :depends-on ("static-backends" "search-path" "computations"))
      (:file "version" :depends-on ("specials"))))

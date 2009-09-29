@@ -7,7 +7,9 @@
 *.lisp-expr
 configure.mk
 xcvb.mk
+xcvb-ne.mk
 obj
+obj-ne
 foo
 bar
 baz

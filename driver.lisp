@@ -347,10 +347,11 @@ This is designed to abstract away the implementation specific quit forms."
   (do-find-symbol x :asdf))
 (defun asdf-call (x &rest args)
   (apply 'call :asdf x args))
-
 (defun load-asdf (x &key parallel) ;; parallel loading requires POIU
   (with-profiling `(:asdf ,x)
     (asdf-call :oos (asdf-symbol (if parallel :parallel-load-op :load-op)) x)))
+(defun register-asdf-directory (x)
+  (pushnew x (symbol-value (asdf-symbol :*central-registry*))))
 
 (defun cl-require (x)
   (with-profiling `(:require ,x)

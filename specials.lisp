@@ -45,11 +45,15 @@ Default: whatever's the default for your implementation.")
   "Should we assume the target Lisp supports CFASL?
 Autodetected from the target Lisp system.")
 
-(defparameter +xcvb-setup-dependencies+
+(defparameter +fast-xcvb-setup-dependencies+
   '((:fasl "/xcvb/driver"))
-  "Special Lisp dependencies to load into the initial buildee image for XCVB")
+  "Special Lisp dependencies to load into the initial buildee image for XCVB, fast version")
 
-(defparameter *lisp-setup-dependencies* +xcvb-setup-dependencies+
+(defparameter +xcvb-setup-dependencies+
+  '((:lisp "/xcvb/driver"))
+  "Special Lisp dependencies to load into the initial buildee image for XCVB, slow version")
+
+(defparameter *lisp-setup-dependencies* +fast-xcvb-setup-dependencies+
   "Special Lisp dependencies to load into the initial buildee image")
 
 (defvar *xcvb-verbosity* 5
@@ -92,4 +96,4 @@ Negatives are stored as NIL. Positives as grains.")
 (defvar *use-base-image* t
   "Should we be using a base image for all builds?")
 
-(defvar *print-concisely* '(build-grain lisp-grain fasl-grain))
+(defvar *print-concisely* '(build-grain lisp-grain fasl-grain cfasl-grain))

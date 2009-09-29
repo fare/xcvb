@@ -13,6 +13,10 @@
 (defvar *makefile-target-directories* ())
 (defvar *makefile-phonies* ())
 
+(defun computations-to-Makefile ()
+  (with-output-to-string (s)
+    (dolist (computation *computations*)
+      (write-computation-to-makefile s computation))))
 
 (defun write-makefile (fullname &key output-path)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
@@ -28,10 +32,7 @@
     (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
     (graph-for-build-grain (make-instance 'static-traversal) build)
     (log-format 6 "T=~A building makefile~%" (get-universal-time))
-    (let ((body
-           (with-output-to-string (s)
-             (dolist (computation *computations*)
-               (write-computation-to-makefile s computation)))))
+    (let ((body (computations-to-Makefile)))
       (with-open-file (out makefile-path
                            :direction :output
                            :if-exists :supersede)
@@ -179,12 +180,16 @@ will create the desired content. An atomic rename() will have to be performed af
   (format str "(:load-file ~S)" (dependency-namestring dep))
   (values))
 
-(define-text-for-xcvb-driver-command :load-asdf (str name)
-  (format str "(:load-asdf ~S)" name)
+(define-text-for-xcvb-driver-command :load-asdf (str name &key parallel)
+  (format str "(:load-asdf ~(~S~)~@[ :parallel t~])" name parallel)
   (values))
 
 (define-text-for-xcvb-driver-command :require (str name)
   (format str "(:cl-require ~(~S~))" name)
+  (values))
+
+(define-text-for-xcvb-driver-command :register-asdf-directory (str directory)
+  (format str "(:register-asdf-directory ~S)" (namestring directory))
   (values))
 
 (defun text-for-xcvb-driver-helper (stream dependencies format &rest args)

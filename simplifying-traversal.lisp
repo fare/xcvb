@@ -17,8 +17,20 @@ and the non-enforcing Makefile backend.
 (defmethod issue-dependency ((env simplifying-traversal) (grain fasl-grain))
   (issue-dependency env (graph-for env `(:lisp ,(second (fullname grain))))))
 
-(defmethod load-command-for-lisp ((env simplifying-traversal) name)
+(define-load-command-for :lisp ((env simplifying-traversal) name)
   (load-command-for-fasl env name))
+
+(defvar *require-dependencies* nil
+  "A list of require features we depend upon")
+
+(define-load-command-for :require ((env simplifying-traversal) feature)
+  (pushnew feature *require-dependencies* :test 'string-equal)
+  nil)
+
+(defmethod graph-for-build-grain ((env simplifying-traversal) grain)
+  (load-command-for* env (compile-dependencies grain))
+  (load-command-for* env (load-dependencies grain))
+  nil)
 
 (define-graph-for :fasl ((env simplifying-traversal) name)
   (check-type name string)
@@ -52,13 +64,6 @@ and the non-enforcing Makefile backend.
 (defvar *asdf-system-dependencies* nil
   "A list of asdf system we depend upon")
 
-(defvar *require-dependencies* nil
-  "A list of require features we depend upon")
-
 (define-graph-for :asdf ((env simplifying-traversal) system-name)
   (pushnew system-name *asdf-system-dependencies* :test 'equal)
-  nil)
-
-(define-load-command-for :require ((env simplifying-traversal) feature)
-  (pushnew feature *require-dependencies* :test 'string-equal)
   nil)

@@ -49,18 +49,15 @@ The conversion can be tested with:
   (gethash (fullname build) *target-builds*))
 
 (defmethod graph-for-build-grain ((env asdf-traversal) grain)
-  (let ((asdfs (supersedes-asdf grain)))
-    (cond
-      ((build-in-target-p grain)
-       (load-command-for* env (compile-dependencies grain))
-       (load-command-for* env (load-dependencies grain)))
-      (asdfs
-       (dolist (system asdfs)
-         (pushnew system *asdf-system-dependencies* :test 'equal)))
-      (t
-       (error "Targets ~S depend on ~S but it isn't in an ASDF"
-              (traversed-dependencies-r env) (fullname grain))))
-    nil))
+  (if (build-in-target-p grain)
+    (call-next-method)
+    (let ((asdfs (supersedes-asdf grain)))
+      (unless asdfs
+        (error "Targets ~S depend on ~S but it isn't in an ASDF"
+               (traversed-dependencies-r env) (fullname grain)))
+      (dolist (system asdfs)
+        (pushnew system *asdf-system-dependencies* :test 'equal))
+      nil)))
 
 (defun write-asd-prelude (s)
   (format s
@@ -68,7 +65,7 @@ The conversion can be tested with:
     ;;;    ~{~A~^ ~}~%~
     ;;; It may have been specialized to the target implementation ~A~%~
     ;;; with the following features:~%~
-    ;;;    ~S~%~%~
+    ;;;    ~(~S~)~%~%~
    (in-package :asdf)~%~%"
    *xcvb-version* cl-launch:*arguments* *lisp-implementation-type* *features*))
 
@@ -85,7 +82,6 @@ Declare asd system as ASDF-NAME."
                (first (supersedes-asdf first-build))
                (pathname-name (fullname first-build)))))
          (output-path (ensure-absolute-pathname output-path))
-         (output-dir (pathname-directory-pathname output-path))
          (output-path
           (merge-pathnames
            output-path
@@ -100,14 +96,23 @@ Declare asd system as ASDF-NAME."
     (dolist (b builds)
       (graph-for-build-grain (make-instance 'asdf-traversal) b))
     (log-format 6 "T=~A creating asd file ~A~%" (get-universal-time) output-path)
+    (do-write-asd-file
+      :output-path output-path
+      :asdf-name asdf-name
+      :build (fullname first-build))))
+
+(defun do-write-asd-file (&key output-path build asdf-name)
+  (let* ((output-path (merge-pathnames output-path))
+         (_ (ensure-directories-exist output-path))
+         (*default-pathname-defaults* (pathname-directory-pathname output-path)))
+    (declare (ignore _))
     (with-open-file (out output-path :direction :output :if-exists :supersede)
+      (write-asd-prelude out)
       (with-standard-io-syntax
-        (let* ((form (make-asdf-form asdf-name (fullname first-build)))
+        (let* ((form (make-asdf-form asdf-name build))
                (*print-escape* nil)
                (*package* (find-package :asdf))
-               (*print-case* :downcase)
-               (*default-pathname-defaults* output-dir))
-          (write-asd-prelude out)
+               (*print-case* :downcase))
           (format out "~@[~{(require ~S)~%~}~%~]" (reverse *require-dependencies*))
           (write form :stream out :pretty t :miser-width 79)
           (terpri out))))))
@@ -115,27 +120,28 @@ Declare asd system as ASDF-NAME."
 (defun keywordify-asdf-name (name)
   (kintern "~:@(~A~)" name))
 
-(defun make-asdf-form (asdf-name build &aux (prefix (strcat build "/")))
-  (flet ((aname (x)
-           (let ((n (fullname x)))
-             (if (string-prefix<= prefix n)
-               (subseq n (length prefix))
-               n))))
-    `(asdf:defsystem ,(keywordify-asdf-name asdf-name)
-       :depends-on ,(mapcar 'keywordify-asdf-name (reverse *asdf-system-dependencies*))
-       :components ,(loop :for computation :in (reverse *computations*)
-                      :for lisp = (first (computation-inputs computation))
-                      :for deps = (rest (computation-inputs computation))
-                      :for build = (and lisp (build-grain-for lisp))
-                      :for includedp = (and build (build-in-target-p build))
-                      :for depends-on = (loop :for dep :in deps
-                                          :when (eq (type-of dep) 'lisp-grain)
-                                          :collect (aname dep))
-                      :for name = (and lisp (aname lisp))
-                      :for pathname = (and lisp (asdf-dependency-grovel::strip.lisp
-                                                 (enough-namestring (grain-pathname lisp))))
-                      :when includedp :collect
-                      `(:file ,name
-                              ,@(unless (and (equal name pathname) (not (find #\/ name)))
-                                        `(:pathname pathname))
-                              ,@(when depends-on `(:depends-on ,depends-on)))))))
+(defun make-asdf-form (asdf-name build)
+  (let ((prefix (strcat build "/")))
+    (flet ((aname (x)
+             (let ((n (fullname x)))
+               (if (string-prefix<= prefix n)
+                 (subseq n (length prefix))
+                 n))))
+      `(asdf:defsystem ,(keywordify-asdf-name asdf-name)
+         :depends-on ,(mapcar 'keywordify-asdf-name (reverse *asdf-system-dependencies*))
+         :components ,(loop :for computation :in (reverse *computations*)
+                        :for lisp = (first (computation-inputs computation))
+                        :for deps = (rest (computation-inputs computation))
+                        :for build = (and lisp (build-grain-for lisp))
+                        :for includedp = (and build (build-in-target-p build))
+                        :for depends-on = (loop :for dep :in deps
+                                            :when (eq (type-of dep) 'lisp-grain)
+                                            :collect (aname dep))
+                        :for name = (and lisp (aname lisp))
+                        :for pathname = (and lisp (asdf-dependency-grovel::strip.lisp
+                                                   (enough-namestring (grain-pathname lisp))))
+                        :when includedp :collect
+                        `(:file ,name
+                                ,@(unless (and (equal name pathname) (not (find #\/ name)))
+                                          `(:pathname ,pathname))
+                                ,@(when depends-on `(:depends-on ,depends-on))))))))

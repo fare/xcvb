@@ -196,7 +196,7 @@
   (search-search-path)
   (write-asd-file
    :asdf-name name
-   :build-names (mapcar #'coerce-asdf-system-name build)
+   :build-names (mapcar #'canonicalize-fullname build)
    :output-path output-path))
 
 
@@ -205,6 +205,7 @@
 (defparameter +non-enforcing-makefile-option-spec+
  '((("build" #\b) :type string :optional nil :list t :documentation "specify a (series of) system(s) to build")
    (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
+   (("name" #\n) :type string :optional t :initial-value "xcvb-tmp" :documentation "ASDF name for the target")
    (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
    (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
    (("output-path" #\o) :type string :initial-value "xcvb-ne.mk" :documentation "specify output path")
@@ -212,23 +213,21 @@
    (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
-;  (("use-poiu" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")
+   (("parallel" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")
 ;  (("force-cfasl" #\C) :type boolean :optional t :initial-value nil :documentation "force use of CFASL")
-   (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
+;  (("profiling" #\P) :type boolean :optional t :documentation "profiling")
+   ))
 
 (defun non-enforcing-makefile (arguments &key
-                               build base-image setup xcvb-path
+                               build base-image setup xcvb-path name
                                output-path object-directory
                                lisp-implementation lisp-binary-path
-                               verbosity #|use-poiu force-cfasl profiling|#)
+                               verbosity parallel #|force-cfasl profiling|#)
   (reset-variables)
   (when arguments
     (error "Invalid arguments to non-enforcing-makefile"))
   (when xcvb-path
     (set-search-path! xcvb-path))
-  (when setup
-    (setf *lisp-setup-dependencies*
-          (append *lisp-setup-dependencies* `((:lisp ,setup)))))
   (when verbosity
     (setf *xcvb-verbosity* verbosity))
   (when output-path
@@ -246,8 +245,15 @@
   (read-target-properties)
   ;;(setf *use-cfasls* force-cfasl)
   (setf *use-base-image* base-image)
+  (setf *lisp-setup-dependencies*
+        (append +xcvb-setup-dependencies+
+                (when setup `((:lisp ,setup)))))
   (search-search-path)
-  (write-non-enforcing-makefile (mapcar #'canonicalize-fullname build) :output-path output-path))
+  (write-non-enforcing-makefile
+   (mapcar #'canonicalize-fullname build)
+   :asdf-name name
+   :output-path output-path
+   :parallel parallel))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Command Spec ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -276,11 +282,11 @@ a chance to load and/or configure ASDF itself and any extension thereof.")
     (("xcvb-to-asdf" "x2a") xcvb-to-asdf-command +xcvb-to-asdf-option-spec+
      "Extract an ASDF system from XCVB"
      "Automatically extract an ASDF system from one or many XCVB builds.")
-#|    (("non-enforcing-makefile" "nemk" "nm") non-enforcing-makefile +non-enforcing-makefile-option-spec+
+    (("non-enforcing-makefile" "nemk" "nm") non-enforcing-makefile +non-enforcing-makefile-option-spec+
      "Create some Makefile for a non-enforcing build"
      "Create some Makefile for a non-enforcing build,
 that will use ASDF or POIU to create one or a series of images each containing
-the previous image, a build and its dependencies.")|#
+the previous image, a build and its dependencies.")
     (("show-search-path" "search-path" "ssp") show-search-path-command +show-search-path-option-spec+
      "Show builds in the specified XCVB path"
      "Show builds in the implicitly or explicitly specified XCVB path.

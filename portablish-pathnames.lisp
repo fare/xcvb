@@ -68,7 +68,7 @@ erroring out if some source of non-portability is found"
 		 (write-string c out)
 		 (write-char #\/ out))))
       (cond
-        ((null directory) ;; accept the previous representation, not the latter
+        ((null directory) ;; accept the former representation, not the latter
          (setf directory '(:relative)))
         ((equal directory '(:relative))
          (error "Invalid directory (:relative)")))
@@ -159,7 +159,8 @@ erroring out if some source of non-portability is found"
 	(when type
 	  (unless (portable-pathname-type-component-p type)
 	    (error "non-portable pathname type ~S" type)))))
-    (make-pathname :directory (nreverse r) :name name :type type)))
+    (make-pathname :directory (unless (equal r '(:relative)) (nreverse r))
+                   :name name :type type)))
 
 (defun subpathname (path string)
   (merge-pathnames
