@@ -10,3 +10,12 @@
         :finally (progn
                    (setf asdf-grains out)
                    (return in)))))
+
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (format t "~&~S~%"
+          (macroexpand-1 '
+
+(FOO)
+
+)))

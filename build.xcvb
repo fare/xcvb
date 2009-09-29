@@ -28,5 +28,6 @@ deterministic separate compilation and enforced locally-declared dependencies."
                "asdf-backend"
                "main"
                "version")
+  :supersedes-asdf ("xcvb")
   :pre-image t
   :build-image t))

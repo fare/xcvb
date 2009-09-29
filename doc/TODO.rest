@@ -363,15 +363,15 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    Xof suggests profiling the thing as it runs.
    I suggest properly extending IOLib or osicat to do the right thing.
 
- * In general, figure out what are the slow parts of XCVB, and optimize them.
+ * In general, figure out what are the slow parts of XCVB, and optimize them
+   or fix the badness in the underlying Lisp.
 
  * Allow individual lisp modules to override
    the ``:build-depends-on`` inherited from their ``build.xcvb``.
 
  * Make XCVB independent from ``cl-launch``
-   by implementing the missing functionality
-   (init forms, resume function,
-   minimal shell wrapping and/or standalone images).
+   by implementing the missing functionality.
+   See `Producing Executables [V3]`_.
 
  * [Fixed in SBCL 1.0.31.3 - remove this note when 1.0.32 is released]
    Get SBCL bug 411925 https://bugs.launchpad.net/bugs/411925 fixed
@@ -399,6 +399,12 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    i.e. we can no longer change the semantics of ``:compile-lisp``.
    Instead, we must keep the old ``:compile-lisp`` and possibly provide new versions
    under a different name, such as ``:compile-lisp/2``.
+
+ * Change the semantics of dependencies to allow to "upgrade" some CFASL's to FASL's?
+   Maybe not, because this is tricky as we want to preserve the order of loads, and
+   trickier still if for whatever reason the dependencies of the FASL are not an
+   upgrade from the dependencies of the CFASL. (That condition may be tested and
+   an error issued if not met.)
 
 
 Roadmap [Done]
@@ -619,8 +625,9 @@ to create an executable from an image produced by XCVB.
 This is done but needs to be documented in XCVB's README. [V1]
 
 In a second time [V3], XCVB should be extended to directly support
-all the relevant features from cl-launch, although
-if the executable needs a wrapping script, things can be tricky.
+all the relevant features from cl-launch:
+init forms, resume function, user-customizable shell wrapping
+and/or standalone images.
 
 Additionally, when creating a standalone executable,
 some initializers and finalizers may have to be run as described in

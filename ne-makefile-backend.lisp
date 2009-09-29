@@ -4,6 +4,18 @@
 
 (in-package :xcvb)
 
+(defclass nem-traversal (simplifying-traversal)
+  ())
+
+;;;; TODO: fix the code below HERE... XXX...
+
+(defmethod graph-for-build-grain ((env nem-traversal) grain)
+  (load-command-for* env (compile-dependencies grain))
+  (load-command-for* env (load-dependencies grain)))
+
+(define-graph-for :asdf ((env nem-traversal) system-name)
+  (pushnew system-name *asdf-system-dependencies* :test 'equal))
+
 (defun write-non-enforcing-makefile (build-names &key output-path)
   "Write a Makefile to output-path with information about how to compile the specified BUILD
 in a fast way that doesn't enforce dependencies."

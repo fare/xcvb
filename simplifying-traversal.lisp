@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("traversal")))
+#+xcvb (module (:depends-on ("dependencies-interpreter" "traversal")))
 (in-package :xcvb)
 
 #|
@@ -48,3 +48,17 @@ and the non-enforcing Makefile backend.
 
 (define-graph-for :lisp ((env simplifying-traversal) name)
   (resolve-absolute-module-name name))
+
+(defvar *asdf-system-dependencies* nil
+  "A list of asdf system we depend upon")
+
+(defvar *require-dependencies* nil
+  "A list of require features we depend upon")
+
+(define-graph-for :asdf ((env simplifying-traversal) system-name)
+  (pushnew system-name *asdf-system-dependencies* :test 'equal)
+  nil)
+
+(define-load-command-for :require ((env simplifying-traversal) feature)
+  (pushnew feature *require-dependencies* :test 'string-equal)
+  nil)

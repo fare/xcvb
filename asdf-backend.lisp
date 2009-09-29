@@ -19,6 +19,10 @@ TODO to make it more correct:
   features provided by XCVB.
 (b) push these extensions for inclusion in upstream ASDF, and/or
 (c) just punt and have ASDF delegate to our in-image backend (if/when implemented)
+
+
+The conversion can be tested with:
+	xcvb x2a -b /xcvb -o /tmp/blah.asd
 |#
 
 (defclass asdf-traversal (simplifying-traversal)
@@ -27,54 +31,19 @@ TODO to make it more correct:
 (defvar *target-builds* (make-hashset :test 'equal)
   "A list of asdf system we supersede")
 
-(defvar *asdf-systems-superseded* (make-hashset :test 'equal)
-  "A list of asdf system we supersede")
-
-(defvar *asdf-system-dependencies* nil
-  "A list of asdf system we depend upon")
-
 (defmethod issue-dependency ((env asdf-traversal) (grain lisp-grain))
   (let* ((build (build-grain-for grain)))
     (if (build-in-target-p build)
         (call-next-method)
-        (dolist (system (supersedes-asdf build))
-          (pushnew system *asdf-system-dependencies* :test 'equal))))
+        (cond
+          ((supersedes-asdf build)
+           (dolist (system (supersedes-asdf build))
+             (pushnew system *asdf-system-dependencies* :test 'equal)))
+          ((equal (fullname build) "/asdf")
+           nil) ;; special case: ASDF is assumed to be there already
+          (t
+           (error "depending on build ~A but it has no ASDF equivalent" (fullname build))))))
   (values))
-
-(defmethod issue-dependency ((env asdf-traversal) (grain fasl-grain))
-  (issue-dependency env (graph-for env `(:lisp ,(second (fullname grain))))))
-
-(defmethod load-command-for-lisp ((env asdf-traversal) name)
-  (load-command-for-fasl env name))
-
-(define-graph-for :fasl ((env asdf-traversal) name)
-  (check-type name string)
-  (let* ((grain (resolve-absolute-module-name name))
-	 (fullname (if grain (fullname grain) (error "Couldn't resolve ~S to a lisp module" name)))
-	 (generator (gethash fullname *generators*)))
-    (check-type grain lisp-grain)
-    (handle-lisp-dependencies grain)
-    (issue-dependency env grain)
-    (let* ((dependencies
-            (remove-duplicates
-             (append (build-dependencies grain)
-                     (when generator (generator-dependencies generator))
-                     (compile-dependencies grain)
-                     (load-dependencies grain))
-             :test 'equal :from-end t))
-           (fasl
-            (make-grain 'fasl-grain :fullname `(:fasl ,name)
-                        :load-dependencies ())))
-      (load-command-for* env dependencies)
-      (make-computation
-       ()
-       :outputs (list fasl)
-       :inputs (traversed-dependencies env)
-       :command nil)
-      fasl)))
-
-(define-graph-for :lisp ((env asdf-traversal) name)
-  (resolve-absolute-module-name name))
 
 (defun build-in-target-p (build)
   (gethash (fullname build) *target-builds*))
@@ -90,13 +59,8 @@ TODO to make it more correct:
          (pushnew system *asdf-system-dependencies* :test 'equal)))
       (t
        (error "Targets ~S depend on ~S but it isn't in an ASDF"
-              (traversed-dependencies-r env) (fullname grain))))))
-
-(define-graph-for :asdf ((env asdf-traversal) system-name)
-  (unless (gethash system-name *asdf-systems-superseded*)
-    (pushnew system-name *asdf-system-dependencies* :test 'equal))
-  (make-asdf-grain :name system-name
-                   :implementation *lisp-implementation-type*))
+              (traversed-dependencies-r env) (fullname grain))))
+    nil))
 
 (defun write-asd-prelude (s)
   (format s
@@ -117,7 +81,9 @@ Declare asd system as ASDF-NAME."
          (first-build (first builds))
          (asdf-name
           (coerce-asdf-system-name
-           (or asdf-name (first (supersedes-asdf first-build)))))
+           (or asdf-name
+               (first (supersedes-asdf first-build))
+               (pathname-name (fullname first-build)))))
          (output-path (ensure-absolute-pathname output-path))
          (output-dir (pathname-directory-pathname output-path))
          (output-path
@@ -127,12 +93,8 @@ Declare asd system as ASDF-NAME."
             (make-pathname :name asdf-name :type "asd")
             (grain-pathname first-build))))
          (*target-builds* (make-hashset :test 'equal :list (mapcar #'fullname builds)))
-         (*asdf-systems-superseded*
-          (make-hashset
-           :test 'equal
-           :list (loop :for b :in builds
-                   :nconc (mapcar #'coerce-asdf-system-name
-                                  (supersedes-asdf b)))))
+         (*asdf-system-dependencies* nil)
+         (*require-dependencies* nil)
          (*use-cfasls* nil))
     (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
     (dolist (b builds)
@@ -146,7 +108,9 @@ Declare asd system as ASDF-NAME."
                (*print-case* :downcase)
                (*default-pathname-defaults* output-dir))
           (write-asd-prelude out)
-          (write form :stream out :pretty t :miser-width 79))))))
+          (format out "~@[~{(require ~S)~%~}~%~]" (reverse *require-dependencies*))
+          (write form :stream out :pretty t :miser-width 79)
+          (terpri out))))))
 
 (defun keywordify-asdf-name (name)
   (kintern "~:@(~A~)" name))
@@ -160,7 +124,6 @@ Declare asd system as ASDF-NAME."
     `(asdf:defsystem ,(keywordify-asdf-name asdf-name)
        :depends-on ,(mapcar 'keywordify-asdf-name (reverse *asdf-system-dependencies*))
        :components ,(loop :for computation :in (reverse *computations*)
-                      :for fasl = (first (computation-outputs computation))
                       :for lisp = (first (computation-inputs computation))
                       :for deps = (rest (computation-inputs computation))
                       :for build = (and lisp (build-grain-for lisp))

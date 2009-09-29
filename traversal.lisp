@@ -2,18 +2,6 @@
 
 (in-package :xcvb)
 
-;(declaim (optimize (debug 3) (speed 1) (safety 3)))
-;(declaim (optimize (debug 1) (speed 3) (safety 2)))
-
-;;; TODO: We probably need a better interface, so that
-;;; the following aspects be handled in a generic way
-;;; * the fact that we don't want to load the same dependency twice
-;;; * the fact that we may want to "upgrade" some cfasl's to fasl's
-;;;   -- or not, because that gets tricky since we want to preserve
-;;;   the order of loads, and trickier still if for whatever reason
-;;;   the dependencies of the fasl are not an upgrade from the
-;;;   dependencies of the cfasl
-;;;   -- that condition may be tested and an error issued otherwise.
 (defgeneric next-traversal (env spec))
 (defgeneric dependency-already-included-p (env grain))
 (defgeneric issue-dependency (env grain))
@@ -32,6 +20,8 @@
     :initarg :grain-names
     :reader traversed-grain-names-r
     :documentation "grain names in the stack of things we try to create -- to avoid circularities")
+   ;; do we also need them as a set? possibly... to be measured.
+   ;; we might benefit from a pure functional set implementation; maybe use FSet?
    (issued-dependencies
     :initform (make-hashset :test 'equal)
     :accessor issued-dependencies
