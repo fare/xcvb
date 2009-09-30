@@ -23,7 +23,9 @@
      #:build-module
      #:build-depends-on
      #:compile-depends-on
+     #:cload-depends-on
      #:load-depends-on
+     #:depends-on
      #:defextension
      #:extension-form
 
@@ -81,15 +83,6 @@
      #:finalize-search-path
      #:search-search-path
 
-     ;; Lisp Grains
-     #:depends-on
-     #:compile-depends-on
-     #:load-depends-on
-
-     ;; Create graphs
-     #:create-dependency-graph
-     #:create-dump-image-graph
-
      ;; Main functions for using xcvb
      #:write-makefile
      #:write-asd-file
@@ -106,16 +99,12 @@
      #:*target-system-features*
 
      ;; interpreting dependencies
-     #:compile-time-fasl-type
      #:cfasl-for-fasl
      #:load-command-for
 
      ;; Converting ASDF systems.
      #:asdf-to-xcvb
-
-     ;; Conditions
-     #:no-build-file-found
-     #:dependency-cycle))
+     ))
 
 (cl:defpackage :xcvb-user
   (:use :common-lisp :xcvb-driver :xcvb))

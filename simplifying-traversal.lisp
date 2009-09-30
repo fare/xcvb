@@ -28,7 +28,9 @@ and the non-enforcing Makefile backend.
   nil)
 
 (defmethod graph-for-build-grain ((env simplifying-traversal) grain)
+  (load-command-for* env (build-dependencies grain))
   (load-command-for* env (compile-dependencies grain))
+  (load-command-for* env (cload-dependencies grain))
   (load-command-for* env (load-dependencies grain))
   nil)
 
@@ -45,6 +47,7 @@ and the non-enforcing Makefile backend.
              (append (build-dependencies grain)
                      (when generator (generator-dependencies generator))
                      (compile-dependencies grain)
+                     (cload-dependencies grain)
                      (load-dependencies grain))
              :test 'equal :from-end t))
            (fasl

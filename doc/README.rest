@@ -283,7 +283,19 @@ That form specifies all the dependencies of the Lisp file
 and nothing but its dependencies.
 Optionally, you can distinguish
 between ``:compile-depends-on``
-and ``:load-depends-on``.
+and ``:load-depends-on``
+and even ``:cload-depends-on``:
+
+
+ * ``:load-depends-on`` specifies what must be loaded the compiled FASL file may be loaded.
+ * ``:compile-depends-on`` specifies what must be loaded before the Lisp file may be compiled
+   (by default, the compile-time versions of the files listed in ``:load-depends-on`` above;
+   where compile-time version is a CFASL if available, or else a FASL).
+ * ``:cload-depends-on`` specifies what must be loaded before the compiled CFASL file may be loaded
+   when compiling files that depend on it, assuming CFASLs are available
+   (by default, the same as ``:compile-depends-on`` above;
+   it should probably always be a subset thereof).
+ * ``:depends-on`` specifies what must be loaded no matter what in all the above cases.
 
 Finally, a main file called ``build.xcvb``
 is the main file that needs to be loaded in the final image.
@@ -812,8 +824,12 @@ If you build an executable, you can have it offer a REPL like XCVB does
 
 	C-u M-x slime env SBCL_HOME=/usr/lib/sbcl xcvb repl
 
-You can then use ``C-c C-k`` to compile the files you modify.
-When you're satisfied, check that it still builds from clean with ``make``.
+You can then use ``C-c C-c`` to compile definitions you modify,
+or ``C-c C-k`` to compile whole files.
+When you're satisfied with the changes you've made interactively,
+you should check that it still builds from clean with ``make``,
+and use the REPL interactively once again to double check
+that it still does what you think it does.
 
 
 Debugging the build

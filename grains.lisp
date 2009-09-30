@@ -114,11 +114,15 @@
    (depends-on
     :initform nil
     :initarg :depends-on)
+   (cload-depends-on
+    :initarg :cload-depends-on)
    (load-depends-on
     :initform nil
     :initarg :load-depends-on)
    (compile-dependencies
     :reader compile-dependencies)
+   (cload-dependencies
+    :reader cload-dependencies)
    (load-dependencies
     :reader load-dependencies)
    (extension-forms

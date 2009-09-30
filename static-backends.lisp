@@ -98,6 +98,7 @@
          :name `(:build ,(fullname grain))
 	 :dependencies
 	 (progn (load-command-for* env (compile-dependencies grain))
+                (load-command-for* env (cload-dependencies grain))
                 (load-command-for* env (load-dependencies grain))
 		(traversed-dependencies env))))))
 
@@ -194,14 +195,17 @@
     (handle-lisp-dependencies lisp)
     (let ((build-dependencies (unless specialp (build-dependencies lisp)))
           (compile-dependencies (compile-dependencies lisp))
+          (cload-dependencies (cload-dependencies lisp))
           (load-dependencies (load-dependencies lisp)))
       (issue-dependency env lisp)
       (unless specialp
         (pre-image-for env lisp)
         (load-command-for* env build-dependencies))
       (load-command-for* env compile-dependencies)
-      (let* ((outputs (fasl-grains-for-name fullname load-dependencies compile-dependencies
-                                            build-dependencies)))
+      (let* ((outputs (fasl-grains-for-name
+                       fullname
+                       load-dependencies cload-dependencies
+                       build-dependencies)))
         (when specialp
           (setf outputs (list (car outputs))))
         (make-computation

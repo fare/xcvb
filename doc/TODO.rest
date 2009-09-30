@@ -1,8 +1,8 @@
 .. ; -*- mode:rst; -*-
 
-====
-TODO
-====
+=============
+TODO for XCVB
+=============
 
 Future improvements planned for XCVB.
 

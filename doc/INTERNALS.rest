@@ -430,12 +430,28 @@ using the static backend traversal and
 iterating over computations to create Makefile rules.
 
 
+simplifying-traversal.lisp
+--------------------------
+
+This is a simplifying traversal used by the ASDF backend
+and its associated non-enforcing Makefile backend.
+It conflates all different kinds of dependencies into one.
+
+
 asdf-backend.lisp
 -----------------
 
 This is our ASDF backend,
 traversing the graph in a simplified way and
 iterating over computations to create an ASDF defsystem.
+
+
+ne-makefile-backend.lisp
+------------------------
+
+This is our non-enforcing makefile backend.
+It uses variants of both the asdf-backend and the makefile-backend
+to enable fast builds that don't enforce dependencies.
 
 
 asdf-converter.lisp

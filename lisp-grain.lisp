@@ -46,12 +46,17 @@
     (handle-extension-forms grain)
     (flet ((normalize (deps)
 	     (normalize-dependencies deps grain)))
-      (with-slots (compile-depends-on load-depends-on depends-on
-                   compile-dependencies load-dependencies) grain
+      (with-slots (compile-depends-on load-depends-on cload-depends-on depends-on
+                   compile-dependencies cload-dependencies load-dependencies) grain
         (let ((common-dependencies (normalize depends-on)))
           (setf compile-dependencies
                 (append (mapcar #'compiled-dependency common-dependencies)
                         (normalize compile-depends-on)))
+          (setf cload-dependencies
+                (if (slot-boundp grain 'cload-depends-on)
+                  (append (mapcar #'compiled-dependency common-dependencies)
+                          (normalize cload-depends-on))
+                  compile-dependencies))
           (setf load-dependencies
                 (append common-dependencies
                         (normalize load-depends-on)))))
@@ -134,6 +139,8 @@
 
 (defmethod load-dependencies :before ((grain lisp-grain))
   (handle-lisp-dependencies grain))
+(defmethod cload-dependencies :before ((grain lisp-grain))
+  (handle-lisp-dependencies grain))
 (defmethod compile-dependencies :before ((grain lisp-grain))
   (handle-lisp-dependencies grain))
 (defmethod build-dependencies :before ((grain lisp-grain))
@@ -206,6 +213,8 @@
    :fullname `(:asdf ,name)))
 
 (defmethod load-dependencies ((grain asdf-grain))
+  nil)
+(defmethod cload-dependencies ((grain asdf-grain))
   nil)
 (defmethod compile-dependencies ((grain asdf-grain))
   nil)
