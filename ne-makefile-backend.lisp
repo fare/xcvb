@@ -32,9 +32,9 @@
                             `(:image (:image ,(strcat "/" previous)))
                             (progn
                               (setf inputs
-                                    (append (mapcar #'registered-grain +xcvb-setup-dependencies+)
+                                    (append (mapcar #'registered-grain *lisp-setup-dependencies*)
                                             inputs))
-                              `(:load ,+xcvb-setup-dependencies+))))
+                              `(:load ,*lisp-setup-dependencies*))))
          (computation
           (make-computation ()
             :outputs (list image)
@@ -44,7 +44,10 @@
               (:create-image
                ,image-name
                (:register-asdf-directory ,(merge-pathnames (strcat *object-directory* "/")))
-               ,@(when parallel `((:load-asdf :poiu)))
+               ,@(when parallel
+                       `((:register-asdf-directory
+                          ,(pathname-directory-pathname (grain-pathname (registered-build "/poiu"))))
+                         (:load-asdf :poiu)))
                (:load-asdf ,(coerce-asdf-system-name asdf-name)
                            ,@(when parallel `(:parallel t)))))))
          (*computations* (list computation)))

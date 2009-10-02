@@ -469,7 +469,6 @@ may have to be manually migrated and/or
 their automatically migrated ``build.xcvb`` may have to be manually edited.
 Some systems may also be merged together, as specified by the user.
 
-Also, unmigration, stripping any generated module statement, should be supported.
 So should be merging changes into previously manually-edited build.xcvb files.
 
 

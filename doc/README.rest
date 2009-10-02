@@ -1071,6 +1071,48 @@ You will still have to edit your code so that it follows the
 `Restrictions on your Lisp Code`_, most notably regarding the proper usage of ``eval-when``.
 
 
+ASDF extensions without XCVB equivalent
+---------------------------------------
+
+ASDF-BINARY-LOCATIONS (now part of ASDF as of 1.366)
+redirects the FASLs in a shared per-user cache with discriminations per implementation
+(CL-Launch does something similar).
+XCVB segregates FASLs per project, as you may have different image setup
+(including optimization options, feature set, etc.) for different project,
+and want to ensure 100% determinism and reproducibility
+of the build of each of your critical projects,
+without possible side-effects from unrelated projects.
+
+``ASDF-SYSTEM-CONNECTIONS`` allows you to declare "connection" systems
+that are magically loaded when all of their dependencies are loaded.
+Reported use include automatically loading debugging support for some systems
+when `SLIME`_'s swank is loaded.
+This doesn't have an XCVB equivalent, and
+probably will never have an equivalent inside XCVB,
+although similar functionality can be trivially implemented as a layer that wraps XCVB.
+Indeed, XCVB is wholly based upon the "pure functional" idea
+that a dependency means the same thing
+independently from the other components of the overall system in which it is included.
+``ASDF-SYSTEM-CONNECTIONS`` doesn't save you from having to specify
+a connected system with both dependencies
+just because it calls this system "connection".
+In programs that actually make use of the connection,
+it isn't harder to specify an explicit dependency on the connected system
+than to specify both dependencies,
+and it is much less confusion-prone.
+Making such dependencies explicit also allows to clearly distinguish
+and manipulate the smaller components that are connected and
+the bigger component that includes and connects them.
+With XCVB, you are welcome to define "connections",
+and automatically generate specifications that include "connected" systems,
+but this has to happen in a layer above XCVB
+that XCVB itself doesn't have to care about;
+for instance, in a script that will parse some specification
+and select which modules of your big system will be included in your build,
+and do any kind of rule-based reasoning it wants to automatically include connections.
+This script can then create a ``build.xcvb`` file and instruct XCVB to build it.
+
+
 Undoing a conversion to XCVB
 ----------------------------
 

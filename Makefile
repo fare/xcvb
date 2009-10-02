@@ -35,7 +35,7 @@ endif
 export INSTALL_XCVB
 
 LISP_SOURCES := $(wildcard *.lisp */*.lisp *.asd */*.asd)
-LISP_INSTALL_FILES := driver.lisp build.xcvb
+LISP_INSTALL_FILES := driver.lisp build.xcvb master
 
 ## cl-launch mode: standalone executable, script+image or script+fasls?
 define CL_LAUNCH_MODE_standalone
@@ -79,17 +79,21 @@ obj/xcvb.image: xcvb.mk
 xcvb-using-xcvb: obj/xcvb.image
 	${MAKE} xcvb-bootstrapped-install
 
+XCVB_INIT :=	--init "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCVB}/\"))" \
+		--init '(xcvb::main)'
+
 xcvb-bootstrapped-install:
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image \
-		$(call CL_LAUNCH_MODE_standalone,xcvb) --init '(xcvb::main)'
+		$(call CL_LAUNCH_MODE_standalone,xcvb) \
+		${XCVB_INIT}
 
 ## If you don't have XCVB, but have a cl-launch with properly ASDF setup in configure.mk,
 ## then you can bootstrap XCVB with the following target:
 xcvb-using-asdf:
 	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
-	--system xcvb --restart xcvb::main \
+	--system xcvb ${XCVB_INIT} \
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
 
 ## Installing Lisp files needed at runtime
