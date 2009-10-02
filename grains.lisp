@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("utilities")))
+#+xcvb (module (:depends-on ("utilities" "conditions")))
 
 (in-package :xcvb)
 

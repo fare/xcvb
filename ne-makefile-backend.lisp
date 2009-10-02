@@ -62,7 +62,7 @@ in a fast way that doesn't enforce dependencies."
          (builds (mapcar #'registered-build build-names))
          (last-build (first (last builds)))
          (asdf-names (loop :for (build . rest) :on build-names :for i :from 1
-                       :collect (if rest (format nil "~A-stage~D" asdf-name i) asdf-name)))
+                       :collect (if rest (format nil "~A-stage~D-~A" asdf-name i build) asdf-name)))
          (default-output-path (merge-pathnames "xcvb-ne.mk" (grain-pathname last-build)))
          (output-path (merge-pathnames output-path default-output-path))
          (makefile-path (ensure-absolute-pathname output-path))
@@ -81,7 +81,6 @@ in a fast way that doesn't enforce dependencies."
             :for build :in builds
             :for previous-asdf = nil :then asdf-name
             :for asdf-name :in asdf-names
-            :for first = t :then nil
             :collect (make-nem-stage asdf-name build-name build
                                      :previous previous-asdf
                                      :parallel parallel))))

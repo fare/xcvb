@@ -15,7 +15,7 @@
 (defvar *xcvb-version*)
 
 (defvar *lisp-implementation-type*
-  (or #+sbcl :sbcl #+clisp :clisp #+ccl :ccl #+cmu :cmucl)
+  (or #+sbcl :sbcl #+clisp :clisp #+clozure :ccl #+cmu :cmucl)
   "Type of Lisp implementation for the target system.
 Default: same as XCVB itself.")
 

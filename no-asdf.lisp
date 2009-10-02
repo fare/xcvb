@@ -34,6 +34,7 @@
                  (let ((name (package-name p)))
                    (format t "~&Deleting package ~A~%" name)
                    (delete-package p)
+                   #+sbcl
                    (when (find name sb-impl::*modules* :test 'string=)
                      (format t "~&Unregistering required module ~A~%" name)
                      (setf sb-impl::*modules* (remove name sb-impl::*modules*  :test 'string=))))))

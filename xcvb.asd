@@ -30,7 +30,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "utilities" :depends-on ("macros"))
      (:file "specials" :depends-on ("utilities"))
      (:file "logging" :depends-on ("specials"))
-     (:file "grains" :depends-on ("utilities"))
+     (:file "grains" :depends-on ("utilities" "conditions"))
      (:file "portablish-pathnames" :depends-on ("utilities"))
      (:file "registry" :depends-on ("portablish-pathnames" "grains"))
      (:file "computations" :depends-on ("grains" "registry"))
