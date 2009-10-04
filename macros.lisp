@@ -33,15 +33,6 @@ Otherwise, signal an error."
     ((and string (satisfies array-has-fill-pointer-p))
      (with-output-to-string (s obj) (funcall fun s)))))
 
-(defmacro with-safe-io-syntax ((&key (package :cl-user)) &body body)
-  `(call-with-safe-read-io-syntax (lambda () ,@body) :package ,package))
-
-(defun call-with-safe-io-syntax (thunk &key (package :cl-user))
-  (with-standard-io-syntax ()
-    (let ((*package* (find-package package))
-	  (*read-eval* nil))
-      (funcall thunk))))
-
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun fintern (package format &rest rest)
     (intern (apply #'format nil format rest)

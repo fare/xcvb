@@ -27,7 +27,6 @@ theretofore unneeded temporary file.
 
 (in-package :cl)
 
-
 (defpackage :xcvb-master
   (:nicknames :xcvbm)
   (:use :cl)
@@ -57,10 +56,15 @@ theretofore unneeded temporary file.
    #:run-program/read-output-forms
    #:read-many
 
+   ;;; I/O
+   #:with-safe-io-syntax
+
    ;;; Using an inferior XCVB
    #:build-and-load))
 
 (in-package :xcvb-master)
+
+;;; These variables are shared with XCVB itself.
 
 (defvar *lisp-implementation-type*
   (or #+sbcl :sbcl #+clisp :clisp #+ccl :ccl #+cmu :cmucl)
@@ -90,14 +94,6 @@ Default: whatever's the default for your implementation.")
 5 - usual warnings
 9 - plenty of debug info")
 
-(defvar *search-path* '()
-  "Path to search for XCVB modules")
-
-#|
-(defvar *xcvb-path* nil
-  "XCVB Search path override")
-|#
-
 (defvar *lisp-allow-debugger* nil
   "Should we allow interactive debugging of failed build attempts?")
 
@@ -110,6 +106,16 @@ Default: whatever's the default for your implementation.")
 (defvar *use-base-image* t
   "Should we be using a base image for all builds?")
 
+;;; These variables are specific to XCVB master.
+
+(defvar *xcvb-binary* "xcvb"
+  "Path to the XCVB binary")
+
+(defvar *xcvb-path* nil
+  "XCVB Search path override")
+
+(defvar *xcvb-setup* nil
+  "Lisp file to load to setup the target build system, if any")
 
 ;;; Simple variant of run-program with no input, and capturing output
 
@@ -131,10 +137,11 @@ Default: whatever's the default for your implementation.")
                     process)))
       (multiple-value-prog1
           (funcall output-processor stream)
+        (close stream)
+        #-clisp
         (#+sbcl sb-ext:process-wait
          #+(or cmu scl) ext:process-wait
          #+clozure ccl::external-process-wait
-         #+clisp close
          process)
         #-clisp
         (let ((return-code
@@ -180,18 +187,69 @@ Default: whatever's the default for your implementation.")
     :until (eq form eof)
     :collect form))
 
-#|
+(defmacro with-safe-io-syntax ((&key (package :cl)) &body body)
+  `(call-with-safe-io-syntax (lambda () ,@body) :package ,package))
+
+(defun call-with-safe-io-syntax (thunk &key (package :cl))
+  (with-standard-io-syntax ()
+    (let ((*package* (find-package package))
+	  (*read-eval* nil))
+      (funcall thunk))))
+
+(define-symbol-macro *loaded-grains*
+   (symbol-value (find-symbol (string :*loaded-grains* ) :xcvb-driver)))
+
+(defun make-loaded-grains-string (&optional (loaded-grains *loaded-grains*))
+  (with-output-to-string (s)
+    (with-safe-io-syntax ()
+      (write loaded-grains :stream s
+             :readably t :escape t :pretty nil))))
+
 (defun build-and-load
     (build &key
-     setup
-     xcvb-path
+     (xcvb-binary *xcvb-binary*)
+     (setup *xcvb-setup*)
+     (xcvb-path *xcvb-path*)
      output-path
-     object-directory
-     lisp-implementation
-     lisp-binary-path
-     disable-cfasl
-     base-image
-     verbosity
+     (object-directory *object-directory*)
+     (lisp-implementation *lisp-implementation-type*)
+     (lisp-binary-path *lisp-executable-pathname*)
+     (disable-cfasl *disable-cfasls*)
+     (base-image *use-base-image*)
+     (verbosity *xcvb-verbosity*)
      profiling)
-  nil);;...
-|#
+  (flet ((string-option-arguments (string value)
+           (when value
+             (list string (princ-to-string value))))
+         (boolean-option-arguments (string value)
+           (when value (list string))))
+  (macrolet ((option-string (name)
+               (format nil "--~(~a~)" name))
+             (string-option (var)
+               `(string-option-arguments (option-string ,var) ,var))
+             (string-options (&rest vars)
+               `(append ,@(loop :for var :in vars :collect `(string-option ,var))))
+             (boolean-option (var)
+               `(boolean-option-arguments (option-string ,var) ,var))
+             (boolean-options (&rest vars)
+               `(append ,@(loop :for var :in vars :collect `(boolean-option ,var)))))
+    (let* ((loaded-grains (make-loaded-grains-string))
+           (forms
+            (with-safe-io-syntax ()
+              (apply #'run-program/read-output-forms xcvb-binary "slave-builder"
+                     (append
+                      (string-options build
+                                      setup xcvb-path output-path object-directory
+                                      lisp-implementation lisp-binary-path verbosity
+                                      loaded-grains)
+                      (boolean-options disable-cfasl base-image profiling))))))
+      (unless (and forms (consp forms) (null (cdr forms))
+                   (consp (car forms)) (eq (caar forms) :xcvb))
+        (error "XCVB subprocess failed."))
+      (destructuring-bind modules (cdar forms)
+        (loop :for (fullname tthsum path) :in modules :do
+          (progn
+            (when (>= *xcvb-verbosity* 5)
+              (format "~&Loading grain ~S (tthsum: ~A) from ~S~%" fullname tthsum path))
+            (load path)
+            (push (cons fullname tthsum) *loaded-grains*))))))))

@@ -22,6 +22,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
   :build-depends-on ("asdf" "cl-launch" "asdf-dependency-grovel"
                      "closer-mop" "command-line-arguments" "xcvb/master")
   :depends-on ("conditions"
+               "digest"
                "normalize-dependency"
                "makefile-backend"
                "ne-makefile-backend"

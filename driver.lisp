@@ -11,6 +11,7 @@
 
 (in-package :cl)
 
+;;; Initial implementation-dependent setup
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3);;2)
            #+sbcl (sb-ext:inhibit-warnings 3)
@@ -18,7 +19,7 @@
 	   #+cmu (ext:inhibit-warnings 3)))
   #+sbcl (proclaim '(sb-ext:muffle-conditions sb-ext:compiler-note))
   #+gcl ;;; If using GCL, do some safety checks
-  (when (or #-ansi-cl t)
+  (unless (member :ansi-cl *features*)
     (format *error-output*
      "XCVB only supports GCL in ANSI mode. Aborting.~%")
     (lisp:quit))
@@ -26,29 +27,72 @@
   (when (or (< system::*gcl-major-version* 2)
             (and (= system::*gcl-major-version* 2)
                  (< system::*gcl-minor-version* 7)))
-    (pushnew :gcl-pre2.7 *features*))
-  (setf *print-readably* nil ; allegro 5.0 notably will bork without this
+    (error "GCL version ~D.~D < 2.7 not supported"
+           system::*gcl-major-version* system::*gcl-minor-version*))
+  (setf *print-readably* nil ; allegro 5.0 may notably bork on ASDF without this
         *load-verbose* nil *compile-verbose* nil *compile-print* nil)
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
   #+gcl (setf compiler::*compiler-default-type* (pathname "")
               compiler::*lsp-ext* "")
-  #+ecl (require 'cmp)
-  ;;;; Ensure package hygiene
-  (unless (find-package :xcvb-driver)
-    (make-package
-     :xcvb-driver :nicknames '(:xcvbd)
-     :use (list (or (find-package :common-lisp) :lisp)))))
+  #+ecl (require 'cmp))
+
+(defpackage :xcvb-driver
+  (:nicknames :xcvbd)
+  (:use :common-lisp)
+  (:export
+   #:*restart* #:*loaded-grains* #:debugging #:profiling #:*goal* #:*stderr*
+   #:*uninteresting-conditions* #:*fatal-condition* #:*deferred-warnings*
+   #:getenv #:emptyp #:setenvp #:setup-environment
+   #:debugging #:with-profiling
+   #:finish-outputs #:quit #:shell-boolean
+   #:print-backtrace #:die #:bork #:with-coded-exit
+   #:uninteresting-condition-p #:fatal-condition-p
+   #:with-controlled-compiler-conditions #:with-controlled-loader-conditions
+   #:with-xcvb-compilation-unit
+   #:do-find-symbol #:call #:eval-string
+   #:run #:do-run #:run-commands #:run-command
+   #:asdf-symbol #:asdf-call
+   #:resume #-ecl #:dump-image))
 
 (in-package :xcvb-driver)
 
-(map () #'export
-     '(finish-outputs quit resume restart debugging
-       run do-run run-commands run-command
-       with-coded-exit with-controlled-compiler-conditions with-xcvb-compilation
-       *uninteresting-conditions* *debugging*))
+;; Variables that define the current system
+(defvar *restart* nil
+  "a function with which to restart the dumped image when execution is resumed from it.")
+(defvar *loaded-grains* '()
+  "an alist of fullname of the XCVB grains loaded in the current image, with tthsum")
+(defvar *debugging* nil
+  "boolean: should we enter the debugger on failure?")
+(defvar *profiling* nil
+  "boolean: should we compute and display the time spend in each command?")
+(defvar *goal* nil
+  "what is the name of the goal toward which we execute commands?")
+(defvar *stderr* *error-output*
+  "the original error output stream at startup")
+(defvar *uninteresting-conditions*
+  (append
+   #+sbcl
+   '(sb-c::simple-compiler-note
+     "&OPTIONAL and &KEY found in the same lambda list: ~S"
+     sb-int:package-at-variance
+     sb-kernel:uninteresting-redefinition
+     sb-kernel:undefined-alien-style-warning
+     sb-ext:implicit-generic-function-warning
+     sb-kernel:lexical-environment-too-complex
+     "Couldn't grovel for ~A (unknown to the C compiler).")
+   )
+  "Conditions that may be skipped. type symbols, predicates or strings")
+(defvar *fatal-condition*
+  '(or serious-condition)
+  "Conditions to be considered fatal during compilation.")
+(defvar *deferred-warnings* ()
+  "Warnings the handling of which is deferred until the end of the compilation unit")
 
+;;; Setting up the environment from shell variables
 (defun getenv (x)
+  #-(or cmu clozure allegro gcl clisp ecl sbcl lispworks)
+  (error "GETENV not supported for your Lisp implementation")
   #-cmu
   (#+clozure ccl::getenv
    #+allegro sys:getenv
@@ -59,11 +103,30 @@
    #+lispworks lispworks:environment-variable
    x)
   #+cmu (cdr (assoc (intern x :keyword) ext:*environment-list*)))
+(defun emptyp (x)
+  (or (null x) (and (vectorp x) (zerop (length x)))))
+(defun setenvp (x)
+  (not (emptyp (getenv x))))
+(defun setup-environment ()
+  (debugging (setenvp "XCVB_DEBUGGING"))
+  (setf *profiling* (setenvp "XCVB_PROFILING")))
 
-(defvar *debugging* nil)
-(defvar *profiling* nil)
-(defvar *goal* nil)
+;;; Debugging
+(defun debugging (&optional (debug t))
+  (setf *debugging* debug
+        *load-verbose* debug
+        *compile-verbose* debug
+        *compile-print* debug)
+  (cond
+    (debug
+     #+sbcl (sb-ext:enable-debugger)
+     #+clisp (ext:set-global-handler #'invoke-debugger))
+    (t
+     #+sbcl (sb-ext:disable-debugger)
+     #+clisp (ext:set-global-handler #'bork)))
+  (values))
 
+;;; Profiling
 (defun call-with-maybe-profiling (thunk what goal)
   (if *profiling*
     (let* ((start-time (get-internal-real-time))
@@ -73,27 +136,14 @@
       (format *trace-output* "~&~S~&" `(:profiling ,what :from ,goal :duration ,duration))
       (apply #'values values))
     (funcall thunk)))
-
 (defmacro with-profiling (what &body body)
   `(call-with-maybe-profiling (lambda () ,@body) ,what *goal*))
 
 
-(defun emptyp (x)
-  (or (null x) (and (vectorp x) (zerop (length x)))))
-(defun setenvp (x)
-  (not (emptyp (getenv x))))
-
-(defun setup-environment ()
-  (debugging (setenvp "XCVB_DEBUGGING"))
-  (setf *profiling* (setenvp "XCVB_PROFILING")))
-
-;; Variables that define the current system
-(defvar *restart* nil)
-
+;;; Exiting properly or im-
 (defun finish-outputs ()
   (finish-output *error-output*)
   (finish-output *standard-output*))
-
 (defun quit (&optional (code 0) (finish-output t))
   "Quits from the Lisp world, with the given exit status if provided.
 This is designed to abstract away the implementation specific quit forms."
@@ -108,7 +158,9 @@ This is designed to abstract away the implementation specific quit forms."
   #+lispworks (lispworks:quit :status code :confirm nil :return nil :ignore-errors-p t)
   #-(or cmu clisp sbcl clozure gcl allegro ecl lispworks)
   (error "xcvb driver: Quitting not implemented"))
-
+(defun shell-boolean (x)
+  (quit
+   (if x 0 1)))
 (defun print-backtrace (out)
   (declare (ignorable out))
   nil
@@ -116,15 +168,11 @@ This is designed to abstract away the implementation specific quit forms."
 	      (ccl:print-call-history :count 100 :start-frame-number 1)
 	      (finish-output out))
   #+sbcl (sb-debug:backtrace most-positive-fixnum out))
-
-(defvar *stderr* *error-output*)
-
 (defun die (format &rest arguments)
   (format *stderr* "~&")
   (apply #'format *stderr* format arguments)
   (format *stderr* "~&")
   (quit 99))
-
 (defun bork (condition)
   (format *stderr* "~&BORK:~%~A~%" condition)
   (cond
@@ -133,29 +181,15 @@ This is designed to abstract away the implementation specific quit forms."
     (t
      (print-backtrace *stderr*)
      (die "~A" condition))))
-
 (defun call-with-coded-exit (thunk)
   (handler-bind ((serious-condition #'bork))
     (funcall thunk)
     (quit 0)))
-
 (defmacro with-coded-exit (() &body body)
   `(call-with-coded-exit (lambda () ,@body)))
 
-(defvar *uninteresting-conditions*
-  (append
-   #+sbcl
-   '(sb-c::simple-compiler-note
-     "&OPTIONAL and &KEY found in the same lambda list: ~S"
-     sb-int:package-at-variance
-     sb-kernel:uninteresting-redefinition
-     sb-kernel:undefined-alien-style-warning
-     sb-ext:implicit-generic-function-warning
-     sb-kernel:lexical-environment-too-complex
-     "Couldn't grovel for ~A (unknown to the C compiler).")
-   )
-  "Conditions that may be skipped. type symbols, predicates or strings")
 
+;;; Filtering conditions during the build.
 (defun uninteresting-condition-p (condition)
   (loop :for x :in *uninteresting-conditions* :thereis
         (etypecase x
@@ -163,13 +197,8 @@ This is designed to abstract away the implementation specific quit forms."
           (function (funcall x condition))
           (string (and (typep condition 'simple-condition)
                        (equal (simple-condition-format-control condition) x))))))
-
-(defvar *fatal-condition*
-  '(or serious-condition))
-
 (defun fatal-condition-p (condition)
   (typep condition *fatal-condition*))
-
 (defun call-with-controlled-compiler-conditions (thunk)
   (handler-bind
       ((t
@@ -182,13 +211,8 @@ This is designed to abstract away the implementation specific quit forms."
               ((fatal-condition-p condition)
                (bork condition))))))
     (funcall thunk)))
-
 (defmacro with-controlled-compiler-conditions (() &body body)
   `(call-with-controlled-compiler-conditions (lambda () ,@body)))
-
-(defvar *deferred-warnings* ()
-  "Warnings the handling of which is deferred until the end of the compilation unit")
-
 (defun call-with-controlled-loader-conditions (thunk)
   (let ((*uninteresting-conditions*
          (append
@@ -197,10 +221,8 @@ This is designed to abstract away the implementation specific quit forms."
                    sb-kernel:redefinition-with-defmethod)
           *uninteresting-conditions*)))
     (call-with-controlled-compiler-conditions thunk)))
-
 (defmacro with-controlled-loader-conditions (() &body body)
   `(call-with-controlled-loader-conditions (lambda () ,@body)))
-
 (defun call-with-xcvb-compilation-unit (thunk &key forward-references)
   (with-compilation-unit (:override t)
     (let ((*deferred-warnings* ())
@@ -242,17 +264,124 @@ This is designed to abstract away the implementation specific quit forms."
           (with-open-file (s forward-references :direction :output :if-exists :supersede)
             (write *deferred-warnings* :stream s :pretty t :readably t)
             (terpri s)))))))
-
 (defmacro with-xcvb-compilation-unit ((&key forward-references) &body body)
   `(call-with-xcvb-compilation-unit (lambda () ,@body) :forward-references ,forward-references))
 
+
+;;; Interpreting commands from the xcvb-driver-command DSL.
+(defun do-find-symbol (name package-name)
+  (let ((package (find-package (string package-name))))
+    (unless package
+      (error "Trying to use package ~A, but it is not loaded yet!" package-name))
+    (let ((symbol (find-symbol (string name) package)))
+      (unless symbol
+        (error "Trying to use symbol ~A in package ~A, but it does not exist!" name package-name))
+      symbol)))
+
+(defun function-for-command (designator)
+  (fdefinition (do-find-symbol designator :xcvb-driver)))
+(defun run-command (command)
+  (multiple-value-bind (head args)
+      (etypecase command
+        (symbol (values command nil))
+        (cons (values (car command) (cdr command))))
+    (apply (function-for-command head) args)))
+(defun do-run (commands)
+  (let ((*stderr* *error-output*))
+    (setup-environment)
+    (run-commands commands)))
+(defun run-commands (commands)
+  (map () #'run-command commands))
+(defmacro run (&rest commands)
+  `(with-coded-exit ()
+    (do-run ',commands)))
+
+
+;;; Simple commands
+(defun load-file (x)
+  (with-profiling `(:load-file ,x)
+    (with-controlled-loader-conditions ()
+      (unless (load x)
+        (die "Failed to load ~A" (list x))))))
+(defun call (package symbol &rest args)
+  (apply (do-find-symbol symbol package) args))
+(defun eval-string (string)
+  (eval (read-from-string string)))
+(defun cl-require (x)
+  (with-profiling `(:require ,x)
+    (require x)))
+
+;;; ASDF support
+(defun asdf-symbol (x)
+  (do-find-symbol x :asdf))
+(defun asdf-call (x &rest args)
+  (apply 'call :asdf x args))
+(defun load-asdf (x &key parallel) ;; parallel loading requires POIU
+  (with-profiling `(:asdf ,x)
+    (asdf-call :oos (asdf-symbol (if parallel :parallel-load-op :load-op)) x)))
+(defun register-asdf-directory (x)
+  (pushnew x (symbol-value (asdf-symbol :*central-registry*))))
+(defun asdf-system-up-to-date-p (operation-class system &rest args)
+  "Takes a name of an asdf system (or the system itself) and a asdf operation
+  and returns a boolean indicating whether or not anything needs to be done
+  in order to perform the given operation on the given system.
+  This returns whether or not the operation has already been performed,
+  and none of the source files in the system have changed since then"
+  (progv
+      (list (asdf-symbol :*verbose-out*))
+      (list (if (getf args :verbose t) *trace-output*
+            (make-broadcast-stream)))
+    (let* ((op (apply #'make-instance operation-class
+                      :original-initargs args args))
+           (system (if (typep system (asdf-symbol :component))
+                       system
+                       (asdf-call :find-system system)))
+           (steps (asdf-call :traverse op system)))
+      (null steps))))
+(defun asdf-system-loaded-up-to-date-p (system)
+  (asdf-system-up-to-date-p (asdf-symbol :load-op) system))
+(defun asdf-systems-up-to-date-p (systems)
+  "Takes a list of names of asdf systems, and
+  exits lisp with a status code indicating
+  whether or not all of those systems were up-to-date or not."
+  (every #'asdf-system-loaded-up-to-date-p systems))
+(defun asdf-systems-up-to-date (&rest systems)
+  "Are all the loaded systems up to date?"
+  (with-coded-exit ()
+    (shell-boolean (asdf-systems-up-to-date-p systems))))
+
+;;; Actually compiling
+(defun do-compile-lisp (dependencies source fasl &key cfasl)
+  (let ((*goal* `(:compile-lisp ,source))
+        (*default-pathname-defaults* (truename *default-pathname-defaults*)))
+    (multiple-value-bind (output-truename warnings-p failure-p)
+        (with-profiling `(:preparing-and-compiling ,source)
+          (with-controlled-compiler-conditions ()
+            (with-xcvb-compilation-unit ()
+              (run-commands dependencies)
+              (with-profiling `(:compiling ,source)
+                (apply #'compile-file source
+                       :output-file (merge-pathnames fasl)
+                       ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+                       (when cfasl
+                         `(:emit-cfasl ,(merge-pathnames cfasl))))))))
+      (declare (ignore output-truename))
+      (when failure-p
+        (die "Compilation Failed for ~A" source))
+      (when warnings-p
+        (die "Compilation Warned for ~A" source))))
+  (values))
+(defun compile-lisp (spec &rest dependencies)
+  (destructuring-bind (source fasl &key cfasl) spec
+    (do-compile-lisp dependencies source fasl :cfasl cfasl)))
+
+
+;;; Dumping and resuming an image
 (defun do-resume ()
   (when *restart* (funcall *restart*))
   (quit 0))
-
 (defun resume ()
   (do-resume))
-
 #-ecl
 (defun dump-image (filename &key standalone package)
   (declare (ignorable filename standalone))
@@ -300,88 +429,7 @@ This is designed to abstract away the implementation specific quit forms."
   #-(or clisp sbcl cmu clozure allegro gcl lispworks)
   (%abort 11 "XCVB-Driver doesn't supports image dumping with this Lisp implementation.~%"))
 
-(defun do-find-symbol (name package-name)
-  (let ((package (find-package (string package-name))))
-    (unless package
-      (error "Trying to use package ~A, but it is not loaded yet!" package-name))
-    (let ((symbol (find-symbol (string name) package)))
-      (unless symbol
-        (error "Trying to use symbol ~A in package ~A, but it does not exist!" name package-name))
-      symbol)))
-
-(defun function-for-command (designator)
-  (fdefinition (do-find-symbol designator :xcvb-driver)))
-
-(defun run-command (command)
-  (multiple-value-bind (head args)
-      (etypecase command
-        (symbol (values command nil))
-        (cons (values (car command) (cdr command))))
-    (apply (function-for-command head) args)))
-
-(defun do-run (commands)
-  (let ((*stderr* *error-output*))
-    (setup-environment)
-    (run-commands commands)))
-
-(defun run-commands (commands)
-  (map () #'run-command commands))
-
-(defmacro run (&rest commands)
-  `(with-coded-exit ()
-    (do-run ',commands)))
-
-(defun load-file (x)
-  (with-profiling `(:load-file ,x)
-    (with-controlled-loader-conditions ()
-      (unless (load x)
-        (die "Failed to load ~A" (list x))))))
-
-(defun call (package symbol &rest args)
-  (apply (do-find-symbol symbol package) args))
-
-(defun eval-string (string)
-  (eval (read-from-string string)))
-
-(defun asdf-symbol (x)
-  (do-find-symbol x :asdf))
-(defun asdf-call (x &rest args)
-  (apply 'call :asdf x args))
-(defun load-asdf (x &key parallel) ;; parallel loading requires POIU
-  (with-profiling `(:asdf ,x)
-    (asdf-call :oos (asdf-symbol (if parallel :parallel-load-op :load-op)) x)))
-(defun register-asdf-directory (x)
-  (pushnew x (symbol-value (asdf-symbol :*central-registry*))))
-
-(defun cl-require (x)
-  (with-profiling `(:require ,x)
-    (require x)))
-
-(defun do-compile-lisp (dependencies source fasl &key cfasl)
-  (let ((*goal* `(:compile-lisp ,source))
-        (*default-pathname-defaults* (truename *default-pathname-defaults*)))
-    (multiple-value-bind (output-truename warnings-p failure-p)
-        (with-profiling `(:preparing-and-compiling ,source)
-          (with-controlled-compiler-conditions ()
-            (with-xcvb-compilation-unit ()
-              (run-commands dependencies)
-              (with-profiling `(:compiling ,source)
-                (apply #'compile-file source
-                       :output-file (merge-pathnames fasl)
-                       ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-                       (when cfasl
-                         `(:emit-cfasl ,(merge-pathnames cfasl))))))))
-      (declare (ignore output-truename))
-      (when failure-p
-        (die "Compilation Failed for ~A" source))
-      (when warnings-p
-        (die "Compilation Warned for ~A" source))))
-  (values))
-
-(defun compile-lisp (spec &rest dependencies)
-  (destructuring-bind (source fasl &key cfasl) spec
-    (do-compile-lisp dependencies source fasl :cfasl cfasl)))
-
+;;; Actually creating images
 #-ecl
 (defun do-create-image (image dependencies &rest flags)
   (let ((*goal* `(create-image ,image))
@@ -400,60 +448,9 @@ This is designed to abstract away the implementation specific quit forms."
     (c::builder :program (parse-namestring image)
 		:lisp-files (mapcar #'second dependencies)
 		:epilogue-code epilogue-code)))
-
 (defun create-image (spec &rest dependencies)
   (destructuring-bind (image &key standalone package) spec
     (do-create-image image dependencies
                      :standalone standalone :package package)))
-
-(defun asdf-system-up-to-date-p (operation-class system &rest args)
-  "Takes a name of an asdf system (or the system itself) and a asdf operation
-and returns a boolean indicating whether or not anything needs to be done
-in order to perform the given operation on the given system.
-This returns whether or not the operation has already been performed,
-and none of the source files in the system have changed since then"
-  (progv
-      (list (asdf-symbol :*verbose-out*))
-      (list (if (getf args :verbose t) *trace-output*
-            (make-broadcast-stream)))
-    (let* ((op (apply #'make-instance operation-class
-                      :original-initargs args args))
-           (system (if (typep system (asdf-symbol :component))
-                       system
-                       (asdf-call :find-system system)))
-           (steps (asdf-call :traverse op system)))
-      (null steps))))
-
-(defun asdf-system-loaded-up-to-date-p (system)
-  (asdf-system-up-to-date-p (asdf-symbol :load-op) system))
-
-(defun asdf-systems-up-to-date-p (systems)
-  "Takes a list of names of asdf systems, and
-exits lisp with a status code indicating
-whether or not all of those systems were up-to-date or not."
-  (every #'asdf-system-loaded-up-to-date-p systems))
-
-(defun shell-boolean (x)
-  (quit
-   (if x 0 1)))
-
-(defun asdf-systems-up-to-date (&rest systems)
-  "Are all the loaded systems up to date?"
-  (with-coded-exit ()
-    (shell-boolean (asdf-systems-up-to-date-p systems))))
-
-(defun debugging (&optional (debug t))
-  (setf *debugging* debug
-        *load-verbose* debug
-        *compile-verbose* debug
-        *compile-print* debug)
-  (cond
-    (debug
-     #+sbcl (sb-ext:enable-debugger)
-     #+clisp (ext:set-global-handler #'invoke-debugger))
-    (t
-     #+sbcl (sb-ext:disable-debugger)
-     #+clisp (ext:set-global-handler #'bork)))
-  (values))
 
 ;;;(format t "~&XCVB driver loaded~%")

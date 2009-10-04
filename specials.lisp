@@ -22,7 +22,6 @@
  *lisp-implementation-directory*
  *disable-cfasls*
  *xcvb-verbosity*
- *search-path*
  *lisp-allow-debugger*
  *object-directory*
  *tmp-directory*
@@ -49,6 +48,9 @@ Autodetected from the target Lisp system.")
   '((:lisp "/xcvb/driver"))
   "Special Lisp dependencies to load into the initial buildee image for XCVB, slow version")
 
+(defparameter *lisp-setup-dependencies* +fast-xcvb-setup-dependencies+
+  "Special Lisp dependencies to load into the initial buildee image")
+
 ;;; Note: this needs be setup before you create the binary.
 ;;; The variable is set in configure.mk and exported by the Makefile.
 ;;; Ideally, the form would be evaluated when you dump the image,
@@ -59,6 +61,9 @@ Autodetected from the target Lisp system.")
   #p"/usr/share/common-lisp/source/xcvb/"
   ;; (pathname (strcat (cl-launch:getenv "INSTALL_XCVB") "/"))
   "Directory pathname for the location where XCVB Lisp files are installed")
+
+(defvar *search-path* '()
+  "Path to search for XCVB modules")
 
 ;; *pathname-grain-cache* is used by code in lisp-grain.lisp and names.lisp.
 ;; lisp-grain:handle-extension-form :generate inserts lisp grains of

@@ -57,7 +57,4 @@
    (when (eq *lisp-implementation-type* :sbcl) '("env" "-u" "SBCL_HOME"))
    (lisp-invocation-arglist
     :eval (format nil "(progn ~A (finish-output) ~A)"
-                  query-string
-                  (format nil (slot-value
-                               (get-lisp-implementation
-                                *lisp-implementation-type*) 'quit-format) 0)))))
+                  query-string (quit-form :code 0)))))
