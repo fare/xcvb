@@ -15,19 +15,18 @@
      . "(or #+sbcl (namestring(sb-int:sbcl-homedir-pathname)) #+ccl (namestring(ccl::ccl-directory)))"))
   "alist of variables and how to compute them in the target system")
 
-(defun target-properties-file ()
-  (strcat *object-directory* "/target-properties.lisp-expr"))
-
 (defun get-target-properties ()
   (unless *target-properties*
     (read-target-properties)))
 
 (defun read-target-properties ()
-  (let* ((file (target-properties-file))
-         (form (read-first-file-form file)))
-    (unless (and (consp form) (eq 'setf (car form)))
-      (error "Malformed target properties file ~S" file))
-    (setf *target-properties* (cdr form))
+  (let ((forms (extract-target-properties)))
+    (unless forms
+      (error "Failed to extract properties from your Lisp implementation"))
+    (unless (and (list-of-length-p 1 forms)
+                 (consp (car forms)) (eq 'setf (caar forms)))
+      (error "Malformed target properties"))
+    (setf *target-properties* (cdar forms))
     (loop :for (var value) :on *target-properties* :by #'cddr :do
           (cond
             ((not (member var *target-properties-variables* :key #'car))
@@ -38,34 +37,27 @@
              (set var (second value)))))))
 
 (defun extract-target-properties ()
-  (let ((file (target-properties-file)))
-    (ensure-directories-exist file)
-    (query-target-lisp-helper (target-properties-form) file)))
+  (with-safe-io-syntax (:package :xcvb-user)
+    (apply #'run-program/read-output-forms
+           (query-target-lisp-command (target-properties-form)))))
 
 (defun target-properties-form ()
-  (with-standard-io-syntax ()
-    (let* ((*package* (find-package :xcvb-user))
-           (*read-eval* nil)
-           (vars (mapcar #'car *target-properties-variables*))
-           (exprs (mapcar #'cdr *target-properties-variables*)))
-      (format nil "(format t \"(cl:setf~~%~{ xcvb::~(~A~) '~~S~~%~})~~%\"~{ ~A~})"
-              vars exprs))))
+  (with-safe-io-syntax (:package :xcvb-user)
+    (format nil "(format t \"(cl:setf~~%~{ xcvb::~(~A~) '~~S~~%~})~~%\"~{ ~A~})"
+            (mapcar #'car *target-properties-variables*)
+            (mapcar #'cdr *target-properties-variables*))))
 
-(defun query-target-lisp-helper (query-string output-filename)
+(defun query-target-lisp-command (query-string)
   (assert *lisp-implementation-type*)
-  (ensure-directories-exist output-filename)
-  (asdf:run-shell-command ;;; TODO: use something better, someday
-   "exec ~@[~A~] ~A > ~A"
-   ;; When XCVB is itself compiled with SBCL, and the target is a different SBCL,
-   ;; then XCVB's SBCL will export SBCL_HOME which will confuse the target.
-   ;; And so, to provide deterministic behavior whatever the build implementation is,
-   ;; we unset SBCL_HOME when invoking the target SBCL.
-   (when (eq *lisp-implementation-type* :sbcl) "env -u SBCL_HOME")
-   (shell-tokens-to-string
-    (lisp-invocation-arglist
-     :eval (format nil "(progn ~A (finish-output) ~A)"
-                   query-string
-                   (format nil (slot-value
-                                (get-lisp-implementation
-                                 *lisp-implementation-type*) 'quit-format) 0))))
-   output-filename))
+  ;; When XCVB is itself compiled with SBCL, and the target is a different SBCL,
+  ;; then XCVB's SBCL will export SBCL_HOME which will confuse the target.
+  ;; And so, to provide deterministic behavior whatever the build implementation is,
+  ;; we unset SBCL_HOME when invoking the target SBCL.
+  (append
+   (when (eq *lisp-implementation-type* :sbcl) '("env" "-u" "SBCL_HOME"))
+   (lisp-invocation-arglist
+    :eval (format nil "(progn ~A (finish-output) ~A)"
+                  query-string
+                  (format nil (slot-value
+                               (get-lisp-implementation
+                                *lisp-implementation-type*) 'quit-format) 0)))))

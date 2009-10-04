@@ -391,7 +391,7 @@ for this version of XCVB.")))
                (and (not (equal s "")) s))))
     (let ((tmp (or (v "TMP") (v "TMPDIR"))))
       (when tmp
-        (setf *tmp-directory* (ensure-pathname-is-directory tmp)))))
+        (setf *tmp-directory-pathname* (ensure-pathname-is-directory tmp)))))
   (setf *print-pretty* nil))
 
 (defun interpret-command-line (args)

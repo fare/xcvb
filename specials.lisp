@@ -14,28 +14,24 @@
 ;; in that file or plainly error out.
 (defvar *xcvb-version*)
 
-(defvar *lisp-implementation-type*
-  (or #+sbcl :sbcl #+clisp :clisp #+clozure :ccl #+cmu :cmucl)
-  "Type of Lisp implementation for the target system.
-Default: same as XCVB itself.")
-
-(defvar *lisp-executable-pathname* nil
-  "Path to the Lisp implementation to use for the target system.
-Default: what's in your PATH.")
+;;; We share a few variables from xcvb-master, that we inherit from its package:
+#|
+ *lisp-implementation-type*
+ *lisp-executable-pathname*
+ *lisp-image-pathname*
+ *lisp-implementation-directory*
+ *disable-cfasls*
+ *xcvb-verbosity*
+ *search-path*
+ *lisp-allow-debugger*
+ *object-directory*
+ *tmp-directory*
+ *use-base-image*
+|#
 
 (defvar *target-system-features* nil
   "value of *features* in the target system
 Autodetected from the target Lisp system.")
-
-(defvar *lisp-image-pathname* nil
-  "What path to a Lisp image do we need invoke the target Lisp with?
-Default: whatever's the default for your implementation.")
-
-(defvar *lisp-implementation-directory*
-  (or #+sbcl (namestring (sb-int:sbcl-homedir-pathname)))
-  "Where is the home directory for the Lisp implementation,
-in case we need it to (require ...) special features?
-Default: whatever's the default for your implementation.")
 
 (defvar *lisp-flags* :default
   "What options do we need invoke the target Lisp with?")
@@ -53,18 +49,6 @@ Autodetected from the target Lisp system.")
   '((:lisp "/xcvb/driver"))
   "Special Lisp dependencies to load into the initial buildee image for XCVB, slow version")
 
-(defparameter *lisp-setup-dependencies* +fast-xcvb-setup-dependencies+
-  "Special Lisp dependencies to load into the initial buildee image")
-
-(defvar *xcvb-verbosity* 5
-  "Level of verbosity of XCVB:
-0 - quiet
-5 - usual warnings
-9 - plenty of debug info")
-
-(defvar *search-path* '()
-  "Path to search for XCVB modules")
-
 ;;; Note: this needs be setup before you create the binary.
 ;;; The variable is set in configure.mk and exported by the Makefile.
 ;;; Ideally, the form would be evaluated when you dump the image,
@@ -76,9 +60,6 @@ Autodetected from the target Lisp system.")
   ;; (pathname (strcat (cl-launch:getenv "INSTALL_XCVB") "/"))
   "Directory pathname for the location where XCVB Lisp files are installed")
 
-(defvar *lisp-allow-debugger* nil
-  "Should we allow interactive debugging of failed build attempts?")
-
 ;; *pathname-grain-cache* is used by code in lisp-grain.lisp and names.lisp.
 ;; lisp-grain:handle-extension-form :generate inserts lisp grains of
 ;; generated files into *pathname-grain-cache*.
@@ -87,13 +68,5 @@ Autodetected from the target Lisp system.")
   (make-hash-table :test 'equal)
   "Registry of known files, indexed by namestring.
 Negatives are stored as NIL. Positives as grains.")
-
-(defvar *object-directory* "obj"
-  "where to store object files")
-
-(defvar *tmp-directory* #p"/tmp/")
-
-(defvar *use-base-image* t
-  "Should we be using a base image for all builds?")
 
 (defvar *print-concisely* '(build-grain lisp-grain fasl-grain cfasl-grain))

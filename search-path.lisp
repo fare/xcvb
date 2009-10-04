@@ -96,20 +96,8 @@
   (directory (merge-pathnames +all-builds-path+ root)
                     #+sbcl #+sbcl :resolve-symlinks nil)
   #+sbcl
-  (let* ((root-string (namestring root))
-         (build-file-name
-          (format nil "~A/builds-under-~A.text"
-                  *object-directory*
-                  (underscore-for-non-alphanum-chars root-string))))
-    (ensure-directories-exist build-file-name)
-    (asdf:run-shell-command
-     "exec find -L ~A -type f -name build.xcvb > ~A"
-     (escape-shell-token root-string)
-     build-file-name)
-    (prog1
-        (with-open-file (in build-file-name)
-          (loop :for x = (read-line in nil nil) :while x :collect x))
-      (delete-file build-file-name))))
+  (run-program/read-output-lines
+   "find" "-L" (escape-shell-token (namestring root)) "-type" "f" "-name" "build.xcvb"))
 
 (defun map-build-files-under (root fn)
   "Call FN for all BUILD files under ROOT"

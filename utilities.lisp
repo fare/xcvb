@@ -149,8 +149,6 @@
 ;;; Reading a file's first form
 (defun read-first-file-form (filepath &key (package :xcvb-user))
   "Reads the first form from the top of a file"
-  (with-standard-io-syntax ()
-    (let ((*package* (find-package package))
-	  (*read-eval* nil))
-      (with-open-file (in filepath)
-        (read in nil nil)))))
+  (with-safe-read-syntax (:package package)
+    (with-open-file (in filepath)
+      (read in nil nil))))

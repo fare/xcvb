@@ -282,7 +282,7 @@ until something else is found, then return that header as a string"
 		     (systems (when system (list system)))
 		     (simplified-system :simplified-system)
 		     base-pathname
-		     (components-path (merge-pathnames *components-path* *tmp-directory*))
+		     (components-path (merge-pathnames *components-path* *tmp-directory-pathname*))
 		     systems-to-preload
 		     verbose)
 

@@ -154,7 +154,7 @@ you will need the following Lisp software libraries to get XCVB running:
         - getting it, if you're an XCVB project member:
 		``git clone ssh://USER@common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
 
-  * Closer to MOP, with our trivial XCVB patch:
+  * Closer to MOP, with our trivial XCVB-readiness patch:
 	- homepage: http://common-lisp.net/project/closer/closer-mop.html
 	- getting it for now:
 		``darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop``
@@ -167,6 +167,13 @@ you will need the following Lisp software libraries to get XCVB running:
 		``git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git``
         - getting it, if you're a QITAB project member::
         	``git clone ssh://USER@common-lisp.net/project/qitab/git/command-line-arguments.git``
+
+  * POIU:
+	- homepage: http://common-lisp.net/project/qitab/
+	- getting it:
+		``git clone http://common-lisp.net/project/qitab/git/poiu.git``
+        - getting it, if you're a QITAB project member::
+		``git clone ssh://USER@common-lisp.net/project/qitab/git/poiu.git``
 
 
 Documentation

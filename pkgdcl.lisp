@@ -3,7 +3,7 @@
  (:description "package for XCVB"))
 
 (cl:defpackage :xcvb
-  (:use :closer-common-lisp :xcvb-driver :command-line-arguments)
+  (:use :closer-common-lisp :xcvb-driver :command-line-arguments :xcvb-master)
   (:import-from :cl-launch #:DBG)
   (:export
 

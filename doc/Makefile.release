@@ -37,10 +37,10 @@ install: install-cl-launch
 
 install-source: install-cl-launch
 	mkdir -p ${LISP_SOURCE}/xcvb ${LISP_SYSTEMS}
-	for dir in asdf asdf-dependency-grovel closer-mop command-line-arguments ; do \
+	for dir in asdf asdf-dependency-grovel closer-mop command-line-arguments poiu ; do \
 	  rsync -aC --exclude _darcs dependencies/$$dir ${LISP_SOURCE}/ ; \
 	done
-	cd xcvb && cp -a *.asd *.lisp *.xcvb ${LISP_SOURCE}/xcvb/
+	cd xcvb && cp -a *.asd *.lisp *.xcvb master ${LISP_SOURCE}/xcvb/
 	ln -sf $$(find ${LISP_SOURCE}/ \( -name '*test*' -prune -false \) -o \
 			 -type f -name '*.asd' ! -name '*test*' ) ${LISP_SYSTEMS}/
 
@@ -55,21 +55,25 @@ checkout:
 	  echo "Already got asdf.git" ) && \
 	( git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git || \
 	  echo "Already got asdf-dependency-grovel.git" ) && \
-	( git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git || \
-	  echo "Already got command-line-arguments.git" ) && \
 	( git clone http://common-lisp.net/project/xcvb/git/cl-launch.git || \
 	  echo "Already got cl-launch.git" ) && \
+	( git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git || \
+	  echo "Already got command-line-arguments.git" ) && \
+	( git clone http://common-lisp.net/project/qitab/git/poiu.git || \
+	  echo "Already got poiu.git" ) && \
 	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
 	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi )
 
 gc:
 	for i in xcvb dependencies/asdf dependencies/asdf-dependency-grovel \
-		dependencies/cl-launch dependencies/command-line-arguments ; do \
+		dependencies/cl-launch dependencies/command-line-arguments \
+		dependencies/poiu ; do \
 	  (echo -n "packing $$i..." ; cd $$i ; git gc) ; done
 
 update:
 	for i in xcvb dependencies/asdf dependencies/asdf-dependency-grovel \
-		dependencies/cl-launch dependencies/command-line-arguments ; do \
+		dependencies/cl-launch dependencies/command-line-arguments \
+		dependencies/poiu ; do \
 	  (echo -n "Updating $$i... " ; cd $$i ; git pull) ; \
 	done ; \
 	(echo -n "Updating dependencies/closer-mop... " ; cd dependencies/closer-mop ; \
