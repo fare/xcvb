@@ -33,3 +33,21 @@ Until then, let's rely on tthsum.
 
 (defun tthsum-for-file (file)
   (car (tthsum-for-files (list file))))
+
+(defun manifest-form (grains)
+  (let* ((fullnames (mapcar #'car grains))
+         (pathnames (mapcar #'cdr grains))
+         (tthsums (tthsum-for-files pathnames)))
+    (loop
+      :for fullname :in fullnames
+      :for tthsum :in tthsums
+      :for pathname :in pathnames
+      :collect (list fullname tthsum pathname))))
+
+(defun create-manifest (output-path grains)
+  (with-open-file (o output-path :direction :output :if-exists :supersede)
+    (with-safe-io-syntax ()
+      (let ((*print-pretty* nil)
+            (*print-case* :downcase))
+        (format o "(~{~S~^~% ~})~%" (manifest-form grains)))))
+  (values))

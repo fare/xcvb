@@ -154,15 +154,34 @@
                         :fullname `(:image ,name)
                         :included (make-hashset :test 'equal
                                                 :list traversed
-                                                :set (when pre-image (image-included pre-image))))))
-      (make-computation ()
-        :outputs (list grain)
-        :inputs traversed
-        :command
-        `(:xcvb-driver-command ,(image-setup env)
-          (:create-image
-           (:image ,name)
-           ,@(traversed-load-commands env))))
+                                                :set (when pre-image (image-included pre-image)))))
+           (load-commands (traversed-load-commands env)))
+      (multiple-value-bind (manifest-maker load-commands)
+          (if *use-master*
+            (let* ((require-commands (remove-if-not #'require-command-p load-commands))
+                   (load-commands (remove-if #'require-command-p load-commands))
+                   (initial-loads (getf (image-setup env) :load))
+                   (initial-manifest (when initial-loads
+                                       `(:manifest ,(strcat name "--initial")))))
+              (values
+               `(,@(when initial-manifest
+                     `((:make-manifest ,initial-manifest ,@(reverse initial-loads))))
+                 (:make-manifest (:manifest ,name)
+                  ,@(mapcar #'remove-load-file load-commands)))
+               `(,@(when initial-manifest
+                     `((:initialize-manifest ,initial-manifest)))
+                 ,@require-commands
+                 (:load-manifest (:manifest ,name)))))
+            (values nil load-commands))
+        (make-computation ()
+         :outputs (list grain)
+         :inputs traversed
+         :command
+         `(:progn
+            ,@manifest-maker
+            (:xcvb-driver-command ,(image-setup env)
+             (:create-image (:image ,name)
+              ,@load-commands)))))
       grain)))
 
 (define-graph-for :source (env name &key in)
@@ -228,5 +247,9 @@
         outputs))))
 
 (defun remove-load-file (x)
-  (assert (and (list-of-length-p 2 x) (eq (first x) :load-file)))
+  (unless (and (list-of-length-p 2 x) (eq (first x) :load-file))
+    (error "cannot remove :load-file from ~S" x))
   (second x))
+
+(defun require-command-p (x)
+  (and (list-of-length-p 2 x) (eq (first x) :require)))

@@ -450,10 +450,17 @@ Now, what is the slave to do?
   * build with make? Then we must add master information in there...
     We could conceivably store the source information computed
     statically, but this implies exploded dependencies.
-    Simpler and more reliable would be to store information about object files
-    must be computed right before we dump the image,
+    Simpler and more reliable would be to store information about object files,
+    but they must be computed right before we dump the image,
     which implies some trickery whereby the Makefile calls xcvb at the right time.
-    
+    The Makefile backend is too dumb to drive computation from hash values, anyway,
+    and only needs to compute information once per image-dump,
+    wherein recomputing the hashes is cheap enough that we don't need any caching::
+
+	o/x/foo.cfasl: o/x/foo.fasl
+        o/x/foo.fasl: foo.lisp o/_pre/x.image o/x/bar.cfasl o/x/baz.cfasl
+        	xcvb make-manifest --output o/x/foo--manifest.lisp --grains "(((:cfasl \"/x/bar\") . \"o/x/bar.cfasl\") ((:cfasl \"/x/baz\") . \"o/x/baz.cfasl\"))"
+        	./x.image --eval "(xcvb-driver:run (:compile-lisp (\"foo.fasl\" :cfasl \"foo.cfasl\") (:load-manifest \"foo--manifest.lisp\")))"
 
   * build without make? time for our own dynamic backend!
 

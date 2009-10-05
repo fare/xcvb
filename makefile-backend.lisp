@@ -6,6 +6,7 @@
 
 (in-package :xcvb)
 
+(defvar +lisp-pathname+ (make-pathname :type "lisp"))
 (defvar +fasl-pathname+ (make-pathname :type "fasl"))
 (defvar +cfasl-pathname+ (make-pathname :type "cfasl"))
 (defvar +image-pathname+ (make-pathname :type "image"))
@@ -139,6 +140,9 @@ xcvb-ensure-object-directories:
   (declare (ignore env))
   name)
 
+(define-dependency-namestring :manifest (env name)
+  (object-namestring env (strcat name "--manifest") +lisp-pathname+))
+
 
 ;; Renaming of targets ensures reasonable atomicity whereas CL implementations
 ;; may create bad invalid stale output files when interrupted in the middle
@@ -180,16 +184,24 @@ will create the desired content. An atomic rename() will have to be performed af
   (format str "(:load-file ~S)" (dependency-namestring dep))
   (values))
 
-(define-text-for-xcvb-driver-command :load-asdf (str name &key parallel)
-  (format str "(:load-asdf ~(~S~)~@[ :parallel t~])" name parallel)
-  (values))
-
 (define-text-for-xcvb-driver-command :require (str name)
   (format str "(:cl-require ~(~S~))" name)
   (values))
 
+(define-text-for-xcvb-driver-command :load-asdf (str name &key parallel)
+  (format str "(:load-asdf ~(~S~)~@[ :parallel t~])" name parallel)
+  (values))
+
 (define-text-for-xcvb-driver-command :register-asdf-directory (str directory)
   (format str "(:register-asdf-directory ~S)" (namestring directory))
+  (values))
+
+(define-text-for-xcvb-driver-command :initialize-manifest (str manifest)
+  (format str "(:initialize-manifest ~S)" (dependency-namestring manifest))
+  (values))
+
+(define-text-for-xcvb-driver-command :load-manifest (str name)
+  (format str "(:load-manifest ~S)" (dependency-namestring name))
   (values))
 
 (defun text-for-xcvb-driver-helper (stream dependencies format &rest args)
@@ -244,11 +256,27 @@ will create the desired content. An atomic rename() will have to be performed af
        :eval (xcvb-driver-commands-to-shell-token commands))
       str))))
 
+(define-Makefile-commands-for-computation :progn (str &rest commands)
+  (loop :for command :in commands
+    :append (Makefile-commands-for-computation str command)))
+
 (define-Makefile-commands-for-computation :shell-command (str command)
   (list (escape-string-for-Makefile command str)))
 
 (define-Makefile-commands-for-computation :exec-command (str &rest argv)
   (list (shell-tokens-to-Makefile argv str)))
+
+(define-Makefile-commands-for-computation :make-manifest (str manifest &rest loaded-grains)
+  (let ((manifest-spec
+         (loop :for g :in loaded-grains :collect
+           (cons g (dependency-namestring g)))))
+    (list (shell-tokens-to-Makefile
+           `("xcvb" "make-manifest"
+                    "--output" ,(dependency-namestring manifest)
+                    "--grains" ,(with-safe-io-syntax ()
+                                  (let ((*print-case* :downcase))
+                                    (format nil "~S" manifest-spec))))
+           str))))
 
 (defun xcvb-driver-commands-to-shell-token (commands)
   (cond
@@ -258,7 +286,7 @@ will create the desired content. An atomic rename() will have to be performed af
        (quit-form :code
         (format nil "(multiple-value-bind (output warningp failurep) ~
                        (let ((*default-pathname-defaults* (truename *default-pathname-defaults*))) ~
-                         (compile-file ~S :output-file (merge-pathnames ~S)) ~
+                         (compile-file ~S :output-file (merge-pathnames ~S))) ~
                        (if (or (not output) warningp failurep) 1 0))"
                 (dependency-namestring name)
                 (tempname-target (dependency-namestring `(:fasl ,name)))))))

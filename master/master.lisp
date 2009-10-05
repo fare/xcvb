@@ -219,8 +219,8 @@ theretofore unneeded temporary file.
 ;;; Maintaining memory of which grains have been loaded in the current image.
 (defun load-grain (fullname tthsum path)
   (unless (equal tthsum (cdr (assoc fullname *loaded-grains* :test #'equal)))
-    (when (>= *xcvb-verbosity* 5)
-      (format "~&Loading grain ~S (tthsum: ~A) from ~S~%" fullname tthsum path))
+    (when (>= *xcvb-verbosity* 7)
+      (format *error-output* "~&Loading grain ~S (tthsum: ~A) from ~S~%" fullname tthsum path))
     (load path)
     (push (cons fullname tthsum) *loaded-grains*)))
 (defun load-grains (manifest)
@@ -232,10 +232,10 @@ theretofore unneeded temporary file.
       (write loaded-grains :stream s :readably t :escape t :pretty nil))))
 
 ;;; Extend XCVB driver
-(defun xcvb-driver::initialize-manifest (manifest)
+(defun xcvb-driver::initialize-manifest (path)
   "XCVB driver extension to initialize the manifest for an image"
   (assert (not *loaded-grains*))
-  (setf *loaded-grains* manifest))
+  (setf *loaded-grains* (read-first-file-form path)))
 (defun xcvb-driver::load-manifest (path)
   "XCVB driver extension to load a list of files from a manifest"
   (load-grains (read-first-file-form path)))

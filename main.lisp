@@ -258,6 +258,20 @@
    :output-path output-path
    :parallel parallel))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make a load manifest ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter +make-manifest-option-spec+
+  '((("output" #\o) :type string :optional nil
+     :documentation "Path to manifest file")
+    (("grains" #\g) :type string :optional nil
+     :documentation "alist of grains, mapping fullname to pathname")))
+
+(defun make-manifest (arguments &key output grains)
+  (when arguments
+    (error "Invalid arguments to make-manifest: ~S~%" arguments))
+  (create-manifest output (with-safe-io-syntax () (read-from-string grains))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Command Spec ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Spec for XCVB command-line commands.  Each item of the list takes the form
@@ -294,6 +308,9 @@ the previous image, a build and its dependencies.")
      "Show builds in the specified XCVB path"
      "Show builds in the implicitly or explicitly specified XCVB path.
 For debugging your XCVB configuration.")
+    (("make-manifest") make-manifest +make-manifest-option-spec+
+     "Create a manifest of files to load (for internal use)"
+     "given fullnames and paths, output fullnames, tthsum and paths")
     (("load") load-command ()
      "Load a Lisp file"
      "Load a Lisp file in the context of XCVB itself. For XCVB developers only.")
