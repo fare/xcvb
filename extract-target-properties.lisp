@@ -30,9 +30,9 @@
     (loop :for (var value) :on *target-properties* :by #'cddr :do
           (cond
             ((not (member var *target-properties-variables* :key #'car))
-             (error "Invalid target property ~S in file ~S" var file))
+             (error "Invalid target property ~S" var))
             ((not (and (list-of-length-p 2 value) (eq 'quote (car value))))
-             (error "Invalid target property value ~S in file ~S" value file))
+             (error "Invalid target property value ~S" value))
             (t
              (set var (second value)))))))
 

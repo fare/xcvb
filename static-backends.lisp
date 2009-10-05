@@ -218,7 +218,12 @@
              ,(image-setup env)
              (:compile-lisp (,fullname) ,@(traversed-load-commands env)))
            `(:xcvb-driver-command
-             (:load ,(mapcar #'remove-load-file (traversed-load-commands env)))
+             (:load ,(append
+                      (reverse
+                       (cdr (member `(:fasl ,fullname)
+                                    (reverse *lisp-setup-dependencies*)
+                                    :test #'equal)))
+                      (mapcar #'remove-load-file (traversed-load-commands env))))
              (:compile-file-directly ,fullname))))
         outputs))))
 

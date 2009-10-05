@@ -38,7 +38,7 @@
         *computations* nil
         *target-system-features* nil
         *search-path-searched-p* nil
-        *lisp-setup-dependencies* +xcvb-setup-dependencies+
+        *lisp-setup-dependencies* +fast-xcvb-setup-dependencies+
         *pathname-grain-cache* (make-hash-table :test 'equal))
   (initialize-search-path)
   (values))

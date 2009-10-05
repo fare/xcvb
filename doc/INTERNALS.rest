@@ -9,6 +9,12 @@ This file describes the current internals of XCVB.
 Unless you check it out as of an official major release as tagged in git,
 it may or may not be up to date.
 
+Section `Design Notes`_ is a general information dump about XCVB internals.
+Section `Current Files`_ attempts to actually be current
+in guiding you through the parts that constitute XCVB.
+Section `Good places to extend XCVB`_ offers general rules on how to extend XCVB.
+Section `High-level description`_ tries to give a high-level view of the
+concepts underlying XCVB.
 
 .. contents::
 ..
@@ -18,6 +24,8 @@ it may or may not be up to date.
       1.3  Fullnames
       1.4  Eager vs Lazy Module Scanning
       1.5  Filesystem Access
+      1.6  Conditional Build
+      1.7  Ideas from jknight
     2  Current Files
       2.1   driver.lisp
       2.2   pkgdcl.lisp
@@ -219,6 +227,69 @@ So, if we ever port XCVB to anything else than Unix,
 the correct way will be to grow Windows (and JVM, Genera) support in IOLib.
 See my rant "Who's responsible for that moving part?":
 http://fare.livejournal.com/139755.html
+
+
+Conditional Build
+-----------------
+
+XCVB supports conditional compilation of some files.
+
+Previously, we supported conditional reading with ``#+`` and ``#-``
+using the features from the target system,
+like people currently do with ASDF.
+Because the builder and buildee are separate,
+this means that XCVB must somehow extract the features of the buildee
+(by running the target lisp) before it reads any of the files.
+
+However, that approach was a hack with several drawbacks:
+
+  * It doesn't scale to larger builds
+    where the same file would be compiled many times
+    using different compilers and feature sets.
+
+  * It prevents us from using our "normal" way of naming lisp files
+    for the initial user-customization file from ``--setup``,
+    because we need to load such file for any customization of ``*features*``,
+    yet we currently need the target ``*features*`` before we may properly
+    use ``#+`` while reading and interning build files during
+    ``(search-search-path)``,
+    as needs be done before we may resolve "normal" names.
+
+XCVB has a syntactic construct to specify conditional dependencies.
+mudballs had the following syntax:
+``(:usocket (:for (:not (:lispworks))))`` to conditionalize ``:usocket``.
+That didn't directly fit the XCVB model, and so we instead use:
+``(:when (:featurep (:not :lispworks)) "usocket")``.
+(Note that we could imaginably hack the reader
+to have ``#+`` and ``#-`` expand to that,
+but that would be a lot of pain for little gain).
+
+By mandating such syntax and/or hacking the reader,
+we may intern the build files before any customization of ``*features*``,
+then resolve the name of the setup file,
+use that file and acquire the target ``*features*``,
+and finally process features during graph building.
+
+Ideas from jknight
+------------------
+
+Ideas from discussion with jknight that were implemented:
+
+ * allow python-like hierarchical installation paths instead of named ``build.xcvb``
+   (Isn't that already possible? Just have a top-level ``build.xcvb`` fullname'd "``/``" somewhere!)
+   (The point was probably that we can avoid eager search if only we can agree on
+   some naming hierarchy for both "module names" and filesystem relative paths.)
+
+ * allow pre-built installation paths that are self-describing enough to make it work.
+
+ * Makefile already doesn't like spaces in names (except implicit names from current path),
+   so we must be using relative pathnames inside the Makefile by default.
+
+ * allow xcvb.mk to be usable without the XCVB binary, for bootstrap purposes.
+
+ * ``--object-directory=object`` option.
+
+ * do away with all calls to ``TRUENAME``.
 
 
 Current Files
@@ -508,6 +579,8 @@ Therefore, to extend the command language for the driver's command language,
 just define functions in said package, and make sure the files defining these
 functions are loaded before these commands are used
 (e.g. by listing them first in dependencies).
+
+See e.g. how it is done in ``/xcvb/master/master``.
 
 
 Simple dispatchers as extension points

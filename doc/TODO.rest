@@ -16,22 +16,17 @@ and background on the design and ultimate goals of XCVB.
 .. contents::
 ..
     1  Current Developments [V1]
-      1.1  Enhancing Build Speed [V1]
-      1.2  Top ITA TODO [V1]
+      1.1  Top ITA TODO [V1]
+      1.2  Enhancing Build Speed [V1]
       1.3  Other Top TODO Items [V1]
-    2  Roadmap [Done]
+    2  Roadmap [V1]
     3  Usability Issues [V1]
-      3.1   Migration from ASDF [V2]
-      3.2   In-image loading [V1]
-      3.3   ASDF backend [Done]
-      3.4   Centralized Dependency Declaration [V1]
-      3.5   Exploded File Dependencies [V1]
-      3.6   Lack of Manual [V1]
-      3.7   Producing Executables [V3]
-      3.8   Generalized Staged Images [Done]
-      3.9   Command-line interface [Done]
-      3.10  Configurability of the build image [Done]
-      3.11  Conditional Build [Done]
+      3.1  Migration from ASDF [V2]
+      3.2  In-image loading [V1]
+      3.3  Centralized Dependency Declaration [V1]
+      3.4  Exploded File Dependencies [V1]
+      3.5  Lack of Manual [V1]
+      3.6  Producing Executables [V3]
     4  Features [V2]
       4.1   XCVB Self-Test [V2]
       4.2   Improve Makefile backend [V2]
@@ -46,7 +41,7 @@ and background on the design and ultimate goals of XCVB.
       4.11  Bug hunting [V5]
       4.12  Ideas from jknight [V2]
       4.13  Computed Lisp files [V2]
-      4.14  Crypto Check [V3]
+      4.14  Cryptographic Checksum [V1]
       4.15  Template Instantiations [V5]
     5  Internals [V4]
       5.1  Type-Checking [V4]
@@ -74,6 +69,39 @@ and background on the design and ultimate goals of XCVB.
 
 Current Developments [V1]
 =========================
+
+Top ITA TODO [V1]
+-----------------
+
+Here is the top of our TODO list at ITA:
+
+  Fix our performance issue:
+    Provide for fast compilation of QRes with XCVB.
+    The enforcing build of QRes is an order of magnitude slower than the ASDF build
+    (on a quad-core system). See below `Enhancing Build Speed [V1]`_.
+
+  Finish applying XCVB to QRes:
+
+   + Collect differences on ITA library dependencies into diffs.
+     Publish them in the XCVB releases/ directory.
+     Send them to upstream maintainers.
+
+   + Complete the EVAL-WHEN cleanup of QRes. [Mostly Done]
+
+   + Run tests on the XCVB-compiled system.
+
+   + Re-branch based on a recent trunk.
+
+   + Use ``remove-xcvb`` to extract the non-XCVB changes needed by QRes,
+     and integrate those fixes into trunk.
+
+   + Actually merge with trunk.
+
+ * Figure out the shortest path from here to providing incremental testing
+   for unit-tests and regression scripts. See `Tests [V2]`_.
+
+ * Complete ``with-xcvb-compilation-unit``. See `Compilation Units [V2]`_.
+
 
 Enhancing Build Speed [V1]
 --------------------------
@@ -174,39 +202,6 @@ Enhancing Build Speed [V1]
     and for which we have no enforcement tool yet.
 
 
-Top ITA TODO [V1]
------------------
-
-Here is the top of our TODO list at ITA:
-
-  Fix our performance issue:
-    Provide for fast compilation of QRes with XCVB.
-    The enforcing build of QRes is an order of magnitude slower than the ASDF build
-    (on a quad-core system). See above `Enhancing Build Speed [V1]`_.
-
-  Finish applying XCVB to QRes:
-
-   + Collect differences on ITA library dependencies into diffs.
-     Publish them in the XCVB releases/ directory.
-     Send them to upstream maintainers.
-
-   + Complete the EVAL-WHEN cleanup of QRes. [Mostly Done]
-
-   + Run tests on the XCVB-compiled system.
-
-   + Re-branch based on a recent trunk.
-
-   + Use ``remove-xcvb`` to extract the non-XCVB changes needed by QRes,
-     and integrate those fixes into trunk.
-
-   + Actually merge with trunk.
-
- * Figure out the shortest path from here to providing incremental testing
-   for unit-tests and regression scripts. See `Tests [V2]`_.
-
- * Complete ``with-xcvb-compilation-unit``. See `Compilation Units [V2]`_.
-
-
 Other Top TODO Items [V1]
 -------------------------
 
@@ -219,9 +214,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    As failures are detected and fixed, knowledge will seep in.
 
  * Add support for in-image backend. See `In-image loading [V1]`_.
-   This may or may not benefit from the following,
-   by connecting a master Lisp process to a slave XCVB
-   itself executing ``make``.
 
  * Propose a patch to ASDF that merges ``XCVB_PATH`` and some hypothetical ``ASDF_PATH``
    into a ``COMMON_LISP_PATH`` to find Lisp dependencies?
@@ -245,7 +237,7 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
                 ...
 
    This will become more important once we have good fine-grained dependencies
-   through cryptographic checksums, so that we know exactly what to rebuild or not to rebuild
+   through `Cryptographic Checksum [V1]`_, so that we know exactly what to rebuild or not to rebuild
    even when the global dependencies change (which is not the case currently).
 
  * Filter out :static-file from consideration by a2x -- or maybe not:
@@ -284,7 +276,8 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
  * Implement a portable library for executing sub-programs
    with arbitrary output redirection, that does at least what
    ``asdf:run-shell-program`` does, but hopefully much more,
-   like python's ``popen2.popen3`` or even like what SCSH provides.
+   like python's ``popen2.popen3`` or ``subprocess.popen``,
+   or even like what SCSH provides.
    This feature will eventually be used by
    our standalone distributed build system.
    Stelian Ionescu is possibly working on such a library as part of IOLib,
@@ -299,10 +292,11 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    is so slow (at least in SBCL), and find a pure-lisp alternative
    to spawning a shell that executes ``find(1)``.
    Xof suggests profiling the thing as it runs.
-   I suggest properly extending IOLib or osicat to do the right thing.
+   I'd suggest properly extending IOLib or osicat to do the right thing,
+   but this won't cut it if we want ASDF to share this feature.
 
- * In general, figure out what are the slow parts of XCVB, and optimize them
-   or fix the badness in the underlying Lisp.
+ * In general, figure out what are the slow parts of XCVB (if any),
+   and optimize them or fix the badness in the underlying Lisp.
 
  * Allow individual lisp modules to override
    the ``:build-depends-on`` inherited from their ``build.xcvb``.
@@ -313,7 +307,7 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    Save a few seconds and hundreds of megabytes of double-image dumping
    by not having to dump once with XCVB, another time with cl-launch.
 
- * [Fixed in SBCL 1.0.31.3 - remove this note when 1.0.32 is released]
+ * [Fixed in SBCL 1.0.31.3 - remove this note when 1.0.32 is released in October 2009]
    Get SBCL bug 411925 https://bugs.launchpad.net/bugs/411925 fixed
    so making images from images should work.
 
@@ -336,8 +330,8 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    an error issued if not met.)
 
 
-Roadmap [Done]
-==============
+Roadmap [V1]
+============
 
 Improvements required for XCVB version 1 are marked [V1].
 These correspond to a system suitable to automatically replace ASDF,
@@ -358,7 +352,7 @@ Improvements required for XCVB version 4 are marked [V4].
 The goal is for XCVB to become its own better building system,
 able to build arbitrary Lisp or non-Lisp projects in a robust way,
 with a distributed farm of machines able to identify objects
-by a cryptographic checksum of
+by a `Cryptographic Checksum [V1]`_ of
 the precise source and compilation options used.
 
 Improvements required for XCVB version 5 are marked [V5].
@@ -401,7 +395,7 @@ may have to be manually migrated and/or
 their automatically migrated ``build.xcvb`` may have to be manually edited.
 Some systems may also be merged together, as specified by the user.
 
-So should be merging changes into previously manually-edited build.xcvb files.
+So should be merging changes into previously manually-edited ``build.xcvb`` files.
 
 
 In-image loading [V1]
@@ -409,9 +403,10 @@ In-image loading [V1]
 
 Provide support for XCVB to be able to handle
 compiling and loading a system into the current Lisp image.
-(In addition or replacement to the ASDF backend).
+This is in addition to and/or replacement of the ASDF backend.
 
-This support is to be provided by a small and simple build ``/xcvb/master``.
+For better determinism as well as to minimize the footprint of in-image mechanism,
+this support is to be provided by a small and simple module ``/xcvb/master``.
 The thin layer will collect the information about the running system
 and about objects already loaded in it,
 as well as the additional systems required and any options configuring the build,
@@ -419,15 +414,10 @@ then invoke (with run-program or equivalent) an XCVB process
 that will build any additional file and print a form (in yet another DSL)
 to be evaluated by the calling process so it may be suitably enhanced.
 
-For better determinism, in-image loading will by default
-delegate all compilation to some slave sub-process using the
-best supported backend (which would probably be the make backend);
-when done compiling, the slave would communicate to the master process
-a list of files to load, which the master process would proceed to load indeed.
-
-Optionally, the master would maintain a cryptographic hash-table
-of modules already loaded, and the slave would avoid asking to load
-previously-loaded files. Of course, in-image loading in general,
+The master will maintain a hash-table for the
+`Cryptographic Checksum [V1]`_ of each grain already loaded,
+and the slave would avoid asking to load previously-loaded files.
+Of course, in-image loading in general,
 and this "optimization" in particular, are not guaranteed to work,
 because the side-effects of loading a file can require pre-conditions
 that are violated by the loading of previous versions of the software
@@ -455,24 +445,19 @@ Note that in-image loading is also necessary for extensions to XCVB itself,
 whereby extensions are to be loaded in the current XCVB image.
 So the X of XCVB is a lie until such feature is implemented.
 
+Now, what is the slave to do?
 
-ASDF backend [Done]
--------------------
+  * build with make? Then we must add master information in there...
+    We could conceivably store the source information computed
+    statically, but this implies exploded dependencies.
+    Simpler and more reliable would be to store information about object files
+    must be computed right before we dump the image,
+    which implies some trickery whereby the Makefile calls xcvb at the right time.
+    
 
-It is understood that ASDF can never fully implement
-all the features required for XCVB.
-Nevertheless, we should in most cases be able to do
-a good enough job that with some additional discipline,
-a correct XCVB module should build with ASDF as a backend.
+  * build without make? time for our own dynamic backend!
 
-Alternatively, the `In-image loading [V1]`_ backend could be combined
-with an ASDF extension that creates bridge systems,
-so that ASDF may dynamically invoke XCVB when such systems
-are to be compiled.
-
-Add a test suite for the ASDF backend.
-
-A preliminary version is written. It needs to be tested and documented.
+  * in either case, collect checksum information in a cache file (updated atomically)
 
 
 Centralized Dependency Declaration [V1]
@@ -561,94 +546,6 @@ some initializers and finalizers may have to be run as described in
 `Initialization and Finalization [V2]`_.
 
 
-Generalized Staged Images [Done]
---------------------------------
-
-Instead of ad-hoc bootstrap images, provide a general mechanism
-for building images used to build further images,
-and use it for the initial image.
-
-Done, needs to be documented.
-
-
-Command-line interface [Done]
------------------------------
-
-It should be possible to invoke and control XCVB fully from the shell command line
-(and/or from a carefully constructed ``Makefile``)
-without the user having to edit a Lisp configuration file.
-The XCVB command-line should obey the usual unix command interpreter syntax::
-
-	xcvb {xcvb-options} {script {script-arguments}}
-
-The command-line should allow to express all the common usage patterns.
-These patterns will be discovered as we build V1 and V2.
-
-Done, needs to be made self-documented,
-and extended as more features become available.
-
-
-Configurability of the build image [Done]
------------------------------------------
-
-The user needs to be able to specify files to be loaded
-and/or forms to be evaluated in the initial build image.
-Most notably he needs to be able to customize his ``asdf:*central-registry*``
-and possibly proclaim the desired optimization settings.
-
-Typically, this is done by a file called setup.lisp
-loaded into the initial staged build image.
-
-It's there already, but we need to document how this works.
-
-For an example, see the Makefile ``test/mock/a/c/Makefile``,
-or the Makefile of XCVB itself.
-
-
-Conditional Build [Done]
-------------------------
-
-To be documented in INTERNALS.
-
-XCVB supports conditional compilation of some files.
-
-Previously, we supported conditional reading with ``#+`` and ``#-``
-using the features from the target system,
-like people currently do with ASDF.
-Because the builder and buildee are separate,
-this means that XCVB must somehow extract the features of the buildee
-(by running the target lisp) before it reads any of the files.
-
-However, that approach was a hack with several drawbacks:
-
-  * It doesn't scale to larger builds
-    where the same file would be compiled many times
-    using different compilers and feature sets.
-
-  * It prevents us from using our "normal" way of naming lisp files
-    for the initial user-customization file from ``--setup``,
-    because we need to load such file for any customization of ``*features*``,
-    yet we currently need the target ``*features*`` before we may properly
-    use ``#+`` while reading and interning build files during
-    ``(search-search-path)``,
-    as needs be done before we may resolve "normal" names.
-
-XCVB has a syntactic construct to specify conditional dependencies.
-mudballs had the following syntax:
-``(:usocket (:for (:not (:lispworks))))`` to conditionalize ``:usocket``.
-That didn't directly fit the XCVB model, and so we instead use:
-``(:when (:featurep (:not :lispworks)) "usocket")``.
-(Note that we could imaginably hack the reader
-to have ``#+`` and ``#-`` expand to that,
-but that would be a lot of pain for little gain).
-
-By mandating such syntax and/or hacking the reader,
-we may intern the build files before any customization of ``*features*``,
-then resolve the name of the setup file,
-use that file and acquire the target ``*features*``,
-and finally process features during graph building.
-
-
 Features [V2]
 =============
 
@@ -685,8 +582,6 @@ Improve Makefile backend [V2]
 -----------------------------
 
 Create and document the following small features:
-
-  * give user control as to where generated objects go vs source code. [Done]
 
   * use Makefile variables as path prefix for most everything?
 
@@ -785,7 +680,8 @@ What state needs to be maintained?
    + Preparing the makefile erases the success witnesses.
 
    + To evaluate the progress of tests, regressions, etc., said state can be
-     registered in some side file, based on crypto checksums of source, fasl, etc.
+     registered in some side file, based on `Cryptographic Checksum [V1]`_
+     of source, fasl, etc.
 
    + Test state can be shared between machines in a test server instead
      of local files.
@@ -941,27 +837,13 @@ Ideas from jknight [V2]
 
 Ideas from discussion w/ jknight:
 
- * allow python-like hierarchical installation paths instead of named ``build.xcvb``
-   (Isn't that already possible? Just have a top-level ``build.xcvb`` fullname'd "``/``" somewhere!)
-   (The point was probably that we can avoid eager search if only we can agree on
-   some naming hierarchy for both "module names" and filesystem relative paths.) [Done]
-
- * allow pre-built installation paths that are self-describing enough to make it work. [Done?]
-
  * extending XCVB: allow people to export a procedural interface as in "rebuild me"
    rather than only a declarative interface "conform to my crazy internal graph representation". [V2]
    (Note that if you're using the Makefile backend, you can just add rules to a Makefile
    that otherwise ``include``'s the XCVB output.)
 
- * Makefile already doesn't like spaces in names (except implicit names from current path),
-   so we must be using relative pathnames inside the Makefile by default. [Done]
-
- * allow xcvb.mk to be usable without the XCVB binary, for bootstrap purposes. [Done]
-
  * Must allow path-independent inclusion of foreign libraries (as -ljpeg in gcc)
    in portable xcvb.mk output [V2].
-
- * --object-directory=object option [Done]
 
  * Allow output to go in different directory from the source, with sensible defaults.
    For instance, with autotools, the output by default goes
@@ -969,7 +851,6 @@ Ideas from discussion w/ jknight:
 
  * option to only create relative pathname. [V2]
 
- * do away with all calls to truename. [Done]
 
 Computed Lisp files [V2]
 ------------------------
@@ -985,8 +866,8 @@ For the independent backend, this means that the dependency graph
 can grow new nodes and arcs as some files are discovered.
 
 
-Crypto Check [V3]
------------------
+Cryptographic Checksum [V1]
+---------------------------
 
 An important precondition to deterministic compilation is that
 input files should not be modified in the middle of a compilation run.
@@ -1013,7 +894,8 @@ In either case, it should always be checked after the command.
 If checking checksum at every command is too time consuming, then there is the option
 of only doing it at the beginning and end of the overall compilation,
 but then any update of global caches should have the same granularity.
-For a distributed build, definitely check before and after every command.
+For a distributed build, definitely check before and after every command,
+and/or use a content-addressed cache to eschew the need for further checksumming.
 
 
 Template Instantiations [V5]
@@ -1223,7 +1105,7 @@ for the current compilation
 Try to standardize an interface to deterministically initialize the PRNGs
 and deterministically add noise to them, based on arbitrary initial seed data.
 
-Maybe also standardize some strong cryptographic hash algorithms
+Maybe also standardize some strong `Cryptographic Checksum [V1]`_ algorithms
 and algorithm generators for arbitrary Lisp data,
 as are used by clcache.
 

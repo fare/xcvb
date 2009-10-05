@@ -23,13 +23,12 @@ deterministic separate compilation and enforced locally-declared dependencies."
     :depends-on (:cl-launch :asdf-dependency-grovel :closer-mop
                  :xcvb-master :command-line-arguments #|:iolib|#)
     :components
-    ((:file "driver")
-     (:file "pkgdcl" :depends-on ("driver"))
+    ((:file "pkgdcl")
      (:file "conditions" :depends-on ("pkgdcl"))
+     (:file "digest" :depends-on ("pkgdcl"))
+     (:file "specials" :depends-on ("pkgdcl"))
      (:file "macros" :depends-on ("pkgdcl"))
      (:file "utilities" :depends-on ("macros"))
-     (:file "digest" :depends-on ("pkgdcl"))
-     (:file "specials" :depends-on ("utilities"))
      (:file "logging" :depends-on ("specials"))
      (:file "grains" :depends-on ("utilities" "conditions"))
      (:file "portablish-pathnames" :depends-on ("utilities"))

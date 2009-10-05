@@ -22,13 +22,13 @@ theretofore unneeded temporary file.
 #+xcvb
 (module
  (:description "XCVB Master"
-  ;;; magic dependency on ("/xcvb/driver")))
+  :compile-depends-on ((:fasl "/xcvb/driver"))
+  :load-depends-on ((:fasl "/xcvb/driver"))
   :author ("Francois-Rene Rideau")
   :maintainer "Francois-Rene Rideau"
   :licence "MIT")) ;; MIT-style license. See LICENSE
 
 (in-package :cl)
-
 (defpackage :xcvb-master
   (:nicknames :xcvbm)
   (:use :cl)
@@ -226,6 +226,12 @@ theretofore unneeded temporary file.
 (defun load-grains (manifest)
   (loop :for (fullname tthsum path) :in manifest
     :do (load-grain fullname tthsum path)))
+(defun make-loaded-grains-string (&optional (loaded-grains *loaded-grains*))
+  (with-output-to-string (s)
+    (with-safe-io-syntax ()
+      (write loaded-grains :stream s :readably t :escape t :pretty nil))))
+
+;;; Extend XCVB driver
 (defun xcvb-driver::initialize-manifest (manifest)
   "XCVB driver extension to initialize the manifest for an image"
   (assert (not *loaded-grains*))
@@ -233,10 +239,6 @@ theretofore unneeded temporary file.
 (defun xcvb-driver::load-manifest (path)
   "XCVB driver extension to load a list of files from a manifest"
   (load-grains (read-first-file-form path)))
-(defun make-loaded-grains-string (&optional (loaded-grains *loaded-grains*))
-  (with-output-to-string (s)
-    (with-safe-io-syntax ()
-      (write loaded-grains :stream s :readably t :escape t :pretty nil))))
 
 ;;; Run a slave, obey its orders.
 (defun build-and-load
@@ -281,4 +283,4 @@ theretofore unneeded temporary file.
                    (consp (car forms)) (eq (caar forms) :xcvb))
         (error "XCVB subprocess failed."))
       (destructuring-bind manifest (cdar forms)
-        (load-manifest manifest))))))
+        (load-grains manifest))))))
