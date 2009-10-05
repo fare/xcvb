@@ -27,7 +27,7 @@
 (defun grain-from-file-declaration (path &key build-p)
   (parse-module-declaration
    (let ((*features* (list :xcvb)))
-     (read-first-file-form path))
+     (read-first-file-form path :package :xcvb-user))
    :path path :build-p build-p))
 
 (defun module-form-p (form)

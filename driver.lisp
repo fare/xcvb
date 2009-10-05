@@ -41,7 +41,7 @@
   (:nicknames :xcvbd)
   (:use :common-lisp)
   (:export
-   #:*restart* #:*loaded-grains* #:debugging #:profiling #:*goal* #:*stderr*
+   #:*restart* #:debugging #:profiling #:*goal* #:*stderr*
    #:*uninteresting-conditions* #:*fatal-condition* #:*deferred-warnings*
    #:getenv #:emptyp #:setenvp #:setup-environment
    #:debugging #:with-profiling
@@ -60,8 +60,6 @@
 ;; Variables that define the current system
 (defvar *restart* nil
   "a function with which to restart the dumped image when execution is resumed from it.")
-(defvar *loaded-grains* '()
-  "an alist of fullname of the XCVB grains loaded in the current image, with tthsum")
 (defvar *debugging* nil
   "boolean: should we enter the debugger on failure?")
 (defvar *profiling* nil

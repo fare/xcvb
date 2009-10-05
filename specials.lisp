@@ -20,7 +20,7 @@
  *lisp-executable-pathname*
  *lisp-image-pathname*
  *lisp-implementation-directory*
- *disable-cfasls*
+ *lisp-flags*
  *xcvb-verbosity*
  *lisp-allow-debugger*
  *object-directory*
@@ -31,9 +31,6 @@
 (defvar *target-system-features* nil
   "value of *features* in the target system
 Autodetected from the target Lisp system.")
-
-(defvar *lisp-flags* :default
-  "What options do we need invoke the target Lisp with?")
 
 ;; *use-cfasls* is set by main.lisp after *lisp-implementation-type* is set.
 (defvar *use-cfasls* nil
@@ -74,4 +71,8 @@ Autodetected from the target Lisp system.")
   "Registry of known files, indexed by namestring.
 Negatives are stored as NIL. Positives as grains.")
 
-(defvar *print-concisely* '(build-grain lisp-grain fasl-grain cfasl-grain))
+(defvar *print-concisely* '(build-grain lisp-grain fasl-grain cfasl-grain)
+  "For debugging purpose, controls the verbosity of print-object on grains")
+
+(defvar *use-master* t
+  "Should we use the XCVB master?")

@@ -11,7 +11,10 @@ Mostly the same as cliki's WITH-UNIQUE-NAMES."
   ;; Note: we probably should be using it from alexandria or something
   `(let ,(mapcar #'(lambda (s) `(,s (gensym ,(symbol-name s)))) syms) ,@body))
 
+(defun xfuncall (x f &rest args) (apply f x args))
 (define-modify-macro funcallf (f &rest args) xfuncall)
+(define-modify-macro appendf (&rest args) append "Append onto list")
+(define-modify-macro nconcf (&rest args) nconc "Destructively append onto list")
 
 (defmacro with-output ((out &optional (obj out)) &body body)
   `(call-with-output ,obj #'(lambda (,out) ,@body)))

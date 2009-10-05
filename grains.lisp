@@ -221,31 +221,3 @@ Modeled after the asdf function coerce-name"
 (defun image-grain-p (x)
   (typep x 'image-grain))
 
-;------>8------>8------>8------>8------>8------>8------>8------>8------>8------
-
-#|
-(def grain lisp-grain (file-grain)
-  :filename "%.lisp"
-  :documentation "LISP file grain")
-
-(def grain fasl-grain (file-grain)
-  :filename "%.fasl"
-  :documentation "Lisp FASL file grain")
-
-(def grain cfasl-grain (file-grain)
-  :filename "%.cfasl"
-  :documentation "Lisp CFASL file grain")
-
-(def rule lisp-compile/cleanly
-  :input ((lisp lisp-grain) &key
-          (implementation lisp-implementation))
-  :output ((fasl fasl-grain) &key
-           (cfasl cfasl-grain))
-  :binding ((dependencies (compile-dependencies lisp)))
-  :dependencies (compile-dependencies lisp)
-  :execute (in-process
-            (lisp-process
-             :implementation implementation
-             :loaded dependencies)
-            (compile-module (filename lisp) :fasl (filename fasl) :cfasl (filename cfasl))))
-|#

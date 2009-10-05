@@ -3,10 +3,6 @@
 (in-package :xcvb)
 
 ;;; String functions
-
-(defun xfuncall (x f &rest args)
-  (apply f x args))
-
 (defun strcat (&rest strings)
   "String concatenation function"
   (apply 'concatenate 'string strings))
@@ -70,7 +66,6 @@
       ((not (consp l)) (return nil)))))
 
 ;;; CLOS magic (depends on closer-mop) (from philip-jose)
-
 (defun collect-slots (object &optional (slot-list t))
   (loop :with class = (class-of object)
         :with slots = (if (eq slot-list t) (compute-slots class) slot-list)
@@ -104,18 +99,6 @@
         :nconc `(,initarg ,(slot-value object name)) :into old-keys
         :finally (return (apply #'make-instance class (append keys old-keys)))))
 
-;;; List stuff
-
-(defun all-descendents-f (x children-f &key (test #'eql))
-  (let ((r nil))
-    (labels ((add1 (x)
-               (unless (member x r :test test)
-                 (push x r)
-                 (map () #'add1 (funcall children-f x)))))
-      (add1 x))
-    (nreverse r)))
-
-
 ;;; hash tables
 
 (defun hash-table->alist (table)
@@ -146,9 +129,3 @@
       (loop :for x :being :the :hash-keys :in set :do (setf (gethash x h) t)))
     h))
 
-;;; Reading a file's first form
-(defun read-first-file-form (filepath &key (package :xcvb-user))
-  "Reads the first form from the top of a file"
-  (with-safe-io-syntax (:package package)
-    (with-open-file (in filepath)
-      (read in nil nil))))

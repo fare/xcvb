@@ -25,6 +25,6 @@
 
 #+debug (format t "~W~%" (hash-table->alist *grains*))
 
-(assert (typep (registered-grain "/b") 'build-registry-conflict))
-(assert (equal (fullname (grain-parent (registered-grain "/c/x"))) "/c"))
-(assert (typep (registered-grain "/d") 'build-grain))
+(assert (typep (registered-grain "/xcvb/test/b") 'build-registry-conflict))
+(assert (equal (fullname (grain-parent (registered-grain "/xcvb/test/c/x"))) "/xcvb/test/c"))
+(assert (typep (registered-grain "/xcvb/test/d") 'build-grain))

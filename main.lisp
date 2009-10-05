@@ -56,21 +56,24 @@
    (("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")
    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
    (("base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
+   (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
    (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
 
 (defun make-makefile (arguments &key
                                 xcvb-path setup verbosity output-path
                                 build lisp-implementation lisp-binary-path
-                                disable-cfasl object-directory base-image profiling)
+                                disable-cfasl master object-directory base-image profiling)
   (with-maybe-profiling (profiling)
     (reset-variables)
     (when arguments
       (error "Invalid arguments to make-makefile"))
     (when xcvb-path
       (set-search-path! xcvb-path))
+    (setf *use-master* master)
+    (when master
+      (appendf *lisp-setup-dependencies* `((:fasl "/xcvb/master/master"))))
     (when setup
-      (setf *lisp-setup-dependencies*
-            (append *lisp-setup-dependencies* `((:lisp ,setup)))))
+      (appendf *lisp-setup-dependencies* `((:lisp ,setup))))
     (when verbosity
       (setf *xcvb-verbosity* verbosity))
     (when output-path

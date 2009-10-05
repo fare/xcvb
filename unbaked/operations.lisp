@@ -11,3 +11,28 @@
   :inputs ((x lisp-grain)) ;;; method will be applied to the evaluation of the argument expressions
   :outputs ((f fasl-grain) (c cfasl-grain)) ;;; can override the grain names (?)
   :body (...))
+
+(def grain lisp-grain (file-grain)
+  :filename "%.lisp"
+  :documentation "LISP file grain")
+
+(def grain fasl-grain (file-grain)
+  :filename "%.fasl"
+  :documentation "Lisp FASL file grain")
+
+(def grain cfasl-grain (file-grain)
+  :filename "%.cfasl"
+  :documentation "Lisp CFASL file grain")
+
+(def rule lisp-compile/cleanly
+  :input ((lisp lisp-grain) &key
+          (implementation lisp-implementation))
+  :output ((fasl fasl-grain) &key
+           (cfasl cfasl-grain))
+  :binding ((dependencies (compile-dependencies lisp)))
+  :dependencies (compile-dependencies lisp)
+  :execute (in-process
+            (lisp-process
+             :implementation implementation
+             :loaded dependencies)
+            (compile-module (filename lisp) :fasl (filename fasl) :cfasl (filename cfasl))))

@@ -1,1 +1,1 @@
-#+xcvb (module (:fullname "b"))
+#+xcvb (module (:fullname "/xcvb/test/b"))

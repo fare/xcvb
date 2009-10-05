@@ -85,9 +85,15 @@ prepare-release:
 	./dependencies/cl-launch/cl-launch.sh \
 		-I ./dependencies/cl-launch \
 		-B install_path && \
-	for l in sbcl clisp ; do xcvb make-makefile --xcvb-path=$$PWD \
-		--build /xcvb --setup /xcvb/no-asdf \
-		--lisp-implementation $$l --output-path=$$PWD/xcvb.mk.$$l --disable-cfasl ; done && \
+	for l in sbcl clisp ; do \
+	    xcvb make-makefile \
+		--xcvb-path=$$PWD \
+		--build /xcvb \
+		--setup /xcvb/no-asdf \
+		--lisp-implementation $$l \
+		--output-path=$$PWD/xcvb.mk.$$l \
+		--no-master \
+		--disable-cfasl ; done && \
 	rm -rf obj xcvb/obj
 
 .PHONY: install-cl-launch install install-source install-using-asdf \

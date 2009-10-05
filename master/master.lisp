@@ -2,17 +2,18 @@
 
 #|
 The current plan for in-image XCVB use (beside having users use the ASDF backend) is that
-xcvb-master will run-program an XCVB process that would do all the compilation out-of-image
-then tell you what to load, and how to update your configuration.
-XCVB will do all the tth checksumming on its side, so you don't have to have ironclad
-in your image -- or anything beside xcvb-master,
-which ought to be a small standalone Lisp file, smaller than ASDF.
+xcvb-master will run-program a slave XCVB process that will do all the compilation out-of-image
+then reply to the master with a specification of grains to load.
+The slave will do all the tth checksumming on its side, so you don't have to have ironclad
+in your image -- or anything beside the simple and short xcvb-master,
+which ought to be a small standalone Lisp file, simpler, smaller and more useful than ASDF.
 
 So xcvb-master would::
-     xcvb eval '(xcvb:slave-build ...)'
-where the form would including a specification of modules already loaded
-(i.e. fullname and hashvalue of each included component),
-and the subprocess would return a specification of modules to load:
+     xcvb slave-builder ...
+where the arguments would include a specification of modules already loaded
+(i.e. fullname and hashvalue of each included component)
+as well as a specification of a target to build,
+and the subprocess would return a specification of grains to load:
 fullname, hashvalue and current pathname.
 After loading, a further call to xcvb would allow it to cleanup any
 theretofore unneeded temporary file.
@@ -20,10 +21,11 @@ theretofore unneeded temporary file.
 
 #+xcvb
 (module
- (:author ("Francois-Rene Rideau")
+ (:description "XCVB Master"
+  ;;; magic dependency on ("/xcvb/driver")))
+  :author ("Francois-Rene Rideau")
   :maintainer "Francois-Rene Rideau"
-  :licence "MIT" ;; MIT-style license. See LICENSE
-  :description "XCVB Master"))
+  :licence "MIT")) ;; MIT-style license. See LICENSE
 
 (in-package :cl)
 
@@ -32,67 +34,76 @@ theretofore unneeded temporary file.
   (:use :cl)
   (:export
 
-   ;;; special variables
+   ;;; special variables shared with XCVB itself
    #:*lisp-implementation-type*
    #:*lisp-executable-pathname*
    #:*lisp-image-pathname*
    #:*lisp-implementation-directory*
-   #:*disable-cfasls*
+   #:*lisp-flags*
    #:*xcvb-verbosity*
    #:*search-path*
    #:*lisp-allow-debugger*
    #:*object-directory*
    #:*tmp-directory-pathname*
    #:*use-base-image*
+
+   ;;; special variables for XCVB master itself
+   #:*disable-cfasls*
    #:*xcvb-path*
+   #:*loaded-grains*
+
+   ;;; I/O utilities
+   #:slurp-stream-to-string
+   #:copy-stream-to-stream
+   #:read-many
+   #:with-safe-io-syntax
+   #:read-first-file-form
 
    ;;; run-program/foo
    #:run-program/process-output-stream
    #:run-program/read-output-lines
    #:run-program/read-output-string
-   #:slurp-stream-to-string
-   #:copy-stream-to-stream
    #:run-program/read-output-form
    #:run-program/read-output-forms
-   #:read-many
-
-   ;;; I/O
-   #:with-safe-io-syntax
 
    ;;; Using an inferior XCVB
+   #:load-grain #:load-grains
    #:build-and-load))
 
 (in-package :xcvb-master)
 
 ;;; These variables are shared with XCVB itself.
-
 (defvar *lisp-implementation-type*
   (or #+sbcl :sbcl #+clisp :clisp #+ccl :ccl #+cmu :cmucl)
   "Type of Lisp implementation for the target system.
-Default: same as XCVB itself.")
+  Default: same as XCVB itself.")
 
 (defvar *lisp-executable-pathname* nil
   "Path to the Lisp implementation to use for the target system.
-Default: what's in your PATH.")
+  Default: what's in your PATH.")
 
 (defvar *lisp-image-pathname* nil
   "What path to a Lisp image do we need invoke the target Lisp with?
-Default: whatever's the default for your implementation.")
+  Default: whatever's the default for your implementation.")
 
 (defvar *lisp-implementation-directory*
   (or #+sbcl (namestring (sb-int:sbcl-homedir-pathname)))
   "Where is the home directory for the Lisp implementation,
-in case we need it to (require ...) special features?
-Default: whatever's the default for your implementation.")
+  in case we need it to (require ...) special features?
+  Default: whatever's the default for your implementation.")
+
+(defvar *lisp-flags* :default
+  ;;; TODO: add support for overriding this feature at the command-line?
+  "What options do we need invoke the target Lisp with?")
 
 (defvar *disable-cfasls* nil
   "Should we disable CFASL support when the target Lisp has it?")
 
 (defvar *xcvb-verbosity* 5
   "Level of verbosity of XCVB:
-0 - quiet
-5 - usual warnings
-9 - plenty of debug info")
+  0 - quiet
+  5 - usual warnings
+  9 - plenty of debug info")
 
 (defvar *lisp-allow-debugger* nil
   "Should we allow interactive debugging of failed build attempts?")
@@ -107,7 +118,6 @@ Default: whatever's the default for your implementation.")
   "Should we be using a base image for all builds?")
 
 ;;; These variables are specific to XCVB master.
-
 (defvar *xcvb-binary* "xcvb"
   "Path to the XCVB binary")
 
@@ -117,8 +127,42 @@ Default: whatever's the default for your implementation.")
 (defvar *xcvb-setup* nil
   "Lisp file to load to setup the target build system, if any")
 
-;;; Simple variant of run-program with no input, and capturing output
+(defvar *loaded-grains* nil
+  ;; Note that older versions are kept in the tail, documenting the load history,
+  ;; without affecting the behavior of ASSOC on the alist.
+  "an alist of fullname of the XCVB grains loaded in the current image, with tthsum")
 
+;;; I/O utilities
+(defun slurp-stream-to-string (input)
+  (with-output-to-string (output)
+    (copy-stream-to-stream input output :element-type 'character)))
+
+(defun copy-stream-to-stream (input output &key (element-type 'character))
+  (loop :for buffer = (make-array 8192 :element-type element-type)
+    :for end = (read-sequence buffer input)
+    :until (zerop end) :do (write-sequence buffer output :end end)))
+
+(defun read-many (s)
+  (loop :with eof = '#:eof
+    :for form = (read s nil eof)
+    :until (eq form eof)
+    :collect form))
+
+(defmacro with-safe-io-syntax ((&key (package :cl)) &body body)
+  `(call-with-safe-io-syntax (lambda () ,@body) :package ,package))
+(defun call-with-safe-io-syntax (thunk &key (package :cl))
+  (with-standard-io-syntax ()
+    (let ((*package* (find-package package))
+	  (*read-eval* nil))
+      (funcall thunk))))
+
+(defun read-first-file-form (filepath &key (package :cl))
+  "Reads the first form from the top of a file"
+  (with-safe-io-syntax (:package package)
+    (with-open-file (in filepath)
+      (read in nil nil))))
+
+;;; Simple variant of run-program with no input, and capturing output
 (defun run-program/process-output-stream (command arguments output-processor)
     #+(or clozure sbcl cmu scl clisp)
     (let* ((process
@@ -158,22 +202,13 @@ Default: whatever's the default for your implementation.")
 (defun run-program/read-output-lines (command &rest args)
   (run-program/process-output-stream
    command args
-   (lambda (pos)
-     (loop :for l = (read-line pos nil nil)
+   (lambda (stream)
+     (loop :for l = (read-line stream nil nil)
        :while l :collect l))))
 
 (defun run-program/read-output-string (command &rest args)
   (run-program/process-output-stream
    command args #'slurp-stream-to-string))
-
-(defun slurp-stream-to-string (input)
-  (with-output-to-string (output)
-    (copy-stream-to-stream input output :element-type 'character)))
-
-(defun copy-stream-to-stream (input output &key (element-type 'character))
-  (loop :for buffer = (make-array 8192 :element-type element-type)
-    :for end = (read-sequence buffer input)
-    :until (zerop end) :do (write-sequence buffer output :end end)))
 
 (defun run-program/read-output-form (command &rest args)
   (run-program/process-output-stream command args #'read))
@@ -181,30 +216,29 @@ Default: whatever's the default for your implementation.")
 (defun run-program/read-output-forms (command &rest args)
   (run-program/process-output-stream command args #'read-many))
 
-(defun read-many (s)
-  (loop :with eof = '#:eof
-    :for form = (read s nil eof)
-    :until (eq form eof)
-    :collect form))
-
-(defmacro with-safe-io-syntax ((&key (package :cl)) &body body)
-  `(call-with-safe-io-syntax (lambda () ,@body) :package ,package))
-
-(defun call-with-safe-io-syntax (thunk &key (package :cl))
-  (with-standard-io-syntax ()
-    (let ((*package* (find-package package))
-	  (*read-eval* nil))
-      (funcall thunk))))
-
-(define-symbol-macro *loaded-grains*
-   (symbol-value (find-symbol (string :*loaded-grains* ) :xcvb-driver)))
-
+;;; Maintaining memory of which grains have been loaded in the current image.
+(defun load-grain (fullname tthsum path)
+  (unless (equal tthsum (cdr (assoc fullname *loaded-grains* :test #'equal)))
+    (when (>= *xcvb-verbosity* 5)
+      (format "~&Loading grain ~S (tthsum: ~A) from ~S~%" fullname tthsum path))
+    (load path)
+    (push (cons fullname tthsum) *loaded-grains*)))
+(defun load-grains (manifest)
+  (loop :for (fullname tthsum path) :in manifest
+    :do (load-grain fullname tthsum path)))
+(defun xcvb-driver::initialize-manifest (manifest)
+  "XCVB driver extension to initialize the manifest for an image"
+  (assert (not *loaded-grains*))
+  (setf *loaded-grains* manifest))
+(defun xcvb-driver::load-manifest (path)
+  "XCVB driver extension to load a list of files from a manifest"
+  (load-grains (read-first-file-form path)))
 (defun make-loaded-grains-string (&optional (loaded-grains *loaded-grains*))
   (with-output-to-string (s)
     (with-safe-io-syntax ()
-      (write loaded-grains :stream s
-             :readably t :escape t :pretty nil))))
+      (write loaded-grains :stream s :readably t :escape t :pretty nil))))
 
+;;; Run a slave, obey its orders.
 (defun build-and-load
     (build &key
      (xcvb-binary *xcvb-binary*)
@@ -246,10 +280,5 @@ Default: whatever's the default for your implementation.")
       (unless (and forms (consp forms) (null (cdr forms))
                    (consp (car forms)) (eq (caar forms) :xcvb))
         (error "XCVB subprocess failed."))
-      (destructuring-bind modules (cdar forms)
-        (loop :for (fullname tthsum path) :in modules :do
-          (progn
-            (when (>= *xcvb-verbosity* 5)
-              (format "~&Loading grain ~S (tthsum: ~A) from ~S~%" fullname tthsum path))
-            (load path)
-            (push (cons fullname tthsum) *loaded-grains*))))))))
+      (destructuring-bind manifest (cdar forms)
+        (load-manifest manifest))))))

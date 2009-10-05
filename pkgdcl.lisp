@@ -5,6 +5,10 @@
 (cl:defpackage :xcvb
   (:use :closer-common-lisp :xcvb-driver :command-line-arguments :xcvb-master)
   (:import-from :cl-launch #:DBG)
+
+  ;;; THIS EXPORT LIST IS MASSIVELY OUT-OF-DATE.
+  ;;; No wonder why: the CL package system is not very maintainable,
+  ;;; and doesn't even scale to largish systems.
   (:export
 
      ;; version
@@ -36,7 +40,6 @@
      #:filepath
      #:strcat
      #:join-strings
-     #:all-descendents-f
      #:coerce-asdf-system-name
      #:asdf-systems-are-up-to-date-p
 
