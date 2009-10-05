@@ -29,6 +29,7 @@ theretofore unneeded temporary file.
   :licence "MIT")) ;; MIT-style license. See LICENSE
 
 (in-package :cl)
+(declaim (optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3)))
 (defpackage :xcvb-master
   (:nicknames :xcvbm)
   (:use :cl)
@@ -139,17 +140,21 @@ theretofore unneeded temporary file.
     (copy-stream-to-stream input output :element-type 'character)))
 
 (defun copy-stream-to-stream (input output &key (element-type 'character))
-  (loop :for buffer = (make-array 8192 :element-type element-type)
+  (loop :with length = 8192
+    :for buffer = (make-array length :element-type element-type)
     :for end = (read-sequence buffer input)
-    :until (zerop end) :do (write-sequence buffer output :end end)))
+    :until (zerop end)
+    :do (write-sequence buffer output :end end)
+    :do (when (< end length) (return))))
 
 (defun copy-stream-to-stream-line-by-line (input output)
-  (loop :for (line eof) = (read-line input nil nil)
+  (loop :for (line eof) = (multiple-value-list (read-line input nil nil))
     :while line
     :do (progn
           (princ line output)
           (unless eof (terpri output))
-          (finish-output output))))
+          (finish-output output)
+          (when eof (return)))))
 
 (defun read-many (s)
   (loop :with eof = '#:eof
@@ -291,6 +296,7 @@ theretofore unneeded temporary file.
     (unless (and forms (consp forms) (null (cdr forms))
                  (consp (car forms)) (eq (caar forms) :xcvb))
       (error "XCVB subprocess failed."))
-    (destructuring-bind (manifest requires) (cdar forms)
+    (destructuring-bind (requires manifest) (cdar forms)
       (map () #'require requires)
-      (load-grains manifest))))
+      (let ((*xcvb-verbosity* (+ *xcvb-verbosity* 2)))
+        (load-grains manifest)))))

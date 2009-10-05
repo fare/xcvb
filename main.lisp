@@ -268,7 +268,7 @@
    (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
    (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
    (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
-   (("object-directory" #\O) :type string :initial-value "obj-ne" :documentation "specify object directory")
+   (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
    (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
    (("disable-cfasl" #\C) :type boolean :optional t :initial-value nil :documentation "disable use of CFASL")
@@ -304,6 +304,7 @@
                        ,(manifest-form
                          (loop :for grain :in included
                            :for fullname = (fullname grain)
+                           :when (typep grain '(or lisp-grain fasl-grain cfasl-grain))
                            :collect (cons fullname
                                           (merge-pathnames (dependency-namestring fullname)
                                                            makefile-dir)))))
