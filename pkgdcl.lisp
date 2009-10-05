@@ -2,6 +2,9 @@
 (module
  (:description "package for XCVB"))
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3))))
+
 (cl:defpackage :xcvb
   (:use :closer-common-lisp :xcvb-driver :command-line-arguments :xcvb-master)
   (:import-from :cl-launch #:DBG)

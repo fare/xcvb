@@ -100,7 +100,6 @@
         :finally (return (apply #'make-instance class (append keys old-keys)))))
 
 ;;; hash tables
-
 (defun hash-table->alist (table)
   (loop for key being the hash-keys of table using (hash-value value)
 	collect (cons key value)))
@@ -128,4 +127,3 @@
     (when set
       (loop :for x :being :the :hash-keys :in set :do (setf (gethash x h) t)))
     h))
-

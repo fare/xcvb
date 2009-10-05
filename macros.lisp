@@ -36,6 +36,15 @@ Otherwise, signal an error."
     ((and string (satisfies array-has-fill-pointer-p))
      (with-output-to-string (s obj) (funcall fun s)))))
 
+(defun call-with-user-output-file (f fun)
+  (if (equal f "-")
+    (funcall fun *standard-output*)
+    (with-open-file (o f :direction :output :if-exists :supersede)
+      (funcall fun o))))
+
+(defmacro with-user-output-file ((s f) &body body)
+  `(call-with-user-output-file ,f (lambda (,s) ,@body)))
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun fintern (package format &rest rest)
     (intern (apply #'format nil format rest)

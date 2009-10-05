@@ -10,6 +10,8 @@
 
 (in-package :xcvb)
 
+(declaim (optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3)))
+
 #+sbcl
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require :sb-posix)
@@ -258,11 +260,61 @@
    :output-path output-path
    :parallel parallel))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; slave builder ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter +slave-builder-option-spec+
+ '((("build" #\b) :type string :optional nil :documentation "specify a (series of) system(s) to build")
+   (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
+   (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
+   (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
+   (("object-directory" #\O) :type string :initial-value "obj-ne" :documentation "specify object directory")
+   (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
+   (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+   (("disable-cfasl" #\C) :type boolean :optional t :initial-value nil :documentation "disable use of CFASL")
+   (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
+   (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
+   (("profiling" #\P) :type boolean :optional t :documentation "profiling")
+   ))
+
+(defun slave-builder (arguments &key
+                       build setup xcvb-path
+                       output-path object-directory
+                       lisp-implementation lisp-binary-path
+                       disable-cfasl base-image verbosity profiling)
+  (xcvb-driver::debugging)
+  (multiple-value-bind (makefile-path makefile-dir)
+      (make-makefile
+       arguments :master t
+       :build build :setup setup
+       :xcvb-path xcvb-path :output-path output-path
+       :object-directory object-directory
+       :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
+       :disable-cfasl disable-cfasl :base-image base-image :verbosity verbosity :profiling profiling)
+    (let ((*standard-output* *error-output*)
+          #|#+sbcl (sb-alien::*default-c-string-external-format* :iso-8859-1)|#)
+      (run-program/process-output-stream
+       "make" (list "-C" (namestring makefile-dir) "-f" (namestring makefile-path))
+       (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
+    (let* ((image-grain (graph-for (make-instance 'static-traversal)
+                                   `(:image ,(canonicalize-fullname build))))
+           (included (image-included image-grain)))
+      (with-safe-io-syntax ()
+        (write `(:xcvb () ;;; TODO: do something about non-file dependencies
+                       ,(manifest-form
+                         (loop :for grain :in included
+                           :for fullname = (fullname grain)
+                           :collect (cons fullname
+                                          (merge-pathnames (dependency-namestring fullname)
+                                                           makefile-dir)))))
+               :readably t :pretty t :case :downcase)
+        (terpri)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make a load manifest ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +make-manifest-option-spec+
-  '((("output" #\o) :type string :optional nil
-     :documentation "Path to manifest file")
+  '((("output" #\o) :type string :optional t :initial-value "-"
+     :documentation "Path to manifest file or - for stdout")
     (("grains" #\g) :type string :optional nil
      :documentation "alist of grains, mapping fullname to pathname")))
 
@@ -308,6 +360,9 @@ the previous image, a build and its dependencies.")
      "Show builds in the specified XCVB path"
      "Show builds in the implicitly or explicitly specified XCVB path.
 For debugging your XCVB configuration.")
+    (("slave-builder") slave-builder +slave-builder-option-spec+
+     "Build some project as a slave to the XCVB master (for internal use)"
+     "Build some project as a slave to the XCVB master (for internal use)")
     (("make-manifest") make-manifest +make-manifest-option-spec+
      "Create a manifest of files to load (for internal use)"
      "given fullnames and paths, output fullnames, tthsum and paths")

@@ -51,7 +51,8 @@
 (defun include-image-dependencies (env image)
   (when image
     (check-type image image-grain)
-    (setf (included-dependencies env) (image-included image))))
+    (setf (included-dependencies env)
+          (make-hashset :test 'equal :list (image-included image)))))
 
 (define-graph-for :lisp ((env static-traversal) name)
   (let* ((grain (resolve-absolute-module-name name))
@@ -97,10 +98,11 @@
         (make-phony-grain
          :name `(:build ,(fullname grain))
 	 :dependencies
-	 (progn (load-command-for* env (compile-dependencies grain))
-                (load-command-for* env (cload-dependencies grain))
-                (load-command-for* env (load-dependencies grain))
-		(traversed-dependencies env))))))
+	 (progn
+           ;;(load-command-for* env (compile-dependencies grain))
+           ;;(load-command-for* env (cload-dependencies grain))
+           (load-command-for* env (load-dependencies grain))
+           (traversed-dependencies env))))))
 
 (define-graph-for :image ((env static-traversal) name)
   (cond
@@ -152,9 +154,9 @@
            (grain
             (make-grain 'image-grain
                         :fullname `(:image ,name)
-                        :included (make-hashset :test 'equal
-                                                :list traversed
-                                                :set (when pre-image (image-included pre-image)))))
+                        :included (append
+                                   (when pre-image (image-included pre-image))
+                                   traversed)))
            (load-commands (traversed-load-commands env)))
       (multiple-value-bind (manifest-maker load-commands)
           (if *use-master*

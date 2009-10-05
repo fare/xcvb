@@ -1,5 +1,5 @@
 ;;; Extracting properties from the target lisp implementation
-#+xcvb (module (:depends-on ("pkgdcl")))
+#+xcvb (module (:depends-on ("macros")))
 
 (in-package :xcvb)
 
@@ -45,7 +45,7 @@ Until then, let's rely on tthsum.
       :collect (list fullname tthsum pathname))))
 
 (defun create-manifest (output-path grains)
-  (with-open-file (o output-path :direction :output :if-exists :supersede)
+  (with-user-output-file (o output-path)
     (with-safe-io-syntax ()
       (let ((*print-pretty* nil)
             (*print-case* :downcase))

@@ -55,6 +55,7 @@ theretofore unneeded temporary file.
    ;;; I/O utilities
    #:slurp-stream-to-string
    #:copy-stream-to-stream
+   #:copy-stream-to-stream-line-by-line
    #:read-many
    #:with-safe-io-syntax
    #:read-first-file-form
@@ -141,6 +142,14 @@ theretofore unneeded temporary file.
   (loop :for buffer = (make-array 8192 :element-type element-type)
     :for end = (read-sequence buffer input)
     :until (zerop end) :do (write-sequence buffer output :end end)))
+
+(defun copy-stream-to-stream-line-by-line (input output)
+  (loop :for (line eof) = (read-line input nil nil)
+    :while line
+    :do (progn
+          (princ line output)
+          (unless eof (terpri output))
+          (finish-output output))))
 
 (defun read-many (s)
   (loop :with eof = '#:eof
@@ -240,6 +249,22 @@ theretofore unneeded temporary file.
   "XCVB driver extension to load a list of files from a manifest"
   (load-grains (read-first-file-form path)))
 
+;;; Simplifying options for XCVB invocation
+(defun string-option-arguments (string value)
+  (when value (list string (princ-to-string value))))
+(defun boolean-option-arguments (string value)
+  (when value (list string)))
+(defmacro option-string (name)
+  (format nil "--~(~a~)" name))
+(defmacro string-option (var)
+  `(string-option-arguments (option-string ,var) ,var))
+(defmacro string-options (&rest vars)
+  `(append ,@(loop :for var :in vars :collect `(string-option ,var))))
+(defmacro boolean-option (var)
+  `(boolean-option-arguments (option-string ,var) ,var))
+(defmacro boolean-options (&rest vars)
+  `(append ,@(loop :for var :in vars :collect `(boolean-option ,var))))
+
 ;;; Run a slave, obey its orders.
 (defun build-and-load
     (build &key
@@ -254,33 +279,18 @@ theretofore unneeded temporary file.
      (base-image *use-base-image*)
      (verbosity *xcvb-verbosity*)
      profiling)
-  (flet ((string-option-arguments (string value)
-           (when value
-             (list string (princ-to-string value))))
-         (boolean-option-arguments (string value)
-           (when value (list string))))
-  (macrolet ((option-string (name)
-               (format nil "--~(~a~)" name))
-             (string-option (var)
-               `(string-option-arguments (option-string ,var) ,var))
-             (string-options (&rest vars)
-               `(append ,@(loop :for var :in vars :collect `(string-option ,var))))
-             (boolean-option (var)
-               `(boolean-option-arguments (option-string ,var) ,var))
-             (boolean-options (&rest vars)
-               `(append ,@(loop :for var :in vars :collect `(boolean-option ,var)))))
-    (let* ((loaded-grains (make-loaded-grains-string))
-           (forms
-            (with-safe-io-syntax ()
-              (apply #'run-program/read-output-forms xcvb-binary "slave-builder"
-                     (append
-                      (string-options build
-                                      setup xcvb-path output-path object-directory
-                                      lisp-implementation lisp-binary-path verbosity
-                                      loaded-grains)
-                      (boolean-options disable-cfasl base-image profiling))))))
-      (unless (and forms (consp forms) (null (cdr forms))
-                   (consp (car forms)) (eq (caar forms) :xcvb))
-        (error "XCVB subprocess failed."))
-      (destructuring-bind manifest (cdar forms)
-        (load-grains manifest))))))
+  (let* (;;;(loaded-grains (make-loaded-grains-string))
+         (forms
+          (with-safe-io-syntax ()
+            (apply #'run-program/read-output-forms xcvb-binary "slave-builder"
+                   (append
+                    (string-options build ;;;loaded-grains
+                                    setup xcvb-path output-path object-directory
+                                    lisp-implementation lisp-binary-path verbosity)
+                    (boolean-options disable-cfasl base-image profiling))))))
+    (unless (and forms (consp forms) (null (cdr forms))
+                 (consp (car forms)) (eq (caar forms) :xcvb))
+      (error "XCVB subprocess failed."))
+    (destructuring-bind (manifest requires) (cdar forms)
+      (map () #'require requires)
+      (load-grains manifest))))

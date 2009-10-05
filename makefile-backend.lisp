@@ -29,9 +29,10 @@
          (makefile-dir (pathname-directory-pathname makefile-path))
          (*default-pathname-defaults* makefile-dir)
          (*makefile-target-directories* nil)
-         (*makefile-phonies* nil))
-    (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
-    (graph-for-build-grain (make-instance 'static-traversal) build)
+         (*makefile-phonies* nil)
+         (build-grain (progn
+                        (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
+                        (graph-for-build-grain (make-instance 'static-traversal) build))))
     (log-format 6 "T=~A building makefile~%" (get-universal-time))
     (let ((body (computations-to-Makefile)))
       (with-open-file (out makefile-path
@@ -40,8 +41,9 @@
         (log-format 6 "T=~A printing makefile~%" (get-universal-time))
         (write-makefile-prelude out)
         (princ body out)
-        (write-makefile-conclusion out))))
-        (log-format 6 "T=~A done~%" (get-universal-time)))
+        (write-makefile-conclusion out)))
+    (log-format 6 "T=~A done~%" (get-universal-time))
+    (values makefile-path makefile-dir build-grain)))
 
 (defun write-makefile-prelude (&optional stream)
   (let ((directories

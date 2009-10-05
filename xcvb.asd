@@ -25,10 +25,10 @@ deterministic separate compilation and enforced locally-declared dependencies."
     :components
     ((:file "pkgdcl")
      (:file "conditions" :depends-on ("pkgdcl"))
-     (:file "digest" :depends-on ("pkgdcl"))
      (:file "specials" :depends-on ("pkgdcl"))
      (:file "macros" :depends-on ("pkgdcl"))
      (:file "utilities" :depends-on ("macros"))
+     (:file "digest" :depends-on ("macros"))
      (:file "logging" :depends-on ("specials"))
      (:file "grains" :depends-on ("utilities" "conditions"))
      (:file "portablish-pathnames" :depends-on ("utilities"))
