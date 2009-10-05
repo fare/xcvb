@@ -578,9 +578,10 @@ of a symbol of the same name as given keyword in the package ``:xcvb-driver``.
 Therefore, to extend the command language for the driver's command language,
 just define functions in said package, and make sure the files defining these
 functions are loaded before these commands are used
-(e.g. by listing them first in dependencies).
+(e.g. by listing them first in dependencies)::
 
-See e.g. how it is done in ``/xcvb/master/master``.
+	(defun xcvb-driver::my-new-function (arguments ...) ...)
+
 
 
 Simple dispatchers as extension points

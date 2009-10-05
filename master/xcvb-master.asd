@@ -7,5 +7,5 @@
     :description "XCVB master"
     :long-description "A module to run XCVB as an external process, and use its results
 in the current process"
-    :depends-on (:xcvb-driver)
+    :depends-on () ;; Works standalone, does not depend on anything, not even /xcvb/driver
     :components ((:file "master")))

@@ -436,6 +436,37 @@ In these cases, you pass to ``xcvb make-makefile`` the option
 ``--no-base-image``.
 
 
+Interactive update of a running image
+-------------------------------------
+
+If your are running a Lisp image built by XCVB
+using its normal (dependency-enforcing) backend,
+it is possible to update the code in your image to match the latest build,
+modulo the usual restrictions applicable to any Common Lisp code update.
+
+By default, XCVB builds your software with the ``/xcvb/master`` module
+(unless you specified ``--no-master`` which is only useful
+for bootstrapping XCVB itself).
+In this module you can find the function ``xcvb-master:build-and-load``
+that takes as an argument the name of a build and a flurry of options.
+The build specifies what you want to update;
+the options precisely match those of ``xcvb make-makefile``.
+
+If you built your Lisp image using the ASDF backend,
+you can use ASDF to update your system as usual.
+If you used our non-enforcing backend, you currently have to regenerate
+a new image from the command-line, then use ASDF to reload the system
+in your current image.
+(We do not at this point provide further automation for that.
+Hopefully, more soon.)
+
+Finally, you can load the XCVB master as an alternative to ASDF,
+and load code from there::
+
+        (load "/path/to/xcvb/master.lisp")
+	(xcvb-master:build-and-load "mybuild")
+
+
 Restrictions on your Lisp Code
 ==============================
 

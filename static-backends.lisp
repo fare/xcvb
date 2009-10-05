@@ -167,7 +167,7 @@
                                        `(:manifest ,(strcat name "--initial")))))
               (values
                `(,@(when initial-manifest
-                     `((:make-manifest ,initial-manifest ,@(reverse initial-loads))))
+                     `((:make-manifest ,initial-manifest ,@initial-loads)))
                  (:make-manifest (:manifest ,name)
                   ,@(mapcar #'remove-load-file load-commands)))
                `(,@(when initial-manifest

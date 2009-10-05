@@ -348,6 +348,12 @@ This is designed to abstract away the implementation specific quit forms."
   (with-coded-exit ()
     (shell-boolean (asdf-systems-up-to-date-p systems))))
 
+;;; XCVB Master support
+(defun initialize-manifest (path)
+  (call :xcvb-master :initialize-manifest path))
+(defun xcvb-driver::load-manifest (path)
+  (call :xcvb-master :load-manifest path))
+
 ;;; Actually compiling
 (defun do-compile-lisp (dependencies source fasl &key cfasl)
   (let ((*goal* `(:compile-lisp ,source))

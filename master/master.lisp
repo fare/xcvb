@@ -22,8 +22,6 @@ theretofore unneeded temporary file.
 #+xcvb
 (module
  (:description "XCVB Master"
-  :compile-depends-on ((:fasl "/xcvb/driver"))
-  :load-depends-on ((:fasl "/xcvb/driver"))
   :author ("Francois-Rene Rideau")
   :maintainer "Francois-Rene Rideau"
   :licence "MIT")) ;; MIT-style license. See LICENSE
@@ -70,7 +68,7 @@ theretofore unneeded temporary file.
 
    ;;; Using an inferior XCVB
    #:load-grain #:load-grains
-   #:build-and-load))
+   #:build-and-load #:bnl))
 
 (in-package :xcvb-master)
 
@@ -246,11 +244,11 @@ theretofore unneeded temporary file.
       (write loaded-grains :stream s :readably t :escape t :pretty nil))))
 
 ;;; Extend XCVB driver
-(defun xcvb-driver::initialize-manifest (path)
+(defun initialize-manifest (path)
   "XCVB driver extension to initialize the manifest for an image"
   (assert (not *loaded-grains*))
   (setf *loaded-grains* (read-first-file-form path)))
-(defun xcvb-driver::load-manifest (path)
+(defun load-manifest (path)
   "XCVB driver extension to load a list of files from a manifest"
   (load-grains (read-first-file-form path)))
 
@@ -300,3 +298,14 @@ theretofore unneeded temporary file.
       (map () #'require requires)
       (let ((*xcvb-verbosity* (+ *xcvb-verbosity* 2)))
         (load-grains manifest)))))
+
+(defun bnl (build &rest keys &key
+            xcvb-binary setup xcvb-path output-path object-directory
+            lisp-implementation lisp-binary-path
+            disable-cfasl base-image verbosity profiling)
+  "Short hand for build-and-load"
+  (declare (ignore
+            xcvb-binary setup xcvb-path output-path object-directory
+            lisp-implementation lisp-binary-path
+            disable-cfasl base-image verbosity profiling))
+  (apply #'build-and-load build keys))
