@@ -41,15 +41,18 @@ it may or may not be up to date.
       2.20  dependencies-interpreter.lisp
       2.21  static-backends.lisp
       2.22  makefile-backend.lisp
-      2.23  asdf-backend.lisp
-      2.24  asdf-converter.lisp
-      2.25  main.lisp
-      2.26  version.lisp
+      2.23  simplifying-traversal.lisp
+      2.24  asdf-backend.lisp
+      2.25  ne-makefile-backend.lisp
+      2.26  asdf-converter.lisp
+      2.27  main.lisp
+      2.28  version.lisp
     3  Good places to extend XCVB
       3.1  Extending the driver
       3.2  Simple dispatchers as extension points
       3.3  Enriching the system
       3.4  Dynamic XCVB extensions
+      3.5  Backwards Compatibility
     4  High-level description
       4.1  XCVB's Architecture
       4.2  Grains and Types
@@ -577,6 +580,18 @@ for loading new code before to re-process the rest of the command-line arguments
 The new code could extend or override existing simple-dispatchers,
 define new functions, push new command-line handlers.
 Loading extensions could also be done as part of parsing build modules.
+
+
+Backwards Compatibility
+-----------------------
+
+Starting whenever we have users who actually use XCVB to bootstrap XCVB
+and we made an official stable release,
+we'll want ``/xcvb/driver`` and ``/xcvb/master`` to provide backwards compatibility.
+
+Therefore we can no longer change the semantics of ``:compile-lisp``.
+Instead, we must keep the old ``:compile-lisp`` and possibly provide new versions
+under a different name, such as ``:compile-lisp/2``.
 
 
 High-level description

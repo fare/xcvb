@@ -48,8 +48,9 @@ enforced locally-declared dependencies.
       7.2  ASDF systems depending on XCVB builds
       7.3  Converting XCVB builds into ASDF systems
       7.4  Converting ASDF systems into XCVB builds
-      7.5  Undoing a conversion to XCVB
-      7.6  Fast non-enforcing builds using POIU
+      7.5  ASDF extensions without XCVB equivalent
+      7.6  Undoing a conversion to XCVB
+      7.7  Fast non-enforcing builds using POIU
 
 
 About XCVB
@@ -1154,14 +1155,17 @@ if you don't want to have to redo them manually.
 Fast non-enforcing builds using POIU
 ------------------------------------
 
+After our initial experiments with the Makefile backend of XCVB,
+it appeared that enforcing dependencies in such a naive way
+can lead to build times that is an order of magnitude slower
+than a serial build time with ASDF, even a quad-core machine.
+
 If you have a very large body of Lisp code,
 you can use the non-enforcing backend of XCVB to build it fast
-in parallel with POIU_::
+in parallel with ASDF or POIU::
 
 	xcvb nm --build stage1 --build stage2 --build foo --parallel
         make -f xcvb-ne.mk
-
-.. _POIU: http://common-lisp.net/project/qitab/
 
 This will create a non-enforcing Makefile (default name ``xcvb-ne.mk``)
 that plainly creates a series of images for each of the builds,
@@ -1169,12 +1173,19 @@ culminating with the last one, where for each stage
 the dependencies are compiled with ASDF,
 or with POIU if the ``--parallel`` option is specified.
 
+Note that depending on your machine, your Lisp implementation and your project,
+compilation in parallel with POIU can be either much faster or somewhat slower
+than compilation in series with ASDF.
+The best way to figure it out is to try them both and see what suits you best.
+
 See ``xcvb help non-enforcing-makefile`` for more options for this command.
 
 This backend provides fast compilation for your big projects,
 though you may want to at least keep the slower enforcing compilation running
-as part of your tests to detect and debug missed dependencies.
+as part of your pre-release tests to detect and debug missed dependencies,
+thus keeping the compilation speed of ASDF or POIU,
+while getting the flexibility, safety and maintainability that XCVB brings.
 
-Note that POIU only supports SBCL and CCL at this time.
+Finally, note that POIU only supports SBCL and CCL at this time.
 If you are using another implementation, you should either use ASDF
 or extend POIU to support your implementation.

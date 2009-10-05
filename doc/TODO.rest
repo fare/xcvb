@@ -33,19 +33,21 @@ and background on the design and ultimate goals of XCVB.
       3.10  Configurability of the build image [Done]
       3.11  Conditional Build [Done]
     4  Features [V2]
-      4.1   Improve Makefile backend [V2]
-      4.2   Abstract Away Paths [V2]
-      4.3   Initialization and Finalization [V2]
-      4.4   Tests [V2]
-      4.5   Dependency grovelling [V2]
-      4.6   Bootstrap [V3]
-      4.7   Same source, multiple compilers [V4]
-      4.8   Correctly handling C libraries [V4]
-      4.9   Bug hunting [V5]
-      4.10  Ideas from jknight [V2]
-      4.11  Computed Lisp files [V2]
-      4.12  Crypto Check [V3]
-      4.13  Template Instantiations [V5]
+      4.1   XCVB Self-Test [V2]
+      4.2   Improve Makefile backend [V2]
+      4.3   Abstract Away Paths [V2]
+      4.4   Initialization and Finalization [V2]
+      4.5   Tests [V2]
+      4.6   Compilation Units [V2]
+      4.7   Dependency grovelling [V2]
+      4.8   Bootstrap [V3]
+      4.9   Same source, multiple compilers [V4]
+      4.10  Correctly handling C libraries [V4]
+      4.11  Bug hunting [V5]
+      4.12  Ideas from jknight [V2]
+      4.13  Computed Lisp files [V2]
+      4.14  Crypto Check [V3]
+      4.15  Template Instantiations [V5]
     5  Internals [V4]
       5.1  Type-Checking [V4]
       5.2  Error handling [V4]
@@ -73,35 +75,17 @@ and background on the design and ultimate goals of XCVB.
 Current Developments [V1]
 =========================
 
-Following a complete rewrite the XCVB 0.3 series has been released in July 2009.
-We've got a Makefile backend with which we can recompile XCVB itself,
-compile a number of free software Lisp libraries,
-and handle a large system at ITA;
-also an ASDF backend, and more.
-
-
 Enhancing Build Speed [V1]
 --------------------------
 
-After our initial implementation of XCVB for QRes, it appears that
-the size of QRes and the depth of the dependencies as used so far
-lead to a build time that is an order of magnitude slower
-than the serial build time with ASDF, on a quad-core machine.
-And so the priority at ITA is to solve this performance issue.
-
   Non-enforcing build:
-    XCVB now provides a non-enforcing serial build.
-    It brings the compilation speed of ASDF or POIU
-    while XCVB can still provide the safety and maintainability
-    that are currently lacking.
 
-      * Modify the QRes Makefile to use this feature.
-        Hackers looking for a quicker build would use this with POIU.
+      * Modify the QRes Makefile to take advantage
+        of the non-enforcing build feature.
+        See if we actually get a quicker build with POIU.
 
       * Modify precheckin to do an incremental build in parallel,
-        so safety is preserved.
-
-      * Make sure POIU works the single-threaded CCL I updated.
+        so safety and maintainability are preserved.
 
   Profiling the build:
     Understand what is causing the performance problem,
@@ -202,6 +186,10 @@ Here is the top of our TODO list at ITA:
 
   Finish applying XCVB to QRes:
 
+   + Collect differences on ITA library dependencies into diffs.
+     Publish them in the XCVB releases/ directory.
+     Send them to upstream maintainers.
+
    + Complete the EVAL-WHEN cleanup of QRes. [Mostly Done]
 
    + Run tests on the XCVB-compiled system.
@@ -211,47 +199,12 @@ Here is the top of our TODO list at ITA:
    + Use ``remove-xcvb`` to extract the non-XCVB changes needed by QRes,
      and integrate those fixes into trunk.
 
-   + Collect differences on ITA library dependencies into diffs.
-     Publish them in the XCVB releases/ directory.
-     Send them to upstream maintainers.
-
    + Actually merge with trunk.
 
  * Figure out the shortest path from here to providing incremental testing
    for unit-tests and regression scripts. See `Tests [V2]`_.
 
- * Warnings about undefined functions are currently quenched during file compilation.
-   HOWEVER, we should record them on the side as we build, and reconcile them afterwards,
-   before or after image creation. In other words, we must implement
-   ``with-xcvb-compilation-unit`` in a way that actually defers warnings,
-   rather than plainly drops them.
-
-   + Good compilers generate conditions when a function is forward referenced;
-     these conditions need to be handled in implementation-dependent way, and
-     the symbol-name and package-name of the referenced symbols need to be
-     dumped into a file ``.fref`` alongside the ``.fasl`` and ``.cfasl``
-     as each file is compiled.
-
-   + Previous solutions in single-image build systems such as ASDF involved
-     ``with-compilation-unit`` and simple wrappers around it that defer the
-     handling of some conditions until the end of the compilation unit.
-     However, because we are specifically invalidating this assumption that
-     everything is compiled in the same image, we need to instead persist
-     forward reference information in files, and complete the final check
-     for undefined functions after image-dumping. This check would be the
-     first XCVB-managed unit-test; implementing it would be a good way to start
-     moving existing unit tests into incremental management by XCVB
-     -- the ultimate goal of migrating QRes to XCVB.
-
-   + Basically, one would create a test target dependent on the final image
-     that runs a function that collects all these forward references and makes sure
-     that all the referenced functions are indeed defined and defined as functions
-     (rather than as macro).
-
-   + The check would issue precise error messages describing which file referenced which
-     undefined function, or which file used a macro without depending on the file that
-     defined the macro. NB: *This is important for the dependency optimizer* since
-     it can help detect dependencies that are required indeed.
+ * Complete ``with-xcvb-compilation-unit``. See `Compilation Units [V2]`_.
 
 
 Other Top TODO Items [V1]
@@ -259,6 +212,19 @@ Other Top TODO Items [V1]
 
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
+
+ * Write a comprehensive test suite for XCVB. See `XCVB Self-Test [V2]`_.
+   This could be a good way for a hacker to start without knowing much about how XCVB works:
+   collect a list of things it does, write a Makefile to test them all, etc.
+   As failures are detected and fixed, knowledge will seep in.
+
+ * Add support for in-image backend. See `In-image loading [V1]`_.
+   This may or may not benefit from the following,
+   by connecting a master Lisp process to a slave XCVB
+   itself executing ``make``.
+
+ * Propose a patch to ASDF that merges ``XCVB_PATH`` and some hypothetical ``ASDF_PATH``
+   into a ``COMMON_LISP_PATH`` to find Lisp dependencies?
 
  * Modify the Makefile backend to individualize the directory dependencies:
    each target should only depend on the directory where the target itself lives,
@@ -282,28 +248,8 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    through cryptographic checksums, so that we know exactly what to rebuild or not to rebuild
    even when the global dependencies change (which is not the case currently).
 
- * Write a comprehensive test suite for XCVB.
-   This could be a good way for a hacker to start without knowing much about how XCVB works:
-   collect a list of things it does, write a Makefile to test them all, etc.
-   As failures are detected and fixed, knowledge will seep in. The test suite would include:
-
-   + automated migration of some benchmark ASDF systems
-     (e.g. XCVB's own code and dependencies, copied in a test directory).
-
-   + converting back to ASDF, undoing the migration with ``remove-xcvb``,
-     double checking that converting back and forth is a projection
-     (i.e. idempotent after the first time).
-
-   + have a mechanism to run the test-suite on a tarball after it is made but before it is released.
-
- * Refactor the outdated ``test/mock/a/c/Makefile`` and the related builds into
-   a Common Lisp equivalent of GNU hello. Move it outside of the XCVB tree.
-
- * Propose a patch to ASDF that merges ``XCVB_PATH`` and some hypothetical ``ASDF_PATH``
-   into a ``COMMON_LISP_PATH`` to find Lisp dependencies?
-
  * Filter out :static-file from consideration by a2x -- or maybe not:
-   hopefully, ASDF 1.366 will have saner component-relative-pathname methods that don't
+   hopefully, ASDF 1.367 will have saner component-relative-pathname methods that don't
    create crazy pathnames with dots in the name and a null type.
 
  * When identifying a file dependency,
@@ -335,11 +281,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    then there must *not* a build with fullname ``/quux/foo`` that preempts that name;
    if there is, issue an error early and refuse to build.
 
- * Add support for in-image backend. See `In-image loading [V1]`_.
-   This may or may not benefit from the following,
-   by connecting a master Lisp process to a slave XCVB
-   itself executing ``make``.
-
  * Implement a portable library for executing sub-programs
    with arbitrary output redirection, that does at least what
    ``asdf:run-shell-program`` does, but hopefully much more,
@@ -369,12 +310,14 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
  * Make XCVB independent from ``cl-launch``
    by implementing the missing functionality.
    See `Producing Executables [V3]`_.
+   Save a few seconds and hundreds of megabytes of double-image dumping
+   by not having to dump once with XCVB, another time with cl-launch.
 
  * [Fixed in SBCL 1.0.31.3 - remove this note when 1.0.32 is released]
    Get SBCL bug 411925 https://bugs.launchpad.net/bugs/411925 fixed
    so making images from images should work.
 
- * For a binary release, issue a standalone clisp binary?
+ * Issue a binary release with a standalone clisp binary?
 
  * Implement `Exploded File Dependencies [V1]`_ then `Centralized Dependency Declaration [V1]`_.
 
@@ -383,19 +326,8 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    going to be built in a different way from before, even though their timestamps
    may now look correct. Once again, see `Exploded File Dependencies [V1]`_
 
- * For debugging purposes, the xcvb Makefile shows how to disable parallelism
-   with ``make xcvb PARALLELIZE=``
-   (where the default value of ``PARALLELIZE`` is ``-j``).
-   Document that.
-
  * In some future, have a more robust way to debug than using ``${XCVB_DEBUGGING}``.
    When XCVB controls the build, it should provide a way to debug, too.
-
- * Starting whenever we have users who actually use XCVB to bootstrap XCVB,
-   we'll want ``driver.lisp`` to provide backwards compatibility.
-   i.e. we can no longer change the semantics of ``:compile-lisp``.
-   Instead, we must keep the old ``:compile-lisp`` and possibly provide new versions
-   under a different name, such as ``:compile-lisp/2``.
 
  * Change the semantics of dependencies to allow to "upgrade" some CFASL's to FASL's?
    Maybe not, because this is tricky as we want to preserve the order of loads, and
@@ -611,7 +543,6 @@ Document or automate away things such as:
   * Provide a formal specification of the module syntax and the dependency syntax, with examples.
 
 
-
 Producing Executables [V3]
 --------------------------
 
@@ -725,6 +656,31 @@ This section describes features that have to be added to XCVB.
 They modify the underlying build model.
 
 
+XCVB Self-Test [V2]
+-------------------
+
+An XCVB self-test suite should include:
+
+   + Building XCVB with each of the supported implementations,
+     and running all the tests with each of them (including this build).
+
+   + Checking that the release-tarball bootstraps properly
+     both using the included xcvb.mk and using ASDF.
+
+   + automated migration of some benchmark ASDF systems
+     (e.g. XCVB's own code and dependencies, copied in a test directory).
+
+   + converting back to ASDF, undoing the migration with ``remove-xcvb``,
+     double checking that converting back and forth is a projection
+     (i.e. idempotent after the first time).
+
+   + Take whatever is useful out of the outdated ``test/mock/a/c/Makefile`` and delete the rest.
+     Maybe create a Common Lisp equivalent of GNU hello that is moved outside of the XCVB tree
+     (or kept inside, if it has any use).
+
+   + have a mechanism to run the test-suite on a tarball after it is made but before it is released.
+
+
 Improve Makefile backend [V2]
 -----------------------------
 
@@ -835,6 +791,50 @@ What state needs to be maintained?
      of local files.
 
 XCVB should be able to thus synthesize and associate diagnostics to the overall build.
+
+
+Compilation Units [V2]
+----------------------
+
+As an example of post-compilation testing, and/or as a special-purpose item,
+provide the functionality of ``with-compilation-unit`` currently lost in XCVB:
+warnings about undefined functions and
+errors about macros previously thought to be functions
+should be issued when an image is dumped.
+
+ Warnings about undefined functions are currently quenched during file compilation.
+   HOWEVER, we should record them on the side as we build, and reconcile them afterwards,
+   before or after image creation. In other words, we must implement
+   ``with-xcvb-compilation-unit`` in a way that actually defers warnings,
+   rather than plainly drops them.
+
+   + Good compilers generate conditions when a function is forward referenced;
+     these conditions need to be handled in implementation-dependent way, and
+     the symbol-name and package-name of the referenced symbols need to be
+     dumped into a file ``.fref`` alongside the ``.fasl`` and ``.cfasl``
+     as each file is compiled.
+
+   + Previous solutions in single-image build systems such as ASDF involved
+     ``with-compilation-unit`` and simple wrappers around it that defer the
+     handling of some conditions until the end of the compilation unit.
+     However, because we are specifically invalidating this assumption that
+     everything is compiled in the same image, we need to instead persist
+     forward reference information in files, and complete the final check
+     for undefined functions after image-dumping. This check would be the
+     first XCVB-managed unit-test; implementing it would be a good way to start
+     moving existing unit tests into incremental management by XCVB
+     -- the ultimate goal of migrating QRes to XCVB.
+
+   + Basically, one would create a test target dependent on the final image
+     that runs a function that collects all these forward references and makes sure
+     that all the referenced functions are indeed defined and defined as functions
+     (rather than as macro).
+
+   + The check would issue precise error messages describing which file referenced which
+     undefined function, or which file used a macro without depending on the file that
+     defined the macro. NB: *This is important for the dependency optimizer* since
+     it can help detect dependencies that are required indeed.
+
 
 
 Dependency grovelling [V2]
