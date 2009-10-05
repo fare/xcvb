@@ -208,20 +208,29 @@
 (define-graph-for :cfasl ((env static-traversal) lisp-name)
   (second (graph-for-fasls env lisp-name)))
 
+(defun setup-dependencies-before-fasl (fullname)
+  (reverse
+   (cdr
+    (member `(:fasl ,fullname)
+            (reverse *lisp-setup-dependencies*)
+            :test #'equal))))
+
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
   (let ((lisp (graph-for-lisp env fullname))
         (specialp (member `(:fasl ,fullname) *lisp-setup-dependencies* :test #'equal)))
     (check-type lisp lisp-grain)
     (handle-lisp-dependencies lisp)
-    (let ((build-dependencies (unless specialp (build-dependencies lisp)))
+    (let ((build-dependencies (if specialp
+                                  (setup-dependencies-before-fasl fullname)
+                                  (build-dependencies lisp)))
           (compile-dependencies (compile-dependencies lisp))
           (cload-dependencies (cload-dependencies lisp))
           (load-dependencies (load-dependencies lisp)))
       (issue-dependency env lisp)
       (unless specialp
-        (pre-image-for env lisp)
-        (load-command-for* env build-dependencies))
+        (pre-image-for env lisp))
+      (load-command-for* env build-dependencies)
       (load-command-for* env compile-dependencies)
       (let* ((outputs (fasl-grains-for-name
                        fullname
@@ -240,10 +249,7 @@
              (:compile-lisp (,fullname) ,@(traversed-load-commands env)))
            `(:xcvb-driver-command
              (:load ,(append
-                      (reverse
-                       (cdr (member `(:fasl ,fullname)
-                                    (reverse *lisp-setup-dependencies*)
-                                    :test #'equal)))
+                      (setup-dependencies-before-fasl fullname)
                       (mapcar #'remove-load-file (traversed-load-commands env))))
              (:compile-file-directly ,fullname))))
         outputs))))
