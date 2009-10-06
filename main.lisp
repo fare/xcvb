@@ -1,7 +1,10 @@
 ;;; Shell command-line interface for XCVB
 
 #+xcvb
-(module (:depends-on ("macros")))
+(module (:depends-on
+         ("macros"
+          (:when (:featurep :sbcl)
+            (:require :sb-posix)))))
 
 (in-package :xcvb)
 

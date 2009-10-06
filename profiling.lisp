@@ -2,7 +2,6 @@
 (module (:depends-on
          ("pkgdcl"
           (:when (:featurep :sbcl)
-            (:require :sb-posix)
             (:require :sb-sprof)))))
 
 (in-package :xcvb)
