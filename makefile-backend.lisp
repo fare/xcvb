@@ -2,7 +2,7 @@
 (module
   (:author ("Francois-Rene Rideau" "Stas Boukarev")
    :maintainer "Francois-Rene Rideau"
-   :depends-on ("static-backends" "string-escape" "computations")))
+   :depends-on ("profiling" "static-backends" "string-escape" "computations")))
 
 (in-package :xcvb)
 
@@ -318,17 +318,18 @@ will create the desired content. An atomic rename() will have to be performed af
                    (inputs computation-inputs)
                    (outputs computation-outputs)) computation
     (let* ((first-output (first outputs))
+           (dependencies (mapcar #'grain-computation-target inputs))
            (target (grain-pathname-text first-output))
            (other-outputs (rest outputs)))
       (dolist (o other-outputs)
         (format stream "~&~A: ~A~%" (grain-pathname-text o) target))
       (format stream "~&~A:~{~@[ ~A~]~}~@[~A~] ${XCVB_EOD}~%"
               target
-              (mapcar #'grain-pathname-text inputs)
-              (asdf-dependency-text first-output inputs))
+              (mapcar #'grain-pathname-text dependencies)
+              (asdf-dependency-text first-output dependencies))
       (when command
         (dolist (c (cons
-                    (format nil "echo Building ~A" (grain-pathname-text first-output))
+                    (format nil "echo Building ~A" target)
                     (Makefile-commands-for-computation nil command)))
           (format stream "~C@~A~%" #\Tab c)))
       (terpri stream))))
@@ -357,3 +358,55 @@ will create the desired content. An atomic rename() will have to be performed af
                       (mapcar #'asdf-grain-system-name asdf-grains)))
        s)
       (format s " || echo force)"))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter +make-makefile-option-spec+
+ '((("build" #\b) :type string :optional nil :documentation "specify what system to build")
+   (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
+   (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
+   (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
+   (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
+   (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
+   (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+   (("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")
+   (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
+   (("base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
+   (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
+   (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
+
+(defun make-makefile (arguments &key
+                                xcvb-path setup verbosity output-path
+                                build lisp-implementation lisp-binary-path
+                                disable-cfasl master object-directory base-image profiling)
+  (with-maybe-profiling (profiling)
+    (reset-variables)
+    (when arguments
+      (error "Invalid arguments to make-makefile"))
+    (when xcvb-path
+      (set-search-path! xcvb-path))
+    (setf *use-master* master)
+    (when master
+      (appendf *lisp-setup-dependencies* `((:fasl "/xcvb/master/master"))))
+    (when setup
+      (appendf *lisp-setup-dependencies* `((:lisp ,setup))))
+    (when verbosity
+      (setf *xcvb-verbosity* verbosity))
+    (when output-path
+      (setf *default-pathname-defaults*
+            (ensure-absolute-pathname (pathname-directory-pathname output-path))))
+    (when object-directory
+      (setf *object-directory* ;; strip last "/"
+            (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
+    (when lisp-implementation
+      (setf *lisp-implementation-type*
+            (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+    (when lisp-binary-path
+      (setf *lisp-executable-pathname* lisp-binary-path))
+    (extract-target-properties)
+    (read-target-properties)
+    (when disable-cfasl
+      (setf *use-cfasls* nil))
+    (setf *use-base-image* base-image)
+    (search-search-path)
+    (write-makefile (canonicalize-fullname build) :output-path output-path)))

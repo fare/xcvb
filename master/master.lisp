@@ -1,23 +1,4 @@
-;;; XCVB master to call XCVB from a Lisp image and load the results.
-
-#|
-The current plan for in-image XCVB use (beside having users use the ASDF backend) is that
-xcvb-master will run-program a slave XCVB process that will do all the compilation out-of-image
-then reply to the master with a specification of grains to load.
-The slave will do all the tth checksumming on its side, so you don't have to have ironclad
-in your image -- or anything beside the simple and short xcvb-master,
-which ought to be a small standalone Lisp file, simpler, smaller and more useful than ASDF.
-
-So xcvb-master would::
-     xcvb slave-builder ...
-where the arguments would include a specification of modules already loaded
-(i.e. fullname and hashvalue of each included component)
-as well as a specification of a target to build,
-and the subprocess would return a specification of grains to load:
-fullname, hashvalue and current pathname.
-After loading, a further call to xcvb would allow it to cleanup any
-theretofore unneeded temporary file.
-|#
+;;; XCVB master: call XCVB from a Lisp image and load the results.
 
 #+xcvb
 (module
@@ -27,7 +8,9 @@ theretofore unneeded temporary file.
   :licence "MIT")) ;; MIT-style license. See LICENSE
 
 (in-package :cl)
-(declaim (optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3)))
+(declaim (optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3))
+         #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note))
+
 (defpackage :xcvb-master
   (:nicknames :xcvbm)
   (:use :cl)
@@ -133,10 +116,6 @@ theretofore unneeded temporary file.
   "an alist of fullname of the XCVB grains loaded in the current image, with tthsum")
 
 ;;; I/O utilities
-(defun slurp-stream-to-string (input)
-  (with-output-to-string (output)
-    (copy-stream-to-stream input output :element-type 'character)))
-
 (defun copy-stream-to-stream (input output &key (element-type 'character))
   (loop :with length = 8192
     :for buffer = (make-array length :element-type element-type)
@@ -153,6 +132,10 @@ theretofore unneeded temporary file.
           (unless eof (terpri output))
           (finish-output output)
           (when eof (return)))))
+
+(defun slurp-stream-to-string (input)
+  (with-output-to-string (output)
+    (copy-stream-to-stream input output :element-type 'character)))
 
 (defun read-many (s)
   (loop :with eof = '#:eof
@@ -255,6 +238,8 @@ theretofore unneeded temporary file.
 ;;; Simplifying options for XCVB invocation
 (defun string-option-arguments (string value)
   (when value (list string (princ-to-string value))))
+(defun pathname-option-arguments (string value)
+  (when value (list string (namestring value))))
 (defun boolean-option-arguments (string value)
   (when value (list string)))
 (defmacro option-string (name)
@@ -263,6 +248,10 @@ theretofore unneeded temporary file.
   `(string-option-arguments (option-string ,var) ,var))
 (defmacro string-options (&rest vars)
   `(append ,@(loop :for var :in vars :collect `(string-option ,var))))
+(defmacro pathname-option (var)
+  `(pathname-option-arguments (option-string ,var) ,var))
+(defmacro pathname-options (&rest vars)
+  `(append ,@(loop :for var :in vars :collect `(pathname-option ,var))))
 (defmacro boolean-option (var)
   `(boolean-option-arguments (option-string ,var) ,var))
 (defmacro boolean-options (&rest vars)
@@ -282,15 +271,16 @@ theretofore unneeded temporary file.
      (base-image *use-base-image*)
      (verbosity *xcvb-verbosity*)
      profiling)
-  (let* (;;;(loaded-grains (make-loaded-grains-string))
-         (forms
+  (let* ((forms
           (with-safe-io-syntax ()
             (apply #'run-program/read-output-forms xcvb-binary "slave-builder"
                    (append
-                    (string-options build ;;;loaded-grains
-                                    setup xcvb-path output-path object-directory
-                                    lisp-implementation lisp-binary-path verbosity)
-                    (boolean-options disable-cfasl base-image profiling))))))
+                    (string-options
+                     build setup lisp-implementation verbosity)
+                    (pathname-options
+                     xcvb-path output-path object-directory lisp-binary-path)
+                    (boolean-options
+                     disable-cfasl base-image profiling))))))
     (unless (and forms (consp forms) (null (cdr forms))
                  (consp (car forms)) (eq (caar forms) :xcvb))
       (error "XCVB subprocess failed."))

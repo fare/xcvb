@@ -1,37 +1,11 @@
 ;;; Shell command-line interface for XCVB
 
 #+xcvb
-(module (:depends-on
-         ("makefile-backend" "search-path"
-          "asdf-converter" "extract-target-properties"
-          (:when (:featurep :sbcl)
-            (:require :sb-posix)
-            (:require :sb-sprof)))))
+(module (:depends-on ("macros")))
 
 (in-package :xcvb)
 
 (declaim (optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3)))
-
-#+sbcl
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (require :sb-posix)
-  (require :sb-sprof))
-
-#+sbcl
-(defun call-with-maybe-profiling (maybe thunk)
-  (if maybe
-    (sb-sprof:with-profiling (:max-samples 10000 :report :graph :loop nil)
-      (funcall thunk))
-    (funcall thunk)))
-
-#-sbcl
-(defun call-with-maybe-profiling (maybe thunk)
-  (declare (ignore maybe))
-  (funcall thunk))
-
-(defmacro with-maybe-profiling ((maybe) &body body)
-  `(call-with-maybe-profiling ,maybe (lambda () ,@body)))
-
 
 (defun reset-variables ()
   ;; TODO: have some macro define notable variables
@@ -44,58 +18,6 @@
         *pathname-grain-cache* (make-hash-table :test 'equal))
   (initialize-search-path)
   (values))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defparameter +make-makefile-option-spec+
- '((("build" #\b) :type string :optional nil :documentation "specify what system to build")
-   (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
-   (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
-   (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
-   (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
-   (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
-   (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
-   (("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")
-   (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
-   (("base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
-   (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
-   (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
-
-(defun make-makefile (arguments &key
-                                xcvb-path setup verbosity output-path
-                                build lisp-implementation lisp-binary-path
-                                disable-cfasl master object-directory base-image profiling)
-  (with-maybe-profiling (profiling)
-    (reset-variables)
-    (when arguments
-      (error "Invalid arguments to make-makefile"))
-    (when xcvb-path
-      (set-search-path! xcvb-path))
-    (setf *use-master* master)
-    (when master
-      (appendf *lisp-setup-dependencies* `((:fasl "/xcvb/master/master"))))
-    (when setup
-      (appendf *lisp-setup-dependencies* `((:lisp ,setup))))
-    (when verbosity
-      (setf *xcvb-verbosity* verbosity))
-    (when output-path
-      (setf *default-pathname-defaults*
-            (ensure-absolute-pathname (pathname-directory-pathname output-path))))
-    (when object-directory
-      (setf *object-directory* ;; strip last "/"
-            (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
-    (when lisp-implementation
-      (setf *lisp-implementation-type*
-            (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
-    (when lisp-binary-path
-      (setf *lisp-executable-pathname* lisp-binary-path))
-    (extract-target-properties)
-    (read-target-properties)
-    (when disable-cfasl
-      (setf *use-cfasls* nil))
-    (setf *use-base-image* base-image)
-    (search-search-path)
-    (write-makefile (canonicalize-fullname build) :output-path output-path)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ASDF to XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -155,20 +77,6 @@
         (let ((path (module-subpathname (grain-pathname build) name)))
           (remove-module-from-file path)))
       (delete-file (grain-pathname build)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Show Search Path ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defparameter +show-search-path-option-spec+
-  '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
-
-(defun show-search-path-command (arguments &key xcvb-path)
-  (when arguments
-    (error "Invalid arguments to show-search-path: ~S~%" arguments))
-  (reset-variables)
-  (when xcvb-path
-    (set-search-path! xcvb-path))
-  (search-search-path)
-  (show-search-path))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XCVB to ASDF ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -260,56 +168,6 @@
    :output-path output-path
    :parallel parallel))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; slave builder ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defparameter +slave-builder-option-spec+
- '((("build" #\b) :type string :optional nil :documentation "specify a (series of) system(s) to build")
-   (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
-   (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
-   (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
-   (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
-   (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
-   (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
-   (("disable-cfasl" #\C) :type boolean :optional t :initial-value nil :documentation "disable use of CFASL")
-   (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
-   (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
-   (("profiling" #\P) :type boolean :optional t :documentation "profiling")
-   ))
-
-(defun slave-builder (arguments &key
-                       build setup xcvb-path
-                       output-path object-directory
-                       lisp-implementation lisp-binary-path
-                       disable-cfasl base-image verbosity profiling)
-  (xcvb-driver::debugging)
-  (multiple-value-bind (makefile-path makefile-dir)
-      (make-makefile
-       arguments :master t
-       :build build :setup setup
-       :xcvb-path xcvb-path :output-path output-path
-       :object-directory object-directory
-       :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
-       :disable-cfasl disable-cfasl :base-image base-image :verbosity verbosity :profiling profiling)
-    (let ((*standard-output* *error-output*)
-          #|#+sbcl (sb-alien::*default-c-string-external-format* :iso-8859-1)|#)
-      (run-program/process-output-stream
-       "make" (list "-C" (namestring makefile-dir) "-f" (namestring makefile-path))
-       (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
-    (let* ((image-grain (graph-for (make-instance 'static-traversal)
-                                   `(:image ,(canonicalize-fullname build))))
-           (included (image-included image-grain)))
-      (with-safe-io-syntax ()
-        (write `(:xcvb () ;;; TODO: do something about non-file dependencies
-                       ,(manifest-form
-                         (loop :for grain :in included
-                           :for fullname = (fullname grain)
-                           :when (typep grain '(or lisp-grain fasl-grain cfasl-grain))
-                           :collect (cons fullname
-                                          (merge-pathnames (dependency-namestring fullname)
-                                                           makefile-dir)))))
-               :readably t :pretty t :case :downcase)
-        (terpri)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make a load manifest ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

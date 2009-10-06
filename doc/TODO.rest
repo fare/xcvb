@@ -22,11 +22,12 @@ and background on the design and ultimate goals of XCVB.
     2  Roadmap [V1]
     3  Usability Issues [V1]
       3.1  Migration from ASDF [V2]
-      3.2  In-image loading [V1]
-      3.3  Centralized Dependency Declaration [V1]
-      3.4  Exploded File Dependencies [V1]
-      3.5  Lack of Manual [V1]
-      3.6  Producing Executables [V3]
+      3.2  Non-enforcing builds [V2]
+      3.3  In-image loading [V1]
+      3.4  Centralized Dependency Declaration [V1]
+      3.5  Exploded File Dependencies [V1]
+      3.6  Lack of Manual [V1]
+      3.7  Producing Executables [V3]
     4  Features [V2]
       4.1   XCVB Self-Test [V2]
       4.2   Improve Makefile backend [V2]
@@ -235,8 +236,11 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
                 ...
 
    This will become more important once we have good fine-grained dependencies
-   through `Cryptographic Checksum [V1]`_, so that we know exactly what to rebuild or not to rebuild
+   through `Cryptographic Checksum [V1]`_,
+   so that we know exactly what to rebuild or not to rebuild
    even when the global dependencies change (which is not the case currently).
+   Or we may switch to a make-less build at that point,
+   and then can just ``(ensure-directories-exist ...)``.
 
  * Filter out :static-file from consideration by a2x -- or maybe not:
    hopefully, ASDF 1.367 will have saner component-relative-pathname methods that don't
@@ -295,9 +299,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
 
  * In general, figure out what are the slow parts of XCVB (if any),
    and optimize them or fix the badness in the underlying Lisp.
-
- * Allow individual lisp modules to override
-   the ``:build-depends-on`` inherited from their ``build.xcvb``.
 
  * Make XCVB independent from ``cl-launch``
    by implementing the missing functionality.
@@ -396,6 +397,21 @@ Some systems may also be merged together, as specified by the user.
 So should be merging changes into previously manually-edited ``build.xcvb`` files.
 
 
+Non-enforcing builds [V2]
+-------------------------
+
+Currently, we use ASDF (and POIU) for non-enforcing builds.
+In the future, we may want something to implement it all inside XCVB,
+so ASDF can die.
+
+  1- implement a deterministic serializing build that imposes a total order
+    on dependencies.
+
+  2- implement a builder that takes a (serialized or still parallel) build
+    and compiles in the same image, either ASDF-style or POIU-style
+    (ASDF-style being almost a degenerate case of POIU-style with max-fork=1).
+
+
 In-image loading [V1]
 ---------------------
 
@@ -406,68 +422,13 @@ Document it better.
 Save original build and options in the image itself
 so the user doesn't have to respecify them.
 
-Put details in INTERNALS.
-
-For better determinism as well as to minimize the footprint of in-image mechanism,
-this support is to be provided by a small and simple module ``/xcvb/master``.
-The thin layer will collect the information about the running system
-and about objects already loaded in it,
-as well as the additional systems required and any options configuring the build,
-then invoke (with run-program or equivalent) an XCVB process
-that will build any additional file and print a form (in yet another DSL)
-to be evaluated by the calling process so it may be suitably enhanced.
-
-The master will maintain a hash-table for the
-`Cryptographic Checksum [V1]`_ of each grain already loaded,
-and the slave would avoid asking to load previously-loaded files.
-Of course, in-image loading in general,
-and this "optimization" in particular, are not guaranteed to work,
-because the side-effects of loading a file can require pre-conditions
-that are violated by the loading of previous versions of the software
-and/or of other modules that modified the semantics of objects defined
-in said previous versions.
-
-Notable issues are when a variable that used to be special or constant
-in a previous version is no more such in the newer version,
-when the signature of a generic function is changed,
-when some defstruct is modified while still in use,
-when the helpers of some functions in an active stack frame are redefined,
-when global variables were side-effected in a way that would have had to be undone
-and/or redone to reflect the new image state,
-etc.
-
-Alternatively, modules could declare symbols to unintern,
-packages to delete, hook functions to unregister,
-sufficient to wipe away possibly incompatible former versions
-and replace them with new ones.
-Or some automated analysis and detection could take place to determine such.
-XCVB could then automatically unintern symbols, and
-delete or rename away packages that are to be reloaded.
+Allow for arbitrary grains to be included, not just lisp, fasl and cfasl grains.
 
 Note that in-image loading is also necessary for extensions to XCVB itself,
 whereby extensions are to be loaded in the current XCVB image.
 So the X of XCVB is a lie until such feature is implemented.
 
-Now, what is the slave to do?
-
-  * build with make? Then we must add master information in there...
-    We could conceivably store the source information computed
-    statically, but this implies exploded dependencies.
-    Simpler and more reliable would be to store information about object files,
-    but they must be computed right before we dump the image,
-    which implies some trickery whereby the Makefile calls xcvb at the right time.
-    The Makefile backend is too dumb to drive computation from hash values, anyway,
-    and only needs to compute information once per image-dump,
-    wherein recomputing the hashes is cheap enough that we don't need any caching::
-
-	o/x/foo.cfasl: o/x/foo.fasl
-        o/x/foo.fasl: foo.lisp o/_pre/x.image o/x/bar.cfasl o/x/baz.cfasl
-        	xcvb make-manifest --output o/x/foo--manifest.lisp --grains "(((:cfasl \"/x/bar\") . \"o/x/bar.cfasl\") ((:cfasl \"/x/baz\") . \"o/x/baz.cfasl\"))"
-        	./x.image --eval "(xcvb-driver:run (:compile-lisp (\"foo.fasl\" :cfasl \"foo.cfasl\") (:load-manifest \"foo--manifest.lisp\")))"
-
-  * build without make? time for our own dynamic backend!
-
-  * in either case, collect checksum information in a cache file (updated atomically)
+Build without make? time for our own dynamic backend!
 
 
 Centralized Dependency Declaration [V1]
@@ -614,6 +575,15 @@ Map actual paths to and from variablized strings, i.e. have
 ``${FOO}/bar/${GAH}`` in your path; it will search for files there,
 and output ``${FOO}/bar/${GAH}/xcvb/build.xcvb``
 in the ``Makefile`` (instead of the full expansion).
+
+
+Allow individual modules to override build dependencies [V2]
+------------------------------------------------------------
+
+Currently, all builds share the same build-dependencies.
+
+Allow individual Lisp files to have their own ``:build-depends-on``
+that overrides the one inherited from their ``build.xcvb``.
 
 
 Initialization and Finalization [V2]
@@ -1114,10 +1084,14 @@ for the current compilation
 
 Try to standardize an interface to deterministically initialize the PRNGs
 and deterministically add noise to them, based on arbitrary initial seed data.
+We may start by manually binding seeds for gensym, gentemp, random, etc.,
+based on a crypto checksum of the fullname, around compilation of files.
 
 Maybe also standardize some strong `Cryptographic Checksum [V1]`_ algorithms
 and algorithm generators for arbitrary Lisp data,
 as are used by clcache.
+
+
 
 
 Push for First-class PCLSRing in Lisp compilers [V5]

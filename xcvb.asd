@@ -29,6 +29,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "conditions" :depends-on ("pkgdcl"))
      (:file "specials" :depends-on ("pkgdcl"))
      (:file "macros" :depends-on ("pkgdcl"))
+     (:file "profiling" :depends-on ("pkgdcl"))
      (:file "utilities" :depends-on ("macros"))
      (:file "digest" :depends-on ("macros"))
      (:file "logging" :depends-on ("specials"))
@@ -47,11 +48,12 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "dependencies-interpreter" :depends-on ("normalize-dependency" "traversal"))
      (:file "static-backends" :depends-on
             ("specials" "lisp-grain" "dependencies-interpreter" "logging"))
-     (:file "makefile-backend" :depends-on ("static-backends" "string-escape" "computations"))
+     (:file "makefile-backend" :depends-on ("profiling" "static-backends" "string-escape" "computations"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
      (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging"))
      (:file "ne-makefile-backend" :depends-on ("specials" "makefile-backend"
                                                "asdf-backend" "simplifying-traversal"))
      (:file "asdf-converter" :depends-on ("lisp-grain"))
+     (:file "slave" :depends-on ("pkgdcl"))
      (:file "main" :depends-on ("static-backends" "search-path" "computations"))
      (:file "version" :depends-on ("specials"))))

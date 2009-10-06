@@ -563,6 +563,14 @@ version.lisp
 The version of the current XCVB release.
 
 
+master/master.lisp
+------------------
+
+This is the XCVB master, a small standalone alternative to ASDF
+that invokes an external XCVB process to drive builds.
+
+See the README section about XCVB master.
+
 
 Good places to extend XCVB
 ==========================

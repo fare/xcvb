@@ -71,7 +71,7 @@ Autodetected from the target Lisp system.")
   "Registry of known files, indexed by namestring.
 Negatives are stored as NIL. Positives as grains.")
 
-(defvar *print-concisely* '(build-grain lisp-grain fasl-grain cfasl-grain)
+(defvar *print-concisely* '(build-grain lisp-grain fasl-grain cfasl-grain image-grain)
   "For debugging purpose, controls the verbosity of print-object on grains")
 
 (defvar *use-master* t

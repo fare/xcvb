@@ -23,6 +23,7 @@ enforced locally-declared dependencies.
       2.2  Starting a new XCVB project
       2.3  Compiling with XCVB
       2.4  Lisp Setup
+      2.5  Interactive update of a running image with XCVB master
     3  Restrictions on your Lisp Code
       3.1  Compile-time side-effects
       3.2  Full library needed at compile-time
@@ -436,35 +437,90 @@ In these cases, you pass to ``xcvb make-makefile`` the option
 ``--no-base-image``.
 
 
-Interactive update of a running image
--------------------------------------
+Interactive update of a running image with XCVB master
+------------------------------------------------------
 
-If your are running a Lisp image built by XCVB
-using its normal (dependency-enforcing) backend,
-it is possible to update the code in your image to match the latest build,
-modulo the usual restrictions applicable to any Common Lisp code update.
+``/xcvb/master`` is a small standalone Lisp file.
+It allows you to build some Lisp software cleanly in a subprocess
+then load the results into the current image.
 
-By default, XCVB builds your software with the ``/xcvb/master`` module
-(unless you specified ``--no-master`` which is only useful
-for bootstrapping XCVB itself).
-In this module you can find the function ``xcvb-master:build-and-load``
-that takes as an argument the name of a build and a flurry of options.
+When you call ``xcvb-master:build-and-load``
+(which also has the short-hand ``xcvbm:bnl``),
+it will use ``run-program`` to invoke a slave XCVB process
+that will drive all the compilation out-of-image
+then reply to the master with a specification of files to load.
+The function takes as arguments the name of a build and a flurry of options.
 The build specifies what you want to update;
 the options precisely match those of ``xcvb make-makefile``.
 
-If you built your Lisp image using the ASDF backend,
-you can use ASDF to update your system as usual.
+The slave will complete the build then reply with a list of files to load,
+including a TTH_ checksum of each file
+so the master can skip the files of which the very same version has already been loaded.
+The slave will do all the cryptographic hashing on its side,
+so you don't have to include crypto libraries in your image --
+or anything beside the simple and short xcvb-master.
+
+.. _TTH: http://en.wikipedia.org/wiki/Hash_tree#Tiger_tree_hash
+
+By default XCVB will include the master and provide initial configuration of it
+in any build you make with the Makefile backend,
+unless you explicitly specify ``--no-master``
+(which really is only useful for bootstrapping XCVB itself).
+Even then, you can explicitly include it in your software by
+specifying a dependency on ``/xcvb/master``,
+though it might not be initially configured by XCVB
+if you compiled with the ``--no-master`` flag
+or with the ASDF/POIU backend.
+
+You can also include the XCVB master in an ASDF build as system ``xcvb-master``
+or load it as a Lisp file from a bare image with
+``(load "/path/to/xcvb/master/master.lisp")``
+as an alternative to using ``asdf.lisp`` to drive further compilations.
+
+The XCVB master can advantageously replace ASDF, as it has a much smaller footprint,
+doesn't pollute the current process with artefacts of compilation
+or the compilation with the artefacts of the current process,
+doesn't have as many threads concurrency issues as compiling in-process can raise,
+and preserves determinism in the FASL files being built.
+
+Note that if you built your Lisp image using ASDF,
+either directly with ADSF (possibly with files from our ASDF backend),
+or with our current non-dependency-enforcing build,
+then XCVB master will basically rebuild and reload everything
+using our enforcing backend;
+but you can use the usual ASDF mechanisms to update your system as usual.
 If you used our non-enforcing backend, you currently have to regenerate
 a new image from the command-line, then use ASDF to reload the system
-in your current image.
-(We do not at this point provide further automation for that.
-Hopefully, more soon.)
+in your current image
+(we hope to provide automation for that in a further version of XCVB).
 
-Finally, you can load the XCVB master as an alternative to ASDF,
-and load code from there::
+Note that the usual restrictions apply as to any update of a running Common Lisp image:
 
-        (load "/path/to/xcvb/master.lisp")
-	(xcvb-master:build-and-load "mybuild")
+  * errors may happen if you change a symbol's nature
+    between lexical, special, constant or symbol-macro as a variable,
+    or between simple function, generic function or macro as a function.
+
+  * errors may happen if you change the signature of a generic function,
+    the definition of a structure type, if you fail to provide appropriate
+    methods on ``update-instance-for-redefined-class``, etc.
+
+  * side-effects may override your variables (such as from ``setf`` or ``defparameter``).
+
+  * the order in which side-effects happen or fail to happen
+    (as XCVB master skips files an identical copy of which was already loaded)
+    can trigger subtle bugs in your code
+    (watch any compile-time dictionaries your code may use).
+
+More generally, the correct loading a file may implicitly require
+pre-conditions that are valid in a clean build,
+but violated in an incremental load.
+Some of these issues can be worked around by manually uninterning specific symbols,
+clearing and rebuilding dictionaries or twiddling specific entries,
+unregistering and re-registering specific hooks,
+deleting and re-creating specific packages, etc.
+(see for instance the ``/xcvb/no-asdf``).
+Unhappily, there is no general solution to this problem,
+and no meta-level protocol was devised that we know to help alleviate it.
 
 
 Restrictions on your Lisp Code

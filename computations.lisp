@@ -86,16 +86,19 @@
 |#
 
 (defun make-computation (class &rest keys &key inputs outputs command &allow-other-keys)
-  (declare (ignore inputs command)) ;; INPUTS and COMMAND are included in KEYS.
+  (declare (ignore inputs outputs command)) ;; these are included in KEYS.
   (let ((computation (apply #'make-instance (or class 'concrete-computation) keys)))
-    (loop :for target :in outputs
-          :for n :from 0 :do
-          (when (slot-boundp target 'computation)
-            (error "Grain ~S already is the output of an existing computation!" target))
-          (setf (grain-computation target) computation
-                (grain-computation-index target) n))
+    (link-computation-outputs computation)
     (push computation *computations*)
     computation))
+
+(defun link-computation-outputs (computation)
+  (loop :for target :in (computation-outputs computation)
+    :for n :from 0 :do
+    (when (slot-boundp target 'computation)
+      (error "Grain ~S already is the output of an existing computation!" target))
+    (setf (grain-computation target) computation
+          (grain-computation-index target) n)))
 
 (defun make-nop-computation (dependencies &optional targets)
   (make-computation ()
@@ -115,6 +118,15 @@
             (mapcar #'fullname inputs)
             (mapcar #'fullname outputs)
             command))))
+
+(defun computation-target (computation)
+  (first (computation-outputs computation)))
+
+(defun grain-computation-target (grain)
+  (let ((computation (grain-computation grain)))
+    (if computation
+      (computation-target computation)
+      grain)))
 
 ;;; TODO: use a more declarative model to describe the various types of objects
 ;;; and the types of relations between them within a given first-class context,

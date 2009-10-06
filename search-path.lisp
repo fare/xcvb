@@ -134,3 +134,17 @@
                (build-registry-conflict
                 (format nil " CONFLICT for ~S between ~S~%" fullname (brc-pathnames entry)))))))
     (map () #'princ (sort (mapcar #'entry-string (hash-table->alist *grains*)) #'string<))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Show Search Path ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter +show-search-path-option-spec+
+  '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
+
+(defun show-search-path-command (arguments &key xcvb-path)
+  (when arguments
+    (error "Invalid arguments to show-search-path: ~S~%" arguments))
+  (reset-variables)
+  (when xcvb-path
+    (set-search-path! xcvb-path))
+  (search-search-path)
+  (show-search-path))
