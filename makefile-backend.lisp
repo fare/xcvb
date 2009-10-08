@@ -270,8 +270,9 @@ will create the desired content. An atomic rename() will have to be performed af
 
 (define-Makefile-commands-for-computation :make-manifest (str manifest &rest loaded-grains)
   (let ((manifest-spec
-         (loop :for g :in loaded-grains :collect
-           (cons g (dependency-namestring g)))))
+         (loop :for (g s) :in loaded-grains :collect
+           `(:fullname ,g :pathname ,(dependency-namestring g)
+             ,@(when s `(:source-pathname ,s))))))
     (list (shell-tokens-to-Makefile
            `("xcvb" "make-manifest"
                     "--output" ,(dependency-namestring manifest)

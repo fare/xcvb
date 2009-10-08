@@ -20,4 +20,3 @@
 
 (defmacro with-maybe-profiling ((maybe) &body body)
   `(call-with-maybe-profiling ,maybe (lambda () ,@body)))
-

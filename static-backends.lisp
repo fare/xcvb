@@ -166,10 +166,14 @@
                    (initial-manifest (when initial-loads
                                        `(:manifest ,(strcat name "--initial")))))
               (values
-               `(,@(when initial-manifest
-                     `((:make-manifest ,initial-manifest ,@initial-loads)))
-                 (:make-manifest (:manifest ,name)
-                  ,@(mapcar #'remove-load-file load-commands)))
+               (labels ((manifest-spec (load)
+                          (list load (fullname-source load)))
+                        (manifest-specs (loads)
+                          (mapcar #'manifest-spec loads)))
+                 `(,@(when initial-manifest
+                       `((:make-manifest ,initial-manifest ,@(manifest-specs initial-loads))))
+                     (:make-manifest (:manifest ,name)
+                      ,@(manifest-specs (mapcar #'remove-load-file load-commands)))))
                `(,@(when initial-manifest
                      `((:initialize-manifest ,initial-manifest)))
                  ,@require-commands

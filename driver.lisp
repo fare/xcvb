@@ -86,6 +86,8 @@
   "Conditions to be considered fatal during compilation.")
 (defvar *deferred-warnings* ()
   "Warnings the handling of which is deferred until the end of the compilation unit")
+(defvar *initial-random-state* (make-random-state nil)
+  "initial random state to preserve determinism")
 
 ;;; Setting up the environment from shell variables
 (defun getenv (x)
@@ -136,7 +138,6 @@
     (funcall thunk)))
 (defmacro with-profiling (what &body body)
   `(call-with-maybe-profiling (lambda () ,@body) ,what *goal*))
-
 
 ;;; Exiting properly or im-
 (defun finish-outputs ()
@@ -355,6 +356,26 @@ This is designed to abstract away the implementation specific quit forms."
   (call :xcvb-master :load-manifest path))
 
 ;;; Actually compiling
+(defmacro with-determinism (goal &body body)
+  `(call-with-determinism ,goal (lambda () ,@body)))
+
+(defun call-with-determinism (goal thunk)
+  ;;; We use the goal (fullname) as the seed as opposed to the tthsum of some contents
+  ;;; to give a greater chance to trivial modifications of the source text (e.g.
+  ;;; comments and whitespace changes) to be without effect on the compilation output.
+  ;;;
+  ;;; In SBCL, we'll also need to somehow disable the start-time slot of the
+  ;;; (def!struct (source-info ...)) from main/compiler.lisp (package SB-C).
+  (let* ((hash (sxhash goal))
+         (*gensym-counter* (* hash 10000))
+         #+sbcl (sb-impl::*gentemp-counter* (* hash 10000))
+         ;;; SBCL will hopefully export a better mechanism soon
+         (*random-state*
+          #+sbcl (sb-kernel::%make-random-state
+                  :state (sb-kernel::init-random-state (logand (1- (ash 1 32)) hash)))
+          #-sbcl (make-random-state *initial-random-state*)))
+    (funcall thunk)))
+
 (defun do-compile-lisp (dependencies source fasl &key cfasl)
   (let ((*goal* `(:compile-lisp ,source))
         (*default-pathname-defaults* (truename *default-pathname-defaults*)))
@@ -364,11 +385,12 @@ This is designed to abstract away the implementation specific quit forms."
             (with-xcvb-compilation-unit ()
               (run-commands dependencies)
               (with-profiling `(:compiling ,source)
-                (apply #'compile-file source
-                       :output-file (merge-pathnames fasl)
-                       ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-                       (when cfasl
-                         `(:emit-cfasl ,(merge-pathnames cfasl))))))))
+                (with-determinism `(:compiling ,source)
+                  (apply #'compile-file source
+                         :output-file (merge-pathnames fasl)
+                         ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+                         (when cfasl
+                           `(:emit-cfasl ,(merge-pathnames cfasl)))))))))
       (declare (ignore output-truename))
       (when failure-p
         (die "Compilation Failed for ~A" source))

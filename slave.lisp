@@ -54,8 +54,12 @@
                                    (t
                                     (warn "Not including grain ~S" grain)
                                     nil))
-                           :collect (cons fullname
-                                          (merge-pathnames (dependency-namestring fullname)
-                                                           makefile-dir)))))
+                           :collect
+                           `(:fullname fullname
+                             :pathname (merge-pathnames (dependency-namestring fullname)
+                                                        makefile-dir)
+                             ,@(let ((source-grain (grain-source grain)))
+                                 (when source-grain
+                                   `((:source-pathname ,(grain-pathname source-grain)))))))))
                :readably t :pretty t :case :downcase)
         (terpri)))))

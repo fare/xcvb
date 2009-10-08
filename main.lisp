@@ -172,20 +172,6 @@
    :parallel parallel))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make a load manifest ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defparameter +make-manifest-option-spec+
-  '((("output" #\o) :type string :optional t :initial-value "-"
-     :documentation "Path to manifest file or - for stdout")
-    (("grains" #\g) :type string :optional nil
-     :documentation "alist of grains, mapping fullname to pathname")))
-
-(defun make-manifest (arguments &key output grains)
-  (when arguments
-    (error "Invalid arguments to make-manifest: ~S~%" arguments))
-  (create-manifest output (with-safe-io-syntax () (read-from-string grains))))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Command Spec ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Spec for XCVB command-line commands.  Each item of the list takes the form

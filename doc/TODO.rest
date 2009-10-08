@@ -209,6 +209,9 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
+ * make the cdr's of ``*loaded-grains*`` entries into plists,
+   and add source file information to them for the sake of SLIME.
+
  * Write a comprehensive test suite for XCVB. See `XCVB Self-Test [V2]`_.
    This could be a good way for a hacker to start without knowing much about how XCVB works:
    collect a list of things it does, write a Makefile to test them all, etc.

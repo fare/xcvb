@@ -212,3 +212,14 @@ in the normalized dependency mini-language"
   (if *use-cfasls*
     (second (computation-outputs (grain-computation fasl-grain)))
     fasl-grain))
+
+(defun grain-source (grain)
+  (typecase grain
+    ((or fasl-grain cfasl-grain)
+     (registered-grain (second (fullname grain))))
+    (t
+     nil)))
+
+(defun fullname-source (fullname)
+  (let ((g (grain-source (registered-grain fullname))))
+    (when g (fullname g))))

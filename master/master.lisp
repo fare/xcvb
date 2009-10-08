@@ -212,28 +212,28 @@
   (run-program/process-output-stream command args #'read-many))
 
 ;;; Maintaining memory of which grains have been loaded in the current image.
-(defun load-grain (fullname tthsum path)
+(defun load-grain (&key fullname tthsum pathname &allow-other-keys)
+  ;; also source source-tthsum source-pathname
   (unless (equal tthsum (cdr (assoc fullname *loaded-grains* :test #'equal)))
     (when (>= *xcvb-verbosity* 7)
-      (format *error-output* "~&Loading grain ~S (tthsum: ~A) from ~S~%" fullname tthsum path))
-    (load path)
+      (format *error-output* "~&Loading grain ~S (tthsum: ~A) from ~S~%" fullname tthsum pathname))
+    (load pathname)
     (push (cons fullname tthsum) *loaded-grains*)))
 (defun load-grains (manifest)
-  (loop :for (fullname tthsum path) :in manifest
-    :do (load-grain fullname tthsum path)))
+  (loop :for grain-spec :in manifest :do (apply #'load-grain grain-spec)))
 (defun make-loaded-grains-string (&optional (loaded-grains *loaded-grains*))
   (with-output-to-string (s)
     (with-safe-io-syntax ()
       (write loaded-grains :stream s :readably t :escape t :pretty nil))))
 
 ;;; Extend XCVB driver
-(defun initialize-manifest (path)
+(defun initialize-manifest (pathname)
   "XCVB driver extension to initialize the manifest for an image"
   (assert (not *loaded-grains*))
-  (setf *loaded-grains* (read-first-file-form path)))
-(defun load-manifest (path)
+  (setf *loaded-grains* (read-first-file-form pathname)))
+(defun load-manifest (pathname)
   "XCVB driver extension to load a list of files from a manifest"
-  (load-grains (read-first-file-form path)))
+  (load-grains (read-first-file-form pathname)))
 
 ;;; Simplifying options for XCVB invocation
 (defun string-option-arguments (string value)

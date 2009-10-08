@@ -31,18 +31,30 @@ Until then, let's rely on tthsum.
             (error "unexpected tthsum output line ~S for file ~S" line file))
           (subseq line 0 39))))))
 
+(defun tthsum-for-files-or-nil (specs)
+  (let* ((files (remove nil specs))
+         (tthsums (tthsum-for-files files)))
+    (loop :for spec :in specs
+      :collect (when spec (pop tthsums)))))
+
 (defun tthsum-for-file (file)
   (car (tthsum-for-files (list file))))
 
 (defun manifest-form (grains)
-  (let* ((fullnames (mapcar #'car grains))
-         (pathnames (mapcar #'cdr grains))
-         (tthsums (tthsum-for-files pathnames)))
-    (loop
-      :for fullname :in fullnames
-      :for tthsum :in tthsums
-      :for pathname :in pathnames
-      :collect (list fullname tthsum pathname))))
+  (loop
+    :with tthsums = (tthsum-for-files
+                     (mapcar #'(lambda (x) (getf x :pathname)) grains))
+    :with source-tthsums = (tthsum-for-files-or-nil
+                            (mapcar #'(lambda (x) (getf x :source-pathname)) grains))
+    :for grain :in grains
+    :for tthsum :in tthsums
+    :for source-tthsum :in source-tthsums
+    :collect
+    (destructuring-bind
+          (&key fullname pathname source-pathname) grain
+      (list :fullname fullname
+            :tthsum tthsum :pathname pathname
+            :source-tthsum source-tthsum :source-pathname source-pathname))))
 
 (defun create-manifest (output-path grains)
   (with-user-output-file (o output-path)
@@ -51,3 +63,17 @@ Until then, let's rely on tthsum.
             (*print-case* :downcase))
         (format o "(~{~S~^~% ~})~%" (manifest-form grains)))))
   (values))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make a load manifest ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter +make-manifest-option-spec+
+  '((("output" #\o) :type string :optional t :initial-value "-"
+     :documentation "Path to manifest file or - for stdout")
+    (("grains" #\g) :type string :optional nil
+     :documentation "alist of grains, mapping fullname to pathname")))
+
+(defun make-manifest (arguments &key output grains)
+  (when arguments
+    (error "Invalid arguments to make-manifest: ~S~%" arguments))
+  (create-manifest output (with-safe-io-syntax () (read-from-string grains))))
