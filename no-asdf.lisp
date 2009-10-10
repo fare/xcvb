@@ -46,4 +46,5 @@
   (values))
 
 ;; Default optimization setting: let's debug stuff.
-(proclaim '(optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (proclaim '(optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0))))

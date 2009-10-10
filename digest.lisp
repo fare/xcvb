@@ -52,9 +52,9 @@ Until then, let's rely on tthsum.
     :collect
     (destructuring-bind
           (&key fullname pathname source-pathname) grain
-      (list :fullname fullname
-            :tthsum tthsum :pathname pathname
-            :source-tthsum source-tthsum :source-pathname source-pathname))))
+      `(:fullname ,fullname :tthsum ,tthsum :pathname ,pathname
+        ,@(when source-pathname
+           `(:source-tthsum ,source-tthsum :source-pathname ,source-pathname))))))
 
 (defun create-manifest (output-path grains)
   (with-user-output-file (o output-path)

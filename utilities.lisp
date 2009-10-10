@@ -101,8 +101,8 @@
 
 ;;; hash tables
 (defun hash-table->alist (table)
-  (loop for key being the hash-keys of table using (hash-value value)
-	collect (cons key value)))
+  (loop :for key :being :the :hash-keys :of table :using (:hash-value value)
+    :collect (cons key value)))
 
 (defun sequence-function-map (function sequence &key key)
   (let ((map (make-hash-table :test 'equal)))

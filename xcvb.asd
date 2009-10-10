@@ -12,6 +12,8 @@
 #+sbcl (require :sb-posix)
 #+sbcl (require :sb-sprof)
 
+(proclaim '(optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
+
 (asdf:defsystem :xcvb
     :author ("Francois-Rene Rideau" "Spencer Brody" "Joyce Chen")
     :maintainer "Francois-Rene Rideau"

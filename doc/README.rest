@@ -28,7 +28,6 @@ enforced locally-declared dependencies.
       3.1  Compile-time side-effects
       3.2  Full library needed at compile-time
       3.3  Optimization settings
-      3.4  Requiring System Components
     4  Combining Multiple Projects
       4.1  Module Full Names
       4.2  Search Path
@@ -124,7 +123,6 @@ sufficient to bootstrap XCVB at:
 
            http://common-lisp.net/project/xcvb/releases/
 
-
 You will still need a Lisp implementation to build and run XCVB itself,
 and to build and run the target software that you will build with XCVB:
 
@@ -148,21 +146,21 @@ and to build and run the target software that you will build with XCVB:
 If you prefer to collect XCVB's dependencies manually into your system,
 you will need the following Lisp software libraries to get XCVB running:
 
-  * cl-launch 2.21 or later:
+  * cl-launch 2.29 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
         - getting it, if you're an XCVB project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
-  * ASDF 1.354 or later:
+  * ASDF 1.366 or later:
 	- homepage: http://cliki.net/asdf
 	- getting it:
 		``git clone http://common-lisp.net/project/asdf/asdf.git``
         - getting it, if you're an ASDF project member:
 		``git clone ssh://USER@common-lisp.net/project/asdf/asdf.git``
 
-  * Our fork of asdf-dependency-grovel:
+  * Our fork of ``asdf-dependency-grovel``:
 	- homepage: http://cliki.net/asdf-dependency-grovel
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
@@ -189,6 +187,12 @@ you will need the following Lisp software libraries to get XCVB running:
 		``git clone http://common-lisp.net/project/qitab/git/poiu.git``
         - getting it, if you're a QITAB project member::
 		``git clone ssh://USER@common-lisp.net/project/qitab/git/poiu.git``
+
+Additionally, our XCVB master module currently requires
+the utility ``tthsum`` to be installed (e.g. from the Debian package ``tthsum``)
+to compute identifying cryptographic hashes of your files.
+If you cannot install this utility, be sure to disable XCVB master support
+when you use our Makefile backend, using option ``--no-master``.
 
 
 Documentation
@@ -357,7 +361,8 @@ A simple example would be::
 
 	xcvb make-makefile --build /foo/bar --lisp-implementation sbcl
 
-Where ``/foo/bar`` is the fullname of your build.
+Where ``/foo/bar`` is the fullname of your target
+(usually a build, but can be a single Lisp module).
 
 Note that you need to properly setup your `Search Path`_ with ``XCVB_PATH``,
 or specify it with option ``--xcvb-path``.
@@ -454,7 +459,7 @@ The build specifies what you want to update;
 the options precisely match those of ``xcvb make-makefile``.
 
 The slave will complete the build then reply with a list of files to load,
-including a TTH_ checksum of each file
+including a TTH_ checksum of each file (currently using the external utility ``tthsum``)
 so the master can skip the files of which the very same version has already been loaded.
 The slave will do all the cryptographic hashing on its side,
 so you don't have to include crypto libraries in your image --
@@ -520,7 +525,8 @@ unregistering and re-registering specific hooks,
 deleting and re-creating specific packages, etc.
 (see for instance the ``/xcvb/no-asdf``).
 Unhappily, there is no general solution to this problem,
-and no meta-level protocol was devised that we know to help alleviate it.
+and that we know, no declarative meta-level protocol
+was devised to help alleviate it.
 
 
 Restrictions on your Lisp Code
@@ -529,22 +535,53 @@ Restrictions on your Lisp Code
 Compile-time side-effects
 -------------------------
 
-When someone uses the CFASL option
-only CFASLs of dependencies are (by default) loaded at compile-time,
-and any ``defun``, ``defvar`` or other side-effect used by a macro
-must be effected at the ``:compile-toplevel``.
+To conform with the CLHS_ (see `section 3.2.2.3`_),
+any ``defun``, ``defvar`` or other side-effect
+must be effected in the compilation environment
+to be available for use in macros,
+while compiling either the current file or any further file.
+This means that these effects should be enclosed in an
+``(eval-when (:compile-toplevel :load-toplevel :execute) ...)``.
+(See on my blog a discussion of `eval-when`_.)
 
-Moreover, when the CFASL option isn't used,
-then FASLs of dependencies are loaded at compile-time,
-and the same side-effects need to be available at ``:load-toplevel``.
+.. _CLHS: http://www.lispworks.com/documentation/HyperSpec/Front/index.htm
+.. _section 3.2.2.3: http://www.lispworks.com/documentation/HyperSpec/Body/03_bbc.htm
+.. _eval-when: http://fare.livejournal.com/146698.html
 
-Therefore, any ``defun``, ``defvar`` or other side-effect used by a macro
-needs be be enclosed in an ``(eval-when (:compile-toplevel :load-toplevel :execute) ...)``.
-(Actually the ``:execute`` is not necessary in code you write manually,
-but you probably want to include it in any macro that generates an ``eval-when``).
+Respecting that constraint will allow for
+faster recompilation (where CFASLs are available),
+since CFASLs may be smaller and faster to load than FASLs,
+and subject to less variation which may trigger fewer recompilations.
+It will also allow for easier cross-compilation
+and more generally situations where the target image
+should be different from compilation environment,
+which was no doubt a strong motivating factor
+behind this constraint being made part of the standard to begin with.
+And of course, you can have a stronger claim of standard compliance.
 
-Note that CFASLs are only available for SBCL at the moment,
-but there are plans for Clozure CL to support it if and when XCVB takes off.
+This constraint is both enforced and taken advantage of
+when you use the CFASL option of XCVB.
+This option is enabled by default on implementations that support it,
+currently only SBCL
+(but there are plans for Clozure CL to support it if and when XCVB takes off).
+
+When you use this option, ``(:compile "foo")`` dependencies
+turn into ``(:cfasl "foo")`` and specify that the specified CFASL will be loaded.
+(This is what ``"foo"`` expands into for ``:compile-depends-on``
+as explicitly specified or inherited from ``:depends-on``);
+your effects will then be available if and only if you used
+``:compile-toplevel`` in your ``eval-when``.
+When you don't use this option ``(:compile "foo")`` dependencies
+turn into ``(:fasl "foo")`` and specify that the specified FASL will be loaded instead;
+your effects will then be available if and only if you used
+``:load-toplevel`` in your ``eval-when``.
+Finally, some other programs (notably ASDF-DEPENDENCY-GROVEL) will load your source code
+at which point your effects will be available if and only if you used
+``:execute`` in your ``eval-when``.
+Therefore, any form whose effects must be available in the compilation environment
+*must* be enclosed in ``(eval-when (:compile-toplevel :load-toplevel :execute) ...)``.
+Other forms can be used without ``eval-when``, which is the same as enclosing them in
+``(eval-when (:load-toplevel :execute) ...)``.
 
 
 Full library needed at compile-time
@@ -556,7 +593,8 @@ rather than only the definition of its macros and other usual compile-time side-
 
 You can achieve this by including your required dependencies in the
 ``:build-depends-on`` option of your ``build.xcvb``,
-or the ``:compile-depends-on`` option of your Lisp module.
+or the ``:compile-depends-on`` option of your Lisp module
+(and possibly the ``:cload-depends-on`` option).
 
 Indeed, when you specify a dependency in a ``:depends-on`` clause,
 the dependency will be added to the load dependencies of the module
@@ -591,13 +629,6 @@ Unless of course overridden by a further explicitly depended-upon module
 that uses the same trick.
 
 
-Requiring System Components
----------------------------
-
-XCVB now includes special support for implementation-dependent components
-that may be loaded into your Lisp system via ``(cl:require ...)``. See `CL:REQUIRE`_ below.
-
-
 Combining Multiple Projects
 ===========================
 
@@ -628,7 +659,7 @@ XCVB uses the "``/``" character as a pathname directory separator,
 in a way that is guaranteed to work portably, however things may vary depending on
 Lisp implementation, Operating system, pathname host and device.
 Also, XCVB will only accept module names where all characters are valid: ``[-_.,A-Za-z0-9]``.
-Finally, XCVB assumes that lisp files have type ``lisp`` as far as pathnames are considered.
+Finally, XCVB assumes that Lisp files have type ``lisp`` as far as pathnames are considered.
 
 
 Search Path
@@ -801,7 +832,7 @@ These dependencies may usefully include in the end
 a statement like ``(:call :my-package :my-function)``
 to call a function to be defined in previously loaded dependencies,
 or like ``(:eval-string "(arbitrary lisp expression)")``
-to evaluate some arbitrary lisp expression.
+to evaluate some arbitrary Lisp expression.
 
 Also note that if your file is to be computed by some arbitrary shell command
 that does not reduce to the loading of a Lisp file, then
@@ -903,11 +934,14 @@ In this case, the same trick of depending on ``(:asdf :sb-posix)`` in your ``bui
 
 If you need some magic side-effects before or after requiring the feature,
 you are better off doing it in your `Lisp setup`_ file.
-But if you are doing it for a modular component rather than a complete build you control,
-you may also do things the hard way and require such features
-by including the following in your initial package definition file,
+
+Finally, if you are requiring this feature in a Lisp file that may be loaded directly
+as well as built as part of a larger system,
+then you may also have to do things the hard way:
+include the following in your initial package definition file,
 after your ``(cl:in-package :cl-user)`` statement,
-and before any ``(defpackage ...)`` clause that may import from the system::
+and before any ``(defpackage ...)`` clause that may import
+anything defined by the required feature::
 
 	(eval-when (:compile-toplevel :load-toplevel :execute)
           #+sbcl (require :sb-posix))
@@ -1012,7 +1046,8 @@ may contain the usual ASDF hackery, including such snippets as::
           (defun get-env-var (x)
             #+sbcl (sb-ext:posix-getenv x)
             #+clozure (ccl:getenv x))
-          (defparameter *l* (make-pathname :name nil :type nil :defaults *load-pathname*))
+          (defparameter *l* (make-pathname :name nil :type nil :defaults *load-pathname*)))
+        (eval-when (:compile-toplevel :load-toplevel :execute)
           (unless (and (find-package :asdf) (find-symbol "SYSTEM" :asdf))
             (block asdf-load
               (handler-bind
@@ -1182,7 +1217,7 @@ You will still have to edit your code so that it follows the
 ASDF extensions without XCVB equivalent
 ---------------------------------------
 
-ASDF-BINARY-LOCATIONS (now part of ASDF as of 1.366)
+``ASDF-BINARY-LOCATIONS`` (now part of ASDF as of 1.366)
 redirects the FASLs in a shared per-user cache with discriminations per implementation
 (CL-Launch does something similar).
 XCVB segregates FASLs per project, as you may have different image setup

@@ -239,7 +239,8 @@ This is designed to abstract away the implementation specific quit forms."
               :for name = (sb-c::undefined-warning-name w)
               :for symbol = (cond
 			      ((consp name)
-			       (assert (eq kind :function))
+			       (unless (eq kind :function)
+                                 (error "unrecognized warning ~S not a function?" w))
 			       (ecase (car name)
 				 ((setf)
 				  (assert (and (consp (cdr name)) (null (cddr name))) ())

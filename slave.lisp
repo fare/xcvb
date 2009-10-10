@@ -20,10 +20,10 @@
    ))
 
 (defun slave-builder (arguments &key
-                       build setup xcvb-path
-                       output-path object-directory
-                       lisp-implementation lisp-binary-path
-                       disable-cfasl base-image verbosity profiling)
+                      build setup xcvb-path
+                      output-path object-directory
+                      lisp-implementation lisp-binary-path
+                      disable-cfasl base-image verbosity profiling)
   (xcvb-driver::debugging)
   (multiple-value-bind (makefile-path makefile-dir)
       (make-makefile
@@ -38,8 +38,12 @@
       (run-program/process-output-stream
        "make" (list "-C" (namestring makefile-dir) "-f" (namestring makefile-path))
        (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
-    (let* ((image-grain (graph-for (make-instance 'static-traversal)
-                                   `(:image ,(canonicalize-fullname build))))
+    (setf (registered-grain "/_TARGET_")
+          (make-instance 'build-grain :fullname "/_TARGET_"
+                         :depends-on (list build)
+                         :extension-forms nil
+                         :build-image t))
+    (let* ((image-grain (graph-for (make-instance 'static-traversal) `(:image "/_TARGET_")))
            (included (image-included image-grain)))
       (with-safe-io-syntax ()
         (write `(:xcvb () ;;; TODO: do something about non-file dependencies
@@ -47,17 +51,17 @@
                          (loop :for grain :in included
                            :for fullname = (fullname grain)
                            :when (typecase grain
+                                   ((or build-grain image-grain)
+                                    nil)
                                    ((or lisp-grain fasl-grain cfasl-grain)
                                     t)
-                                   (image-grain
-                                    nil)
                                    (t
                                     (warn "Not including grain ~S" grain)
                                     nil))
                            :collect
-                           `(:fullname fullname
-                             :pathname (merge-pathnames (dependency-namestring fullname)
-                                                        makefile-dir)
+                           `(:fullname ,fullname
+                             :pathname ,(merge-pathnames (dependency-namestring fullname)
+                                                         makefile-dir)
                              ,@(let ((source-grain (grain-source grain)))
                                  (when source-grain
                                    `((:source-pathname ,(grain-pathname source-grain)))))))))
