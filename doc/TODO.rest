@@ -180,7 +180,8 @@ Enhancing Build Speed [V1]
     If the FASL and CFASL are identical, it was definitely not needed. If there was no error but
     different output, then mark as known unknown (can be made known known by testing, if a test
     suite is available -- in a first pass, keep all the known unknown).
-    Importantly, distinguish ``:compile-depends-on``, ``:load-depends-on`` and even ``:cload-depends-on``
+    Importantly, distinguish ``:compile-depends-on``, ``:load-depends-on``
+    and even ``:cload-depends-on``
     (for loading the CFASL) - with the "does it error out" test only for loading.
     Once some known-needed dependencies of some file are determined, propagating this dependency to
     other files that depend on the former will of course be instrumental in avoiding pointless
@@ -208,11 +209,6 @@ Other Top TODO Items [V1]
 
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
-
- * Write a comprehensive test suite for XCVB. See `XCVB Self-Test [V2]`_.
-   This could be a good way for a hacker to start without knowing much about how XCVB works:
-   collect a list of things it does, write a Makefile to test them all, etc.
-   As failures are detected and fixed, knowledge will seep in.
 
  * Propose a patch to ASDF that merges ``XCVB_PATH`` and some hypothetical ``ASDF_PATH``
    into a ``COMMON_LISP_PATH`` to find Lisp dependencies?
@@ -268,6 +264,9 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    This is one more reason to distinguish
    dependency on ``(:data (:source "foo/build.xcvb"))``
    from dependency on ``(:build "foo")``.
+
+ * Design a better declarative language to specify all these things
+   in a way that is not Lisp-specific???
 
  * Also, in generated files, double-check that there isn't
    an intermediate build that short-circuits the name resolution.
@@ -527,7 +526,14 @@ They modify the underlying build model.
 XCVB Self-Test [V2]
 -------------------
 
-An XCVB self-test suite should include:
+We should write a comprehensive test suite for XCVB.
+
+This would be a good way for a hacker to start
+without knowing much about how XCVB works:
+collect a list of things it does, write a Makefile to test them all, etc.
+As failures are detected and fixed, knowledge will seep in.
+
+An XCVB self-test suite would include:
 
    + Building XCVB with each of the supported implementations,
      and running all the tests with each of them (including this build).

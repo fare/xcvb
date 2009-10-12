@@ -583,6 +583,15 @@ Therefore, any form whose effects must be available in the compilation environme
 Other forms can be used without ``eval-when``, which is the same as enclosing them in
 ``(eval-when (:load-toplevel :execute) ...)``.
 
+Note that this differs notably from ASDF, that on the one hand always loads the FASL
+before it compiles more things, so you didn't use to need an ``eval-when``
+around functions that are only used by macros
+when these macros are expanded in a subsequent file rather than the same file.
+On the other hand, ASDF doesn't support loading CFASLs, so that effects that only
+happen at compile-toplevel are lost during an incremental compilation.
+Finally, neither FASL nor CFASL includes read-time or macroexpansion-time
+side-effects (except as materialized in the read and expanded code itself).
+
 
 Full library needed at compile-time
 -----------------------------------

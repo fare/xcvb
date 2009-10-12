@@ -304,12 +304,30 @@ A collection of utilities and trivial domain-specific languages
 to be compiled into buildee processes
 so as to provide an abstraction layer for XCVB to compile files.
 
-The driver includes support for ASDF,
-that can be loaded either before or after the driver is loaded,
+The driver includes support for both ASDF and XCVB master (see below)
+either of which can be loaded either before or after the driver is loaded,
 but must obviously be loaded before it is used.
 
 The driver also includes some support for filtering error messages,
 support for debugging and profiling, etc.
+
+Finally, the driver includes support for forking subprocesses so that
+a controlling XCVB can copy the current state of the Lisp world and
+before to compile further files and thus share previous computations.
+
+Goals and Constraints:
+
+   * Should not otherwise have any dependencies beyond what the implementation provides;
+     otherwise, compiling one of these dependencies could cause "interesting" complications
+     due to non-atomic self-modification.
+
+   * Should be able to fork a new listener for an XCVB farmer to control the child with
+     arbitrary commands, with minimal reliance on non-portable code.
+     Design choice: so we only have to model ``fork(2)`` and not stream I/O through pipes,
+     the farmer will use ``with-open-file`` to open specified named pipes created by the farmer.
+
+   * It is OK to fail to reap a completely hosed process -- in these cases,
+     it is up to the driving XCVB to take action.
 
 
 pkgdcl.lisp

@@ -153,14 +153,13 @@ TMP ?= /tmp
 EXCLUDE_REVISION_INFO :=
 
 release-tarball:
-	VERSION=$$(cat version.lisp | grep version | cut -d\" -f2) ; \
 	mkdir -p ${TMP}/xcvb-release && \
 	cp doc/Makefile.release ${TMP}/xcvb-release/Makefile && \
-	cd ${TMP} && \
-	rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
-	cd ${TMP}/xcvb-$$VERSION && \
+	cd ${TMP}/xcvb-release && \
 	make checkout update gc prepare-release && \
-	cd .. && tar ${EXCLUDE_REVISION_INFO} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
+	VERSION=$$(cat xcvb/version.lisp | grep version | cut -d\" -f2) ; \
+	cd .. && rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
+	tar ${EXCLUDE_REVISION_INFO} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/
