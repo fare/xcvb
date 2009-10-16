@@ -668,6 +668,9 @@ XCVB uses the "``/``" character as a pathname directory separator,
 in a way that is guaranteed to work portably, however things may vary depending on
 Lisp implementation, Operating system, pathname host and device.
 Also, XCVB will only accept module names where all characters are valid: ``[-_.,A-Za-z0-9]``.
+XCVB build names are case-sensitive (unlike ASDF names)
+but it is strongly suggested to respect the current convention
+of using all lowercase names.
 Finally, XCVB assumes that Lisp files have type ``lisp`` as far as pathnames are considered.
 
 

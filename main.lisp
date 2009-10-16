@@ -261,7 +261,7 @@ for this version of XCVB.")))
             (format t "~&~1{Command: ~A~%Aliases:~{ ~A~^ ~}~%~%~3*~A~}~%"
                     (cons command command-spec))
             (when command-options
-              (command-line-arguments:show-option-help command-options)))
+              (command-line-arguments:show-option-help command-options :sort-names t)))
           (t
            (errexit 2 "~&Invalid XCVB command ~S -- try 'xcvb help'.~%"
                     command))))))
