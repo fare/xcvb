@@ -590,7 +590,7 @@ when these macros are expanded in a subsequent file rather than the same file.
 On the other hand, ASDF doesn't support loading CFASLs, so that effects that only
 happen at compile-toplevel are lost during an incremental compilation.
 Finally, neither FASL nor CFASL includes read-time or macroexpansion-time
-side-effects (except as materialized in the read and expanded code itself).
+side-effects (except as materialized in the resulting code as read then expanded).
 
 
 Full library needed at compile-time
@@ -611,7 +611,7 @@ as if by ``:load-depends-on``,
 and the compile-time-only version of the dependency (if available)
 will be added to the compile dependencies of the module,
 as if by ``:compile-depends-on``.
-For instance, a ``:depends-on (... "foo" ...) will specify
+For instance, a ``:depends-on (... "foo" ...)`` will specify
 a load-time dependency on ``(:fasl "foo")`` and
 a compile-time dependency on ``(:cfasl "foo")``.
 
@@ -628,14 +628,31 @@ Optimization settings
 Amongst compile-time side-effects, a notable one is the optimization settings.
 A default may to be set in your initial Lisp image setup,
 as explained in section `Lisp Setup`_.
-Modules that want to change from the default specified for the whole compilation
-should explicitly ``declaim`` it.
+
+Modules that want to change these settings
+from this default specified for the whole compilation
+should explicitly ``declare`` it ``locally``.
 You may define some macro that does that for you,
 that you will call at the beginning of relevant files.
-A module may change the default for subsequent modules that explicitly depend on them
-by using a ``(eval-when (:compile-toplevel :load-toplevel) (proclaim ...))``.
-Unless of course overridden by a further explicitly depended-upon module
-that uses the same trick.
+
+``declaim`` would look like an option, except that depending on your compiler,
+it may or may not leak to subsequent files compiled in the same environment,
+which is probably damning.
+In a more deterministic way, you might want to use
+``(eval-when (:compile-toplevel :load-toplevel :execute) (proclaim ...))``
+but this will be defeated below.
+
+Because many existing libraries erroneously use ``declaim``
+which will non-deterministically pollute settings for further compilations,
+or ``proclaim`` that will deterministically pollute such settings,
+build systems provide counter-measures to override such erroneous settings.
+For XCVB builds, we expose a variable ``xcvb-driver:*optimization-settings*``
+that contains ``(optimize ...)`` settings to be ``proclaim``'ed
+before each and every command run called by XCVB while building your project;
+you may side-effect it in your `Lisp Setup`_,
+or in any file that wants to actually affect everything that depends on it.
+For ASDF builds, we recommend a ``:before`` or ``:around`` method to ``asdf:perform``
+to proclaim the default settings before each and every file or at least every system.
 
 
 Combining Multiple Projects

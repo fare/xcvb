@@ -9,38 +9,16 @@
   :description "XCVB Driver"
   :long-description "Driver code to be loaded in all buildee images for XCVB."))
 
-(in-package :cl)
+;;; Hush!
+(cl:eval-when (:compile-toplevel :load-toplevel :execute)
+  (cl:setf cl:*load-verbose* () cl:*load-print* ()
+           cl:*compile-verbose* () cl:*compile-print* ()))
 
-;;; Initial implementation-dependent setup
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3);;2)
-           #+sbcl (sb-ext:inhibit-warnings 3)
-           #+sbcl (sb-c::merge-tail-calls 3) ;-- this plus debug 1 (or sb-c::insert-debug-catch 0 ???) should ensure all tail calls are optimized, says jsnell
-	   #+cmu (ext:inhibit-warnings 3)))
-  #+sbcl (proclaim '(sb-ext:muffle-conditions sb-ext:compiler-note))
-  #+gcl ;;; If using GCL, do some safety checks
-  (unless (member :ansi-cl *features*)
-    (format *error-output*
-     "XCVB only supports GCL in ANSI mode. Aborting.~%")
-    (lisp:quit))
-  #+gcl
-  (when (or (< system::*gcl-major-version* 2)
-            (and (= system::*gcl-major-version* 2)
-                 (< system::*gcl-minor-version* 7)))
-    (error "GCL version ~D.~D < 2.7 not supported"
-           system::*gcl-major-version* system::*gcl-minor-version*))
-  (setf *print-readably* nil ; allegro 5.0 may notably bork on ASDF without this
-        *load-verbose* nil *compile-verbose* nil *compile-print* nil)
-  #+cmu (setf ext:*gc-verbose* nil)
-  #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
-  #+gcl (setf compiler::*compiler-default-type* (pathname "")
-              compiler::*lsp-ext* "")
-  #+ecl (require 'cmp))
-
-(defpackage :xcvb-driver
+(cl:defpackage :xcvb-driver
   (:nicknames :xcvbd)
   (:use :common-lisp)
   (:export
+   #:*optimization-settings*
    #:*restart* #:debugging #:profiling #:*goal* #:*stderr*
    #:*uninteresting-conditions* #:*fatal-condition* #:*deferred-warnings*
    #:getenv #:emptyp #:setenvp #:setup-environment
@@ -56,6 +34,38 @@
    #:resume #-ecl #:dump-image))
 
 (in-package :xcvb-driver)
+
+;;; Optimization settings
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *optimization-settings*
+    '(optimize (speed 1) (safety 2) (compilation-speed 0) (debug 3)
+      #+sbcl (sb-ext:inhibit-warnings 3)
+      ;; These should ensure all tail calls are optimized, says jsnell:
+      #+sbcl (sb-c::merge-tail-calls 3) #+sbcl (sb-c::insert-debug-catch 0)
+      #+cmu (ext:inhibit-warnings 3)))
+  (proclaim *optimization-settings*))
+
+;;; Initial implementation-dependent setup
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  #+gcl ;;; If using GCL, do some safety checks
+  (flet ((bork (&rest args)
+           (apply #'format *error-output* args)
+           (lisp:quit 42)))
+    (when (or (< system::*gcl-major-version* 2)
+              (and (= system::*gcl-major-version* 2)
+                   (< system::*gcl-minor-version* 7)))
+      (bork "GCL version ~D.~D < 2.7 not supported"
+             system::*gcl-major-version* system::*gcl-minor-version*))
+    (unless (member :ansi-cl *features*)
+      (bork "XCVB only supports GCL in ANSI mode. Aborting.~%"))
+    (setf compiler::*compiler-default-type* (pathname "")
+          compiler::*lsp-ext* ""))
+  #+sbcl (proclaim '(sb-ext:muffle-conditions sb-ext:compiler-note))
+  #+cmu (setf ext:*gc-verbose* nil)
+  #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
+  #+allegro (setf *print-readably* nil) ; otherwise ACL 5.0 may crap out on ASDF dependencies
+  #+ecl (require 'cmp))
+
 
 ;; Variables that define the current system
 (defvar *restart* nil
@@ -110,11 +120,16 @@
 (defun setup-environment ()
   (debugging (setenvp "XCVB_DEBUGGING"))
   (setf *profiling* (setenvp "XCVB_PROFILING")))
+(defun proclaim-optimization-settings ()
+  (proclaim *optimization-settings*)
+  (when *debugging*
+    #+sbcl (format *error-output* "~&SB-C::*POLICY* = ~S~%" sb-c::*policy*)))
 
 ;;; Debugging
 (defun debugging (&optional (debug t))
   (setf *debugging* debug
         *load-verbose* debug
+        *load-print* debug
         *compile-verbose* debug
         *compile-print* debug)
   (cond
@@ -128,6 +143,8 @@
 
 ;;; Profiling
 (defun call-with-maybe-profiling (thunk what goal)
+  (when *debugging*
+    (format *trace-output* "~&Now ~S~&" what))
   (if *profiling*
     (let* ((start-time (get-internal-real-time))
            (values (multiple-value-list (funcall thunk)))
@@ -281,6 +298,7 @@ This is designed to abstract away the implementation specific quit forms."
 (defun function-for-command (designator)
   (fdefinition (do-find-symbol designator :xcvb-driver)))
 (defun run-command (command)
+  (proclaim-optimization-settings)
   (multiple-value-bind (head args)
       (etypecase command
         (symbol (values command nil))
@@ -316,9 +334,11 @@ This is designed to abstract away the implementation specific quit forms."
   (do-find-symbol x :asdf))
 (defun asdf-call (x &rest args)
   (apply 'call :asdf x args))
-(defun load-asdf (x &key parallel) ;; parallel loading requires POIU
+(defun load-asdf (x &key parallel (verbose *compile-verbose*)) ;; parallel loading requires POIU
   (with-profiling `(:asdf ,x)
-    (asdf-call :oos (asdf-symbol (if parallel :parallel-load-op :load-op)) x)))
+    (asdf-call
+     :operate (asdf-symbol (if parallel :parallel-load-op :load-op)) x
+     :verbose verbose)))
 (defun register-asdf-directory (x)
   (pushnew x (symbol-value (asdf-symbol :*central-registry*))))
 (defun asdf-system-up-to-date-p (operation-class system &rest args)

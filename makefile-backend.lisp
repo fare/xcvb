@@ -295,7 +295,7 @@ will create the desired content. An atomic rename() will have to be performed af
        (quit-form :code
         (format nil "(multiple-value-bind (output warningp failurep) ~
                        (let ((*default-pathname-defaults* (truename *default-pathname-defaults*))) ~
-                         (compile-file ~S :output-file (merge-pathnames ~S))) ~
+                         (compile-file ~S :output-file (merge-pathnames ~S) :verbose nil :print nil)) ~
                        (if (or (not output) warningp failurep) 1 0))"
                 (dependency-namestring name)
                 (tempname-target (dependency-namestring `(:fasl ,name)))))))
