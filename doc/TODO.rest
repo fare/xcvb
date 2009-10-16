@@ -210,6 +210,11 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
+ * Hack SBCL to remove path and date location from debug information, and/or
+   split debug information away from the FASL, so as to get both more determinism in the output
+   and more resilience of the output to trivial source code modifications.
+   See discussion on sbcl-devel mailing-list.
+
  * Propose a patch to ASDF that merges ``XCVB_PATH`` and some hypothetical ``ASDF_PATH``
    into a ``COMMON_LISP_PATH`` to find Lisp dependencies?
 
@@ -271,7 +276,7 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
  * Also, in generated files, double-check that there isn't
    an intermediate build that short-circuits the name resolution.
    e.g. if ``foo/bar.lisp`` is generated from a build with fullname ``/quux``,
-   then there must *not* a build with fullname ``/quux/foo`` that preempts that name;
+   then there must *not* be a build with fullname ``/quux/foo`` that preempts that name;
    if there is, issue an error early and refuse to build.
 
  * Implement a portable library for executing sub-programs
@@ -292,7 +297,9 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
  * Figure out why the call of ``directory`` in ``find-build-files-under``
    is so slow (at least in SBCL), and find a pure-lisp alternative
    to spawning a shell that executes ``find(1)``.
-   Xof suggests profiling the thing as it runs.
+   Xof suggests profiling the thing as it runs;
+   since the external-format support that was at least part of the slow down
+   will have been fixed in 1.0.31.x, let's try when 1.0.32 is released.
    I'd suggest properly extending IOLib or osicat to do the right thing,
    but this won't cut it if we want ASDF to share this feature.
 

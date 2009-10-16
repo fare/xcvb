@@ -16,6 +16,9 @@
 ;;    All this cannot be done by ASDF itself, because most of the time,
 ;; loading ASDF on top of a previous ASDF *should* be idempotent and not
 ;; destroy existing configuration and send your Lisp to limbo.
+;;    Then comes the question of how to fix CL so that it becomes possible
+;; to safely redefine a function, generic function, structure, variable,
+;; constant, symbol-macro, etc.
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (let ((package (find-package :asdf))
@@ -49,7 +52,3 @@
   (format t "*features* = ~S~%" *features*)
   (finish-output)
   (values))
-
-;; Default optimization setting: let's debug stuff.
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (proclaim '(optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0))))

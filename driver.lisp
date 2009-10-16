@@ -60,7 +60,10 @@
       (bork "XCVB only supports GCL in ANSI mode. Aborting.~%"))
     (setf compiler::*compiler-default-type* (pathname "")
           compiler::*lsp-ext* ""))
-  #+sbcl (proclaim '(sb-ext:muffle-conditions sb-ext:compiler-note))
+  #+sbcl
+  (progn
+    (proclaim '(sb-ext:muffle-conditions sb-ext:compiler-note))
+    (require :sb-posix))
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
   #+allegro (setf *print-readably* nil) ; otherwise ACL 5.0 may crap out on ASDF dependencies
