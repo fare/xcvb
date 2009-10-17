@@ -221,10 +221,6 @@
     (push (cons fullname tthsum) *loaded-grains*)))
 (defun load-grains (manifest)
   (loop :for grain-spec :in manifest :do (apply #'load-grain grain-spec)))
-(defun make-loaded-grains-string (&optional (loaded-grains *loaded-grains*))
-  (with-output-to-string (s)
-    (with-safe-io-syntax ()
-      (write loaded-grains :stream s :readably t :escape t :pretty nil))))
 
 ;;; Extend XCVB driver
 (defun initialize-manifest (pathname)

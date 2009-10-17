@@ -145,3 +145,37 @@ Declare asd system as ASDF-NAME."
                                 ,@(unless (and (equal name pathname) (not (find #\/ name)))
                                           `(:pathname ,pathname))
                                 ,@(when depends-on `(:depends-on ,depends-on))))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XCVB to ASDF ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter +xcvb-to-asdf-option-spec+
+  '((("build" #\b) :type string :optional nil :list t :documentation "Specify a build to convert (can be repeated)")
+    (("name" #\n) :type string :optional t :documentation "name of the new ASDF system")
+    (("output-path" #\o) :type string :optional t :documentation "pathname for the new ASDF system")
+    (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
+    (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
+    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")))
+
+(defun xcvb-to-asdf-command (arguments &key
+                             build name output-path verbosity xcvb-path
+                             lisp-implementation lisp-binary-path)
+  (when arguments
+    (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
+  (reset-variables)
+  (when verbosity
+    (setf *xcvb-verbosity* verbosity))
+  (when xcvb-path
+    (set-search-path! xcvb-path))
+  (when lisp-implementation
+    (setf *lisp-implementation-type*
+          (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+  (when lisp-binary-path
+    (setf *lisp-executable-pathname* lisp-binary-path))
+  (extract-target-properties)
+  (read-target-properties)
+  (search-search-path)
+  (write-asd-file
+   :asdf-name name
+   :build-names (mapcar #'canonicalize-fullname build)
+   :output-path output-path))

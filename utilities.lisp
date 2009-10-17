@@ -127,3 +127,11 @@
     (when set
       (loop :for x :being :the :hash-keys :in set :do (setf (gethash x h) t)))
     h))
+
+;;; I/O
+(defun readable-string (x &key (package :cl))
+  (with-output-to-string (s)
+    (with-safe-io-syntax ()
+      (let ((*package* (find-package package)))
+        (write x :stream s :readably t :escape t :pretty nil)
+        (terpri s)))))

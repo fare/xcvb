@@ -188,11 +188,16 @@ you will need the following Lisp software libraries to get XCVB running:
         - getting it, if you're a QITAB project member::
 		``git clone ssh://USER@common-lisp.net/project/qitab/git/poiu.git``
 
-Additionally, our XCVB master module currently requires
-the utility ``tthsum`` to be installed (e.g. from the Debian package ``tthsum``)
-to compute identifying cryptographic hashes of your files.
+Additionally, our XCVB master mode
+(see below `Interactive update of a running image with XCVB master`_)
+currently requires
+the utility ``tthsum`` to be installed
+so as to compute identifying cryptographic hashes of your files.
 If you cannot install this utility, be sure to disable XCVB master support
 when you use our Makefile backend, using option ``--no-master``.
+If you are using Debian or Ubuntu, you may install it with::
+
+	sudo apt-get install tthsum
 
 
 Documentation
@@ -411,11 +416,11 @@ It is often useful or necessary to setup your target Lisp system
 before you start to compile files and build images with it.
 
 Such setup may include
-proclaiming optimization settings,
+proclaiming optimization settings, (see below `Optimization Settings`_),
 loading and configuring ASDF (see below `XCVB builds depending on ASDF systems`_),
 configuring variables that control your Lisp implementation,
 selecting compiler warnings you want to silence (see below `Warning Control`_),
-declaring features for conditional compilation based on some environment variables,
+pushing ``*features*`` for conditional compilation based on some environment variables,
 initializing some pathname translation layer such as logical pathnames,
 loading specialized handlers for ASDF-DEPENDENCY-GROVEL when it is used,
 configuring or extending the XCVB driver itself,
@@ -630,37 +635,43 @@ are not idempotent, and/or if loading the CFASL resets some work done by the FAS
 Consider notably the proper use of ``defvar`` vs ``defparameter`` at compile-time.
 
 
-Optimization settings
+Optimization Settings
 ---------------------
 
 Amongst compile-time side-effects, a notable one is the optimization settings.
-A default may to be set in your initial Lisp image setup,
-as explained in section `Lisp Setup`_.
+A default may to be set in your initial Lisp image setup
+(see above section `Lisp Setup`_)
+by modifying the variable ``xcvb-driver:*optimization-settings*``.
+For instance, your setup file may include::
+
+	(setf xcvb-driver:*optimization-settings* '(optimize (speed 1) (safety 3)))
 
 Modules that want to change these settings
-from this default specified for the whole compilation
-should explicitly ``declare`` it ``locally``.
+from this default specified for the compilation of just one file
+can ``declaim`` it, or
+``(eval-when (:compile-toplevel :load-toplevel :execute) (proclaim ...))`` it,
+or (more portably) ``(locally (declare ...) ...)`` it.
 You may define some macro that does that for you,
 that you will call at the beginning of relevant files.
 
-``declaim`` would look like an option, except that depending on your compiler,
-it may or may not leak to subsequent files compiled in the same environment,
-which is probably damning.
-In a more deterministic way, you might want to use
-``(eval-when (:compile-toplevel :load-toplevel :execute) (proclaim ...))``
-but this will be defeated below.
+Note however that using ``declaim`` or ``proclaim`` may or may not
+have a different meaning in other build systems (e.g. ASDF)
+depending on implementations.
+Some implementations (like SBCL) will confine ``declaim`` settings
+and ``:compile-toplevel`` ``proclaim`` settings to the current file,
+while other implementations (like CCL, Allegro)
+will leak them to subsequent files,
+whereas ``:load-toplevel`` ``proclaim`` settings
+will usually leak to subsequent files when you load the FASL.
 
-Because many existing libraries erroneously use ``declaim``
-which will non-deterministically pollute settings for further compilations,
-or ``proclaim`` that will deterministically pollute such settings,
-build systems provide counter-measures to override such erroneous settings.
-For XCVB builds, we expose a variable ``xcvb-driver:*optimization-settings*``
-that contains ``(optimize ...)`` settings to be ``proclaim``'ed
-before each and every command run called by XCVB while building your project;
-you may side-effect it in your `Lisp Setup`_,
-or in any file that wants to actually affect everything that depends on it.
-For ASDF builds, we recommend a ``:before`` or ``:around`` method to ``asdf:perform``
-to proclaim the default settings before each and every file or at least every system.
+This non-determinism is against the spirit of XCVB, and
+XCVB resets optimization settings to the declared default
+before each and every command issued to load or compile any file.
+When using ASDF, we have similarly been in the habit,
+which we recommend others to follow, to similarly reset optimization settings
+in a ``asdf:perform`` method ``:before`` or ``:around``
+the relevant operations
+(and we'll push for such method to be standardized in the upstream ASDF).
 
 
 Combining Multiple Projects

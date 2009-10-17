@@ -85,7 +85,7 @@ prepare-release:
 	./dependencies/cl-launch/cl-launch.sh \
 		-I ./dependencies/cl-launch \
 		-B install_path && \
-	for l in sbcl clisp ; do \
+	for l in sbcl clisp ccl ; do \
 	    xcvb make-makefile \
 		--xcvb-path=$$PWD \
 		--build /xcvb \

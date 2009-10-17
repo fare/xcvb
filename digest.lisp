@@ -5,7 +5,7 @@
 
 #|
 If/when ironclad provides tth, we should use that.
-Until then, let's rely on tthsum.
+Until then, let's rely on the external utility tthsum.
 |#
 (defparameter +base32-characters+ "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
 
@@ -63,6 +63,23 @@ Until then, let's rely on tthsum.
             (*print-case* :downcase))
         (format o "(~{~S~^~% ~})~%" (manifest-form grains)))))
   (values))
+
+(defun has-tthsum-p ()
+  (let ((s (ignore-errors
+             (run-program/read-output-string
+              "tthsum" #-windows "/dev/null" #+windows "NUL"))))
+    (and (>= (length s) 41)
+         (string= s "LWPNACQDBZRYXW3VHJVCJ64QBZNGHOHHHZWCLNQ" :end1 39))))
+
+(defun ensure-tthsum-present ()
+  (unless (has-tthsum-p)
+    (errexit 2 "~&XCVB's master mode (enabled by default) requires the tthsum utility.
+If you are using Debian or Ubuntu, you can install it with:
+	sudo apt-get install tthsum
+If you are unable to install this utility, you may disable XCVB's master mode
+by passing option --no-master to xcvb make-makefile.
+The XCVB master mode is what allows you to load into a running image
+new or updated FASLs that you build with XCVB.~%")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make a load manifest ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

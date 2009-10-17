@@ -349,3 +349,29 @@ so that the system can now be compiled with XCVB."
         (add-module-to-file (get-module-for-component
                              component build-grain
                              name-component-map original-traverse-order-map))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ASDF to XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter +asdf-to-xcvb-option-spec+
+  '((("system" #\b) :type string :optional nil :list t :documentation "Specify a system to convert (can be repeated)")
+    (("base" #\B) :type string :optional t :documentation "Base pathname for the new build")
+    (("name" #\n) :type string :optional t :documentation "name of the resulting system")
+    (("setup"  #\s) :type string :optional t :documentation "Specify the path to a Lisp setup file.")
+    (("system-path" #\p) :type string :optional t :list t :documentation "Register an ASDF system path (can be repeated)")
+    (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")
+    (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
+
+(defun asdf-to-xcvb-command (arguments &key system setup system-path preload verbosity base name)
+  (when arguments
+    (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
+  (when verbosity
+    (setf *xcvb-verbosity* verbosity))
+  (setf asdf:*central-registry*
+        (append (mapcar #'ensure-pathname-is-directory system-path) asdf:*central-registry*))
+  (when setup (load setup))
+  (asdf-to-xcvb
+   :name name
+   :systems (mapcar #'coerce-asdf-system-name system)
+   :systems-to-preload (mapcar #'coerce-asdf-system-name preload)
+   :base-pathname (when base (ensure-pathname-is-directory base))
+   :verbose (and verbosity (> verbosity 5))))

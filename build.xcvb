@@ -29,6 +29,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                "asdf-converter"
                "asdf-backend"
                "slave"
+               "farmer"
                "search-path"
                "main"
                "version")

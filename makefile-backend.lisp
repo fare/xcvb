@@ -394,6 +394,7 @@ will create the desired content. An atomic rename() will have to be performed af
       (set-search-path! xcvb-path))
     (setf *use-master* master)
     (when master
+      (ensure-tthsum-present)
       (appendf *lisp-setup-dependencies* `((:fasl "/xcvb/master/master"))))
     (when setup
       (appendf *lisp-setup-dependencies* `((:lisp ,setup))))

@@ -57,5 +57,6 @@ deterministic separate compilation and enforced locally-declared dependencies."
                                                "asdf-backend" "simplifying-traversal"))
      (:file "asdf-converter" :depends-on ("lisp-grain"))
      (:file "slave" :depends-on ("pkgdcl"))
+     (:file "farmer" :depends-on ("static-traversal"))
      (:file "main" :depends-on ("static-backends" "search-path" "computations"))
      (:file "version" :depends-on ("specials"))))

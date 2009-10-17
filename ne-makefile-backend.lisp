@@ -91,3 +91,59 @@ in a fast way that doesn't enforce dependencies."
         (dolist (body (cons static-rules build-rules))
           (princ body out))
         (write-makefile-conclusion out))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; non-enforcing makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter +non-enforcing-makefile-option-spec+
+ '((("build" #\b) :type string :optional nil :list t :documentation "specify a (series of) system(s) to build")
+   (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
+   (("name" #\n) :type string :optional t :initial-value "xcvb-tmp" :documentation "ASDF name for the target")
+   (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
+   (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
+   (("output-path" #\o) :type string :initial-value "xcvb-ne.mk" :documentation "specify output path")
+   (("object-directory" #\O) :type string :initial-value "obj-ne" :documentation "specify object directory")
+   (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
+   (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+   (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
+   (("parallel" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")
+;  (("force-cfasl" #\C) :type boolean :optional t :initial-value nil :documentation "force use of CFASL")
+;  (("profiling" #\P) :type boolean :optional t :documentation "profiling")
+   ))
+
+(defun non-enforcing-makefile (arguments &key
+                               build base-image setup xcvb-path name
+                               output-path object-directory
+                               lisp-implementation lisp-binary-path
+                               verbosity parallel #|force-cfasl profiling|#)
+  (reset-variables)
+  (when arguments
+    (error "Invalid arguments to non-enforcing-makefile"))
+  (when xcvb-path
+    (set-search-path! xcvb-path))
+  (when verbosity
+    (setf *xcvb-verbosity* verbosity))
+  (when output-path
+    (setf *default-pathname-defaults*
+          (ensure-absolute-pathname (pathname-directory-pathname output-path))))
+  (when object-directory
+    (setf *object-directory* ;; strip last "/"
+          (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
+  (when lisp-implementation
+    (setf *lisp-implementation-type*
+          (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+  (when lisp-binary-path
+    (setf *lisp-executable-pathname* lisp-binary-path))
+  (extract-target-properties)
+  (read-target-properties)
+  ;;(setf *use-cfasls* force-cfasl)
+  (setf *use-base-image* base-image)
+  (setf *lisp-setup-dependencies*
+        (append +xcvb-setup-dependencies+
+                (when setup `((:lisp ,setup)))))
+  (search-search-path)
+  (write-non-enforcing-makefile
+   (mapcar #'canonicalize-fullname build)
+   :asdf-name name
+   :output-path output-path
+   :parallel parallel))

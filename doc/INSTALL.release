@@ -1,16 +1,39 @@
-(This file is to be included in the toplevel directory of a release tarball)
+.. ; -*- rst -*- (This file is to be included in the toplevel directory of a release tarball)
 
 What is in this directory
 =========================
 
 This directory is a release of XCVB.
 
-The xcvb/ subdirectory contains xcvb itself.
+The ``xcvb/`` subdirectory contains xcvb itself.
 
-The dependencies/ subdirectory contains several other packages
-that XCVB depends on.
+The ``dependencies/`` subdirectory contains
+several other Common Lisp packages that XCVB depends on.
 
-The Makefile will help you install.
+The ``Makefile`` will help you install.
+
+
+Additional Dependencies
+=======================
+
+In addition to the Common Lisp source code included in this release tarball,
+you will need the following software installed on your computer
+to successfully compile and use XCVB.
+
+First, you will need one of the supported CL implementations.
+Currently supported are:
+
+	* sbcl http://sbcl.sourceforge.net/
+        * clisp http://clisp.cons.org/
+        * ccl http://trac.clozure.com/openmcl
+
+Second, to use the "master" mode of XCVB that allows compilation inside a
+running image, you will also need the ``tthsum`` utility.
+Otherwise, you will have to disable support for this mode
+by passing option ``--no-master`` to ``xcvb make-makefile``.
+If you are using Debian or Ubuntu, you may get ``tthsum`` with::
+
+	sudo apt-get install tthsum
 
 
 How to install XCVB
@@ -32,8 +55,24 @@ Note that using ASDF requires installing all the source. You can also install th
 
         make install-source PREFIX=/opt
 
-Look inside the Makefile to see the supported parameters.
+Look inside the ``Makefile`` to see the supported parameters.
 For fine-tuning beyond those parameters, you may have to manually
 edit ``xcvb/configure.mk``.
 
-Currently supported Lisps: sbcl, clisp (untested: cmucl, ccl).
+
+What Next?
+==========
+
+To use XCVB, look at the documentation in ``xcvb/doc/README.rest``
+If you have the python-docutils installed, you can compile it to html with::
+
+	make -C xcvb doc/README.html
+
+Assuming you are in the directory where you extracted the release tarball,
+you can check that XCVB is working with::
+
+	X=$PWD ; export XCVB_PATH=$X ; cd $X/xcvb ; make xcvb
+
+To hack XCVB, get familiar with it, look at the documentation in
+``INTERNALS.rest`` and ``TODO.rest``. A good starting project would be to build
+a test suite for XCVB itself.

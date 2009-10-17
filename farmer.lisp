@@ -15,3 +15,13 @@
 (defvar *workers* (make-hash-table :test 'equal)
   "maps intentional state of the world identifiers to descriptors of worker processes
 waiting at this state of the world.")
+
+(defclass worker ()
+  ())
+(defgeneric worker-send (worker form)
+  (:documentation "send a form to be executed on the worker"))
+(defmethod worker-send (worker (x cons))
+  (worker-send worker (readable-string x)))
+
+(defclass farmer-traversal (static-traversal)
+  ())
