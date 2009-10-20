@@ -8,25 +8,25 @@
 ##
 
 ## Prefix from which to deduce various default locations
-PREFIX = /usr/local
+PREFIX ?= /usr/local
 #PREFIX = /usr
 #PREFIX = /home/USER/.local
 
 
 #### Where to install executables?
-INSTALL_BIN = ${PREFIX}/bin
+INSTALL_BIN ?= ${PREFIX}/bin
 #INSTALL_BIN := /usr/bin
 #INSTALL_BIN := /home/USER/bin
 
 
 ### Where to find run-time configuration? [not currently used]
-INSTALL_ETC = ${PREFIX}/etc
+INSTALL_ETC ?= ${PREFIX}/etc
 #INSTALL_ETC := /etc
 #INSTALL_ETC := /home/USER/.config
 
 
 ### Where to put shared stuff? [Only used indirectly below]
-INSTALL_SHARE = ${PREFIX}/share
+INSTALL_SHARE ?= ${PREFIX}/share
 #INSTALL_SHARE := /usr/share
 #INSTALL_ETC := /home/USER/.local/share
 
@@ -38,24 +38,24 @@ INSTALL_SHARE = ${PREFIX}/share
 ### Image directory for lisp images.
 ## Make sure the directory exists and you can write to it:
 ## mkdir -p ${INSTALL_IMAGE} ; chown ${USER}.${GROUP} ${INSTALL_IMAGE}
-INSTALL_IMAGE = ${PREFIX}/lib/common-lisp/images
+INSTALL_IMAGE ?= ${PREFIX}/lib/common-lisp/images
 #INSTALL_IMAGE := /usr/lib/common-lisp/images
 #INSTALL_IMAGE := /home/USER/.local/lib/common-lisp/images
 
 
 #### Where to install Lisp files?
-INSTALL_LISP = ${INSTALL_SHARE}/common-lisp
+INSTALL_LISP ?= ${INSTALL_SHARE}/common-lisp
 #INSTALL_LISP := /usr/share/common-lisp
 #INSTALL_LISP := /home/USER/.local/share/common-lisp
 
 ### Where to install Lisp source?
-LISP_SOURCE := ${INSTALL_LISP}/source
+LISP_SOURCE ?= ${INSTALL_LISP}/source
 
 ### Where to install symlinks to ASDF systems?
-LISP_SYSTEMS := ${INSTALL_LISP}/systems
+LISP_SYSTEMS ?= ${INSTALL_LISP}/systems
 
 #### Where to install the XCVB source, including important driver files?
-INSTALL_XCVB = ${LISP_SOURCE}/xcvb
+INSTALL_XCVB ?= ${LISP_SOURCE}/xcvb
 
 
 #### Where to find cl-launch?
