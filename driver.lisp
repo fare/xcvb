@@ -7,7 +7,8 @@
   :maintainer "Francois-Rene Rideau"
   :licence "MIT" ;; MIT-style license. See LICENSE
   :description "XCVB Driver"
-  :long-description "Driver code to be loaded in all buildee images for XCVB."))
+  :long-description "Driver code to be loaded in all buildee images for XCVB."
+  :build-depends-on nil))
 
 ;;; Hush!
 (cl:eval-when (:compile-toplevel :load-toplevel :execute)

@@ -153,7 +153,7 @@ you will need the following Lisp software libraries to get XCVB running:
         - getting it, if you're an XCVB project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
-  * ASDF 1.366 or later:
+  * ASDF 1.367 or later:
 	- homepage: http://cliki.net/asdf
 	- getting it:
 		``git clone http://common-lisp.net/project/asdf/asdf.git``
@@ -335,17 +335,18 @@ all its dependencies
 and possibly some finalization forms to run at the end of the build.
 The dependencies typically include ASDF libraries,
 currently specified in an ugly way as dependencies of the build image.
-The ``build.xcvb`` file for Exscribe is as follows::
+The ``build.xcvb`` file for Exscribe_ is as follows::
 
 	#+xcvb
         (module
           (:fullname "fare.tunes.org/exscribe"
            :nicknames ("exscribe")
            :supersedes-asdf ("exscribe")
-           :build-depends-on ("cl-launch" "fare-utils"
-                              "fare-matcher" "scribble"
-                              "cl-typesetting")
-           :depends-on ("exscribe" "exscribe-html" "exscribe-txt" "exscribe-typeset")
+           :build-depends-on ("/cl-launch" "/fare-utils"
+                              "/fare-matcher" "/scribble"
+                              (:asdf "cl-typesetting"))
+           :depends-on ("scheme-compat" "exscribe"
+                        "exscribe-html" "exscribe-txt" "exscribe-typeset")
            :pre-image t
            :build-image t))
 
@@ -406,7 +407,11 @@ From the image, you can create an executable with such a command as::
 	cl-launch --lisp sbcl --image obj/foo/bar.image \
 		--output bar --dump ! --restart 'bar::main'
 
-As an example of how to put it all together, see XCVB's own ``Makefile``.
+As an example of how to put it all together, see
+XCVB's own ``Makefile``,
+or the ``Makefile`` of exscribe_.
+
+.. _exscribe: http://www.cliki.net/exscribe
 
 
 Lisp Setup
@@ -1128,17 +1133,26 @@ ASDF systems cannot at this time depend on XCVB builds.
 
 However, you can easily extract an ASDF system from one or more XCVB builds,
 and use that as a system that other ASDF systems may depend upon.
-(See paragraph below.)
+(See `Converting XCVB builds into ASDF systems`_ below.)
 Or you can use a manually maintained ``.asd`` file that covers
 the same software as an XCVB build.
 
-Now, there may at this point be "interesting" conflicts
-if some software is loaded both as an ASDF system and an XCVB build
-(say, because some XCVB build A depends on an ASDF system B
+Now, there may at this point be "interesting" situations
+where some software is loaded both as an ASDF system and an XCVB build.
+Say, some XCVB build A depends on an ASDF system B
 that depends on an ASDF system C, while some other XCVB build D
-depends on same software C but as an XCVB build).
-If such conflict bites you, the best solution will be to convert
-all dependencies to use XCVB (in the above example, convert B to XCVB).
+depends on same software C but as an XCVB build.
+In such case, the XCVB build will redundantly compile and load
+the same software a second time after it has been loaded by ASDF.
+Apart from the slight performance penalty, things should be alright.
+But if your ASDF central registry and your XCVB search path
+are configured to compile slightly different and incompatible versions,
+you may experience bugs. So make sure there is no conflict there.
+Finally, if some kind of deep conflict bites you because somehow
+ASDF and XCVB compile your software incompatible, it won't be loaded twice,
+the best solution will be to fix your software,
+and possibly convert all the relevant dependencies to use XCVB
+(in the above notional example, convert B to XCVB).
 
 As a kluge, if you really don't want to convert such system to XCVB,
 you may hack your XCVB ``build.xcvb`` specifications
@@ -1159,7 +1173,8 @@ Converting XCVB builds into ASDF systems
 It is possible to automatically convert one or more XCVB builds into an ASDF system.
 
 This can be used to allow ASDF-based toolchains to depend
-on software packaged with XCVB (see paragraph above).
+on software packaged with XCVB
+(see above `ASDF systems depending on XCVB builds`_).
 
 This can also allow XCVB-enabled software to be built faster
 (because without dependency enforcement) with ASDF or POIU,
@@ -1231,7 +1246,7 @@ In cases where the above fails, common pitfalls include the following:
   * If your system has some generated files, then you'll have to add the
     proper entries manually in your ``build.xcvb``.
     On the other hand, you won't have to reimplement in XCVB
-    the kludges that were necessary to have that kind of work under ASDF,
+    the kludges that were necessary to have that work under ASDF (kind of),
     for XCVB has built-in and correctly working support for such generated files.
 
   * If some of your files have data dependencies,
@@ -1244,7 +1259,7 @@ In cases where the above fails, common pitfalls include the following:
     ``*features*`` in your setup file.
 
   * If your system requires some other ASDF extension,
-    that isn't yet supported by XCVB, it will have to be converted manually.
+    this isn't yet supported by XCVB, and you will have to manually convert any such thing.
     Please also contact the authors of XCVB.
 
   * If your files define compile-time datastructures, you may have to
@@ -1256,7 +1271,9 @@ In cases where the above fails, common pitfalls include the following:
   * If your system includes magic build-time side-effects inside the ``.asd`` file itself,
     then you'll have to provide any such effects in a different way with XCVB.
     For instance, you may include any required ``(pushnew ... *features*)`` in an ``eval-when``
-    near the top of your package definition file, or in a Lisp file at the end of your build.
+    near the top of your package definition file,
+    or in a Lisp file at the end of your build,
+    or even in your `Lisp Setup`_ file.
 
 Additionally, figuring out the dependencies between your Lisp modules
 may not suffice to obtain a system that compiles with XCVB.

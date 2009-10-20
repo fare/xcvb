@@ -15,6 +15,8 @@ Mostly the same as cliki's WITH-UNIQUE-NAMES."
 (define-modify-macro funcallf (f &rest args) xfuncall)
 (define-modify-macro appendf (&rest args) append "Append onto list")
 (define-modify-macro nconcf (&rest args) nconc "Destructively append onto list")
+(defun append1 (l x) (append l (list x)))
+(define-modify-macro append1f (x) append1 "Append one element onto list")
 
 (defmacro with-output ((out &optional (obj out)) &body body)
   `(call-with-output ,obj #'(lambda (,out) ,@body)))

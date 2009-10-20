@@ -274,11 +274,15 @@ will create the desired content. An atomic rename() will have to be performed af
 (define-Makefile-commands-for-computation :exec-command (str &rest argv)
   (list (shell-tokens-to-Makefile argv str)))
 
-(define-Makefile-commands-for-computation :make-manifest (str manifest &rest loaded-grains)
+(define-Makefile-commands-for-computation :make-manifest (str manifest &rest grain-specs)
   (let ((manifest-spec
-         (loop :for (g s) :in loaded-grains :collect
-           `(:fullname ,g :pathname ,(dependency-namestring g)
-             ,@(when s `(:source-pathname ,s))))))
+         (loop :for spec :in grain-specs :collect
+           (destructuring-bind (&key fullname command source) spec
+             `(:fullname ,fullname
+               ,@(if command
+                   `(:command ,command)
+                   `(:pathname ,(dependency-namestring fullname)))
+               ,@(when source `(:source-pathname ,source)))))))
     (list (shell-tokens-to-Makefile
            `("xcvb" "make-manifest"
                     "--output" ,(dependency-namestring manifest)
@@ -290,15 +294,21 @@ will create the desired content. An atomic rename() will have to be performed af
 (defun xcvb-driver-commands-to-shell-token (commands)
   (cond
     ((eq :compile-file-directly (caar commands))
-     (destructuring-bind ((cfd name)) commands
+     (destructuring-bind ((cfd name &optional cfasl)) commands
        (declare (ignore cfd))
        (quit-form :code
         (format nil "(multiple-value-bind (output warningp failurep) ~
-                       (let ((*default-pathname-defaults* (truename *default-pathname-defaults*))) ~
-                         (compile-file ~S :output-file (merge-pathnames ~S) :verbose nil :print nil)) ~
+                       (let ((*default-pathname-defaults* ~
+                              (truename *default-pathname-defaults*))) ~
+                         (compile-file ~S ~
+                            :output-file (merge-pathnames ~S) ~
+                            ~@[:emit-cfasl (merge-pathnames ~S) ~]~
+                            :verbose nil :print nil)) ~
                        (if (or (not output) warningp failurep) 1 0))"
                 (dependency-namestring name)
-                (tempname-target (dependency-namestring `(:fasl ,name)))))))
+                (tempname-target (dependency-namestring `(:fasl ,name)))
+                (when cfasl
+                  (tempname-target (dependency-namestring `(:cfasl ,name))))))))
     (t
      (with-output-to-string (s)
        (format s "(xcvb-driver:run ")
@@ -313,6 +323,9 @@ will create the desired content. An atomic rename() will have to be performed af
     (values (escape-shell-token-for-Makefile pathname) pathname)))
 
 (defmethod grain-pathname-text ((grain asdf-grain))
+  nil)
+
+(defmethod grain-pathname-text ((grain require-grain))
   nil)
 
 (defmethod grain-pathname-text ((grain phony-grain))

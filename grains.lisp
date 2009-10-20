@@ -125,6 +125,15 @@
     :reader cload-dependencies)
    (load-dependencies
     :reader load-dependencies)
+   (build-depends-on
+    :initarg :build-depends-on
+    :documentation "A list of dependencies that apply to all files in the
+system specified by this build.xcvb file.
+These dependencies will be loaded first thing
+into an image that will be used for all future compile/load operations")
+   (build-dependencies
+    :reader build-dependencies
+    :documentation "A normalized version of the above")
    (extension-forms
     :initarg :extension-forms
     :accessor grain-extension-forms
@@ -147,15 +156,7 @@
     :initform nil
     :documentation "A list of ASDF systems superseded by this module")
    (build-depends-on
-    :initarg :build-depends-on
-    :initform nil
-    :documentation "A list of dependencies that apply to all files in the
-system specified by this build.xcvb file.
-These dependencies will be loaded first thing
-into an image that will be used for all future compile/load operations")
-   (build-dependencies
-    :reader build-dependencies
-    :documentation "A normalized version of the above")
+    :initform nil)
    (build-pre-image
     :initarg :pre-image
     :accessor build-pre-image
@@ -195,7 +196,13 @@ into an image that will be used for all future compile/load operations")
    (implementation
     :initarg :implementation
     :reader asdf-grain-implementation))
-  (:documentation "Dumped Image"))
+  (:documentation "Loaded ASDF system"))
+
+(defclass require-grain (named-grain)
+  ((name
+    :initarg :name
+    :reader require-grain-name))
+  (:documentation "Required feature"))
 
 (defun coerce-asdf-system-name (name)
   "This function take the name of an asdf-system, and
@@ -217,6 +224,9 @@ Modeled after the asdf function coerce-name"
 
 (defun asdf-grain-p (x)
   (typep x 'asdf-grain))
+
+(defun require-grain-p (x)
+  (typep x 'require-grain))
 
 (defun image-grain-p (x)
   (typep x 'image-grain))

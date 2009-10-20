@@ -46,8 +46,10 @@
     (handle-extension-forms grain)
     (macrolet ((normalize (deps)
                  `(normalize-dependencies ,deps grain ,(keywordify deps))))
-      (with-slots (compile-depends-on load-depends-on cload-depends-on depends-on
-                   compile-dependencies cload-dependencies load-dependencies) grain
+      (with-slots (build-depends-on compile-depends-on load-depends-on
+                   cload-depends-on depends-on
+                   build-dependencies compile-dependencies cload-dependencies load-dependencies)
+          grain
         (let ((common-dependencies (normalize depends-on)))
           (setf compile-dependencies
                 (append (mapcar #'compiled-dependency common-dependencies)
@@ -59,11 +61,14 @@
                   compile-dependencies))
           (setf load-dependencies
                 (append common-dependencies
-                        (normalize load-depends-on)))))
+                        (normalize load-depends-on)))
+          (setf build-dependencies
+                (if (slot-boundp grain 'build-depends-on)
+                  (normalize build-depends-on)
+                  (build-dependencies (grain-parent grain))))))
       (when (build-grain-p grain)
-        (with-slots (build-depends-on build-dependencies supersedes-asdf) grain
-          (setf build-dependencies (normalize build-depends-on)
-                supersedes-asdf (mapcar #'coerce-asdf-system-name supersedes-asdf))))))
+        (with-slots (supersedes-asdf) grain
+          (setf supersedes-asdf (mapcar #'coerce-asdf-system-name supersedes-asdf))))))
   (values))
 
 ;; Lisp grain extension form for generating Lisp files.
@@ -131,7 +136,6 @@
                (portable-pathname-from-string name :allow-absolute nil)
                (grain-pathname build)))))
 
-
 (defun build-grain-for (grain)
   (etypecase grain
     (build-grain grain)
@@ -146,9 +150,6 @@
 (defmethod build-dependencies :before ((grain lisp-grain))
   (handle-lisp-dependencies grain))
 
-(defmethod build-dependencies ((grain lisp-grain))
-  (build-dependencies (grain-parent grain)))
-
 (defun build-starting-dependencies-p (dependencies)
   (and (consp dependencies)
        (consp (car dependencies))
@@ -159,14 +160,22 @@
   (when (or *use-base-image* (registered-grain `(:image "/_")))
     "/_"))
 
-(defun build-pre-image-name (build-grain &optional traversed)
-  (check-type build-grain build-grain)
-  (when (member build-grain traversed)
+(defun build-pre-image-name (grain &optional traversed)
+  (check-type grain lisp-grain)
+  (when (member grain traversed)
     (error "Circular build dependency ~S"
-           (member build-grain (reverse traversed))))
-  (handle-lisp-dependencies build-grain)
-  (let* ((dependencies (build-dependencies build-grain))
-         (pre-image-p (build-pre-image build-grain))
+           (member grain (reverse traversed))))
+  (handle-lisp-dependencies grain)
+  (let* ((dependencies (build-dependencies grain))
+         (build-grain
+          (cond
+            ((build-grain-p grain) grain)
+            ((or (not (slot-boundp grain 'build-depends-on))
+                 (equal dependencies
+                        (build-dependencies (grain-parent grain))))
+             (grain-parent grain))
+            (t nil)))
+         (pre-image-p (when build-grain (build-pre-image build-grain)))
          (starting-build-name (build-starting-dependencies-p dependencies))
          (starting-build
           (when starting-build-name
@@ -212,11 +221,27 @@
    :name name
    :fullname `(:asdf ,name)))
 
+(defun make-require-grain (&key name)
+  (make-instance
+   'require-grain
+   :name name
+   :fullname `(:require ,name)))
+
+(defmethod build-dependencies ((grain asdf-grain))
+  nil)
 (defmethod load-dependencies ((grain asdf-grain))
   nil)
-(defmethod cload-dependencies ((grain asdf-grain))
+(defmethod grain-computation ((grain asdf-grain))
   nil)
-(defmethod compile-dependencies ((grain asdf-grain))
+(defmethod build-dependencies ((grain require-grain))
+  nil)
+(defmethod load-dependencies ((grain require-grain))
+  nil)
+(defmethod grain-computation ((grain require-grain))
+  nil)
+(defmethod build-dependencies ((grain fasl-grain))
+  nil)
+(defmethod build-dependencies ((grain cfasl-grain))
   nil)
 
 (defmethod print-object ((x grain) stream)

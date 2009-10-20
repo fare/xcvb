@@ -41,20 +41,25 @@ Until then, let's rely on the external utility tthsum.
   (car (tthsum-for-files (list file))))
 
 (defun manifest-form (grains)
-  (loop
-    :with tthsums = (tthsum-for-files
-                     (mapcar #'(lambda (x) (getf x :pathname)) grains))
-    :with source-tthsums = (tthsum-for-files-or-nil
-                            (mapcar #'(lambda (x) (getf x :source-pathname)) grains))
-    :for grain :in grains
-    :for tthsum :in tthsums
-    :for source-tthsum :in source-tthsums
-    :collect
-    (destructuring-bind
-          (&key fullname pathname source-pathname) grain
-      `(:fullname ,fullname :tthsum ,tthsum :pathname ,pathname
-        ,@(when source-pathname
-           `(:source-tthsum ,source-tthsum :source-pathname ,source-pathname))))))
+  (flet ((extract-tthsum (property)
+           (tthsum-for-files-or-nil
+            (mapcar #'(lambda (x) (getf x property)) grains))))
+    (loop
+      :with tthsums = (extract-tthsum :pathname)
+      :with source-tthsums = (extract-tthsum :source-pathname)
+      :for grain :in grains
+      :for tthsum :in tthsums
+      :for source-tthsum :in source-tthsums
+      :collect
+      (destructuring-bind
+            (&key fullname pathname source-pathname command) grain
+        `(:fullname ,fullname
+          ,@(when command
+              `(:command ,command))
+          ,@(when pathname
+              `(:tthsum ,tthsum :pathname ,pathname))
+          ,@(when source-pathname
+              `(:source-tthsum ,source-tthsum :source-pathname ,source-pathname)))))))
 
 (defun create-manifest (output-path grains)
   (with-user-output-file (o output-path)

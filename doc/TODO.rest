@@ -210,6 +210,11 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
+ * Make master and manifest accept arbitrary grains and/or load commands, not just module names.
+   In particular, make :asdf work in master mode (!) as well as :require.
+
+ * Complete the farmer.
+
  * Hack SBCL to remove path and date location from debug information, and/or
    split debug information away from the FASL, so as to get both more determinism in the output
    and more resilience of the output to trivial source code modifications.
@@ -588,15 +593,6 @@ Map actual paths to and from variablized strings, i.e. have
 ``${FOO}/bar/${GAH}`` in your path; it will search for files there,
 and output ``${FOO}/bar/${GAH}/xcvb/build.xcvb``
 in the ``Makefile`` (instead of the full expansion).
-
-
-Allow individual modules to override build dependencies [V2]
-------------------------------------------------------------
-
-Currently, all builds share the same build-dependencies.
-
-Allow individual Lisp files to have their own ``:build-depends-on``
-that overrides the one inherited from their ``build.xcvb``.
 
 
 Initialization and Finalization [V2]

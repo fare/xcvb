@@ -46,22 +46,25 @@
     (let* ((image-grain (graph-for (make-instance 'static-traversal) `(:image "/_TARGET_")))
            (included (image-included image-grain)))
       (with-safe-io-syntax ()
-        (write `(:xcvb () ;;; TODO: do something about non-file dependencies
+        (write `(:xcvb () ;;; TODO: do something about REQUIRE dependencies
                        ,(manifest-form
                          (loop :for grain :in included
                            :for fullname = (fullname grain)
                            :when (typecase grain
                                    ((or build-grain image-grain)
                                     nil)
-                                   ((or lisp-grain fasl-grain cfasl-grain)
+                                   ((or lisp-grain fasl-grain cfasl-grain asdf-grain)
                                     t)
                                    (t
                                     (warn "Not including grain ~S" grain)
                                     nil))
                            :collect
                            `(:fullname ,fullname
-                             :pathname ,(merge-pathnames (dependency-namestring fullname)
-                                                         makefile-dir)
+                             ,@(when (typep grain 'asdf-grain)
+                                 `(:command (:load-asdf ,(second fullname))))
+                             ,@(when (typep grain 'file-grain)
+                                 `(:pathname ,(merge-pathnames (dependency-namestring fullname)
+                                                               makefile-dir)))
                              ,@(let ((source-grain (grain-source grain)))
                                  (when source-grain
                                    `((:source-pathname ,(grain-pathname source-grain)))))))))

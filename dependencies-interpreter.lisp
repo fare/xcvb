@@ -28,13 +28,16 @@
    env `(:load-file (:cfasl ,name)) `(:cfasl ,name)))
 (define-load-command-for :asdf (env name)
   (simple-load-command-for env `(:load-asdf ,name) `(:asdf ,name)))
+(define-load-command-for :require (env name)
+  (simple-load-command-for env `(:require ,name) `(:require ,name)))
 
 (defun simple-load-command-for (env command fullname)
   (call-with-dependency-grain
    env fullname
    (lambda (grain)
      (with-dependency-loading (env grain)
-       (load-commands-for-dependencies env grain)
+       (load-commands-for-build-dependencies env grain)
+       (load-commands-for-load-dependencies env grain)
        (issue-load-command env command)))))
 
 (define-load-command-for :source (env name &key in)
@@ -53,15 +56,12 @@
                type dep grain))
       (funcall fun grain))))
 
-(define-load-command-for :require (env name)
-  (issue-load-command env `(:require ,name)))
-
 (define-load-command-for :build (env name)
   (let ((build (registered-build name)))
     (handle-lisp-dependencies build)
     (with-dependency-loading (env build)
       (load-commands-for-build-dependencies env build)
-      (load-commands-for-dependencies env build))))
+      (load-commands-for-load-dependencies env build))))
 
 (define-load-command-for :compile-build (env name)
   (let ((build (registered-build name)))
@@ -70,17 +70,17 @@
       (load-commands-for-build-dependencies env build)
       (load-commands-for-compile-dependencies env build))))
 
-(defun load-commands-for-dependencies (env grain)
-  (dolist (dep (load-dependencies grain))
-    (load-command-for env dep)))
+(defun load-commands-for-load-dependencies (env grain)
+  (load-command-for* env (load-dependencies grain)))
 
 (defun load-commands-for-compile-dependencies (env grain)
-  (dolist (dep (compile-dependencies grain))
-    (load-command-for env dep)))
+  (load-command-for* env (compile-dependencies grain)))
+
+(defun load-commands-for-cload-dependencies (env grain)
+  (load-command-for* env (cload-dependencies grain)))
 
 (defun load-commands-for-build-dependencies (env grain)
-  (dolist (dep (build-dependencies grain))
-    (load-command-for env dep)))
+  (load-command-for* env (build-dependencies grain)))
 
 (define-load-command-for :when (env expression &rest dependencies)
   (when (evaluate-condition env expression)

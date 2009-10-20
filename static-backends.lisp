@@ -127,9 +127,7 @@
         env name (build-pre-image-name build) (load-dependencies build))))))
 
 (defun pre-image-for (env grain)
-  (let ((build (build-grain-for grain)))
-    (check-type build build-grain)
-    (issue-image-named env (build-pre-image-name build))))
+  (issue-image-named env (build-pre-image-name grain)))
 
 (defun issue-image-named (env name)
   (if name
@@ -160,23 +158,30 @@
            (load-commands (traversed-load-commands env)))
       (multiple-value-bind (manifest-maker load-commands)
           (if *use-master*
-            (let* ((require-commands (remove-if-not #'require-command-p load-commands))
-                   (load-commands (remove-if #'require-command-p load-commands))
-                   (initial-loads (getf (image-setup env) :load))
+            (let* ((initial-loads (getf (image-setup env) :load))
                    (initial-manifest (when initial-loads
                                        `(:manifest ,(strcat name "--initial")))))
               (values
-               (labels ((manifest-spec (load)
-                          (list load (fullname-source load)))
-                        (manifest-specs (loads)
-                          (mapcar #'manifest-spec loads)))
+               (labels ((manifest-spec (command)
+                          (case (car command)
+                            (:load-file
+                             (let ((fullname (second command)))
+                               `(:fullname ,fullname :source ,(fullname-source fullname))))
+                            (:load-asdf
+                             (let ((name (second command)))
+                               `(:fullname (:asdf ,name) :command ,command)))
+                            (:require
+                             `(:fullname ,command :command ,command))))
+                        (manifest-specs (commands)
+                          (mapcar #'manifest-spec commands)))
                  `(,@(when initial-manifest
-                       `((:make-manifest ,initial-manifest ,@(manifest-specs initial-loads))))
+                       `((:make-manifest ,initial-manifest
+                          ,@(manifest-specs (mapcar (lambda (x) `(:load-file ,x))
+                                                    initial-loads)))))
                      (:make-manifest (:manifest ,name)
-                      ,@(manifest-specs (mapcar #'remove-load-file load-commands)))))
+                      ,@(manifest-specs load-commands))))
                `(,@(when initial-manifest
                      `((:initialize-manifest ,initial-manifest)))
-                 ,@require-commands
                  (:load-manifest (:manifest ,name)))))
             (values nil load-commands))
         (make-computation ()
@@ -206,6 +211,10 @@
   (make-asdf-grain :name system-name
                    :implementation *lisp-implementation-type*))
 
+(define-graph-for :require ((env static-traversal) name)
+  (declare (ignore env))
+  (make-require-grain :name name))
+
 (define-graph-for :fasl ((env static-traversal) lisp-name)
   (first (graph-for-fasls env lisp-name)))
 
@@ -221,7 +230,7 @@
 
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
-  (let ((lisp (graph-for-lisp env fullname))
+  (let ((lisp (graph-for env `(:lisp ,fullname)))
         (specialp (member `(:fasl ,fullname) *lisp-setup-dependencies* :test #'equal)))
     (check-type lisp lisp-grain)
     (handle-lisp-dependencies lisp)
@@ -240,8 +249,6 @@
                        fullname
                        load-dependencies cload-dependencies
                        build-dependencies)))
-        (when specialp
-          (setf outputs (list (car outputs))))
         (make-computation
          ()
          :outputs outputs
@@ -255,7 +262,7 @@
              (:load ,(append
                       (setup-dependencies-before-fasl fullname)
                       (mapcar #'remove-load-file (traversed-load-commands env))))
-             (:compile-file-directly ,fullname))))
+             (:compile-file-directly ,fullname (second outputs)))))
         outputs))))
 
 (defun remove-load-file (x)

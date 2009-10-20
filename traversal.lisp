@@ -36,10 +36,12 @@
     (when (member spec current-grains-r :test 'equal)
       (error "circularity in the dependencies:~%~{ ~S~%~}"
              (member spec (reverse current-grains-r) :test 'equal)))
-    (call-with-grain-registration
-     spec
-     #'(lambda ()
-         (graph-for-dispatcher (next-traversal env spec) spec)))))
+    (do-graph-for (next-traversal env spec) spec)))
+
+(defun do-graph-for (env spec)
+  (call-with-grain-registration
+   spec
+   #'(lambda () (graph-for-dispatcher env spec))))
 
 (defmethod next-traversal ((env xcvb-traversal) spec)
   (make-instance

@@ -5,7 +5,8 @@
  (:description "XCVB Master"
   :author ("Francois-Rene Rideau")
   :maintainer "Francois-Rene Rideau"
-  :licence "MIT")) ;; MIT-style license. See LICENSE
+  :licence "MIT" ;; MIT-style license. See LICENSE
+  :build-depends-on nil))
 
 (in-package :cl)
 (declaim (optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3))
@@ -212,15 +213,23 @@
   (run-program/process-output-stream command args #'read-many))
 
 ;;; Maintaining memory of which grains have been loaded in the current image.
-(defun load-grain (&key fullname tthsum pathname &allow-other-keys)
+(defun load-grain (&key command fullname tthsum pathname &allow-other-keys)
   ;; also source source-tthsum source-pathname
-  (unless (equal tthsum (cdr (assoc fullname *loaded-grains* :test #'equal)))
-    (when (>= *xcvb-verbosity* 7)
-      (format *error-output* "~&Loading grain ~S (tthsum: ~A) from ~S~%" fullname tthsum pathname))
-    (load pathname)
+  (unless (and tthsum (equal tthsum (cdr (assoc fullname *loaded-grains* :test #'equal))))
+    (cond
+      (command
+       (when (>= *xcvb-verbosity* 7)
+         (format *error-output* "~&Executing xcvb-driver command ~S~%" command))
+       ;; the driver better be loaded by the time any command is issued
+       (funcall (find-symbol "RUN-COMMAND" :xcvb-driver) command))
+      (t
+       (when (>= *xcvb-verbosity* 7)
+         (format *error-output* "~&Loading grain ~S (tthsum: ~A) from ~S~%"
+                 fullname tthsum pathname))
+       (load pathname)))
     (push (cons fullname tthsum) *loaded-grains*)))
 (defun load-grains (manifest)
-  (loop :for grain-spec :in manifest :do (apply #'load-grain grain-spec)))
+  (dolist (grain-spec manifest) (apply #'load-grain grain-spec)))
 
 ;;; Extend XCVB driver
 (defun initialize-manifest (pathname)
