@@ -210,9 +210,6 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
- * Make master and manifest accept arbitrary grains and/or load commands, not just module names.
-   In particular, make :asdf work in master mode (!) as well as :require.
-
  * Complete the farmer.
 
  * Hack SBCL to remove path and date location from debug information, and/or

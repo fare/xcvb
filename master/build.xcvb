@@ -1,5 +1,0 @@
-;;; -*- mode: lisp -*-
-#+xcvb
-(module
- (:depends-on ("master")
-  :supersedes-asdf ("xcvb-master")))

@@ -1,2 +1,2 @@
 #+xcvb (module (:depends-on ("pkgdcl")))
-(cl:defparameter xcvb:*xcvb-version* "0.404")
+(cl:defparameter xcvb:*xcvb-version* "0.405")

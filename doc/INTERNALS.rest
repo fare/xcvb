@@ -29,32 +29,37 @@ concepts underlying XCVB.
     2  Current Files
       2.1   driver.lisp
       2.2   pkgdcl.lisp
-      2.3   macros.lisp
-      2.4   conditions.lisp
-      2.5   utilities.lisp
-      2.6   specials.lisp
-      2.7   logging.lisp
-      2.8   grains.lisp
-      2.9   portablish-pathnames.lisp
-      2.10  registry.lisp
-      2.11  computations.lisp
-      2.12  lisp-invocation.lisp
-      2.13  string-escape.lisp
-      2.14  extract-target-properties.lisp
-      2.15  lisp-grain.lisp
-      2.16  names.lisp
-      2.17  search-path.lisp
-      2.18  normalize-dependency.lisp
-      2.19  traversal.lisp
-      2.20  dependencies-interpreter.lisp
-      2.21  static-backends.lisp
-      2.22  makefile-backend.lisp
-      2.23  simplifying-traversal.lisp
-      2.24  asdf-backend.lisp
-      2.25  ne-makefile-backend.lisp
-      2.26  asdf-converter.lisp
-      2.27  main.lisp
-      2.28  version.lisp
+      2.3   conditions.lisp
+      2.4   specials.lisp
+      2.5   profiling.lisp
+      2.6   macros.lisp
+      2.7   utilities.lisp
+      2.8   digest.lisp
+      2.9   logging.lisp
+      2.10  grains.lisp
+      2.11  portablish-pathnames.lisp
+      2.12  registry.lisp
+      2.13  computations.lisp
+      2.14  lisp-invocation.lisp
+      2.15  string-escape.lisp
+      2.16  extract-target-properties.lisp
+      2.17  lisp-grain.lisp
+      2.18  names.lisp
+      2.19  search-path.lisp
+      2.20  normalize-dependency.lisp
+      2.21  traversal.lisp
+      2.22  dependencies-interpreter.lisp
+      2.23  static-backends.lisp
+      2.24  makefile-backend.lisp
+      2.25  simplifying-traversal.lisp
+      2.26  asdf-backend.lisp
+      2.27  ne-makefile-backend.lisp
+      2.28  asdf-converter.lisp
+      2.29  slave.lisp
+      2.30  farmer.lisp
+      2.31  main.lisp
+      2.32  version.lisp
+      2.33  master.lisp
     3  Good places to extend XCVB
       3.1  Extending the driver
       3.2  Simple dispatchers as extension points
@@ -343,6 +348,27 @@ and think of a better way to achieve modularity in CL.
 For instance, copy some advanced Scheme module system.
 
 
+conditions.lisp
+---------------
+
+Conditions, errors, etc.
+This file is under-used.
+
+
+specials.lisp
+-------------
+
+A collection of global variables,
+many of which can be used to customize the behavior of the user-visible parts XCVB.
+
+
+profiling.lisp
+--------------
+
+Simple abstraction layer for profiling XCVB when running under a supported implementation
+(i.e. SBCL).
+
+
 macros.lisp
 -----------
 
@@ -351,29 +377,21 @@ A collection of general-purpose macros.
 TODO: Most of them should be moved to a library that XCVB would depend upon.
 
 
-conditions.lisp
----------------
-
-Conditions, errors, etc.
-This file is under-used.
-
-
 utilities.lisp
 --------------
 
 A collection of utility functions.
-Also defines many conditions.
 
-TODO: move conditions to another file.
-
-TODO: Most utilities should be moved to a library that XCVB would depend upon.
+TODO: Most utilities should be moved to a library that XCVB would depend upon, e.g. alexandria.
 
 
-specials.lisp
--------------
+digest.lisp
+-----------
 
-A collection of global variables,
-many of which can be used to customize the behavior of the user-visible parts XCVB.
+Manage (cryptographic) digests of files.
+Notably used by the master and slave to determine what files (not) to (re)load.
+TODO: In the future, may be used by the farmer to detect when to (re)compile.
+TODO: In the future, use Ironclad instead of tthsum?
 
 
 logging.lisp
@@ -568,6 +586,20 @@ keeping any manual rules from a previously added module statement
 but otherwise overriding the main data.
 
 
+slave.lisp
+----------
+
+Entry point to XCVB when called by the Master.
+Will delegate compilation to the preferred backend (currently the Makefile backend)
+then output a list of files to load in the master image.
+
+
+farmer.lisp
+-----------
+
+Code towards a future standalone backend.
+
+
 main.lisp
 ---------
 
@@ -581,8 +613,8 @@ version.lisp
 The version of the current XCVB release.
 
 
-master/master.lisp
-------------------
+master.lisp
+-----------
 
 This is the XCVB master, a small standalone alternative to ASDF
 that invokes an external XCVB process to drive builds.

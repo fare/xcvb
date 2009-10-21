@@ -491,7 +491,7 @@ or with the ASDF/POIU backend.
 
 You can also include the XCVB master in an ASDF build as system ``xcvb-master``
 or load it as a Lisp file from a bare image with
-``(load "/path/to/xcvb/master/master.lisp")``
+``(load "/path/to/xcvb/master.lisp")``
 as an alternative to using ``asdf.lisp`` to drive further compilations.
 
 The XCVB master can advantageously replace ASDF, as it has a much smaller footprint,

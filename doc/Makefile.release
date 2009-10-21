@@ -40,7 +40,7 @@ install-source: install-cl-launch
 	for dir in asdf asdf-dependency-grovel closer-mop command-line-arguments poiu ; do \
 	  rsync -aC --exclude _darcs dependencies/$$dir ${LISP_SOURCE}/ ; \
 	done
-	cd xcvb && cp -a *.asd *.lisp *.xcvb master ${LISP_SOURCE}/xcvb/
+	cd xcvb && cp -a *.asd *.lisp *.xcvb ${LISP_SOURCE}/xcvb/
 	ln -sf $$(find ${LISP_SOURCE}/ \( -name '*test*' -prune -false \) -o \
 			 -type f -name '*.asd' ! -name '*test*' ) ${LISP_SYSTEMS}/
 
