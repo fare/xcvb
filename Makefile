@@ -35,7 +35,7 @@ endif
 export INSTALL_XCVB
 
 LISP_SOURCES := $(wildcard *.lisp */*.lisp *.asd */*.asd)
-LISP_INSTALL_FILES := driver.lisp build.xcvb master
+LISP_INSTALL_FILES := build.xcvb *.asd *.lisp
 
 ## cl-launch mode: standalone executable, script+image or script+fasls?
 define CL_LAUNCH_MODE_standalone
