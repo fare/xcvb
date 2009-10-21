@@ -176,8 +176,10 @@
                           (mapcar #'manifest-spec commands)))
                  `(,@(when initial-manifest
                        `((:make-manifest ,initial-manifest
-                          ,@(manifest-specs (mapcar (lambda (x) `(:load-file ,x))
-                                                    initial-loads)))))
+                          ,@(manifest-specs (load-command-for*
+                                             (make-instance 'static-traversal)
+                                             (normalize-dependencies
+                                              initial-loads grain :initial))))))
                      (:make-manifest (:manifest ,name)
                       ,@(manifest-specs load-commands))))
                `(,@(when initial-manifest
@@ -230,8 +232,9 @@
 
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
-  (let ((lisp (graph-for env `(:lisp ,fullname)))
-        (specialp (member `(:fasl ,fullname) *lisp-setup-dependencies* :test #'equal)))
+  (let* ((lisp (graph-for env `(:lisp ,fullname)))
+         (fullname (fullname lisp)) ;; canonicalize the fullname
+         (specialp (member `(:fasl ,fullname) *lisp-setup-dependencies* :test #'equal)))
     (check-type lisp lisp-grain)
     (handle-lisp-dependencies lisp)
     (let ((build-dependencies (if specialp

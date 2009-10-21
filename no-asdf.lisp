@@ -1,4 +1,4 @@
-#+xcvb (module ())
+#+xcvb (module (:build-depends-on nil))
 (in-package :cl-user)
 
 ;; I created this no-asdf file because some implementations (including
