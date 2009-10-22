@@ -171,11 +171,7 @@ until something else is found, then return that header as a string"
                                               'asdf::long-description))
           (licence (maybe-slot-value asdf-system 'asdf::licence))
           (file-deps (mapcar
-                      (lambda (component)
-                        (asdf-dependency-grovel::strip.lisp
-                         (enough-namestring
-                          (asdf:component-pathname component)
-                          (asdf:component-pathname asdf-system))))
+                      #'asdf-dependency-grovel::normalized-component-name
                       (dependency-sort (asdf:module-components asdf-system)
                                        original-traverse-order-map))))
       (make-instance 'build-grain
@@ -249,10 +245,11 @@ until something else is found, then return that header as a string"
                     (fullname build-grain)
                     "/"
                     (portable-pathname-output
-                     (asdf-dependency-grovel::strip.lisp
+                     (asdf-dependency-grovel::strip-extension
                       (enough-namestring
                        filepath
-                       (grain-pathname build-grain)))
+                       (grain-pathname build-grain))
+                      "lisp")
                      :allow-absolute nil)))
          (lisp-grain
           (make-instance 'lisp-grain
@@ -353,10 +350,10 @@ so that the system can now be compiled with XCVB."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ASDF to XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +asdf-to-xcvb-option-spec+
-  '((("system" #\b) :type string :optional nil :list t :documentation "Specify a system to convert (can be repeated)")
+  '((("system" #\S) :type string :optional nil :list t :documentation "Specify a system to convert (can be repeated)")
     (("base" #\B) :type string :optional t :documentation "Base pathname for the new build")
-    (("name" #\n) :type string :optional t :documentation "name of the resulting system")
-    (("setup"  #\s) :type string :optional t :documentation "Specify the path to a Lisp setup file.")
+    (("name" #\n) :type string :optional t :documentation "name of the resulting build")
+    (("setup" #\s) :type string :optional t :documentation "Specify the path to a Lisp setup file.")
     (("system-path" #\p) :type string :optional t :list t :documentation "Register an ASDF system path (can be repeated)")
     (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")
     (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))

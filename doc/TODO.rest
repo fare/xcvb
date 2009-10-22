@@ -245,10 +245,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    Or we may switch to a make-less build at that point,
    and then can just ``(ensure-directories-exist ...)``.
 
- * Filter out :static-file from consideration by a2x -- or maybe not:
-   hopefully, ASDF 1.367 will have saner component-relative-pathname methods that don't
-   create crazy pathnames with dots in the name and a null type.
-
  * When identifying a file dependency,
    make the distinction between ``:source``, ``:object`` or ``:file``
    orthogonal to that between ``:lisp``, ``:fasl``, ``:image`` or ``:data``.

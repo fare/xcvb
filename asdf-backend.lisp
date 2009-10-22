@@ -138,8 +138,9 @@ Declare asd system as ASDF-NAME."
                                             :when (eq (type-of dep) 'lisp-grain)
                                             :collect (aname dep))
                         :for name = (and lisp (aname lisp))
-                        :for pathname = (and lisp (asdf-dependency-grovel::strip.lisp
-                                                   (enough-namestring (grain-pathname lisp))))
+                        :for pathname = (and lisp (asdf-dependency-grovel::strip-extension
+                                                   (enough-namestring (grain-pathname lisp))
+                                                   "lisp"))
                         :when includedp :collect
                         `(:file ,name
                                 ,@(unless (and (equal name pathname) (not (find #\/ name)))
