@@ -203,7 +203,7 @@ erroring out if some source of non-portability is found"
        (merge-pathnames path (truename *default-pathname-defaults*))))))
 
 (defun portable-namestring-prefix<= (x y)
-  (and (string-prefix<= x y)
+  (and (string-prefix-p x y)
        (or (= (length x) (length y))
            (eql #\/ (char y (length x))))))
 

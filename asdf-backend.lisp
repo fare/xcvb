@@ -124,7 +124,7 @@ Declare asd system as ASDF-NAME."
   (let ((prefix (strcat build "/")))
     (flet ((aname (x)
              (let ((n (fullname x)))
-               (if (string-prefix<= prefix n)
+               (if (string-prefix-p prefix n)
                  (subseq n (length prefix))
                  n))))
       `(asdf:defsystem ,(keywordify-asdf-name asdf-name)

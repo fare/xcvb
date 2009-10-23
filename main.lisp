@@ -142,6 +142,7 @@ for this version of XCVB.")))
   (throw :repl nil))
 
 (defun repl ()
+  (initialize-environment)
   #+sbcl (progn (sb-ext:enable-debugger) (sb-impl::toplevel-repl nil))
   #-(or sbcl) (error "REPL unimplemented"))
 
@@ -199,6 +200,7 @@ for this version of XCVB.")))
     (let ((tmp (or (v "TMP") (v "TMPDIR"))))
       (when tmp
         (setf *tmp-directory-pathname* (ensure-pathname-is-directory tmp)))))
+  (cl-launch::exclude-from-cache *lisp-implementation-directory*)
   (setf *print-pretty* nil))
 
 (defun interpret-command-line (args)

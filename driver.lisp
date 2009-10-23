@@ -48,6 +48,9 @@
 
 ;;; Initial implementation-dependent setup
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  ;; otherwise ACL 5.0 may crap out on ASDF dependencies,
+  ;; but even other implementations may have "fun" debugging.
+  (setf *print-readably* nil)
   #+gcl ;;; If using GCL, do some safety checks
   (flet ((bork (&rest args)
            (apply #'format *error-output* args)
@@ -67,7 +70,6 @@
     (require :sb-posix))
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
-  #+allegro (setf *print-readably* nil) ; otherwise ACL 5.0 may crap out on ASDF dependencies
   #+ecl (require 'cmp))
 
 

@@ -210,6 +210,9 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
+ * For manifests, don't list dependencies (they don't have an obvious meaning
+   in this context, and can get subtly out of order), list load-commands.
+
  * Have an option to load from the command-line all the (compile and load) dependencies
    of some builds or modules X1..Xn with all the dependencies of X1..Xn loaded,
    but none of X1..Xn.

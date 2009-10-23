@@ -24,7 +24,6 @@
    #:*lisp-implementation-directory*
    #:*lisp-flags*
    #:*xcvb-verbosity*
-   #:*search-path*
    #:*lisp-allow-debugger*
    #:*object-directory*
    #:*tmp-directory-pathname*
@@ -34,6 +33,10 @@
    #:*disable-cfasls*
    #:*xcvb-path*
    #:*loaded-grains*
+
+   ;;; String utilities
+   #:string-prefix-p
+   #:string-postfix-p
 
    ;;; I/O utilities
    #:slurp-stream-to-string
@@ -50,6 +53,10 @@
    #:run-program/read-output-form
    #:run-program/read-output-forms
 
+   ;; Magic strings
+   #:+xcvb-slave-greeting+
+   #:+xcvb-slave-farewell+
+
    ;;; Using an inferior XCVB
    #:load-grain #:load-grains
    #:build-and-load #:bnl))
@@ -59,11 +66,12 @@
 ;;; These variables are shared with XCVB itself.
 (defvar *lisp-implementation-type*
   (or #+sbcl :sbcl #+clisp :clisp #+ccl :ccl #+cmu :cmucl)
-  "Type of Lisp implementation for the target system.
+  "Type of Lisp implementation for the target system. A keyword.
   Default: same as XCVB itself.")
 
 (defvar *lisp-executable-pathname* nil
   "Path to the Lisp implementation to use for the target system.
+  NIL, or a string.
   Default: what's in your PATH.")
 
 (defvar *lisp-image-pathname* nil
@@ -78,7 +86,8 @@
 
 (defvar *lisp-flags* :default
   ;;; TODO: add support for overriding this feature at the command-line?
-  "What options do we need invoke the target Lisp with?")
+  "What options do we need invoke the target Lisp with?
+A list of strings, or the keyword :DEFAULT.")
 
 (defvar *disable-cfasls* nil
   "Should we disable CFASL support when the target Lisp has it?")
@@ -103,10 +112,13 @@
 
 ;;; These variables are specific to XCVB master.
 (defvar *xcvb-binary* "xcvb"
-  "Path to the XCVB binary")
+  "Path to the XCVB binary (a string)")
 
 (defvar *xcvb-path* nil
-  "XCVB Search path override")
+  "XCVB search path. A string.
+Will override the shell variable XCVB_PATH when calling slaves
+If you have a list of pathnames and namestrings, you can get a string with
+	(format nil \"~@{~A~^:~}\" search-path-as-list)")
 
 (defvar *xcvb-setup* nil
   "Lisp file to load to setup the target build system, if any")
@@ -115,6 +127,29 @@
   ;; Note that older versions are kept in the tail, documenting the load history,
   ;; without affecting the behavior of ASSOC on the alist.
   "an alist of fullname of the XCVB grains loaded in the current image, with tthsum")
+
+;;; Magic strings. Do not change. Constants, except we can't portably use defconstant here.
+(defvar +xcvb-slave-greeting+ #.(format nil "XCVB-SLAVE~%"))
+(defvar +xcvb-slave-farewell+ #.(format nil "~%Your desires are my orders~%"))
+
+;;; String utilities
+(defun string-prefix-p (prefix string)
+  (let* ((x (string prefix))
+         (y (string string))
+         (lx (length x))
+         (ly (length y)))
+    (and (<= lx ly) (string= x y :end2 lx))))
+
+(defun string-postfix-p (string postfix)
+  (let* ((x (string string))
+         (y (string postfix))
+         (lx (length x))
+         (ly (length y)))
+    (and (<= ly lx) (string= x y :start1 (- lx ly)))))
+
+(defun string-enclosed-p (prefix string postfix)
+  (and (string-prefix-p prefix string)
+       (string-postfix-p string postfix)))
 
 ;;; I/O utilities
 (defun copy-stream-to-stream (input output &key (element-type 'character))
@@ -276,23 +311,35 @@
      (base-image *use-base-image*)
      (verbosity *xcvb-verbosity*)
      profiling)
-  (let* ((forms
+  (let* ((slave-command
+          (append
+           (list xcvb-binary "slave-builder")
+           (string-options
+            build setup lisp-implementation verbosity)
+           (pathname-options
+            xcvb-path output-path object-directory lisp-binary-path)
+           (boolean-options
+            disable-cfasl base-image profiling)))
+         (slave-output
           (with-safe-io-syntax ()
-            (apply #'run-program/read-output-forms xcvb-binary "slave-builder"
-                   (append
-                    (string-options
-                     build setup lisp-implementation verbosity)
-                    (pathname-options
-                     xcvb-path output-path object-directory lisp-binary-path)
-                    (boolean-options
-                     disable-cfasl base-image profiling))))))
-    (unless (and forms (consp forms) (null (cdr forms))
-                 (consp (car forms)) (eq (caar forms) :xcvb))
-      (error "XCVB subprocess failed."))
-    (destructuring-bind (requires manifest) (cdar forms)
-      (map () #'require requires)
-      (let ((*xcvb-verbosity* (+ *xcvb-verbosity* 2)))
-        (load-grains manifest)))))
+            (apply #'run-program/read-output-string slave-command)))
+         (manifest
+          (progn
+            (unless (string-enclosed-p
+                     +xcvb-slave-greeting+ slave-output +xcvb-slave-farewell+)
+              (format *error-output*
+                     "Failed to execute a build slave.~
+			Slave command:~%  ~S~%~
+			Slave output:~%~A~%~
+			(If using SLIME, you might have output in your *inferior-lisp* buffer.)"
+                     slave-command slave-output)
+              (error "XCVB slave failed"))
+            (read-from-string
+             slave-output t nil
+             :start (length +xcvb-slave-greeting+)
+             :end (- (length slave-output) (length +xcvb-slave-farewell+)))))
+         (*xcvb-verbosity* (+ *xcvb-verbosity* 2)))
+    (load-grains manifest)))
 
 (defun bnl (build &rest keys &key
             xcvb-binary setup xcvb-path output-path object-directory

@@ -1019,7 +1019,7 @@ If you build an image, you can load it with::
 If you build an executable, you can have it offer a REPL like XCVB does
 (see the implementation of ``xcvb repl`` in ``xcvb/main.lisp``) and use::
 
-	C-u M-x slime env SBCL_HOME=/usr/lib/sbcl xcvb repl
+	C-u M-x slime xcvb repl
 
 You can then use ``C-c C-c`` to compile definitions you modify,
 or ``C-c C-k`` to compile whole files.

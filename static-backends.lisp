@@ -96,7 +96,7 @@
      nil)
     ((equal name "/_") ;; special: initial image
      (graph-for-image-grain env name nil nil))
-    ((string-prefix<= "/_pre/" name)
+    ((string-prefix-p "/_pre/" name)
      (let* ((build-name (subseq name 5))
             (build (registered-build build-name)))
        (check-type build build-grain)
