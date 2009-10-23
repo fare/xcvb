@@ -7,7 +7,7 @@
   "Properties of the target system")
 
 (defparameter *target-properties-variables*
-  '((*use-cfasls*
+  '((*has-cfasls*
      . "(or #+sbcl (and (find-symbol \"*EMIT-CFASL*\" \"SB-C\") t))")
     (*target-system-features*
      . "*features*")

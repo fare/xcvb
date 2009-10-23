@@ -75,3 +75,9 @@
   `(call-with-dependency-loading ,env ,grain (lambda () ,@body)))
 
 (define-simple-dispatcher graph-for #'graph-for-atom :generic)
+
+(defmethod traversed-load-commands ((env xcvb-traversal))
+  (reverse (traversed-load-commands-r env)))
+
+(defmethod load-command-issued-p ((env xcvb-traversal) command)
+  (values (gethash command (issued-load-commands env))))

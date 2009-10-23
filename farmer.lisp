@@ -101,3 +101,4 @@ waiting at this state of the world.")
 (defmethod dependency-already-included-p ((env farmer-traversal) grain)
   (or (gethash grain (included-dependencies env))
       (call-next-method)))
+

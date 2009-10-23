@@ -53,7 +53,7 @@ LISP_IMPL := $(shell ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_implementatio
 
 ifeq (${LISP_IMPL},sbcl)
   export SBCL_HOME:=$(shell ${LISP_BIN} \
-    --noinform --eval '(progn(princ(posix-getenv "SBCL_HOME"))(quit))')
+    --noinform --no-userinit --no-sysinit --eval '(progn(princ(posix-getenv "SBCL_HOME"))(quit))')
 endif
 
 ### Not needed by XCVB anymore since it's fully bootstrapped, but that's how

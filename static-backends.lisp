@@ -28,12 +28,6 @@
     (setf (gethash command (issued-load-commands env)) t)
     (push command (traversed-load-commands-r env))))
 
-(defmethod traversed-load-commands ((env static-traversal))
-  (reverse (traversed-load-commands-r env)))
-
-(defmethod load-command-issued-p ((env static-traversal) command)
-  (values (gethash command (issued-load-commands env))))
-
 (defun graph-for-compiled (env spec)
   (graph-for env (compiled-dependency spec)))
 
@@ -258,7 +252,7 @@
              (:load ,(append
                       (setup-dependencies-before-fasl fullname)
                       (mapcar #'remove-load-file (traversed-load-commands env))))
-             (:compile-file-directly ,fullname (second outputs)))))
+             (:compile-file-directly ,fullname ,(second outputs)))))
         outputs))))
 
 (defun remove-load-file (x)

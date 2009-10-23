@@ -8,7 +8,7 @@ LISP_SOURCE ?= ${INSTALL_LISP}/source
 LISP_SYSTEMS ?= ${INSTALL_LISP}/systems
 
 ifeq (${LISP},sbcl)
-  XSH=$(shell echo SBCL_HOME="$$(sbcl --noinform --eval '(progn(princ(sb-ext:posix-getenv "SBCL_HOME"))(quit))')")
+  XSH=$(shell echo SBCL_HOME="$$(sbcl --noinform --no-userinit --no-sysinit --eval '(progn(princ(sb-ext:posix-getenv "SBCL_HOME"))(quit))')")
 else
   XSH=
 endif
