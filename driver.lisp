@@ -571,7 +571,8 @@ This is designed to abstract away the implementation specific quit forms."
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 (defun posix-waitpid-options (&key nohang untraced)
-  (logior (if nohang #$WNOHANG 0) (if untraced #$WUNTRACED))))
+  (logior (if nohang #.(read-from-string "#$WNOHANG") 0)
+          (if untraced #.(read-from-string "#$WUNTRACED") 0))))
 
 (defun posix-waitpid (pid options)
   (ccl::rlet ((status :signed))
