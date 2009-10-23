@@ -98,7 +98,9 @@
 
 (defun evaluate-condition-atom (env atom)
   (declare (ignore env))
-  (error "Invalid condition ~S" atom))
+  (if (typep atom 'boolean)
+    atom
+    (error "Invalid condition ~S" atom)))
 
 (define-evaluate-condition :featurep (env feature-expression)
   (evaluate-featurep env feature-expression))

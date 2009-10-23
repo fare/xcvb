@@ -13,13 +13,7 @@
 ;; Unit of build: a file, a process, etc.
 (defclass grain (simple-print-object-mixin)
   ((fullname
-    :accessor fullname)
-   (parent
-    :accessor grain-parent
-    :documentation "parent build.xcvb file for this grain")
-   (relative-name
-    :accessor grain-relative-name
-    :documentation "name relative to the parent"))
+    :accessor fullname))
   (:documentation "Unit of abstract state intent"))
 
 (defclass buildable-grain (grain)
@@ -108,7 +102,10 @@
   (:documentation "documented file grain"))
 
 (defclass lisp-grain (documented-file-grain)
-  ((compile-depends-on
+  ((parent
+    :accessor grain-parent
+    :documentation "parent build.xcvb file for this grain")
+   (compile-depends-on
     :initform nil
     :initarg :compile-depends-on)
    (depends-on

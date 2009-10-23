@@ -68,8 +68,7 @@
 (defmethod compute-fullname ((grain build-grain))
   (if (specified-fullname grain)
     (setf (fullname grain) (canonicalize-fullname (specified-fullname grain))
-          (grain-parent grain) nil
-          (grain-relative-name grain) nil)
+          (grain-parent grain) nil)
     (compute-inherited-fullname grain :build-p t))
   (values))
 
@@ -94,7 +93,6 @@
                  (if ancestor
                      (let ((relname (join-strings "/" subnames)))
                        (setf (grain-parent grain) ancestor
-                             (grain-relative-name grain) relname
                              (fullname grain) (strcat (fullname ancestor) "/" relname)))
                      (recurse rdir subnames))))
              (recurse (rdir subnames)

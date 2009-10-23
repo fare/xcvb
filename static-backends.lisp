@@ -10,14 +10,6 @@
     :initform (make-hashset :test 'equal)
     :accessor included-dependencies
     :documentation "dependencies included in the image used by current computation, as a set")
-   (issued-dependencies
-    :initform (make-hashset :test 'equal)
-    :accessor issued-dependencies
-    :documentation "dependencies issued as part of current computation, as a set")
-   (dependencies-r
-    :initform nil
-    :accessor traversed-dependencies-r
-    :documentation "dependencies issued as part of the current computation, in reverse order")
    (issued-load-commands
     :initform (make-hashset :test 'equal)
     :accessor issued-load-commands
@@ -204,6 +196,7 @@
 (defun make-source-grain (&key name in)
   (make-instance
    'source-grain
+   :computation nil
    :name name
    :in in
    :fullname `(:source ,name :in ,in)))

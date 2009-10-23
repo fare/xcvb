@@ -210,6 +210,12 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
+ * Have an option to load from the command-line all the (compile and load) dependencies
+   of some builds or modules X1..Xn with all the dependencies of X1..Xn loaded,
+   but none of X1..Xn.
+
+ * when cload'ing a build, only load the cload-deps of the build?
+
  * Complete the farmer.
 
  * Hack SBCL to remove path and date location from debug information, and/or

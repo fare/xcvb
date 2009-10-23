@@ -38,7 +38,7 @@ top of a source file"
      ,@(handle-slots '(author maintainer version licence description long-description))
      ,@(with-slots (load-depends-on compile-depends-on depends-on) grain
          (if (equivalent-deps-p grain)
-             `(:depends-on ,load-depends-on)
+             (when load-depends-on `(:depends-on ,load-depends-on))
              `(:compile-depends-on ,compile-depends-on
                :load-depends-on load-depends-on)))
      ,@(when (build-grain-p grain) (handle-slots '(build-depends-on supersedes-asdf))))
