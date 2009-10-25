@@ -2,9 +2,6 @@
 #+xcvb (module (:depends-on ("registry" "specials" "portablish-pathnames")))
 (in-package :xcvb)
 
-(defvar *search-path-searched-p* nil
-  "Did we search the search path?")
-
 (defun default-search-path ()
   (list
    *default-pathname-defaults*
@@ -94,7 +91,8 @@
   ;; TODO: profile it and fix SBCL.
   #-sbcl
   (directory (merge-pathnames +all-builds-path+ root)
-                    #+sbcl #+sbcl :resolve-symlinks nil)
+                    #+sbcl #+sbcl :resolve-symlinks nil
+                    #+clisp #+clisp :circle t)
   #+sbcl
   (run-program/read-output-lines
    (list "find" "-H" (escape-shell-token (namestring root)) "-type" "f" "-name" "build.xcvb")))

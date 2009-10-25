@@ -74,7 +74,7 @@ update:
 	for i in xcvb dependencies/asdf dependencies/asdf-dependency-grovel \
 		dependencies/cl-launch dependencies/command-line-arguments \
 		dependencies/poiu ; do \
-	  (echo -n "Updating $$i... " ; cd $$i ; git pull) ; \
+	  (echo -n "Updating $$i... " ; cd $$i ; git pull origin master:master) ; \
 	done ; \
 	(echo -n "Updating dependencies/closer-mop... " ; cd dependencies/closer-mop ; \
 	darcs pull -a )

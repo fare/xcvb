@@ -34,6 +34,7 @@
   (graph-for env (compiled-dependency spec)))
 
 (defmethod graph-for-atom (env name)
+  (declare (ignore env))
   (error "invalid normalized dependency ~S" name))
 
 (defun include-image-dependencies (env image)
@@ -77,6 +78,7 @@
   (graph-for-build-grain env (registered-build name)))
 
 (defmethod graph-for-build-grain :before (env (grain build-grain))
+  (declare (ignore env))
   (handle-lisp-dependencies grain))
 
 (defmethod graph-for-build-grain ((env static-traversal) (grain build-grain))

@@ -69,8 +69,6 @@
   (error "handle-extension-form-atom: Extension form ~a is invalid.  Only currently support :generate extension form."
 	 extension-form))
 
-(defparameter *generators* (make-hash-table :test 'equal))
-
 (defclass generator (simple-print-object-mixin)
   ((target-grain :initarg :targets :reader generator-targets) ;; generated-grains
    (dependencies :initarg :dependencies :reader generator-dependencies) ;; generated-to-generator

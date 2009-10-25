@@ -327,12 +327,15 @@ will create the desired content. An atomic rename() will have to be performed af
     (values (escape-shell-token-for-Makefile pathname) pathname)))
 
 (defmethod grain-pathname-text (env (grain asdf-grain))
-  nil)
+  (declare (ignore env grain))
+  "")
 
 (defmethod grain-pathname-text (env (grain require-grain))
-  nil)
+  (declare (ignore env grain))
+  "")
 
 (defmethod grain-pathname-text (env (grain phony-grain))
+  (declare (ignore env))
   (let ((n (normalize-name-for-makefile (princ-to-string (fullname grain)))))
     (pushnew n *makefile-phonies* :test 'equal)
     n))

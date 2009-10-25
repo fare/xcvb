@@ -76,3 +76,24 @@ Negatives are stored as NIL. Positives as grains.")
 
 (defvar *use-master* t
   "Should we use the XCVB master?")
+
+(defparameter *generators* (make-hash-table :test 'equal)
+  "Table of generators declared in :generate forms")
+
+(defparameter *grains*
+  (make-hash-table :test 'equal)
+  "A registry of known grains,
+indexed by normalized name, either fullname of a module,
+nickname, or SEXP representing a computed entity.
+Initially populated with all build.xcvb files from the search path,
+then enriched as we build the graph from the main build.xcvb file.")
+
+(defparameter *superseded-asdf*
+  (make-hash-table :test 'equalp)
+  "ASDF systems that have been superseded")
+
+(defvar *search-path-searched-p* nil
+  "Did we search the search path?")
+
+(defvar *computations* ()
+  "A list of all the computations created")

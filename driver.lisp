@@ -11,6 +11,7 @@
   :build-depends-on nil))
 
 ;;; Hush!
+#+debug
 (cl:eval-when (:compile-toplevel :load-toplevel :execute)
   (cl:setf cl:*load-verbose* () cl:*load-print* ()
            cl:*compile-verbose* () cl:*compile-print* ()))
@@ -142,10 +143,10 @@
   (cond
     (debug
      #+sbcl (sb-ext:enable-debugger)
-     #+clisp (ext:set-global-handler #'invoke-debugger))
+     #+clisp (ext:set-global-handler 'serious-condition #'invoke-debugger))
     (t
      #+sbcl (sb-ext:disable-debugger)
-     #+clisp (ext:set-global-handler #'bork)))
+     #+clisp (ext:set-global-handler 'serious-condition #'bork)))
   (values))
 
 ;;; Profiling
@@ -507,17 +508,6 @@ This is designed to abstract away the implementation specific quit forms."
     (do-create-image image dependencies
                      :standalone standalone :package package)))
 
-;;; Support for forking listeners
-(defun process-result (status result-pipe)
-  (prog1
-      (if (= 0 (posix-wexitstatus status))
-        (read result-pipe nil nil)
-        *failed-process-result*)
-    (close result-pipe)))
-
-(defun process-return (proc result)
-  (prin1 result (status-pipe proc)))
-
 #+sbcl ;;; SBCL specific fork support
 (progn
 ;; Simple heuristic: if we have allocated more than the given ratio
@@ -590,6 +580,36 @@ This is designed to abstract away the implementation specific quit forms."
 
 );#+clozure
 
+#+clisp ;;; CLISP specific fork support
+(progn
+
+(defun posix-fork ()
+  (linux:fork))
+
+(defun posix-close (x)
+  (linux:close x))
+
+(defun posix-setpgrp ()
+  (posix:setpgrp))
+
+(defun posix-waitpid (pid options)
+  (multiple-value-list (apply #'linux:wait :pid pid options)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+(defun posix-waitpid-options (&rest keys &key nohang untraced)
+  (declare (ignore nohang untraced))
+  keys))
+
+(defun posix-wexitstatus (x)
+  (if (eq :exited (second x))
+    (third x)
+    (cons (second x) (third x))))
+
+(defun posix-pipe ()
+  (linux:pipe))
+
+);#+clisp
+
 (defun xdelete (sequence item &rest keys)
   (apply #'delete item sequence keys))
 (define-modify-macro deletef (item &rest keys)
@@ -631,8 +651,8 @@ This is designed to abstract away the implementation specific quit forms."
   (unwind-protect
        (progn
          (funcall thunk)
-         (posix-exit 0))
-    (posix-exit 99)))
+         (quit 0))
+    (quit 99)))
 
 (defun spawn-fork (in-fork &optional (reaper (constantly nil)))
   (finish-outputs)

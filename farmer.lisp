@@ -16,7 +16,7 @@
 
 (defun mkfifo (pathname mode)
   #+sbcl (sb-posix:mkfifo pathname mode)
-  #+clozure (ccl::with-filename-cstrs ((p pathname))(#_mkfifo p mode))
+  #+clozure (ccl::with-filename-cstrs ((p pathname))(#.(read-from-string "#_mkfifo") p mode))
   #+clisp (LINUX:mkfifo pathname mode)
   #-(or sbcl clozure clisp) (error "mkfifo not implemented for your Lisp"))
 

@@ -5,9 +5,6 @@
 (defclass computation () ())
 (defclass computation-type () ())
 
-(defvar *computations* ()
-  "A list of all the computations created")
-
 ;;(defparameter *computations-inputing-grain*
 ;;  (make-hash-table :test 'equal)
 ;;  "hash mapping each grain to a list of computations that take said grain as input")

@@ -2,7 +2,7 @@
 
 #+xcvb
 (module (:depends-on
-         ("macros"
+         ("specials" "macros"
           (:when (:featurep :sbcl)
             (:require :sb-posix)))))
 
@@ -138,13 +138,15 @@ for this version of XCVB.")))
 (defun repl-command (args)
   (unless (null args)
     (error "repl doesn't take any argument"))
-  #-(or sbcl) (error "REPL unimplemented")
+  #-(or sbcl clisp) (error "REPL unimplemented")
   (throw :repl nil))
 
 (defun repl ()
   (initialize-environment)
   #+sbcl (progn (sb-ext:enable-debugger) (sb-impl::toplevel-repl nil))
-  #-(or sbcl) (error "REPL unimplemented"))
+  #+clisp (progn (ext:set-global-handler t 'invoke-debugger)
+                 (system::main-loop))
+  #-(or sbcl clisp) (error "REPL unimplemented"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Remove XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

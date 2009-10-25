@@ -1,21 +1,10 @@
 ;;;;; Registry mapping names to grains, particularly BUILD files.
-#+xcvb (module (:depends-on ("portablish-pathnames" "grains")))
+#+xcvb (module (:depends-on ("portablish-pathnames" "grains" "specials")))
 
 (in-package :xcvb)
 
 
 ;;; The registry itself
-
-(defparameter *grains*
-  (make-hash-table :test 'equal)
-  "A registry of known grains,
-indexed by normalized name, either fullname of a module,
-nickname, or SEXP representing a computed entity.
-Initially populated with all build.xcvb files from the search path,
-then enriched as we build the graph from the main build.xcvb file.")
-
-(defparameter *superseded-asdf*
-  (make-hash-table :test 'equalp))
 
 (defun registered-grain (name)
   (gethash name *grains*))
