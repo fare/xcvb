@@ -27,7 +27,7 @@ enforced locally-declared dependencies.
     3  Restrictions on your Lisp Code
       3.1  Compile-time side-effects
       3.2  Full library needed at compile-time
-      3.3  Optimization settings
+      3.3  Optimization Settings
     4  Combining Multiple Projects
       4.1  Module Full Names
       4.2  Search Path
@@ -51,6 +51,8 @@ enforced locally-declared dependencies.
       7.5  ASDF extensions without XCVB equivalent
       7.6  Undoing a conversion to XCVB
       7.7  Fast non-enforcing builds using POIU
+    8  Frequently Asked Questions
+      8.1  Why can't module declarations be moved to a central file?
 
 
 About XCVB
@@ -1397,3 +1399,40 @@ while getting the flexibility, safety and maintainability that XCVB brings.
 Finally, note that POIU only supports SBCL and CCL at this time.
 If you are using another implementation, you should either use ASDF
 or extend POIU to support your implementation.
+
+
+Frequently Asked Questions
+==========================
+
+Why can't module declarations be moved to a central file?
+---------------------------------------------------------
+
+The reason why there needs be a module in every file is that
+(at least in the current version of XCVB) is that we build using Make,
+which uses change detection at the file resolution (using timestamps),
+to determine whether or not to recompile object files.
+
+The failure scenario is what happens when you modify the dependencies
+of a Lisp file in a way that changes its semantics
+(e.g. a missing macro, special-variable or package declaration, etc.,
+may cause an error in one case, not the other).
+If you want reliable deterministic compilation (the goal of XCVB),
+then you want to recompile any time such dependency modification happens.
+If you put all the dependencies in a central file, then
+whenever the central file is modified because a new file
+was added or its dependencies modified,
+then everything will have to be recompiled.
+Or if you may trust modifications to the central file to not matter,
+and experience subtle failures.
+
+Note that recompiling based on file-contents instead of file timestamp
+would have the same issue. The issue is the resolution of change detection.
+The solution that would allow to reconcile reliable incremental compilation
+with a centralized dependency definition is what in the XCVB TODO file
+I called "Exploded File Dependencies": for the sake of detecting changes,
+explode the centralized dependency file into one file per Lisp module,
+with each per-module exploded bit containing all the dependency information
+about that module, and only that information. It's by no means impossible,
+but it's just something painful and non-trivial that hasn't shown anywhere
+near the top of my TODO list yet.
+

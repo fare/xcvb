@@ -4,6 +4,7 @@
 (module (:depends-on
          ("specials" "macros"
           (:when (:featurep :sbcl)
+            (:require :sb-grovel)
             (:require :sb-posix)))))
 
 (in-package :xcvb)
@@ -138,16 +139,29 @@ for this version of XCVB.")))
 (defun repl-command (args)
   (unless (null args)
     (error "repl doesn't take any argument"))
-  #-(or sbcl clisp) (error "REPL unimplemented")
+  (initialize-environment)
+  (xcvb-driver:debugging)
+  #+clisp (setf *standard-input* *terminal-io*)
   (throw :repl nil))
 
 (defun repl ()
-  (initialize-environment)
-  #+sbcl (progn (sb-ext:enable-debugger) (sb-impl::toplevel-repl nil))
-  #+clisp (progn (ext:set-global-handler t 'invoke-debugger)
-                 (system::main-loop))
-  #-(or sbcl clisp) (error "REPL unimplemented"))
-
+  (let (/ // /// * ** *** + ++ +++ -)
+    #+sbcl (sb-impl::toplevel-repl nil)
+    #-sbcl (loop (rep))))
+(defun prompt ()
+  (format nil "~A> " (package-name *package*)))
+(defun rep ()
+  (let ((eof '#:eof))
+    (format t "~&")
+    (write-string (prompt))
+    (xcvb-driver:finish-outputs)
+    (setf - (read nil nil eof))
+    (when (eq - eof) (exit 0))
+    (psetf / (multiple-value-list (eval -)) // / /// //)
+    (psetf * (car /) ** * *** **)
+    (psetf + - ++ + +++ ++)
+    (format t "~{~S~^ ;~%~}" /)
+    (xcvb-driver:finish-outputs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Remove XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -192,7 +206,8 @@ for this version of XCVB.")))
               (interpret-command-line
                (command-line-arguments:get-command-line-arguments))
               0))))
-    (repl))
+  (quit (catch :exit
+    (repl))))
 
 (defun initialize-environment ()
   #+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))

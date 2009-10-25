@@ -2,7 +2,9 @@
 (module
  (:depends-on
   ("macros"
-   (:when (:featurep :sbcl) (:require :sb-posix)))))
+   (:when (:featurep :sbcl)
+     (:require :sb-grovel)
+     (:require :sb-posix)))))
 
 (in-package :xcvb)
 

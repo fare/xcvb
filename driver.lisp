@@ -138,10 +138,10 @@
   (cond
     (debug
      #+sbcl (sb-ext:enable-debugger)
-     #+clisp (ext:set-global-handler 'serious-condition #'invoke-debugger))
+     #+clisp (ext:set-global-handler 'error #'invoke-debugger))
     (t
      #+sbcl (sb-ext:disable-debugger)
-     #+clisp (ext:set-global-handler 'serious-condition #'bork)))
+     #+clisp (ext:set-global-handler 'error #'bork)))
   (values))
 
 ;;; Profiling
