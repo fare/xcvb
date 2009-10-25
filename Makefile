@@ -85,7 +85,7 @@ XCVB_INIT :=	--init "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCV
 xcvb-bootstrapped-install:
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image \
-		$(call CL_LAUNCH_MODE_standalone,xcvb) \
+		$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb) \
 		${XCVB_INIT}
 
 ## If you don't have XCVB, but have a cl-launch with properly ASDF setup in configure.mk,

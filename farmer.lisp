@@ -13,7 +13,6 @@
 2- equal-hash that!
 |#
 
-
 (defun mkfifo (pathname mode)
   #+sbcl (sb-posix:mkfifo pathname mode)
   #+clozure (ccl::with-filename-cstrs ((p pathname))(#.(read-from-string "#_mkfifo") p mode))
