@@ -2,14 +2,6 @@
 #+xcvb (module (:depends-on ("registry" "specials" "extract-target-properties")))
 (in-package :xcvb)
 
-;;; Module forms
-
-(defmacro module (&rest options)
-  ;; Make sure that module declarations don't have an effect when compiled,
-  ;; only when read by XCVB.
-  (declare (ignore options))
-  nil)
-
 (defun parse-module-declaration (form &key path build-p)
   "Takes a module declaration FORM and returns a grain object for that module."
   (unless (module-form-p form)
@@ -19,10 +11,6 @@
            :pathname path :extension-forms extension-forms
            :computation nil
            keys)))
-
-(defun target-system-features ()
-  (get-target-properties)
-  *target-system-features*)
 
 (defun grain-from-file-declaration (path &key build-p)
   (parse-module-declaration
@@ -38,8 +26,6 @@
        (listp (cadr form))))
 
 ;;; Lisp Grains
-
-(defgeneric handle-lisp-dependencies (grain))
 
 (defmethod handle-lisp-dependencies ((grain lisp-grain))
   (unless (slot-boundp grain 'load-dependencies) ;; Only do it once
@@ -239,13 +225,68 @@
   nil)
 (defmethod grain-computation ((grain require-grain))
   nil)
+
+;;
 (defmethod build-dependencies ((grain fasl-grain))
   nil)
 (defmethod build-dependencies ((grain cfasl-grain))
   nil)
 
+(defun lisp-grain-p (x)
+  (typep x 'lisp-grain))
+
+(defun build-grain-p (x)
+  (typep x 'build-grain))
+
+(defun asdf-grain-p (x)
+  (typep x 'asdf-grain))
+
+(defun require-grain-p (x)
+  (typep x 'require-grain))
+
+(defun image-grain-p (x)
+  (typep x 'image-grain))
+
+(defun world-grain-p (x)
+  (typep x 'world-grain))
+
+(defun coerce-asdf-system-name (name)
+  "This function take the name of an asdf-system, and
+converts it to a string representation that can universally be used to refer to that system.
+Modeled after the asdf function coerce-name"
+  (string-downcase
+   (typecase name
+     #+asdf (asdf:component (asdf:component-name name))
+     (symbol (symbol-name name))
+     (string name)
+     (asdf-grain (asdf-grain-system-name name))
+     (t (simply-error 'syntax-error "~@<invalid asdf system designator ~A~@:>" name)))))
+
 (defmethod print-object ((x grain) stream)
   (if (member (type-of x) *print-concisely*)
-      (print-unreadable-object (x stream :type t :identity nil)
-        (format stream "~S" (slot-value x 'fullname)))
-      (call-next-method)))
+    (print-unreadable-object (x stream :type t :identity nil)
+      (format stream "~S" (slot-value x 'fullname)))
+    (call-next-method)))
+
+(defmethod included-dependencies ((image image-grain))
+  (included-dependencies (image-world image)))
+(defmethod (setf included-dependencies) (hashset (image image-grain))
+  (setf (included-dependencies (image-world image)) hashset))
+(defmethod image-setup ((image image-grain))
+  (image-setup (image-world image)))
+(defmethod build-commands-r ((image image-grain))
+  (build-commands-r (image-world image)))
+(defmethod image-setup ((world world-grain))
+  (getf (cdr (fullname world)) :setup))
+(defmethod build-commands-r ((world world-grain))
+  (getf (cdr (fullname world)) :commands-r))
+
+(defun canonicalize-image-setup (setup)
+  (destructuring-bind (&key image load) setup
+    (append
+     (when image `(:image image))
+     (when load `(:load load)))))
+
+(defun fullname-pathname (fullname)
+  (grain-pathname (registered-grain fullname)))
+

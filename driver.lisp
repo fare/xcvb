@@ -39,7 +39,7 @@
 ;;; Optimization settings
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *optimization-settings*
-    '(optimize (speed 1) (safety 2) (compilation-speed 0) (debug 3)
+    '(optimize (speed 1) (safety 3) (compilation-speed 0) (debug 3)
       #+sbcl (sb-ext:inhibit-warnings 3)
       ;; These should ensure all tail calls are optimized, says jsnell:
       #+sbcl (sb-c::merge-tail-calls 3) #+sbcl (sb-c::insert-debug-catch 0)
@@ -67,6 +67,7 @@
   #+sbcl
   (progn
     (proclaim '(sb-ext:muffle-conditions sb-ext:compiler-note))
+    (require :sb-grovel)
     (require :sb-posix))
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)

@@ -39,7 +39,8 @@
    #:string-postfix-p
 
    ;;; I/O utilities
-   #:slurp-stream-to-string
+   #:slurp-stream-string
+   #:slurp-stream-lines
    #:copy-stream-to-stream
    #:copy-stream-to-stream-line-by-line
    #:read-many
@@ -123,10 +124,11 @@ If you have a list of pathnames and namestrings, you can get a string with
 (defvar *xcvb-setup* nil
   "Lisp file to load to setup the target build system, if any")
 
-(defvar *loaded-grains* nil
-  ;; Note that older versions are kept in the tail, documenting the load history,
+(defvar *manifest* nil
+  ;; Note that older versions are kept in the tail, documenting the command history,
   ;; without affecting the behavior of ASSOC on the alist.
-  "an alist of fullname of the XCVB grains loaded in the current image, with tthsum")
+  "an alist of the XCVB load commands executed in this image,
+with associated pathnames and tthsums.")
 
 ;;; Magic strings. Do not change. Constants, except we can't portably use defconstant here.
 (defvar +xcvb-slave-greeting+ #.(format nil "XCVB-SLAVE~%"))
@@ -169,9 +171,13 @@ If you have a list of pathnames and namestrings, you can get a string with
           (finish-output output)
           (when eof (return)))))
 
-(defun slurp-stream-to-string (input)
+(defun slurp-stream-string (input)
   (with-output-to-string (output)
     (copy-stream-to-stream input output :element-type 'character)))
+
+(defun slurp-stream-lines (input)
+  (loop :for l = (read-line input nil nil)
+    :while l :collect l))
 
 (defun read-many (s)
   (loop :with eof = '#:eof
@@ -193,14 +199,20 @@ If you have a list of pathnames and namestrings, you can get a string with
     (with-open-file (in filepath)
       (read in nil nil))))
 
+#+sbcl
+(defun run-program* (&rest args) ;; FIX THAT BUG WITH posix-environ!
+  (let ((sb-alien::*default-c-string-external-format* :iso-8859-1))
+    (apply #'sb-ext:run-program args)))
+    
 ;;; Simple variant of run-program with no input, and capturing output
-(defun run-program/process-output-stream (command arguments output-processor)
+(defun run-program/process-output-stream (command output-processor
+                                          &key ignore-error-status)
     #+(or clozure sbcl cmu scl clisp)
     (let* ((process
-            (#+sbcl sb-ext:run-program
+            (#+sbcl run-program*
              #+(or cmu scl clisp) ext:run-program
              #+clozure ccl:run-program
-             command #-clisp arguments #+clisp :arguments #+clisp arguments
+             (car command) #+clisp :arguments (cdr command)
              :input nil :output :stream
              #+(or sbcl cmu scl) :error #+(or sbcl cmu scl) t
              :wait nil
@@ -224,56 +236,56 @@ If you have a list of pathnames and namestrings, you can get a string with
                 #+(or cmu scl) ext:process-exit
                 #+clozure (lambda (p) (nth-value 1 (ccl:external-process-status p)))
                 process)))
-          (unless (zerop return-code)
+          (unless (or ignore-error-status (zerop return-code))
             (cerror "ignore error code~*~*"
-                    "Process ~S exited with error code ~D" (cons command arguments) return-code)))))
+                    "Process ~S exited with error code ~D"
+                    command return-code)))))
     #-(or sbcl cmu scl clozure clisp)
     (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp"))
 
-(defun run-program/read-output-lines (command &rest args)
-  (run-program/process-output-stream
-   command args
-   (lambda (stream)
-     (loop :for l = (read-line stream nil nil)
-       :while l :collect l))))
+(defun run-program/read-output-lines (command &rest keys)
+  (apply #'run-program/process-output-stream command
+         #'slurp-stream-lines keys))
 
-(defun run-program/read-output-string (command &rest args)
-  (run-program/process-output-stream
-   command args #'slurp-stream-to-string))
+(defun run-program/read-output-string (command &rest keys)
+  (apply #'run-program/process-output-stream command
+         #'slurp-stream-string keys))
 
-(defun run-program/read-output-form (command &rest args)
-  (run-program/process-output-stream command args #'read))
+(defun run-program/read-output-form (command &rest keys)
+  (apply #'run-program/process-output-stream command
+         #'read keys))
 
-(defun run-program/read-output-forms (command &rest args)
-  (run-program/process-output-stream command args #'read-many))
+(defun run-program/read-output-forms (command &rest keys)
+  (apply #'run-program/process-output-stream command
+         #'read-many keys))
 
 ;;; Maintaining memory of which grains have been loaded in the current image.
-(defun load-grain (&key command fullname tthsum pathname &allow-other-keys)
+(defun process-manifest-entry (&key command tthsum pathname &allow-other-keys)
   ;; also source source-tthsum source-pathname
-  (unless (and tthsum (equal tthsum (cdr (assoc fullname *loaded-grains* :test #'equal))))
+  (unless (and tthsum (equal tthsum (cdr (assoc command *manifest* :test #'equal))))
+    (when (>= *xcvb-verbosity* 7)
+      (format *error-output* "~&Executing XCVB command ~S ~@[from ~S (tthsum: ~A)~]~%"
+              command pathname tthsum))
     (cond
-      (command
-       (when (>= *xcvb-verbosity* 7)
-         (format *error-output* "~&Executing xcvb-driver command ~S~%" command))
-       ;; the driver better be loaded by the time any command is issued
-       (funcall (find-symbol "RUN-COMMAND" :xcvb-driver) command))
+      (pathname
+       (assert (and (consp command) (eq :load-file (car command))
+                    (consp (cdr command)) (null (cddr command))))
+       (load pathname))
       (t
-       (when (>= *xcvb-verbosity* 7)
-         (format *error-output* "~&Loading grain ~S (tthsum: ~A) from ~S~%"
-                 fullname tthsum pathname))
-       (load pathname)))
-    (push (cons fullname tthsum) *loaded-grains*)))
-(defun load-grains (manifest)
-  (dolist (grain-spec manifest) (apply #'load-grain grain-spec)))
+       ;; the driver better be loaded by the time any command is issued
+       (funcall (find-symbol "RUN-COMMAND" :xcvb-driver) command)))
+    (push (cons command tthsum) *manifest*)))
+(defun process-manifest (manifest)
+  (dolist (entry manifest) (apply #'process-manifest-entry entry)))
 
 ;;; Extend XCVB driver
 (defun initialize-manifest (pathname)
   "XCVB driver extension to initialize the manifest for an image"
-  (assert (not *loaded-grains*))
-  (setf *loaded-grains* (read-first-file-form pathname)))
+  (assert (not *manifest*))
+  (setf *manifest* (read-first-file-form pathname)))
 (defun load-manifest (pathname)
   "XCVB driver extension to load a list of files from a manifest"
-  (load-grains (read-first-file-form pathname)))
+  (process-manifest (read-first-file-form pathname)))
 
 ;;; Simplifying options for XCVB invocation
 (defun string-option-arguments (string value)
@@ -322,11 +334,12 @@ If you have a list of pathnames and namestrings, you can get a string with
             disable-cfasl base-image profiling)))
          (slave-output
           (with-safe-io-syntax ()
-            (apply #'run-program/read-output-string slave-command)))
+            (run-program/read-output-string slave-command :ignore-error-status t)))
          (manifest
           (progn
-            (unless (string-enclosed-p
-                     +xcvb-slave-greeting+ slave-output +xcvb-slave-farewell+)
+            (unless (and slave-output
+                         (string-enclosed-p
+                          +xcvb-slave-greeting+ slave-output +xcvb-slave-farewell+))
               (format *error-output*
                      "Failed to execute a build slave.~
 			Slave command:~%  ~S~%~
@@ -339,7 +352,7 @@ If you have a list of pathnames and namestrings, you can get a string with
              :start (length +xcvb-slave-greeting+)
              :end (- (length slave-output) (length +xcvb-slave-farewell+)))))
          (*xcvb-verbosity* (+ *xcvb-verbosity* 2)))
-    (load-grains manifest)))
+    (process-manifest manifest)))
 
 (defun bnl (build &rest keys &key
             xcvb-binary setup xcvb-path output-path object-directory

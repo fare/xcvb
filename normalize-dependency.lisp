@@ -198,17 +198,20 @@ in the normalized dependency mini-language"
 (defun compile-time-fasl-type ()
   (if *use-cfasls* :cfasl :fasl))
 
-(defun fasl-grains-for-name (fullname
-                             load-dependencies cload-dependencies
-                             build-dependencies)
-  (cons (make-grain 'fasl-grain
-                    :fullname `(:fasl ,fullname)
-                    :load-dependencies (append build-dependencies load-dependencies))
-        (if *use-cfasls*
-            (list (make-grain 'cfasl-grain
-                              :fullname `(:cfasl ,fullname)
-                              :load-dependencies (append build-dependencies cload-dependencies)))
-            nil)))
+(defun fasl-grains-for-name (env fullname
+                             load-dependencies cload-dependencies build-dependencies)
+  (flet ((m (class name deps)
+           (make-grain
+            class
+            :fullname name
+            :pathname (dependency-pathname env name)
+            :load-dependencies deps)))
+    (cons (m 'fasl-grain `(:fasl ,fullname) (append build-dependencies load-dependencies))
+          (if *use-cfasls*
+              (list (m 'cfasl-grain
+                       `(:cfasl ,fullname)
+                       (append build-dependencies cload-dependencies)))
+              nil))))
 
 (defun cfasl-for-fasl (fasl-grain)
   (check-type fasl-grain fasl-grain)

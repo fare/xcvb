@@ -1,19 +1,26 @@
 #+xcvb (module (:depends-on ("utilities" "conditions")))
 
-(in-package :xcvb)
+;;; TODO: rename this to "grain-interface"
+;;; rename "lisp-grain" to "grain-implementation" or something.
 
+(in-package :xcvb)
 
 ;;; A few generic functions
 (defgeneric fullname (grain))
 (defgeneric specified-fullname (grain))
 
+(defgeneric image-setup (env))
+(defgeneric build-commands-r (env))
+(defgeneric included-dependencies (env))
+(defgeneric (setf included-dependencies) (value env))
+(defgeneric handle-lisp-dependencies (grain))
+(defgeneric object-namestring (env fullname &optional merge))
 
 ;;; Define grains.
 
 ;; Unit of build: a file, a process, etc.
 (defclass grain (simple-print-object-mixin)
-  ((fullname
-    :accessor fullname))
+  ()
   (:documentation "Unit of abstract state intent"))
 
 (defclass buildable-grain (grain)
@@ -38,26 +45,39 @@
   ()
   (:documentation "Files and other persistent data grain"))
 
-(defclass transient-grain (grain)
-  ()
-  (:documentation "Active computational grain"))
-
 (defclass named-grain (grain)
   ((fullname
     :initarg :fullname
-    :reader fullname)))
+    :accessor fullname)))
+
+(defclass world-grain (named-grain)
+  ;; the fullname a plist of the form
+  ;; (:world :setup ,setup :commands-r ,commands-r)
+  ((hash
+    :documentation "precomputed hash of the fullname"
+    :reader world-hash :initarg :hash)
+   (issued-build-commands
+    :documentation "hashset of load commands issued in this world"
+    :reader issued-build-commands :initarg :issued-build-commands)
+   (included-dependencies
+    :documentation "hashset of grains included in this world"
+    :reader included-dependencies :initarg :included-dependencies)))
 
 (defclass phony-grain (buildable-grain named-grain)
   ((fullname
     :initarg :fullname))
   (:documentation "virtual grain used for side-effects"))
 
-(defclass file-grain (persistent-grain buildable-grain)
+(defclass file-grain (persistent-grain buildable-grain named-grain)
   ((pathname
     :initarg :pathname
     :accessor grain-pathname
     :documentation "The truepath to the file that the module was declared in"))
   (:documentation "File grain"))
+
+(defclass image-grain (file-grain)
+  ((world :accessor image-world :initarg :world))
+  (:documentation "Dumped Image"))
 
 (defclass documented-grain (grain)
   ((author
@@ -168,23 +188,17 @@ into an image that will be used for all future compile/load operations")
     :documentation "Should we build a Lisp image with that build loaded?"))
   (:documentation "build.xcvb file grain"))
 
-(defclass fasl-grain (file-grain named-grain)
+(defclass fasl-grain (file-grain)
   ((load-dependencies
     :initarg :load-dependencies
     :reader load-dependencies))
   (:documentation "Lisp FASL file grain"))
 
-(defclass cfasl-grain (file-grain named-grain)
+(defclass cfasl-grain (file-grain)
   ((load-dependencies
     :initarg :load-dependencies
     :reader load-dependencies))
   (:documentation "Lisp CFASL file grain"))
-
-(defclass image-grain (file-grain named-grain)
-  ((included
-    :initarg :included
-    :reader image-included))
-  (:documentation "Dumped Image"))
 
 (defclass asdf-grain (named-grain)
   ((name
@@ -201,30 +215,10 @@ into an image that will be used for all future compile/load operations")
     :reader require-grain-name))
   (:documentation "Required feature"))
 
-(defun coerce-asdf-system-name (name)
-  "This function take the name of an asdf-system, and
-converts it to a string representation that can universally be used to refer to that system.
-Modeled after the asdf function coerce-name"
-  (string-downcase
-   (typecase name
-     #+asdf (asdf:component (asdf:component-name name))
-     (symbol (symbol-name name))
-     (string name)
-     (asdf-grain (asdf-grain-system-name name))
-     (t (simply-error 'syntax-error "~@<invalid asdf system designator ~A~@:>" name)))))
+;;; Module forms
 
-(defun lisp-grain-p (x)
-  (typep x 'lisp-grain))
-
-(defun build-grain-p (x)
-  (typep x 'build-grain))
-
-(defun asdf-grain-p (x)
-  (typep x 'asdf-grain))
-
-(defun require-grain-p (x)
-  (typep x 'require-grain))
-
-(defun image-grain-p (x)
-  (typep x 'image-grain))
-
+(defmacro module (&rest options)
+  ;; Make sure that module declarations don't have an effect when compiled,
+  ;; only when read by XCVB.
+  (declare (ignore options))
+  nil)

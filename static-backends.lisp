@@ -1,32 +1,34 @@
 #+xcvb (module (:depends-on
-		("specials" "lisp-grain" "dependencies-interpreter" "logging")))
+		("specials" "grains" "dependencies-interpreter")))
+;;TODO: rename to static-traversal
+
 (in-package :xcvb)
 
 (defclass static-traversal (xcvb-traversal)
   ((image-setup
     :accessor image-setup
-    :documentation "xcvb-driver-command options to setup the image for the current computation")
+    :documentation "xcvb-driver-command options to setup the image for the current world")
    (included-dependencies
     :initform (make-hashset :test 'equal)
     :accessor included-dependencies
-    :documentation "dependencies included in the image used by current computation, as a set")
-   (issued-load-commands
+    :documentation "dependencies included in the current world, as a set")
+   (issued-build-commands
     :initform (make-hashset :test 'equal)
-    :accessor issued-load-commands
-    :documentation "load commands issued so far to run the current compilation, as a set")
-   (load-commands-r
+    :accessor issued-build-commands
+    :documentation "load commands issued so far to build the current world, as a set")
+   (build-commands-r
     :initform nil
-    :accessor traversed-load-commands-r
-    :documentation "load commands issued so far to run the current compilation, in reverse order")))
+    :accessor traversed-build-commands-r
+    :documentation "load commands issued so far to build the current world, in reverse order")))
 
 (defmethod dependency-already-included-p ((env static-traversal) grain)
   (or (gethash grain (included-dependencies env))
       (call-next-method)))
 
-(defmethod issue-load-command ((env static-traversal) command)
-  (unless (gethash command (issued-load-commands env))
-    (setf (gethash command (issued-load-commands env)) t)
-    (push command (traversed-load-commands-r env))))
+(defmethod issue-build-command ((env static-traversal) command)
+  (unless (gethash command (issued-build-commands env))
+    (setf (gethash command (issued-build-commands env)) t)
+    (push command (traversed-build-commands-r env))))
 
 (defun graph-for-compiled (env spec)
   (graph-for env (compiled-dependency spec)))
@@ -38,7 +40,7 @@
   (when image
     (check-type image image-grain)
     (setf (included-dependencies env)
-          (make-hashset :test 'equal :list (image-included image)))))
+          (make-hashset :test 'equal :set (included-dependencies image)))))
 
 (define-graph-for :lisp ((env static-traversal) name)
   (let* ((grain (resolve-absolute-module-name name))
@@ -53,7 +55,7 @@
 	(dolist (target targets)
           (slot-makunbound target 'computation))
         (pre-image-for env grain)
-        (load-command-for* env dependencies)
+        (build-command-for* env dependencies)
         (setf (generator-computation generator)
               (make-computation
                ()
@@ -62,7 +64,7 @@
                :command
                `(:xcvb-driver-command
                  ,(image-setup env)
-                 ,@(traversed-load-commands env))))))
+                 ,@(traversed-build-commands env))))))
     grain))
 
 (define-graph-for :build (env name)
@@ -85,9 +87,9 @@
          :name `(:build ,(fullname grain))
 	 :dependencies
 	 (progn
-           ;;(load-command-for* env (compile-dependencies grain))
-           ;;(load-command-for* env (cload-dependencies grain))
-           (load-command-for* env (load-dependencies grain))
+           ;;(build-command-for* env (compile-dependencies grain))
+           ;;(build-command-for* env (cload-dependencies grain))
+           (build-command-for* env (load-dependencies grain))
            (traversed-dependencies env))))))
 
 (define-graph-for :image ((env static-traversal) name)
@@ -121,7 +123,7 @@
       (issue-dependency env image)
       (include-image-dependencies env image)
       (setf (image-setup env) `(:image ,(fullname image)))
-      image)
+            image)
     (progn
       (setf (image-setup env)
             `(:load ,(loop
@@ -131,56 +133,76 @@
                        :collect (fullname grain))))
       nil)))
 
+(defun make-load-file-command (fullname)
+  `(:load-file ,fullname))
+(defun unwrap-load-file-command (x)
+  (when (and (list-of-length-p 2 x) (eq (first x) :load-file))
+    (second x)))
+(defun remove-load-file (x)
+  (or (unwrap-load-file-command x)
+      (error "cannot remove :load-file from ~S" x)))
+
+(defun require-command-p (x)
+  (and (list-of-length-p 2 x) (eq (first x) :require)))
+
+
+(defun manifest-and-build-commands (name image-setup build-commands)
+  (if (not *use-master*)
+    (values nil build-commands)
+    (let* ((initial-loads (getf image-setup :load))
+           (initial-name (strcat name "--initial")))
+      (values
+       (append
+        (when initial-loads
+          `((:make-manifest
+             (:manifest ,initial-name)
+             ,@(mapcar #'make-load-file-command initial-loads))))
+        (when build-commands
+          `((:make-manifest
+             (:manifest ,name)
+             ,@build-commands))))
+       (append
+        (when initial-loads
+          `((:initialize-manifest (:manifest ,initial-name))))
+        (when build-commands
+          `((:load-manifest (:manifest ,name)))))))))
+
 (defun graph-for-image-grain (env name pre-image-name dependencies)
   (let ((pre-image (issue-image-named env pre-image-name)))
-    (load-command-for* env dependencies)
+    (build-command-for* env dependencies)
     (let* ((traversed (traversed-dependencies env))
+           (build-commands-r (traversed-build-commands-r env))
+           (build-commands (reverse build-commands-r))
+           (image-setup (image-setup env))
+           (manifest-and-build-commands
+            (multiple-value-list
+             (manifest-and-build-commands name image-setup build-commands)))
+           (manifest-maker (first manifest-and-build-commands))
+           (build-commands-spec (second manifest-and-build-commands))
+           (world (make-instance
+                   'world-grain
+                   :fullname `(:world :setup ,(canonicalize-image-setup image-setup)
+                                      :commands-r ,build-commands-r)
+                   :issued-build-commands
+                   (make-hashset :test 'equal :list build-commands-r)
+                   :included-dependencies
+                   (make-hashset :test 'equal
+                                 :set (when pre-image (included-dependencies pre-image))
+                                 :list traversed)))
            (grain
             (make-grain 'image-grain
                         :fullname `(:image ,name)
-                        :included (append
-                                   (when pre-image (image-included pre-image))
-                                   traversed)))
-           (load-commands (traversed-load-commands env)))
-      (multiple-value-bind (manifest-maker load-commands)
-          (if *use-master*
-            (let* ((initial-loads (getf (image-setup env) :load))
-                   (initial-manifest (when initial-loads
-                                       `(:manifest ,(strcat name "--initial")))))
-              (values
-               (labels ((manifest-spec (command)
-                          (case (car command)
-                            (:load-file
-                             (let ((fullname (second command)))
-                               `(:fullname ,fullname :source ,(fullname-source fullname))))
-                            (:load-asdf
-                             (let ((name (second command)))
-                               `(:fullname (:asdf ,name) :command ,command)))
-                            (:require
-                             `(:fullname ,command :command ,command))))
-                        (manifest-specs (commands)
-                          (mapcar #'manifest-spec commands)))
-                 `(,@(when initial-manifest
-                       `((:make-manifest ,initial-manifest
-                          ,@(manifest-specs (load-command-for*
-                                             (make-instance 'static-traversal)
-                                             (normalize-dependencies
-                                              initial-loads grain :initial))))))
-                     (:make-manifest (:manifest ,name)
-                      ,@(manifest-specs load-commands))))
-               `(,@(when initial-manifest
-                     `((:initialize-manifest ,initial-manifest)))
-                 (:load-manifest (:manifest ,name)))))
-            (values nil load-commands))
-        (make-computation ()
-         :outputs (list grain)
-         :inputs traversed
-         :command
-         `(:progn
-            ,@manifest-maker
-            (:xcvb-driver-command ,(image-setup env)
-             (:create-image (:image ,name)
-              ,@load-commands)))))
+                        :world world)))
+      (make-computation ()
+       :outputs (list grain)
+       :inputs traversed
+       :command
+       `(:progn
+          ,@manifest-maker
+          (:xcvb-driver-command
+           ,image-setup
+           (:create-image
+            (:image ,name) ,@build-commands-spec))))
       grain)))
 
 (define-graph-for :source (env name &key in)
@@ -233,10 +255,10 @@
       (issue-dependency env lisp)
       (unless specialp
         (pre-image-for env lisp))
-      (load-command-for* env build-dependencies)
-      (load-command-for* env compile-dependencies)
+      (build-command-for* env build-dependencies)
+      (build-command-for* env compile-dependencies)
       (let* ((outputs (fasl-grains-for-name
-                       fullname
+                       env fullname
                        load-dependencies cload-dependencies
                        build-dependencies)))
         (make-computation
@@ -247,18 +269,10 @@
          (if (not specialp)
            `(:xcvb-driver-command
              ,(image-setup env)
-             (:compile-lisp (,fullname) ,@(traversed-load-commands env)))
+             (:compile-lisp (,fullname) ,@(traversed-build-commands env)))
            `(:xcvb-driver-command
              (:load ,(append
                       (setup-dependencies-before-fasl fullname)
-                      (mapcar #'remove-load-file (traversed-load-commands env))))
+                      (mapcar #'remove-load-file (traversed-build-commands env))))
              (:compile-file-directly ,fullname ,(second outputs)))))
         outputs))))
-
-(defun remove-load-file (x)
-  (unless (and (list-of-length-p 2 x) (eq (first x) :load-file))
-    (error "cannot remove :load-file from ~S" x))
-  (second x))
-
-(defun require-command-p (x)
-  (and (list-of-length-p 2 x) (eq (first x) :require)))

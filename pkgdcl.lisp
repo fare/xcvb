@@ -11,7 +11,7 @@
 
   ;;; THIS EXPORT LIST IS MASSIVELY OUT-OF-DATE.
   ;;; No wonder why: the CL package system is not very maintainable,
-  ;;; and doesn't even scale to largish systems.
+  ;;; and doesn't even scale to moderate size systems.
   (:export
 
      ;; version
@@ -37,9 +37,9 @@
      #:extension-form
 
      ;; Utilities
+     #:cmd
      #:DBG
      #:quit
-     #:define-combinator-interpreter
      #:filepath
      #:strcat
      #:join-strings
@@ -106,7 +106,7 @@
 
      ;; interpreting dependencies
      #:cfasl-for-fasl
-     #:load-command-for
+     #:build-command-for
 
      ;; Converting ASDF systems.
      #:asdf-to-xcvb

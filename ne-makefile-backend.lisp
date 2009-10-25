@@ -4,10 +4,10 @@
 
 (in-package :xcvb)
 
-(defclass nem-traversal (simplifying-traversal)
+(defclass nem-traversal (simplifying-traversal makefile-traversal)
   ())
 
-(define-load-command-for :build ((env nem-traversal) name)
+(define-build-command-for :build ((env nem-traversal) name)
   (unless (equal name "/asdf")
     (call-next-method)))
 
@@ -17,11 +17,11 @@
     (setf (gethash name *target-builds*) t))
   (call-next-method))
 
-(defun make-nem-stage (asdf-name build-name build &key previous parallel)
+(defun make-nem-stage (env asdf-name build-name build &key previous parallel)
   (let* ((*computations* nil)
          (*asdf-system-dependencies* nil)
          (*require-dependencies* nil)
-         (_g (graph-for-build-grain (make-instance 'nem-traversal) build))
+         (_g (graph-for-build-grain env build))
          (inputs (loop :for computation :in (reverse *computations*)
                    :collect (first (computation-inputs computation))))
          (asdfile (object-namestring nil (strcat "/" asdf-name ".asd")))
@@ -52,7 +52,7 @@
                            ,@(when parallel `(:parallel t)))))))
          (*computations* (list computation)))
     (declare (ignore _w _g))
-    (computations-to-Makefile)))
+    (computations-to-Makefile env)))
 
 (defun write-non-enforcing-makefile (build-names &key output-path asdf-name parallel)
   "Write a Makefile to output-path with information about how to compile the specified BUILD
@@ -70,10 +70,11 @@ in a fast way that doesn't enforce dependencies."
          (*default-pathname-defaults* makefile-dir)
          (*makefile-target-directories* nil)
          (*makefile-phonies* nil)
+         (env (make-instance 'nem-traversal))
          (static-rules
           (prog2
-              (issue-image-named (make-instance 'static-traversal) nil)
-              (computations-to-Makefile)
+              (issue-image-named env nil)
+              (computations-to-Makefile env)
             (setf *computations* nil)))
          (build-rules
           (loop
@@ -81,7 +82,7 @@ in a fast way that doesn't enforce dependencies."
             :for build :in builds
             :for previous-asdf = nil :then asdf-name
             :for asdf-name :in asdf-names
-            :collect (make-nem-stage asdf-name build-name build
+            :collect (make-nem-stage env asdf-name build-name build
                                      :previous previous-asdf
                                      :parallel parallel))))
       (with-open-file (out makefile-path

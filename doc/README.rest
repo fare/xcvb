@@ -146,7 +146,7 @@ and to build and run the target software that you will build with XCVB:
 If you prefer to collect XCVB's dependencies manually into your system,
 you will need the following Lisp software libraries to get XCVB running:
 
-  * cl-launch 2.29 or later:
+  * cl-launch 2.30 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
@@ -199,6 +199,22 @@ If you are using Debian or Ubuntu, you may install it with::
 
 	sudo apt-get install tthsum
 
+Note that for each of these dependencies,
+you'll have to properly setup your ASDF configuration
+so that the dependency is found by ASDF (if you use ASDF);
+and you'll have to properly set up your XCVB_PATH and avoid conflicts
+(see below) if you use the bootstrapping using XCVB itself.
+
+Moreover, cl-launch requires special installation of both its executable
+in your ``PATH`` and its (self-extracted) library files
+in your ASDF or XCVB configured paths.
+See ``00INSTALL`` in the cl-launch source repository for more information.
+
+Note that the release tarball includes an installation procedure that
+should take care of all of the above for you. See the ``INSTALL`` file
+in your toplevel release directory,
+also available as ``doc/INSTALL.release`` in your XCVB source checkout.
+
 
 Documentation
 -------------
@@ -226,9 +242,12 @@ Documentation
 	example file to copy into ``configure.mk`` (in the main XCVB directory) and edit,
 	so as to be able to create the ``xcvb`` executable.
 
-``Makefile``
+``Makefile.release``
 	the Makefile for XCVB itself is an example for how to integrate XCVB in your Makefile.
         Note that the setup.lisp complexity is only required if you're using ASDF.
+
+``INSTALL.release``
+	instructions for installing XCVB from the expansion of a release tarball.
 
 
 Timeline

@@ -97,7 +97,7 @@
                     #+sbcl #+sbcl :resolve-symlinks nil)
   #+sbcl
   (run-program/read-output-lines
-   "find" "-H" (escape-shell-token (namestring root)) "-type" "f" "-name" "build.xcvb"))
+   (list "find" "-H" (escape-shell-token (namestring root)) "-type" "f" "-name" "build.xcvb")))
 
 (defun map-build-files-under (root fn)
   "Call FN for all BUILD files under ROOT"

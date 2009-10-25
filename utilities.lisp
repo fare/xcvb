@@ -58,6 +58,9 @@
       ((zerop i) (return (null l)))
       ((not (consp l)) (return nil)))))
 
+(defun mapcar/ (function env arguments)
+  (mapcar (lambda (x) (funcall function env x)) arguments))
+
 ;;; CLOS magic (depends on closer-mop) (from philip-jose)
 (defun collect-slots (object &optional (slot-list t))
   (loop :with class = (class-of object)

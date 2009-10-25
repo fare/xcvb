@@ -10,21 +10,21 @@ and the non-enforcing Makefile backend.
 (defclass simplifying-traversal (xcvb-traversal)
   ())
 
-(defmethod issue-load-command ((env simplifying-traversal) command)
+(defmethod issue-build-command ((env simplifying-traversal) command)
   (declare (ignorable env command))
   (values))
 
 (defmethod issue-dependency ((env simplifying-traversal) (grain fasl-grain))
   (issue-dependency env (graph-for env `(:lisp ,(second (fullname grain))))))
 
-(define-load-command-for :lisp ((env simplifying-traversal) name)
-  (load-command-for-fasl env name))
+(define-build-command-for :lisp ((env simplifying-traversal) name)
+  (build-command-for-fasl env name))
 
 (defmethod graph-for-build-grain ((env simplifying-traversal) grain)
-  (load-command-for* env (build-dependencies grain))
-  (load-command-for* env (compile-dependencies grain))
-  (load-command-for* env (cload-dependencies grain))
-  (load-command-for* env (load-dependencies grain))
+  (build-command-for* env (build-dependencies grain))
+  (build-command-for* env (compile-dependencies grain))
+  (build-command-for* env (cload-dependencies grain))
+  (build-command-for* env (load-dependencies grain))
   nil)
 
 (define-graph-for :fasl ((env simplifying-traversal) name)
@@ -46,7 +46,7 @@ and the non-enforcing Makefile backend.
            (fasl
             (make-grain 'fasl-grain :fullname `(:fasl ,name)
                         :load-dependencies ())))
-      (load-command-for* env dependencies)
+      (build-command-for* env dependencies)
       (make-computation
        ()
        :outputs (list fasl)

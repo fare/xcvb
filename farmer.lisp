@@ -32,16 +32,10 @@ waiting at this state of the world.")
   (worker-send worker (readable-string x)))
 
 (defvar *worlds* (make-hash-table :test 'equal))
-(defclass world ()
-  ((hash :reader world-hash :initarg :hash)
-   (setup :reader world-setup :initarg :setup)
-   (commands-r :reader world-commands-r :initarg :commands-r)
-   (included-dependencies :reader included-dependencies :initarg :included-dependencies)
-   (issued-load-commands :reader issued-load-commands :initarg :issued-load-commands)))
 (defun make-world-summary (setup commands-r)
   (cons setup commands-r))
 (defun world-summary (world)
-  (make-world-summary (world-setup world) (world-commands-r world)))
+  (make-world-summary (image-setup world) (build-commands-r world)))
 (defun world-summary-hash (world-summary)
   (sxhash world-summary)) ; use tthsum?
 (defun compute-world-hash (world)
@@ -68,16 +62,16 @@ waiting at this state of the world.")
      (list
       :setup () :commands-r ()
       :included-dependencies (make-hash-table :test 'equal)
-      :issued-load-commands (make-hash-table :test 'equal)))))
+      :issued-build-commands (make-hash-table :test 'equal)))))
 (defun setup-world (world fullname)
-  (let ((new-setup (append1 (world-setup world) fullname)))
+  (let ((new-setup (append1 (image-setup world) fullname)))
     (intern-world-summary
      new-setup
-     (world-commands-r world)
+     (build-commands-r world)
      (lambda ()
        (list
         :included-dependencies (make-hash-table :test 'equal)
-        :issued-load-commands (make-hash-table :test 'equal))))))
+        :issued-build-commands (make-hash-table :test 'equal))))))
 
 (defclass farmer-traversal (xcvb-traversal)
   ((world
@@ -87,13 +81,13 @@ waiting at this state of the world.")
     :initform nil
     :accessor traversed-dependencies-r
     :documentation "dependencies issued as part of the current computation, in reverse order")
-   (issued-load-commands
+   (issued-build-commands
     :initform (make-hashset :test 'equal)
-    :accessor issued-load-commands
+    :accessor issued-build-commands
     :documentation "load commands issued so far to run the current compilation, as a set")
-   (load-commands-r
+   (build-commands-r
     :initform nil
-    :accessor traversed-load-commands-r
+    :accessor traversed-build-commands-r
     :documentation "load commands issued so far to run the current compilation, in reverse order")))
 
 (defmethod included-dependencies ((traversal farmer-traversal))

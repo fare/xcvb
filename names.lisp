@@ -1,5 +1,5 @@
 ;;;; XCVB module name resolution
-#+xcvb (module (:depends-on ("registry" "lisp-grain" "specials")))
+#+xcvb (module (:depends-on ("registry" "specials")))
 
 (in-package :xcvb)
 

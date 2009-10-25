@@ -33,43 +33,22 @@
        :object-directory object-directory
        :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
        :disable-cfasl disable-cfasl :base-image base-image :verbosity verbosity :profiling profiling)
-    (let ((*standard-output* *error-output*)
-          #|#+sbcl (sb-alien::*default-c-string-external-format* :iso-8859-1)|#)
-      (run-program/process-output-stream
-       "make" (list "-C" (namestring makefile-dir) "-f" (namestring makefile-path))
-       (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
-    (setf (registered-grain "/_TARGET_")
-          (make-instance 'build-grain :fullname "/_TARGET_"
-                         :depends-on (list build)
-                         :extension-forms nil
-                         :build-image t))
-    (let* ((image-grain (graph-for (make-instance 'static-traversal) `(:image "/_TARGET_")))
-           (included (image-included image-grain)))
-      (with-safe-io-syntax ()
-        (write-string +xcvb-slave-greeting+)
-        (write (manifest-form
-                (loop :for grain :in included
-                  :for fullname = (fullname grain)
-                  :when (typecase grain
-                          ((or build-grain image-grain)
-                           nil)
-                          ((or lisp-grain fasl-grain cfasl-grain asdf-grain require-grain)
-                           t)
-                          (t
-                           (warn "Not including grain ~S" grain)
-                           nil))
-                  :collect
-                  `(:fullname ,fullname
-                    ,@(when (typep grain 'asdf-grain)
-                        `(:command (:load-asdf ,(second fullname))))
-                    ,@(when (typep grain 'require-grain)
-                        `(:command ,fullname))
-                    ,@(when (typep grain 'file-grain)
-                        `(:pathname ,(merge-pathnames (dependency-namestring fullname)
-                                                      makefile-dir)))
-                    ,@(let ((source-grain (grain-source grain)))
-                        (when source-grain
-                          `((:source-pathname ,(grain-pathname source-grain))))))))
-               :readably t :pretty t :case :downcase)
-        (write-string +xcvb-slave-farewell+))))
+    (let ((*default-pathname-defaults* makefile-dir))
+      (let ((*standard-output* *error-output*))
+        (run-program/process-output-stream
+         (list "make" "-C" (namestring makefile-dir) "-f" (namestring makefile-path))
+         (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
+      (setf (registered-grain "/_TARGET_")
+            (make-instance 'build-grain :fullname "/_TARGET_"
+                           :depends-on (list build)
+                           :extension-forms nil
+                           :build-image t))
+      (let* ((env (make-instance 'static-makefile-traversal))
+             (image-grain (graph-for env `(:image "/_TARGET_")))
+             (issued (reverse (build-commands-r image-grain))))
+        (with-safe-io-syntax ()
+          (write-string +xcvb-slave-greeting+)
+          (write (manifest-form (commands-to-manifest-spec env issued))
+                 :readably nil :pretty t :case :downcase)
+          (write-string +xcvb-slave-farewell+)))))
   (values))

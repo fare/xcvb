@@ -5,14 +5,25 @@
 (defgeneric next-traversal (env spec))
 (defgeneric dependency-already-included-p (env grain))
 (defgeneric issue-dependency (env grain))
-(defgeneric issue-load-command (env command))
+(defgeneric issue-build-command (env command))
 (defgeneric traversed-dependencies (env))
-(defgeneric traversed-load-commands (env))
-(defgeneric load-command-issued-p (env command))
+(defgeneric traversed-build-commands (env))
+(defgeneric build-command-issued-p (env command))
 (defgeneric graph-for (env spec))
 (defgeneric graph-for-atom (env atom))
 (defgeneric graph-for-build-grain (env grain))
-(defgeneric graph-for-fasls (env fullname))
+(defgeneric graph-for-fasls (env name))
+(defgeneric graph-for-lisp (env name))
+(defgeneric graph-for-fasls (env name))
+(defgeneric graph-for-fasl (env name))
+(defgeneric graph-for-cfasl (env name))
+(defgeneric graph-for-build (env name))
+(defgeneric graph-for-compile-build (env name))
+(defgeneric graph-for-build-named (env name))
+(defgeneric graph-for-image (env name))
+(defgeneric graph-for-source (env name &key in))
+(defgeneric graph-for-asdf (env name))
+(defgeneric graph-for-require (env name))
 
 (defclass xcvb-traversal (simple-print-object-mixin)
   ((grain-names
@@ -26,7 +37,7 @@
     :initform (make-hashset :test 'equal)
     :accessor issued-dependencies
     :documentation "dependencies issued as part of current computation, as a set")
-   (dependencies-r
+   (traversed-dependencies-r
     :initform nil
     :accessor traversed-dependencies-r
     :documentation "dependencies issued as part of the current computation, in reverse order")))
@@ -76,8 +87,8 @@
 
 (define-simple-dispatcher graph-for #'graph-for-atom :generic)
 
-(defmethod traversed-load-commands ((env xcvb-traversal))
-  (reverse (traversed-load-commands-r env)))
+(defmethod traversed-build-commands ((env xcvb-traversal))
+  (reverse (traversed-build-commands-r env)))
 
-(defmethod load-command-issued-p ((env xcvb-traversal) command)
-  (values (gethash command (issued-load-commands env))))
+(defmethod build-command-issued-p ((env xcvb-traversal) command)
+  (values (gethash command (issued-build-commands env))))

@@ -2,45 +2,56 @@
 
 (in-package :xcvb)
 
-;;; LOAD-COMMAND-FOR
+;;; BUILD-COMMAND-FOR
+(defgeneric build-command-for-lisp (env name))
+(defgeneric build-command-for-fasl (env name))
+(defgeneric build-command-for-cfasl (env name))
+(defgeneric build-command-for-asdf (env name))
+(defgeneric build-command-for-require (env name))
+(defgeneric build-command-for-source (env name &key in))
+(defgeneric build-command-for-build (env name))
+(defgeneric build-command-for-compile-build (env name))
+(defgeneric build-command-for-build-named (env name))
+(defgeneric build-command-for-when (env expression &rest dependencies))
+(defgeneric build-command-for-cond (env &rest cond-expressions))
 
-(define-simple-dispatcher load-command-for #'load-command-for-atom :generic)
+(define-simple-dispatcher build-command-for #'build-command-for-atom :generic)
 
-(defun load-command-for (env spec)
-  (load-command-for-dispatcher env spec))
+(defun build-command-for (env spec)
+  (build-command-for-dispatcher env spec))
 
-(defun load-command-for* (env specs)
+(defun build-command-for* (env specs)
   (dolist (spec specs)
-    (load-command-for env spec)))
+    (build-command-for env spec)))
 
-(defun load-command-for-atom (env spec)
+(defun build-command-for-atom (env spec)
   (declare (ignore env))
   (error "Invalid dependency ~S" spec))
 
-(define-load-command-for :lisp (env name)
-  (simple-load-command-for
+(define-build-command-for :lisp (env name)
+  (simple-build-command-for
    env `(:load-file ,name) name))
-(define-load-command-for :fasl (env name)
-  (simple-load-command-for
+(define-build-command-for :fasl (env name)
+  (simple-build-command-for
    env `(:load-file (:fasl ,name)) `(:fasl ,name)))
-(define-load-command-for :cfasl (env name)
-  (simple-load-command-for
+(define-build-command-for :cfasl (env name)
+  (simple-build-command-for
    env `(:load-file (:cfasl ,name)) `(:cfasl ,name)))
-(define-load-command-for :asdf (env name)
-  (simple-load-command-for env `(:load-asdf ,name) `(:asdf ,name)))
-(define-load-command-for :require (env name)
-  (simple-load-command-for env `(:require ,name) `(:require ,name)))
+(define-build-command-for :asdf (env name)
+  (simple-build-command-for env `(:load-asdf ,name) `(:asdf ,name)))
+(define-build-command-for :require (env name)
+  (simple-build-command-for env `(:require ,name) `(:require ,name)))
 
-(defun simple-load-command-for (env command fullname)
+(defun simple-build-command-for (env command fullname)
   (call-with-dependency-grain
    env fullname
    (lambda (grain)
      (with-dependency-loading (env grain)
-       (load-commands-for-build-dependencies env grain)
-       (load-commands-for-load-dependencies env grain)
-       (issue-load-command env command)))))
+       (build-commands-for-build-dependencies env grain)
+       (build-commands-for-load-dependencies env grain)
+       (issue-build-command env command)))))
 
-(define-load-command-for :source (env name &key in)
+(define-build-command-for :source (env name &key in)
   ;; Suffices to know data file exists.  No need to issue load command.
   (call-with-dependency-grain
    env `(:source ,name :in ,in)
@@ -56,40 +67,40 @@
                type dep grain))
       (funcall fun grain))))
 
-(define-load-command-for :build (env name)
+(define-build-command-for :build (env name)
   (let ((build (registered-build name)))
     (handle-lisp-dependencies build)
     (with-dependency-loading (env build)
-      (load-commands-for-build-dependencies env build)
-      (load-commands-for-load-dependencies env build))))
+      (build-commands-for-build-dependencies env build)
+      (build-commands-for-load-dependencies env build))))
 
-(define-load-command-for :compile-build (env name)
+(define-build-command-for :compile-build (env name)
   (let ((build (registered-build name)))
     (handle-lisp-dependencies build)
     (with-dependency-loading (env build)
-      (load-commands-for-build-dependencies env build)
-      (load-commands-for-compile-dependencies env build))))
+      (build-commands-for-build-dependencies env build)
+      (build-commands-for-compile-dependencies env build))))
 
-(defun load-commands-for-load-dependencies (env grain)
-  (load-command-for* env (load-dependencies grain)))
+(defun build-commands-for-load-dependencies (env grain)
+  (build-command-for* env (load-dependencies grain)))
 
-(defun load-commands-for-compile-dependencies (env grain)
-  (load-command-for* env (compile-dependencies grain)))
+(defun build-commands-for-compile-dependencies (env grain)
+  (build-command-for* env (compile-dependencies grain)))
 
-(defun load-commands-for-cload-dependencies (env grain)
-  (load-command-for* env (cload-dependencies grain)))
+(defun build-commands-for-cload-dependencies (env grain)
+  (build-command-for* env (cload-dependencies grain)))
 
-(defun load-commands-for-build-dependencies (env grain)
-  (load-command-for* env (build-dependencies grain)))
+(defun build-commands-for-build-dependencies (env grain)
+  (build-command-for* env (build-dependencies grain)))
 
-(define-load-command-for :when (env expression &rest dependencies)
+(define-build-command-for :when (env expression &rest dependencies)
   (when (evaluate-condition env expression)
-    (load-command-for* env dependencies)))
+    (build-command-for* env dependencies)))
 
-(define-load-command-for :cond (env &rest cond-expressions)
+(define-build-command-for :cond (env &rest cond-expressions)
   (loop :for cond-expression :in cond-expressions
         :when (evaluate-condition env (car cond-expression))
-        :do (return (load-command-for* env (cdr cond-expression)))))
+        :do (return (build-command-for* env (cdr cond-expression)))))
 
 (define-simple-dispatcher evaluate-condition #'evaluate-condition-atom)
 

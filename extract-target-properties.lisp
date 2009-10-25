@@ -15,6 +15,10 @@
      . "(or #+sbcl (namestring(sb-int:sbcl-homedir-pathname)) #+ccl (namestring(ccl::ccl-directory)))"))
   "alist of variables and how to compute them in the target system")
 
+(defun target-system-features ()
+  (get-target-properties)
+  *target-system-features*)
+
 (defun get-target-properties ()
   (unless *target-properties*
     (read-target-properties)))
@@ -38,8 +42,8 @@
 
 (defun extract-target-properties ()
   (with-safe-io-syntax (:package :xcvb-user)
-    (apply #'run-program/read-output-forms
-           (query-target-lisp-command (target-properties-form)))))
+    (run-program/read-output-forms
+     (query-target-lisp-command (target-properties-form)))))
 
 (defun target-properties-form ()
   (with-safe-io-syntax (:package :xcvb-user)

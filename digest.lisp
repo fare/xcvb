@@ -1,4 +1,4 @@
-;;; Extracting properties from the target lisp implementation
+;;; Dealing with manifests. TODO: rename to manifest.lisp
 #+xcvb (module (:depends-on ("macros")))
 
 (in-package :xcvb)
@@ -11,8 +11,11 @@ Until then, let's rely on the external utility tthsum.
 
 (defun tthsum-for-files (files)
   (when files
+    (dolist (file files)
+      (unless (probe-file file)
+        (error "File ~A does not exist" file)))
     (let* ((namestrings (mapcar #'namestring files))
-           (lines (apply #'run-program/read-output-lines "tthsum" namestrings)))
+           (lines (run-program/read-output-lines (cons "tthsum" namestrings))))
       (unless lines
         (error "Couldn't extract TTH digest for given files. Is the tthsum utility installed?"))
       (unless (list-of-length-p (length files) lines)
@@ -40,26 +43,23 @@ Until then, let's rely on the external utility tthsum.
 (defun tthsum-for-file (file)
   (car (tthsum-for-files (list file))))
 
-(defun manifest-form (grains)
+(defun manifest-form (specs)
   (flet ((extract-tthsum (property)
            (tthsum-for-files-or-nil
-            (mapcar #'(lambda (x) (getf x property)) grains))))
+            (mapcar #'(lambda (x) (getf x property)) specs))))
     (loop
       :with tthsums = (extract-tthsum :pathname)
       :with source-tthsums = (extract-tthsum :source-pathname)
-      :for grain :in grains
+      :for spec :in specs
       :for tthsum :in tthsums
       :for source-tthsum :in source-tthsums
       :collect
-      (destructuring-bind
-            (&key fullname pathname source-pathname command) grain
-        `(:fullname ,fullname
-          ,@(when command
-              `(:command ,command))
-          ,@(when pathname
-              `(:tthsum ,tthsum :pathname ,pathname))
+      (destructuring-bind (&key command pathname source-pathname) spec
+        `(:command
+          ,command
+          ,@(when pathname `(:pathname ,pathname :tthsum ,tthsum))
           ,@(when source-pathname
-              `(:source-tthsum ,source-tthsum :source-pathname ,source-pathname)))))))
+              `(:source-pathname ,source-pathname :source-tthsum ,source-tthsum)))))))
 
 (defun create-manifest (output-path grains)
   (with-user-output-file (o output-path)
@@ -72,9 +72,19 @@ Until then, let's rely on the external utility tthsum.
 (defun has-tthsum-p ()
   (let ((s (ignore-errors
              (run-program/read-output-string
-              "tthsum" #-windows "/dev/null" #+windows "NUL"))))
+              '("tthsum" #-windows "/dev/null" #+windows "NUL")))))
     (and (>= (length s) 41)
          (string= s "LWPNACQDBZRYXW3VHJVCJ64QBZNGHOHHHZWCLNQ" :end1 39))))
+
+(defun command-to-manifest-spec (env command)
+  (let* ((fullname (unwrap-load-file-command command))
+         (source-fullname (fullname-source fullname)))
+    `(:command ,command
+      ,@(when fullname `(:pathname ,(dependency-pathname env fullname)))
+      ,@(when source-fullname `(:pathname ,(dependency-pathname env source-fullname))))))
+
+(defun commands-to-manifest-spec (env commands)
+  (mapcar/ #'command-to-manifest-spec env commands))
 
 (defun ensure-tthsum-present ()
   (unless (has-tthsum-p)
@@ -92,10 +102,10 @@ new or updated FASLs that you build with XCVB.~%")))
 (defparameter +make-manifest-option-spec+
   '((("output" #\o) :type string :optional t :initial-value "-"
      :documentation "Path to manifest file or - for stdout")
-    (("grains" #\g) :type string :optional nil
-     :documentation "alist of grains, mapping fullname to pathname")))
+    (("spec" #\s) :type string :optional nil
+     :documentation "list of plists specifying command and optional pathname, source-pathname")))
 
-(defun make-manifest (arguments &key output grains)
+(defun make-manifest (arguments &key output spec)
   (when arguments
     (error "Invalid arguments to make-manifest: ~S~%" arguments))
-  (create-manifest output (with-safe-io-syntax () (read-from-string grains))))
+  (create-manifest output (with-safe-io-syntax () (read-from-string spec))))

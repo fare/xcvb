@@ -64,7 +64,7 @@ For debugging your XCVB configuration.")
     (("make-manifest") make-manifest +make-manifest-option-spec+
      "Create a manifest of files to load (for internal use)"
      "given fullnames and paths, output fullnames, tthsum and paths")
-    (("load") load-command ()
+    (("load") build-command ()
      "Load a Lisp file"
      "Load a Lisp file in the context of XCVB itself. For XCVB developers only.")
     (("eval") eval-command ()
@@ -123,7 +123,7 @@ for this version of XCVB.")))
           *xcvb-version* (lisp-implementation-type) (lisp-implementation-version)))
 
 ;; Command to load a file.
-(defun load-command (args)
+(defun build-command (args)
   (unless (list-of-length-p 1 args)
     (error "load requires exactly 1 argument, a file to load"))
     (load (car args)))
@@ -201,7 +201,8 @@ for this version of XCVB.")))
       (when tmp
         (setf *tmp-directory-pathname* (ensure-pathname-is-directory tmp)))))
   (cl-launch::exclude-from-cache *lisp-implementation-directory*)
-  (setf *print-pretty* nil))
+  (setf *print-pretty* nil
+        *print-readably* nil))
 
 (defun interpret-command-line (args)
   (initialize-environment)
@@ -221,6 +222,25 @@ for this version of XCVB.")))
        (errexit 2 "~&XCVB requires a command -- try 'xcvb help'.~%"))
       (t
        (errexit 2 "~&Invalid XCVB command ~S -- try 'xcvb help'.~%" command)))))
+
+(defun cmdize/1 (x)
+  (typecase x
+    (character (format nil "--~A" x))
+    (keyword (format nil "--~(~A~)" x))
+    (symbol (string-downcase x))
+    (string x)
+    (list (with-safe-io-syntax () (write-to-string x)))
+    (t (princ-to-string x))))
+
+(defun cmdize* (args)
+  (mapcar #'cmdize/1 args))
+
+(defun cmdize (&rest args)
+  (cmdize* args))
+
+(defun cmd (&rest args)
+  "For debugging purposes, let the user try a command from the REPL"
+  (interpret-command-line (cmdize* args)))
 
 (defun exit (&optional (code 0) &rest r)
   (declare (ignore r))
