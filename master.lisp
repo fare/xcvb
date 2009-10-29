@@ -202,7 +202,7 @@ with associated pathnames and tthsums.")
 #+sbcl
 (defun run-program* (&rest args) ;; FIX THAT BUG WITH posix-environ!
   (let ((sb-alien::*default-c-string-external-format* :iso-8859-1))
-    (apply #'sb-ext:run-program args)))
+    (apply 'sb-ext:run-program args)))
     
 ;;; Simple variant of run-program with no input, and capturing output
 (defun run-program/process-output-stream (command output-processor
@@ -245,20 +245,20 @@ with associated pathnames and tthsums.")
       (close stream))))
 
 (defun run-program/read-output-lines (command &rest keys)
-  (apply #'run-program/process-output-stream command
-         #'slurp-stream-lines keys))
+  (apply 'run-program/process-output-stream command
+         'slurp-stream-lines keys))
 
 (defun run-program/read-output-string (command &rest keys)
-  (apply #'run-program/process-output-stream command
-         #'slurp-stream-string keys))
+  (apply 'run-program/process-output-stream command
+         'slurp-stream-string keys))
 
 (defun run-program/read-output-form (command &rest keys)
-  (apply #'run-program/process-output-stream command
-         #'read keys))
+  (apply 'run-program/process-output-stream command
+         'read keys))
 
 (defun run-program/read-output-forms (command &rest keys)
-  (apply #'run-program/process-output-stream command
-         #'read-many keys))
+  (apply 'run-program/process-output-stream command
+         'read-many keys))
 
 ;;; Maintaining memory of which grains have been loaded in the current image.
 (defun process-manifest-entry (&key command tthsum pathname &allow-other-keys)
@@ -276,8 +276,10 @@ with associated pathnames and tthsums.")
        ;; the driver better be loaded by the time any command is issued
        (funcall (find-symbol "RUN-COMMAND" :xcvb-driver) command)))
     (push (cons command tthsum) *manifest*)))
+
 (defun process-manifest (manifest)
-  (dolist (entry manifest) (apply #'process-manifest-entry entry)))
+  (dolist (entry manifest)
+    (apply 'process-manifest-entry entry)))
 
 ;;; Extend XCVB driver
 (defun initialize-manifest (pathname)
@@ -364,4 +366,4 @@ with associated pathnames and tthsums.")
             xcvb-binary setup xcvb-path output-path object-directory
             lisp-implementation lisp-binary-path
             disable-cfasl base-image verbosity profiling))
-  (apply #'build-and-load build keys))
+  (apply 'build-and-load build keys))
