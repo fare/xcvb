@@ -224,24 +224,25 @@ with associated pathnames and tthsums.")
                   #+clozure ccl::external-process-output
                   #+clisp identity
                   process)))
-    (multiple-value-prog1
-        (funcall output-processor stream)
-      (close stream)
-      #-clisp
-      (#+sbcl sb-ext:process-wait
-       #+(or cmu scl) ext:process-wait
-       #+clozure ccl::external-process-wait
-       process)
-      #-clisp
-      (let ((return-code
-             (#+sbcl sb-ext:process-exit-code
-              #+(or cmu scl) ext:process-exit
-              #+clozure (lambda (p) (nth-value 1 (ccl:external-process-status p)))
-              process)))
-        (unless (or ignore-error-status (zerop return-code))
-          (cerror "ignore error code~*~*"
-                  "Process ~S exited with error code ~D"
-                  command return-code))))))
+    (unwind-protect
+         (multiple-value-prog1
+             (funcall output-processor stream)
+           #-clisp
+           (#+sbcl sb-ext:process-wait
+                   #+(or cmu scl) ext:process-wait
+                   #+clozure ccl::external-process-wait
+                   process)
+           #-clisp
+           (let ((return-code
+                  (#+sbcl sb-ext:process-exit-code
+                          #+(or cmu scl) ext:process-exit
+                          #+clozure (lambda (p) (nth-value 1 (ccl:external-process-status p)))
+                          process)))
+             (unless (or ignore-error-status (zerop return-code))
+               (cerror "ignore error code~*~*"
+                       "Process ~S exited with error code ~D"
+                       command return-code))))
+      (close stream))))
 
 (defun run-program/read-output-lines (command &rest keys)
   (apply #'run-program/process-output-stream command
