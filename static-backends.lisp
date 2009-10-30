@@ -128,10 +128,14 @@
       (include-image-dependencies env image)
       (setf (image-setup env) `(:image ,(fullname image)))
             image)
-    (let ((driver-name (car *lisp-setup-dependencies*)))
-      (setf (image-setup env) `(:load (,driver-name)))
-      (issue-dependency env (graph-for env driver-name))
-      (build-command-for* env (cdr *lisp-setup-dependencies*)))))
+    (progn
+      (setf (image-setup env)
+            `(:load ,(loop
+                       :for dep :in *lisp-setup-dependencies*
+                       :for grain = (graph-for env dep)
+                       :do (issue-dependency env grain)
+                       :collect (fullname grain))))
+      nil)))
 
 (defun make-load-file-command (fullname)
   `(:load-file ,fullname))
@@ -234,12 +238,14 @@
 
 (defun setup-dependencies-before-fasl (fullname)
   (assert (equal '(:fasl "/xcvb/driver") (car *lisp-setup-dependencies*)))
-  (cdr ; skip driver, which comes first
-   (reverse ; put back in order
-    (cdr ; skip the current dependency itself
-     (member `(:fasl ,fullname) ; what is up to the current dependency
-             (reverse *lisp-setup-dependencies*)
-             :test #'equal)))))
+  (reverse ; put back in order
+   (cdr ; skip the current dependency itself
+    (member `(:fasl ,fullname) ; what is up to the current dependency
+            (reverse *lisp-setup-dependencies*)
+            :test #'equal))))
+
+(defmethod make-computation ((env static-traversal) &rest keys &key &allow-other-keys)
+  (apply #'make-computation () keys))
 
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
@@ -265,7 +271,7 @@
                        load-dependencies cload-dependencies
                        build-dependencies)))
         (make-computation
-         ()
+         env
          :outputs outputs
          :inputs (traversed-dependencies env)
          :command

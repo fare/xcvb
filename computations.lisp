@@ -82,9 +82,16 @@
     (shell-tokens-to-string a)))
 |#
 
-(defun make-computation (class &rest keys &key inputs outputs command &allow-other-keys)
-  (declare (ignore inputs outputs command)) ;; these are included in KEYS.
-  (let ((computation (apply #'make-instance (or class 'concrete-computation) keys)))
+(defgeneric make-computation (env &key))
+
+(defmethod make-computation ((env null) &rest keys &key &allow-other-keys)
+  (apply #'make-computation 'concrete-computation keys))
+
+(defmethod make-computation ((class symbol) &rest keys &key &allow-other-keys)
+  (apply #'make-computation (find-class class) keys))
+
+(defmethod make-computation ((class standard-class) &rest keys &key &allow-other-keys)
+  (let ((computation (apply #'make-instance class keys)))
     (link-computation-outputs computation)
     (push computation *computations*)
     computation))
