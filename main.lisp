@@ -142,7 +142,7 @@ for this version of XCVB.")))
   (initialize-environment)
   (xcvb-driver:debugging)
   #+clisp (setf *standard-input* *terminal-io*)
-  (throw :repl nil))
+  (invoke-restart 'rever-to-repl))
 
 (defun repl ()
   (let (/ // /// * ** *** + ++ +++ -)
@@ -200,14 +200,28 @@ for this version of XCVB.")))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun main ()
-  (catch :repl
-    (with-coded-exit ()
-      (quit (catch :exit
+  (with-coded-exit ()
+    (restart-case
+        ;; revert-to-repl is in a nested restart-case so that the other two
+        ;; restarts are available from the repl.
+        (restart-case
+            (progn
               (interpret-command-line
                (command-line-arguments:get-command-line-arguments))
-              0))))
-  (quit (catch :exit
-    (repl))))
+              (quit 0))
+          (revert-to-repl ()
+            :report (lambda (stream)
+                      (format stream "Abort current computation and bring up a toplevel REPL"))
+            (repl)))
+      (exit (&optional (exit-code 0))
+        :report (lambda (stream)
+                  ;; when invoked interactively exit-code is always 0
+                  (format stream "Abort current computation and quit the process with process exit code 0"))
+        (quit exit-code))
+      (abort ()
+        :report (lambda (stream)
+                  (format stream "Abort current computation and quit the process with process exit code -1"))
+        (quit 0)))))
 
 (defun initialize-environment ()
   #+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
@@ -261,7 +275,7 @@ for this version of XCVB.")))
 
 (defun exit (&optional (code 0) &rest r)
   (declare (ignore r))
-  (throw :exit code))
+  (invoke-restart 'exit code))
 
 (defun errformat (fmt &rest args)
   (apply #'format *error-output* fmt args))
