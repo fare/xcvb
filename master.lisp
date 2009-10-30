@@ -347,8 +347,12 @@ with associated pathnames and tthsums.")
                      "Failed to execute a build slave.~%~
 			Slave command:~%  ~S~%~
 			Slave output:~%~A~%~
-			(If using SLIME, you might have output in your *inferior-lisp* buffer.)"
-                     slave-command slave-output)
+			(If using SLIME, you might have useful output in your *inferior-lisp* buffer.)"
+                     (with-output-to-string (*standard-output*)
+                       (dolist (element slave-command)
+                         (write-string element)
+                         (write-char #\Space)))
+                     slave-output)
               (error "XCVB slave failed"))
             (read-from-string
              slave-output t nil
