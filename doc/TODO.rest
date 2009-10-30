@@ -23,10 +23,10 @@ and background on the design and ultimate goals of XCVB.
     3  Usability Issues [V1]
       3.1  Migration from ASDF [V2]
       3.2  Non-enforcing builds [V2]
-      3.3  In-image loading [V1]
+      3.3  In-image loading [V2]
       3.4  Centralized Dependency Declaration [V1]
       3.5  Exploded File Dependencies [V1]
-      3.6  Lack of Manual [V1]
+      3.6  Lack of Manual [V2]
       3.7  Producing Executables [V3]
     4  Features [V2]
       4.1   XCVB Self-Test [V2]
@@ -422,21 +422,12 @@ so ASDF can die.
     (ASDF-style being almost a degenerate case of POIU-style with max-fork=1).
 
 
-In-image loading [V1]
+In-image loading [V2]
 ---------------------
-
-Enhance support for XCVB to be able to handle
-compiling and loading a system into the current Lisp image.
-
-Document it better.
-Save original build and options in the image itself
-so the user doesn't have to respecify them.
-
-Allow for arbitrary grains to be included, not just lisp, fasl and cfasl grains.
 
 Note that in-image loading is also necessary for extensions to XCVB itself,
 whereby extensions are to be loaded in the current XCVB image.
-So the X of XCVB is a lie until such feature is implemented.
+So In-image loading is a prerequisite for the X of XCVB.
 
 Build without make? time for our own dynamic backend!
 
@@ -484,7 +475,7 @@ Therefore it should be possible to disable this feature
 at least for the dependencies of such project.
 
 
-Lack of Manual [V1]
+Lack of Manual [V2]
 -------------------
 
 Document all there is to know to use XCVB in README.rest.
@@ -1055,7 +1046,7 @@ from a different dialect or language
 or a Haskell to Lisp compiler),
 the precise in-file location of a source statement that CL compiles
 is not at all the same as the one that matters for the debugger
-to location the actual source code.
+to locate the actual source code.
 
 For instance, one could provide hygienic macros through a form
 ``WITH-HYGIENIC-MACROS`` that does the necessary whole-program
@@ -1074,6 +1065,15 @@ already have source locations associated through something like::
 
   (setf (gethash EXPANDEDFORM *some-source-location-hash*)
         ORIGINAL-SOURCE-LOCATION)
+
+Semi-relatedly, we might want to decouple the source location information
+from the dumped object file, so that it can be loaded independently,
+possibly only in the debugger process rather than the target Lisp process.
+This makes a lot of sense if you're targetting an embedded platform,
+but also if you want to compare object files for equality and easily
+determine that indeed whatever changed in the build was semantically
+not significant (e.g. changes in whitespace/comment, in local variable
+names, and other trivially optimized-away changes).
 
 
 Push for more determinism in Lisp compilers [V5]
@@ -1254,8 +1254,10 @@ Packaging and Distribution [V5]
 At some point in a relatively distant future,
 we may want to extend XCVB to handle
 the automatic packaging and distribution of Lisp-based projects.
+Or hopefully, some existing packaging and distribution system
+will already have adopted XCVB as its build tool.
 
-See ASDF-INSTALL, clbuild, etc.
+See ASDF-INSTALL, clbuild, libcl, desire, etc.
 
 See Haskell Hackage, Caml Hump,
 PLaneT, Chicken eggs,

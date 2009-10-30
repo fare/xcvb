@@ -434,10 +434,10 @@ will create the desired content. An atomic rename() will have to be performed af
     (setf *use-master* master)
     (when master
       (ensure-tthsum-present)
-      (appendf *lisp-setup-dependencies* `((:fasl "/xcvb/master"))))
+      (append1f *lisp-setup-dependencies* '(:fasl "/xcvb/master")))
     (when setup
       (let ((module (resolve-absolute-module-name setup)))
         (unless module
           (error "Cannot find setup module ~A" setup))
-        (appendf *lisp-setup-dependencies* `((:lisp ,(fullname module))))))
+        (append1f *lisp-setup-dependencies* `(:lisp ,(fullname module)))))
     (write-makefile (canonicalize-fullname build) :output-path output-path)))

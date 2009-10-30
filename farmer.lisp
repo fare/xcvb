@@ -74,26 +74,21 @@ waiting at this state of the world.")
         :included-dependencies (make-hash-table :test 'equal)
         :issued-build-commands (make-hash-table :test 'equal))))))
 
-(defclass farmer-traversal (xcvb-traversal)
+(defclass active-world (world-grain)
+  ((futures
+    :accessor world-futures
+    :documentation "a list of (action . grain) in the future of this world")
+   (handler
+    :accessor world-handler
+    :documentation "a handler that will accept commands to run actions on this world")))
+
+(defclass farmer-traversal (enforcing-traversal)
   ((world
     :accessor current-world
-    :documentation "world object representing the current state of the computation")
-   (dependencies-r
-    :initform nil
-    :accessor traversed-dependencies-r
-    :documentation "dependencies issued as part of the current computation, in reverse order")
-   (issued-build-commands
-    :initform (make-hashset :test 'equal)
-    :accessor issued-build-commands
-    :documentation "load commands issued so far to run the current compilation, as a set")
-   (build-commands-r
-    :initform nil
-    :accessor traversed-build-commands-r
-    :documentation "load commands issued so far to run the current compilation, in reverse order")))
+    :documentation "world object representing the current state of the computation")))
 
 (defmethod included-dependencies ((traversal farmer-traversal))
   (included-dependencies (current-world traversal)))
 (defmethod dependency-already-included-p ((env farmer-traversal) grain)
   (or (gethash grain (included-dependencies env))
       (call-next-method)))
-

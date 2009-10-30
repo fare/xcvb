@@ -807,13 +807,15 @@ You can query your current search path with the command::
 
 Also available is the short-hand ``xcvb ssp``.
 
-_`Note to people migrating from ASDF`_:
+*Note to people migrating from ASDF*:
 this more or less corresponds
 to the ``asdf:*central-registry*`` special variable.
 However, whereas ASDF relies on lazy dereference of symlinks
 and doesn't descend into subdirectories,
 XCVB eagerly scans subdirectories and registers available builds.
 XCVB works with or without symlinks.
+
+.. _ASDF: http://www.cliki.net/
 
 
 Module Name Resolution
@@ -1428,7 +1430,7 @@ and experience subtle failures.
 Note that recompiling based on file-contents instead of file timestamp
 would have the same issue. The issue is the resolution of change detection.
 The solution that would allow to reconcile reliable incremental compilation
-with a centralized dependency definition is what in the XCVB TODO file
+with a centralized dependency definition is what in the XCVB TODO_ file
 I called "Exploded File Dependencies": for the sake of detecting changes,
 explode the centralized dependency file into one file per Lisp module,
 with each per-module exploded bit containing all the dependency information
@@ -1436,3 +1438,4 @@ about that module, and only that information. It's by no means impossible,
 but it's just something painful and non-trivial that hasn't shown anywhere
 near the top of my TODO list yet.
 
+.. _TODO: http://common-lisp.net/project/xcvb/doc/TODO.html

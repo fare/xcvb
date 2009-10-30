@@ -4,7 +4,10 @@
 
 (in-package :xcvb)
 
-(defclass static-traversal (xcvb-traversal)
+(defclass enforcing-traversal (xcvb-traversal)
+  ())
+
+(defclass static-traversal (enforcing-traversal)
   ((image-setup
     :accessor image-setup
     :documentation "xcvb-driver-command options to setup the image for the current world")
@@ -34,8 +37,7 @@
   (graph-for env (compiled-dependency spec)))
 
 (defmethod graph-for-atom (env name)
-  (declare (ignore env))
-  (error "invalid normalized dependency ~S" name))
+  (graph-for env `(:lisp ,name)))
 
 (defun include-image-dependencies (env image)
   (when image
@@ -81,7 +83,7 @@
   (declare (ignore env))
   (handle-lisp-dependencies grain))
 
-(defmethod graph-for-build-grain ((env static-traversal) (grain build-grain))
+(defmethod graph-for-build-grain ((env enforcing-traversal) (grain build-grain))
   (let ((post-image-name (build-image-name grain)))
     (if post-image-name
         (graph-for env `(:image ,post-image-name))
@@ -126,14 +128,10 @@
       (include-image-dependencies env image)
       (setf (image-setup env) `(:image ,(fullname image)))
             image)
-    (progn
-      (setf (image-setup env)
-            `(:load ,(loop
-                       :for dep :in *lisp-setup-dependencies*
-                       :for grain = (graph-for env dep)
-                       :do (issue-dependency env grain)
-                       :collect (fullname grain))))
-      nil)))
+    (let ((driver-name (car *lisp-setup-dependencies*)))
+      (setf (image-setup env) `(:load (,driver-name)))
+      (issue-dependency env (graph-for env driver-name))
+      (build-command-for* env (cdr *lisp-setup-dependencies*)))))
 
 (defun make-load-file-command (fullname)
   `(:load-file ,fullname))
@@ -219,32 +217,35 @@
    :in in
    :fullname `(:source ,name :in ,in)))
 
-(define-graph-for :asdf ((env static-traversal) system-name)
+(define-graph-for :asdf ((env enforcing-traversal) system-name)
   (declare (ignore env))
   (make-asdf-grain :name system-name
                    :implementation *lisp-implementation-type*))
 
-(define-graph-for :require ((env static-traversal) name)
+(define-graph-for :require ((env enforcing-traversal) name)
   (declare (ignore env))
   (make-require-grain :name name))
 
-(define-graph-for :fasl ((env static-traversal) lisp-name)
+(define-graph-for :fasl ((env enforcing-traversal) lisp-name)
   (first (graph-for-fasls env lisp-name)))
 
-(define-graph-for :cfasl ((env static-traversal) lisp-name)
+(define-graph-for :cfasl ((env enforcing-traversal) lisp-name)
   (second (graph-for-fasls env lisp-name)))
 
 (defun setup-dependencies-before-fasl (fullname)
-  (reverse
-   (cdr
-    (member `(:fasl ,fullname)
-            (reverse *lisp-setup-dependencies*)
-            :test #'equal))))
+  (assert (equal '(:fasl "/xcvb/driver") (car *lisp-setup-dependencies*)))
+  (cdr ; skip driver, which comes first
+   (reverse ; put back in order
+    (cdr ; skip the current dependency itself
+     (member `(:fasl ,fullname) ; what is up to the current dependency
+             (reverse *lisp-setup-dependencies*)
+             :test #'equal)))))
 
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
   (let* ((lisp (graph-for env `(:lisp ,fullname)))
          (fullname (fullname lisp)) ;; canonicalize the fullname
+         (driverp (equal fullname "/xcvb/driver"))
          (specialp (member `(:fasl ,fullname) *lisp-setup-dependencies* :test #'equal)))
     (check-type lisp lisp-grain)
     (handle-lisp-dependencies lisp)
@@ -268,13 +269,11 @@
          :outputs outputs
          :inputs (traversed-dependencies env)
          :command
-         (if (not specialp)
+         (if driverp
            `(:xcvb-driver-command
-             ,(image-setup env)
-             (:compile-lisp (,fullname) ,@(traversed-build-commands env)))
+             ()
+             (:compile-file-directly ,fullname ,(second outputs)))
            `(:xcvb-driver-command
-             (:load ,(append
-                      (setup-dependencies-before-fasl fullname)
-                      (mapcar #'remove-load-file (traversed-build-commands env))))
-             (:compile-file-directly ,fullname ,(second outputs)))))
+             ,(if specialp '(:load ((:fasl "/xcvb/driver"))) (image-setup env))
+             (:compile-lisp (,fullname) ,@(traversed-build-commands env)))))
         outputs))))
