@@ -96,5 +96,10 @@ prepare-release:
 		--disable-cfasl ; done && \
 	rm -rf obj xcvb/obj
 
+test: install
+	rm -rf obj/*
+	PATH=${INSTALL_BIN}:$$PATH XCVB_PATH=${LISP_SOURCE} \
+	make -C xcvb xcvb LISP=${LISP}
+
 .PHONY: install-cl-launch install install-source install-using-asdf \
-	checkout update gc prepare-release
+	checkout update gc prepare-release test

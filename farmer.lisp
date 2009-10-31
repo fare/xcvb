@@ -1,10 +1,12 @@
 #+xcvb
 (module
  (:depends-on
-  ("macros"
+  ("macros" "specials" "static-backends"
    (:when (:featurep :sbcl)
      (:require :sb-grovel)
      (:require :sb-posix)))))
+
+;;TODO: split and rename into active-traversal and standalone-backend
 
 (in-package :xcvb)
 
@@ -32,7 +34,20 @@ waiting at this state of the world.")
 (defmethod worker-send (worker (x cons))
   (worker-send worker (readable-string x)))
 
+(defclass active-world (world-grain)
+  ((futures
+    :initform nil
+    :accessor world-futures
+    :documentation "a list of (action . grain) in the future of this world")
+   (handler
+    :initform nil
+    :accessor world-handler
+    :documentation "a handler that will accept commands to run actions on this world")))
+
+(defvar *root-world* nil
+  "root of active worlds")
 (defvar *worlds* (make-hash-table :test 'equal))
+
 (defun make-world-summary (setup commands-r)
   (cons setup commands-r))
 (defun world-summary (world)
@@ -49,7 +64,7 @@ waiting at this state of the world.")
     :with hash = (world-summary-hash summary)
     :for w :in (gethash hash *worlds*)
     :do (when (equal summary (world-summary w)) (return w))
-    :finally (let ((world (apply #'make-instance 'world
+    :finally (let ((world (apply #'make-instance 'active-world
                                  :hash hash
                                  :setup setup
                                  :commands-r commands-r
@@ -74,21 +89,88 @@ waiting at this state of the world.")
         :included-dependencies (make-hash-table :test 'equal)
         :issued-build-commands (make-hash-table :test 'equal))))))
 
-(defclass active-world (world-grain)
-  ((futures
-    :accessor world-futures
-    :documentation "a list of (action . grain) in the future of this world")
-   (handler
-    :accessor world-handler
-    :documentation "a handler that will accept commands to run actions on this world")))
+(defclass farmer-traversal (static-traversal)
+  ())
 
-(defclass farmer-traversal (enforcing-traversal)
-  ((world
+(defun simplified-xcvb-driver-command (computation-command)
+  (cond
+    ((and (list-of-length-p 2 computation-command)
+          (eq :progn (first computation-command)))
+     (simplified-xcvb-driver-command (second computation-command)))
+    ((and (consp computation-command)
+          (eq :xcvb-driver-command (first computation-command)))
+     (values (second computation-command)
+             (simplify-xcvb-driver-commands (cddr computation-command))))
+    (t (error "Unrecognized computation command ~S" computation-command))))
+
+(defun simplify-xcvb-driver-commands (commands)
+  (while-collecting (c) (emit-simplified-commands #'c commands)))
+
+(defvar *simple-xcvb-driver-commands*
+  '(:load-file :require :load-asdf :register-asdf-directory :debugging))
+
+(defun emit-simplified-commands (collector commands)
+  (flet ((collect (x) (funcall collector x)))
+    (dolist (c commands)
+      (let ((l (length c))
+            (h (first c)))
+        (cond
+          ((and (= 2 l) (member h *simple-xcvb-driver-commands*))
+           (collect c))
+          ((and (<= 2 l) (eq h :compile-lisp))
+           (emit-simplified-commands collector (cddr c))
+           (collect `(:compile-lisp ,(second c))))
+          ((and (<= 2 l) (eq h :create-image))
+           ;; TODO: distinguish the case when the target lisp is linking rather than dumping,
+           ;; e.g. ECL. -- or in the future, any Lisp when linking C code.
+           (emit-simplified-commands collector (cddr c))
+           (collect `(:create-image ,(second c))))
+          (t
+           (error "Unrecognized xcvb driver command ~S" c)))))))
+
+(defmethod make-computation ((env farmer-traversal)
+                             &key inputs outputs command &allow-other-keys)
+  (declare (ignore inputs))
+  (multiple-value-bind (setup commands)
+      (simplified-xcvb-driver-command command)
+    (loop
+      :for command = nil :then (if commands (pop commands) (return computation))
+      :for commands-r = nil :then (cons commands-r command)
+      :for grain-name = (unwrap-load-file-command command)
+      :for grain = (when grain-name (registered-grain grain-name))
+      :for world-name = `(:world :setup ,setup :commands-r ,commands-r)
+      :for previous = *root-world* :then world
+      :for world = (intern-world-summary
+                    setup commands-r
+                    (lambda ()
+                      (list)))
+      :for computation = (make-computation
+                          ()
+                          :inputs (append (when previous (list previous))
+                                          (error "NIY - world setup dependencies")
+                                          (when grain (list grain)))
+                          :outputs (if commands (list world) outputs)
+                          :command `(:active-command ,(fullname previous) ,command))
+      :do (pushnew world (world-futures previous)))))
+
+#|
+((world
     :accessor current-world
     :documentation "world object representing the current state of the computation")))
-
 (defmethod included-dependencies ((traversal farmer-traversal))
   (included-dependencies (current-world traversal)))
 (defmethod dependency-already-included-p ((env farmer-traversal) grain)
   (or (gethash grain (included-dependencies env))
       (call-next-method)))
+
+|#
+
+(defun standalone-build (&key)
+  ;;; TODO: parse arguments (see other backends)
+  (let* ((target (error "NIY"))
+         (*use-master* nil)
+         (*root-world* (make-initial-world))
+         (traversal (make-instance 'farmer-traversal)))
+    (graph-for traversal target)
+    ;;; TODO: actually walk the world tree
+    (error "NIY"))) ;;

@@ -97,3 +97,8 @@ then enriched as we build the graph from the main build.xcvb file.")
 
 (defvar *computations* ()
   "A list of all the computations created")
+
+(defvar *target-lisp-executable-pathname* nil
+  "Path of the target executable")
+(defvar *target-lisp-image-pathname* nil
+  "Path of the target image")

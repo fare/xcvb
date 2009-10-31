@@ -341,7 +341,7 @@ with associated pathnames and tthsums.")
                          (string-enclosed-p
                           +xcvb-slave-greeting+ slave-output +xcvb-slave-farewell+))
               (format *error-output*
-                     "Failed to execute a build slave.~
+                     "Failed to execute a build slave.~%~
 			Slave command:~%  ~S~%~
 			Slave output:~%~A~%~
 			(If using SLIME, you might have output in your *inferior-lisp* buffer.)"

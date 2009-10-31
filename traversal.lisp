@@ -21,6 +21,7 @@
 (defgeneric graph-for-compile-build (env name))
 (defgeneric graph-for-build-named (env name))
 (defgeneric graph-for-image (env name))
+(defgeneric graph-for-image-grain (env name pre-image-name dependencies))
 (defgeneric graph-for-source (env name &key in))
 (defgeneric graph-for-asdf (env name))
 (defgeneric graph-for-require (env name))

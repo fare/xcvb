@@ -171,7 +171,7 @@
         (when build-commands
           `((:load-manifest (:manifest ,name)))))))))
 
-(defun graph-for-image-grain (env name pre-image-name dependencies)
+(defmethod graph-for-image-grain ((env static-traversal) name pre-image-name dependencies)
   (let ((pre-image (issue-image-named env pre-image-name)))
     (build-command-for* env dependencies)
     (let* ((traversed (traversed-dependencies env))

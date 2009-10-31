@@ -21,10 +21,12 @@
 
 (defun call-with-grain-registration (fullname function &rest args)
   (let ((previous (registered-grain fullname)))
-    (or previous
-        (let ((grain (apply function args)))
-          (setf (registered-grain fullname) grain)
-          grain))))
+    (or previous (register-computed-grain fullname function args))))
+
+(defun register-computed-grain (fullname function &optional args)
+  (let ((grain (apply function args)))
+    (setf (registered-grain fullname) grain)
+    grain))
 
 (defun make-grain (class &rest args &key fullname &allow-other-keys)
   (apply #'call-with-grain-registration fullname #'make-instance class args))

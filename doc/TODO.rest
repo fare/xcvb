@@ -537,6 +537,9 @@ As failures are detected and fixed, knowledge will seep in.
 
 An XCVB self-test suite would include:
 
+   + When building XCVB, create one in a staging area, then
+     try to make from clean using that XCVB, and to make from incremental, too.
+
    + Building XCVB with each of the supported implementations,
      and running all the tests with each of them (including this build).
 

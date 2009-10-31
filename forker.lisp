@@ -7,6 +7,8 @@
      (:require :sb-grovel)
      (:require :sb-posix)))))
 
+(in-package :xcvb-driver)
+
 #+sbcl ;;; SBCL specific fork support
 (progn
 ;; Simple heuristic: if we have allocated more than the given ratio

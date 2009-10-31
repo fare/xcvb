@@ -40,6 +40,7 @@
          (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
       (setf (registered-grain "/_TARGET_")
             (make-instance 'build-grain :fullname "/_TARGET_"
+                           ;;:pathname nil
                            :depends-on (list build)
                            :extension-forms nil
                            :build-image t))
