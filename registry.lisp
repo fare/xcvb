@@ -3,7 +3,6 @@
 
 (in-package :xcvb)
 
-
 ;;; The registry itself
 
 (defun registered-grain (name)
@@ -37,6 +36,8 @@
   ((root
     :initarg :root :accessor bre-root
     :documentation "root path under which the entry was found")))
+
+(defgeneric brc-pathnames (brc))
 
 (defclass build-registry-conflict (build-registry-entry simple-print-object-mixin)
   ((fullname

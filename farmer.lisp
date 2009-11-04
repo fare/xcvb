@@ -128,6 +128,15 @@ waiting at this state of the world.")
           (t
            (error "Unrecognized xcvb driver command ~S" c)))))))
 
+(defun setup-dependencies (env setup)
+  (destructuring-bind (&key image load) setup
+    (mapcar/
+     env #'graph-for
+     (append
+      ;; TODO: include the lisp implementation itself, binary and image, when image is the default.
+      (when image (list image))
+      (when load load)))))
+
 (defmethod make-computation ((env farmer-traversal)
                              &key inputs outputs command &allow-other-keys)
   (declare (ignore inputs))
@@ -147,7 +156,7 @@ waiting at this state of the world.")
       :for computation = (make-computation
                           ()
                           :inputs (append (when previous (list previous))
-                                          (error "NIY - world setup dependencies")
+                                          (setup-dependencies env (image-setup world))
                                           (when grain (list grain)))
                           :outputs (if commands (list world) outputs)
                           :command `(:active-command ,(fullname previous) ,command))
