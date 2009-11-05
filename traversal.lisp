@@ -27,7 +27,10 @@
 (defgeneric graph-for-require (env name))
 
 (defclass xcvb-traversal (simple-print-object-mixin)
-  ((grain-names
+  ((image-setup
+    :accessor image-setup
+    :documentation "xcvb-driver-command options to setup the image for the current world")
+   (grain-names
     :initform nil
     :initarg :grain-names
     :reader traversed-grain-names-r
@@ -93,3 +96,12 @@
 
 (defmethod build-command-issued-p ((env xcvb-traversal) command)
   (values (gethash command (issued-build-commands env))))
+
+(define-graph-for :asdf ((env xcvb-traversal) system-name)
+  (declare (ignore env))
+  (make-asdf-grain :name system-name
+                   :implementation *lisp-implementation-type*))
+
+(define-graph-for :require ((env xcvb-traversal) name)
+  (declare (ignore env))
+  (make-require-grain :name name))

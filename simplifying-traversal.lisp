@@ -60,13 +60,23 @@ and the non-enforcing Makefile backend.
 (defvar *asdf-system-dependencies* nil
   "A list of asdf system we depend upon")
 
-(define-graph-for :asdf ((env simplifying-traversal) system-name)
+#|(define-graph-for :asdf ((env simplifying-traversal) system-name)
   (pushnew system-name *asdf-system-dependencies* :test 'equal)
-  nil)
+  nil)|#
+
 
 (defvar *require-dependencies* nil
   "A list of require features we depend upon")
 
-(define-graph-for :require ((env simplifying-traversal) name)
+(define-build-command-for :asdf ((env simplifying-traversal) name)
+  (pushnew name *asdf-system-dependencies* :test 'equal)
+  (values))
+
+#|(define-graph-for :require ((env simplifying-traversal) name)
   (pushnew name *require-dependencies* :test 'equal)
   nil)
+|#
+
+(define-build-command-for :require ((env simplifying-traversal) name)
+  (pushnew name *require-dependencies* :test 'equal)
+  (values))

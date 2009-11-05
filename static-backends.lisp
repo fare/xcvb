@@ -8,10 +8,7 @@
   ())
 
 (defclass static-traversal (enforcing-traversal)
-  ((image-setup
-    :accessor image-setup
-    :documentation "xcvb-driver-command options to setup the image for the current world")
-   (included-dependencies
+  ((included-dependencies
     :initform (make-hashset :test 'equal)
     :accessor included-dependencies
     :documentation "dependencies included in the current world, as a set")
@@ -220,15 +217,6 @@
    :name name
    :in in
    :fullname `(:source ,name :in ,in)))
-
-(define-graph-for :asdf ((env enforcing-traversal) system-name)
-  (declare (ignore env))
-  (make-asdf-grain :name system-name
-                   :implementation *lisp-implementation-type*))
-
-(define-graph-for :require ((env enforcing-traversal) name)
-  (declare (ignore env))
-  (make-require-grain :name name))
 
 (define-graph-for :fasl ((env enforcing-traversal) lisp-name)
   (first (graph-for-fasls env lisp-name)))

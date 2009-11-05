@@ -96,7 +96,7 @@
   (posix:setpgrp))
 
 (defun posix-waitpid (pid options)
-  (multiple-value-list (apply #'linux:wait :pid pid options)))
+  (multiple-value-list (apply #'posix:wait :pid pid options)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 (defun posix-waitpid-options (&rest keys &key nohang untraced)

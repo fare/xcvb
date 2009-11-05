@@ -24,7 +24,7 @@
          (_g (graph-for-build-grain env build))
          (inputs (loop :for computation :in (reverse *computations*)
                    :collect (first (computation-inputs computation))))
-         (asdfile (object-namestring nil (strcat "/" asdf-name ".asd")))
+         (asdfile (object-namestring env (strcat "/" asdf-name ".asd")))
          (_w (do-write-asd-file :output-path asdfile :build build-name :asdf-name asdf-name))
          (image-name `(:image ,(strcat "/" asdf-name)))
          (image (make-grain 'image-grain :fullname image-name))
