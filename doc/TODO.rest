@@ -44,6 +44,10 @@ and background on the design and ultimate goals of XCVB.
       4.13  Computed Lisp files [V2]
       4.14  Cryptographic Checksum [V1]
       4.15  Template Instantiations [V5]
+      4.16  XCVB configuration [V2]
+      4.17  Configuration Management [V2]
+      4.18  Finer-grain ASDF supersession
+      4.19  ECL support
     5  Internals [V4]
       5.1  Type-Checking [V4]
       5.2  Error handling [V4]
@@ -517,6 +521,9 @@ Additionally, when creating a standalone executable,
 some initializers and finalizers may have to be run as described in
 `Initialization and Finalization [V2]`_.
 
+See in example 4 how Cabal does it:
+	http://www.haskell.org/ghc/docs/latest/html/Cabal/authors.html
+
 
 Features [V2]
 =============
@@ -553,11 +560,11 @@ An XCVB self-test suite would include:
      double checking that converting back and forth is a projection
      (i.e. idempotent after the first time).
 
-   + Take whatever is useful out of the outdated ``test/mock/a/c/Makefile`` and delete the rest.
-     Maybe create a Common Lisp equivalent of GNU hello that is moved outside of the XCVB tree
+   + a Common Lisp equivalent of GNU hello that is moved outside of the XCVB tree
      (or kept inside, if it has any use).
 
-   + have a mechanism to run the test-suite on a tarball after it is made but before it is released.
+   + have a mechanism to run the test-suite on a tarball after it is made
+     but before it is released.
 
 
 Improve Makefile backend [V2]
@@ -712,7 +719,6 @@ should be issued when an image is dumped.
      undefined function, or which file used a macro without depending on the file that
      defined the macro. NB: *This is important for the dependency optimizer* since
      it can help detect dependencies that are required indeed.
-
 
 
 Dependency grovelling [V2]
@@ -903,6 +909,50 @@ is that the compilation process would automatically detect
 the need for such instantiations,
 and include them as additional project dependencies
 as the need for such appears.
+
+
+XCVB configuration [V2]
+-----------------------
+
+XCVB should be use the unix and windows configuration best practices.
+A .ini file in ``~/.config/common-lisp/xcvb.ini``
+overriding ``/etc/common-lisp/xcvb.ini``
+and itself overridable from the command-line.
+
+For parsing the configuration file, see `cl-iniparser`_ and/or `trivial-configuration-parser`_
+
+.. _trivial-configuration-parser: http://www.cliki.net/trivial-configuration-parser
+.. _cl-iniparser: http://github.com/TheDarkTrumpet/cl-iniparser
+
+
+Configuration Management [V2]
+-----------------------------
+
+Start by having a command-line interface to add or delete keywords from the target *features*.
+
+Generalize features into a set of configuration variables,
+used by the conditional dependencies language, and more.
+Initialize booleans based on *features*.
+
+These variables should be queryable from the build.xcvb DSL;
+they shall probably be also available in the target image,
+but then again used in a way that flags dependencies
+on the values of the variables that are used.
+
+
+Finer-grain ASDF supersession
+-----------------------------
+
+Allow XCVB to supersede ``xcvb-driver`` by redirecting to just ``/xcvb/driver``,
+and similarly ``xcvb-master`` should be just ``/xcvb/master``.
+
+
+ECL support
+-----------
+
+ECL is a very useful implementation to support because it is very different
+from most other implementations and thus extends the niche of XCVB applicability.
+For precisely the same reason, its supports requires notable differences from other Lisps.
 
 
 Internals [V4]

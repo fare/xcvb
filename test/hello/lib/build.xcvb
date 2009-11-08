@@ -1,0 +1,6 @@
+#+xcvb
+(module
+ (:fullname "/xcvb/hello/lib"
+  :supersedes-asdf ("xcvb-hello-lib")
+  :build-depends-on ("/cl-launch" (:asdf "command-line-arguments"))
+  :depends-on ("main")))

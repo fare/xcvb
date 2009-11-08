@@ -1,4 +1,0 @@
-#+xcvb
-(module
-  (:build-depends-on ((:asdf "command-line-arguments") (:asdf "fare-utils"))
-   :depends-on ("gah")))

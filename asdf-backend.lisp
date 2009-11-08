@@ -81,13 +81,16 @@ Declare asd system as ASDF-NAME."
            (or asdf-name
                (first (supersedes-asdf first-build))
                (pathname-name (fullname first-build)))))
-         (output-path (ensure-absolute-pathname output-path))
-         (output-path
+         (default-output-path
           (merge-pathnames
-           output-path
-           (merge-pathnames
-            (make-pathname :name asdf-name :type "asd")
-            (grain-pathname first-build))))
+           (make-pathname :name asdf-name :type "asd")
+           (grain-pathname first-build)))
+         (output-path
+          (if output-path
+            (merge-pathnames
+             (ensure-absolute-pathname output-path)
+             default-output-path)
+            default-output-path))
          (*target-builds* (make-hashset :test 'equal :list (mapcar #'fullname builds)))
          (*asdf-system-dependencies* nil)
          (*require-dependencies* nil)

@@ -96,6 +96,24 @@ xcvb-using-asdf:
 	--system xcvb ${XCVB_INIT} \
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
 
+## The non-enforcing backend
+xcvb-ne.mk: force
+	xcvb non-enforcing-makefile \
+	     --build /xcvb \
+	     --setup /xcvb/setup \
+	     --lisp-implementation ${LISP_IMPL} \
+	     --lisp-binary-path ${LISP_BIN}
+
+obj-ne/xcvb-tmp.image: xcvb-ne.mk
+	${MAKE} -f xcvb-ne.mk $@
+
+xcvb-using-nemk: obj-ne/xcvb-tmp.image
+	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
+	--image $$PWD/obj-ne/xcvb-tmp.image ${XCVB_INIT} \
+	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
+
+
 ## Installing Lisp files needed at runtime
 lisp-install:
 	rsync -av ${LISP_INSTALL_FILES} ${INSTALL_XCVB}/

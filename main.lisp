@@ -44,7 +44,7 @@ command gives specific help on that command.")
      "Attempt an automated conversion of an ASDF system to XCVB.
 Optionally load a setup Lisp file before anything else, so the user gets
 a chance to load and/or configure ASDF itself and any extension thereof.")
-    (("remove-xcvb" "rm-x" "rx") remove-xcvb-command +remove-xcvb-option-spec+
+    (("remove-xcvb" "rm-x" "rmx" "rx") remove-xcvb-command +remove-xcvb-option-spec+
      "Remove XCVB modules from files in build"
      "Given an XCVB build file, removes the XCVB modules from each of the files listed in the build file.")
     (("xcvb-to-asdf" "x2a") xcvb-to-asdf-command +xcvb-to-asdf-option-spec+

@@ -1,5 +1,5 @@
-;;; XCVB driver to be compiled in buildee images
-;;; (largely inspired from cl-launch, a bit by qres-build + hacks by sbrody)
+;;; XCVB driver to be compiled and loaded in target images
+;;; largely inspired from cl-launch, a bit by qres-build + hacks by sbrody and fare
 
 #+xcvb
 (module
@@ -210,12 +210,13 @@ This is designed to abstract away the implementation specific quit forms."
 
 ;;; Filtering conditions during the build.
 (defun uninteresting-condition-p (condition)
-  (loop :for x :in *uninteresting-conditions* :thereis
-        (etypecase x
-          (symbol (typep condition x))
-          (function (funcall x condition))
-          (string (and (typep condition 'simple-condition)
-                       (equal (simple-condition-format-control condition) x))))))
+  (loop :for x :in *uninteresting-conditions* :thereis (match-condition-p x condition)))
+(defun match-condition-p (x condition)
+  (etypecase x
+    (symbol (typep condition x))
+    (function (funcall x condition))
+    (string (and (typep condition 'simple-condition)
+                 (equal (simple-condition-format-control condition) x)))))
 (defun fatal-condition-p (condition)
   (typep condition *fatal-condition*))
 (defun call-with-controlled-compiler-conditions (thunk)
@@ -242,48 +243,46 @@ This is designed to abstract away the implementation specific quit forms."
     (call-with-controlled-compiler-conditions thunk)))
 (defmacro with-controlled-loader-conditions (() &body body)
   `(call-with-controlled-loader-conditions (lambda () ,@body)))
+(defun save-forward-references (forward-references)
+  #+sbcl
+  (loop :for w :in sb-c::*undefined-warnings*
+    :for kind = (sb-c::undefined-warning-kind w) ; :function :variable :type
+    :for name = (sb-c::undefined-warning-name w)
+    :for symbol = (cond
+                    ((consp name)
+                     (unless (eq kind :function)
+                       (error "unrecognized warning ~S not a function?" w))
+                     (ecase (car name)
+                       ((setf)
+                        (assert (and (consp (cdr name)) (null (cddr name))) ())
+				  (setf kind :setf-function)
+                        (second name))
+                       ((sb-pcl::slot-accessor)
+                        (assert (eq :global (second name)))
+                        (assert (eq 'boundp (fourth name)))
+                        (assert (null (nthcdr 4 name)))
+                        (setf kind :sb-pcl-global-boundp-slot-accessor)
+                        (third name))))
+                    (t
+                     (assert (member kind '(:function :variable :type)) ())
+                     name))
+    :for symbol-name = (symbol-name symbol)
+    :for package-name = (package-name (symbol-package symbol))
+    :collect `(:undefined ,symbol-name ,package-name ,kind) :into undefined-warnings
+    :finally (setf *deferred-warnings* undefined-warnings
+                   sb-c::*undefined-warnings* nil))
+  (when forward-references
+    (with-open-file (s forward-references :direction :output :if-exists :supersede)
+      (write *deferred-warnings* :stream s :pretty t :readably t)
+      (terpri s))))
 (defun call-with-xcvb-compilation-unit (thunk &key forward-references)
   (with-compilation-unit (:override t)
     (let ((*deferred-warnings* ())
           #+sbcl (sb-c::*undefined-warnings* nil))
       (multiple-value-prog1
-          (handler-bind (#+clozure
-                         (ccl::compiler-warning
-                          #'(lambda (condition)
-                              ;;(push condition *deferred-warnings*) ;TODO: decode it as for SBCL!
-                              (muffle-warning condition))))
+          (with-controlled-compiler-conditions ()
             (funcall thunk))
-        #+sbcl
-        (loop :for w :in sb-c::*undefined-warnings*
-              :for kind = (sb-c::undefined-warning-kind w) ; :function :variable :type
-              :for name = (sb-c::undefined-warning-name w)
-              :for symbol = (cond
-			      ((consp name)
-			       (unless (eq kind :function)
-                                 (error "unrecognized warning ~S not a function?" w))
-			       (ecase (car name)
-				 ((setf)
-				  (assert (and (consp (cdr name)) (null (cddr name))) ())
-				  (setf kind :setf-function)
-				  (second name))
-				 ((sb-pcl::slot-accessor)
-				  (assert (eq :global (second name)))
-				  (assert (eq 'boundp (fourth name)))
-				  (assert (null (nthcdr 4 name)))
-				  (setf kind :sb-pcl-global-boundp-slot-accessor)
-				  (third name))))
-                              (t
-                               (assert (member kind '(:function :variable :type)) ())
-                               name))
-              :for symbol-name = (symbol-name symbol)
-              :for package-name = (package-name (symbol-package symbol))
-              :collect `(:undefined ,symbol-name ,package-name ,kind) :into undefined-warnings
-              :finally (setf *deferred-warnings* undefined-warnings
-                             sb-c::*undefined-warnings* nil))
-        (when forward-references
-          (with-open-file (s forward-references :direction :output :if-exists :supersede)
-            (write *deferred-warnings* :stream s :pretty t :readably t)
-            (terpri s)))))))
+        (save-forward-references forward-references)))))
 (defmacro with-xcvb-compilation-unit ((&key forward-references) &body body)
   `(call-with-xcvb-compilation-unit (lambda () ,@body) :forward-references ,forward-references))
 
@@ -396,7 +395,7 @@ This is designed to abstract away the implementation specific quit forms."
          ;;; SBCL will hopefully export a better mechanism soon
          (*random-state*
           #+sbcl (sb-kernel::%make-random-state
-                  :state (sb-kernel::init-random-state (logand (1- (ash 1 32)) hash)))
+                  :state (sb-kernel::init-random-state (ldb (byte 32 0) hash)))
           #-sbcl (make-random-state *initial-random-state*)))
     (funcall thunk)))
 
@@ -405,16 +404,15 @@ This is designed to abstract away the implementation specific quit forms."
         (*default-pathname-defaults* (truename *default-pathname-defaults*)))
     (multiple-value-bind (output-truename warnings-p failure-p)
         (with-profiling `(:preparing-and-compiling ,source)
-          (with-controlled-compiler-conditions ()
-            (with-xcvb-compilation-unit ()
-              (run-commands dependencies)
-              (with-profiling `(:compiling ,source)
-                (with-determinism `(:compiling ,source)
-                  (apply #'compile-file source
-                         :output-file (merge-pathnames fasl)
-                         ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
-                         (when cfasl
-                           `(:emit-cfasl ,(merge-pathnames cfasl)))))))))
+          (with-xcvb-compilation-unit ()
+            (run-commands dependencies)
+            (with-profiling `(:compiling ,source)
+              (with-determinism `(:compiling ,source)
+                (apply #'compile-file source
+                       :output-file (merge-pathnames fasl)
+                       ;; #+(or ecl gcl) :system-p #+(or ecl gcl) t
+                       (when cfasl
+                         `(:emit-cfasl ,(merge-pathnames cfasl))))))))
       (declare (ignore output-truename))
       (when failure-p
         (die "Compilation Failed for ~A" source))
@@ -427,11 +425,12 @@ This is designed to abstract away the implementation specific quit forms."
 
 
 ;;; Dumping and resuming an image
-(defun do-resume ()
-  (when *restart* (funcall *restart*))
+(defun do-resume (&key (restart *restart*))
+  (when restart (funcall restart))
   (quit 0))
-(defun resume ()
-  (do-resume))
+(defun resume (&key restart)
+  (do-resume :restart restart))
+
 #-ecl
 (defun dump-image (filename &key standalone package)
   (declare (ignorable filename standalone))

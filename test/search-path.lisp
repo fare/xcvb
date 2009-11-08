@@ -3,11 +3,11 @@
 (defparameter *test-dir*
   (pathname-directory-pathname cl-user::*xcvb-test-pathname*))
 
-(defparameter *mock-directory*
-  (subpathname *test-dir* "test/mock/"))
+(defparameter *conflict-directory*
+  (subpathname *test-dir* "test/conflict/"))
 
-(defparameter *mock-d-directory*
-  (subpathname *test-dir* "test/mock/d/"))
+(defparameter *conflict-b-directory*
+  (subpathname *test-dir* "test/conflict/b/"))
 
 
 (reset-variables)

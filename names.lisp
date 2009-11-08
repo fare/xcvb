@@ -160,3 +160,21 @@ of decreasing fullname length"
    name "build-relative filename"
    (lambda (build suffix)
      (return-from resolve-build-relative-name (values build suffix)))))
+
+(defun ensure-name-within-build (build name)
+  (let* ((build-name (fullname build))
+         (bn/ (strcat build-name "/")))
+    (multiple-value-bind (relative-name absolute-name)
+        (cond
+          ((portable-pathname-absolute-p name)
+           (unless (string-prefix-p bn/ name)
+             (error "Specified name ~A isn't relative to build ~A" name build-name))
+           (values (subseq name (length bn/)) name))
+          (t
+           (values name (strcat bn/ name))))
+      (multiple-value-bind (actual-build actual-name)
+          (resolve-build-relative-name absolute-name)
+        (unless (and (eq build actual-build) (equal relative-name actual-name))
+          (error "Specified name ~A isn't under build ~A but under build ~A"
+                 name build-name (fullname actual-build))))))
+  t)

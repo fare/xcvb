@@ -3,4 +3,4 @@
 (progn
   (reset-variables)
   (search-search-path)
-  (write-makefile "/c"))
+  (write-makefile "/xcvb/hello"))

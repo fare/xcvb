@@ -1,5 +1,0 @@
-#+xcvb
-(module
- (:fullname "/xcvb/test/c"
-  :depends-on ("x" "y")
-  :build-image t))

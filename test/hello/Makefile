@@ -1,0 +1,106 @@
+### Makefile for an example program using XCVB.
+
+# The ultimate target in this example build: an executable program
+# IN YOUR PROJECT,
+# your ultimate target will usually likewise be an executable.
+all: hello
+
+# This leverages the configuration the user already did for XCVB.
+# IN YOUR PROJECT,
+# until Lisp paths and features are standardized,
+# you may have to instead require a similar configuration of your own.
+# Your toplevel project would have a configure.mk just like XCVB,
+# and any subproject would somehow locate and reuse that configuration.
+# IN THE FUTURE,
+# XCVB may instead look for its configuration in a global file such as
+# ~/.config/common-lisp/xcvb.ini or /etc/common-lisp/xcvb.ini
+# (that you can override on the command-line) that includes all the configuration
+# for your user or site.
+XCVB_ROOT := $(shell readlink -f ../..)
+#May also work: XCVB_ROOT := $(shell xcvb ssp | grep '^ (:BUILD "/xcvb") ' | cut -d'"' -f4)
+include ${XCVB_ROOT}/configure.mk
+
+# Autodetect the XCVB_PATH for the example.
+# IN YOUR PROJECT,
+# this might be set as part of the user configuration,
+# or left wholly to the default user and/or system settings.
+export XCVB_PATH := ${XCVB_ROOT}/test/hello:${XCVB_PATH}
+$(shell ( export XCVB_PATH=${XCVB_PATH} ) >&2)
+
+# This is where XCVB is actually invoked.
+# IN YOUR PROJECT,
+# you should replace the /xcvb/hello with the fullname of your project.
+#
+# NOTE: if your project has ASDF dependencies not (yet) converted to XCVB,
+# you may have to setup ASDF's central-registry and maybe even load ASDF,
+# in a setup file, that you specify on the xcvb command with option
+# --setup /fullname/of/setup
+# See the ASDF build for more information on making such a setup file.
+
+xcvb.mk: force
+	xcvb make-makefile --build /xcvb/hello
+
+# The PARALLELIZE trick allows the user to disable or tweak build parallelism with
+# make PARALLELIZE= or make PARALLELIZE=-j8 or make PARALLELIZE=-l4
+# The XCVB_DEBUGGING trick allows the user to debug the build when and only when it fails.
+PARALLELIZE ?= -j
+obj/xcvb/hello.image: xcvb.mk
+	${MAKE} -f xcvb.mk ${PARALLELIZE} $@ || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk $@
+
+# This uses cl-launch to build an executable from the image created by xcvb.
+# For portability across Lisp implementation, we use an image on the side.
+# With SBCL and CLISP, you could use "--dump !" to create a standalone executable instead
+# IN THE FUTURE,
+# xcvb may have builtin option to specify such executables.
+hello: obj/xcvb/hello.image
+	mkdir -p ${INSTALL_BIN}
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb/hello.image \
+		--output ${INSTALL_BIN}/$@ --dump ${INSTALL_IMAGE}/$@.image \
+		--init '(xcvb-hello::main)'
+
+# If your project has ASDF dependencies that haven't been converted,
+# or if you are building with ASDF, or using our ASDF or POIU backend,
+# you will have to have a setup file that ensures ASDF is present and configured.
+# The setup.lisp better have at the start a declaration such as
+# #+xcvb (module (:build-depends-on ()))
+# then somehow load ASDF, configure its *central-registry*,
+# and otherwise setup optimization proclamations.
+#
+# This example shows how you can leverage XCVB-style configuration of cl-launch
+# into a setup.lisp that replicates this configuration.
+# You can then specify the setup file with --setup /xcvb/hello/setup
+# (changing the fullname to whatever fits your project)
+#
+setup.lisp:
+	( ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_launcher ; \
+	  ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -i "(let ((*package* (find-package :cl-launch))) (format t \"~S~%\" \`(setf asdf:*central-registry*',asdf:*central-registry*)))" \
+	) > $@
+
+# This builds hello directly with ASDF, using cl-launch, using a generated xcvb-hello.asd
+hello-using-asdf: xcvb-hello.asd
+	mkdir -p ${INSTALL_BIN}
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-hello \
+		--output ${INSTALL_BIN}/$@ --dump ${INSTALL_IMAGE}/$@.image \
+		--init '(xcvb-hello::main)'
+
+xcvb-hello.asd: force
+	xcvb x2a --build /xcvb/hello --build /xcvb/hello/lib --name xcvb-hello
+
+# This builds hello using our non-enforcing Makefile backend
+hello-using-nemk: obj-ne/xcvb-tmp.image
+	mkdir -p ${INSTALL_BIN}
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj-ne/xcvb-tmp.image \
+		--output ${INSTALL_BIN}/$@ --dump ${INSTALL_IMAGE}/$@.image \
+		--init '(xcvb-hello::main)'
+
+obj-ne/xcvb-tmp.image: xcvb-ne.mk
+	${MAKE} -f xcvb-ne.mk $@
+
+xcvb-ne.mk: setup.lisp force
+	xcvb non-enforcing-makefile --setup /xcvb/hello/setup --build /xcvb/hello
+
+
+# Declare some targets as phony.
+.PHONY: force all default
+
+# The end.

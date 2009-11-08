@@ -1,0 +1,7 @@
+#+xcvb
+(module
+ (:fullname "/xcvb/hello"
+  :supersedes-asdf ("xcvb-hello")
+  :build-depends-on ("/xcvb/hello/lib")
+  :depends-on ("main" "help")
+  :build-image t))

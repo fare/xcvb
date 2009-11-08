@@ -17,7 +17,8 @@ enforced locally-declared dependencies.
       1.2  Home page
       1.3  Dependencies
       1.4  Documentation
-      1.5  Timeline
+      1.5  Examples
+      1.6  Timeline
     2  Using XCVB
       2.1  Building XCVB
       2.2  Starting a new XCVB project
@@ -250,6 +251,14 @@ Documentation
 
 ``INSTALL.release``
 	instructions for installing XCVB from the expansion of a release tarball.
+
+
+Examples
+--------
+
+XCVB itself is an example.
+A simpler example is the trivial Common Lisp application ``hello``
+distributed in directory ``test/hello/``. See the source and its ``Makefile``.
 
 
 Timeline
@@ -1103,6 +1112,7 @@ to load ASDF and configure its ``*central-registry*``.
 
 In simple cases, your personal ``setup.lisp`` may be as simple as the following::
 
+	#+xcvb (module (:build-depends-on ()))
 	(in-package :cl-user)
 	(require :asdf)
         (push "/path/to/my/asdf/systems/" asdf:*central-registry*)
@@ -1119,6 +1129,7 @@ using the same principle, but additionally leveraging the pre-existing
 In yet harder cases, a robust semi-portable ``setup.lisp``
 may contain the usual ASDF hackery, including such snippets as::
 
+	#+xcvb (module (:build-depends-on ()))
 	(in-package :cl-user)
         (eval-when (:compile-toplevel :load-toplevel :execute)
           (defun get-env-var (x)
