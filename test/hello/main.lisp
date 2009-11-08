@@ -3,7 +3,7 @@
 (in-package :xcvb-hello)
 
 (defun hello (&key traditional name)
-  (format t (if traditional "hello, ~A~%" "Hello, ~A!~%") name))
+  (format t (if traditional "hello, ~(~A~)~%" "Hello, ~A!~%") name))
 
 (defun hello-command (arguments &key traditional name version help)
   (when help

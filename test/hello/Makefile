@@ -52,11 +52,13 @@ obj/xcvb/hello.image: xcvb.mk
 # With SBCL and CLISP, you could use "--dump !" to create a standalone executable instead
 # IN THE FUTURE,
 # xcvb may have builtin option to specify such executables.
-hello: obj/xcvb/hello.image
+hello-using-mk: obj/xcvb/hello.image
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb/hello.image \
-		--output ${INSTALL_BIN}/$@ --dump ${INSTALL_IMAGE}/$@.image \
+		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
 		--init '(xcvb-hello::main)'
+
+hello: hello-using-mk
 
 # If your project has ASDF dependencies that haven't been converted,
 # or if you are building with ASDF, or using our ASDF or POIU backend,
@@ -80,7 +82,7 @@ setup.lisp:
 hello-using-asdf: xcvb-hello.asd
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-hello \
-		--output ${INSTALL_BIN}/$@ --dump ${INSTALL_IMAGE}/$@.image \
+		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
 		--init '(xcvb-hello::main)'
 
 xcvb-hello.asd: force
@@ -90,7 +92,7 @@ xcvb-hello.asd: force
 hello-using-nemk: obj-ne/xcvb-tmp.image
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj-ne/xcvb-tmp.image \
-		--output ${INSTALL_BIN}/$@ --dump ${INSTALL_IMAGE}/$@.image \
+		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
 		--init '(xcvb-hello::main)'
 
 obj-ne/xcvb-tmp.image: xcvb-ne.mk
@@ -101,6 +103,6 @@ xcvb-ne.mk: setup.lisp force
 
 
 # Declare some targets as phony.
-.PHONY: force all default
+.PHONY: force all default hello hello-using-mk hello-using-nemk hello-using-asdf
 
 # The end.

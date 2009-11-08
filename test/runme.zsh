@@ -16,7 +16,7 @@ doenv () {
   while [ "$#" -gt 0 ] ; do
     case "$1" in
       (*=*) declare "$1" ; shift ;;
-      (*) $@ ; return ;;
+      (*) $=1 ; shift ;;
     esac
   done
 }
@@ -27,6 +27,7 @@ reset_variables () {
   LISPS=(clisp sbcl ccl)
 }
 initialize_variables () {
+  : ${TMP:=/tmp}
   : ${LISP:=sbcl}
 }
 finalize_variables () {
@@ -77,16 +78,16 @@ validate_xcvb_ssp () {
   # preconditions: env, xcvb built, PWD=.../xcvb/
   # postconditions: xcvb ssp working
 
-  xcvb ssp --xcvb-path $XCVB_DIR |
-  fgrep -q "(:BUILD \"/xcvb\") in \"$XCVB_DIR/build.xcvb\"" ||
+  xcvb ssp --xcvb-path $XCVB_DIR > $TMP/xcvb-ssp.out
+
+  fgrep -q "(:BUILD \"/xcvb\") in \"$XCVB_DIR/build.xcvb\"" $TMP/xcvb-ssp.out ||
   abort "Can't find build for xcvb"
 
-  xcvb ssp --xcvb-path $XCVB_DIR |
-  fgrep -q "(:ASDF \"/xcvb\") superseded by (:BUILD \"xcvb\")" ||
+  fgrep -q "(:ASDF \"xcvb\") superseded by (:BUILD \"/xcvb\")" $TMP/xcvb-ssp.out ||
   abort "can't find superseded asdf for xcvb"
 
-  xcvb ssp --xcvb-path $XCVB_DIR |
-  fgrep -q "CONFLICT for \"/xcvb/test/conflict/b\" between (\"$XCVB_DIR/test/conflict/b/build.xcvb\" \"$XCVB_DIR/test/conflict/b2/build.xcvb\")" || abort "can't find conflict for /xcvb/test/conflict/b"
+  grep -q "CONFLICT for \"/xcvb/test/conflict/b\" between (\"$XCVB_DIR/test/conflict/b2\\?/build.xcvb\" \"$XCVB_DIR/test/conflict/b2\\?/build.xcvb\")" $TMP/xcvb-ssp.out ||
+  abort "can't find conflict for /xcvb/test/conflict/b"
 }
 
 validate_xcvb () {
@@ -101,12 +102,12 @@ validate_xcvb () {
 }
 
 validate_hello () {
-  [ "hello, world" = "$(hello -t)" ] || abort "hello not working"
+  [ "hello, world" = "$($INSTALL_BIN/hello -t)" ] || abort "hello not working"
 }
 
 validate_hello_build () {
   cd $XCVB_DIR/test/hello
-  rm $INSTALL_BIN/hello
+  rm -f $INSTALL_BIN/hello || :
   $@
   validate_hello
   rm $INSTALL_BIN/hello
@@ -126,9 +127,9 @@ validate_x2a () {
 
 validate_rmx_a2x () {
   cd $XCVB_DIR/test/a2x
-  xcvb rmx a2x-test
+  xcvb rmx --build /xcvb/test/a2x
   git diff $XCVB/test/a2x | cmp - rmx.diff
-  xcvb a2x a2x-test
+  xcvb a2x --system a2x-test
   git diff $XCVB/test/a2x | cmp - /dev/null
 }
 
