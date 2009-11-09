@@ -34,7 +34,7 @@ top of a source file"
              (mapcan #'handle-slot slots)))
   `(module
     (,@(when (build-grain-p grain)
-             `(:fullname ,(subseq (fullname grain) 1)))
+             `(:fullname ,(fullname grain)))
      ,@(handle-slots '(author maintainer version licence description long-description))
      ,@(with-slots (load-depends-on compile-depends-on depends-on) grain
          (if (equivalent-deps-p grain)
@@ -322,9 +322,9 @@ so that the system can now be compiled with XCVB."
             (mapcar 'asdf::coerce-name
                     (get-dependencies-from-components (mapcar 'asdf:find-system systems))))
            (system-components
-            (with-open-file (s (cl-launch:apply-output-pathname-translations
-                                (merge-pathnames components-path)))
-              (read s)))
+            (read-first-file-form
+             (cl-launch:apply-output-pathname-translations
+              (merge-pathnames components-path))))
            (asdf-system
             (progn
               (remhash system asdf::*defined-systems*)

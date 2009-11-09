@@ -1,4 +1,4 @@
 #+xcvb (module ())
 
-(cl:defpackage :xcvb-hello
-  (:use :common-lisp :xcvb-hello-lib))
+(cl:defpackage :a2x-test
+  (:use :common-lisp :cl-launch))

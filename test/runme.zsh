@@ -125,12 +125,15 @@ validate_x2a () {
   validate_hello_build make hello-using-asdf $ENV
 }
 
-validate_rmx_a2x () {
+validate_rmx () {
   cd $XCVB_DIR/test/a2x
-  xcvb rmx --build /xcvb/test/a2x
-  git diff $XCVB/test/a2x | cmp - rmx.diff
   xcvb a2x --system a2x-test
-  git diff $XCVB/test/a2x | cmp - /dev/null
+  git diff $XCVB_DIR/test/a2x | cmp - /dev/null
+}
+
+validate_a2x () {
+  xcvb rmx --build /xcvb/test/a2x
+  git diff $XCVB_DIR/test/a2x | grep -v '^index' | cmp - rmx.diff
 }
 
 validate_master () {
