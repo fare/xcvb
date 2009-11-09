@@ -97,7 +97,8 @@ validate_xcvb () {
   validate_mk_build # can it build itself with the Makefile backend?
   validate_nemk_build # can it build itself with the non-enforcing Makefile backend?
   validate_x2a # can it convert a simple build back to asdf?
-  validate_rmx_a2x # can it remove the xcvb annotations and add them back?
+  validate_rmx # can it remove the xcvb annotations?
+  validate_a2x # can it migrate from xcvb?
   validate_master # does xcvb-master work?
 }
 
@@ -106,6 +107,7 @@ validate_hello () {
 }
 
 validate_hello_build () {
+  mkdir -p $INSTALL_BIN $INSTALL_IMAGE
   cd $XCVB_DIR/test/hello
   rm -f $INSTALL_BIN/hello || :
   $@
@@ -126,14 +128,24 @@ validate_x2a () {
 }
 
 validate_rmx () {
-  cd $XCVB_DIR/test/a2x
-  xcvb a2x --system a2x-test
-  git diff $XCVB_DIR/test/a2x | cmp - /dev/null
+  mkdir -p $BUILD_DIR/a2x_rmx/
+  rsync -a $XCVB_DIR/test/a2x/ $BUILD_DIR/a2x_rmx/
+  cd $BUILD_DIR/a2x_rmx
+  XCVB_PATH=$BUILD_DIR/a2x_rmx xcvb ssp
+  XCVB_PATH=$BUILD_DIR/a2x_rmx xcvb rmx --build /xcvb/test/a2x
+  diff -urN $XCVB_DIR/test/a2x $BUILD_DIR/a2x_rmx |
+  grep -v '^diff\|^---\|^+++' |
+  diff - $XCVB_DIR/test/rmx.diff
 }
 
 validate_a2x () {
-  xcvb rmx --build /xcvb/test/a2x
-  git diff $XCVB_DIR/test/a2x | grep -v '^index' | cmp - rmx.diff
+  mkdir -p $BUILD_DIR/a2x_a2x/
+  rsync -a $XCVB_DIR/test/a2x/ $BUILD_DIR/a2x_a2x/
+  cd $BUILD_DIR/a2x_a2x
+  xcvb a2x --system a2x-test --name /xcvb/test/a2x
+  diff -urN $XCVB_DIR/test/a2x $BUILD_DIR/a2x_a2x |
+  grep -v '^diff\|^---\|^+++' |
+  diff - $XCVB_DIR/test/a2x.diff
 }
 
 validate_master () {
@@ -157,8 +169,11 @@ do_self_nemk_build () {
 validate_asdf_build () {
   do_asdf_build ; validate_xcvb
 }
-validate_self_build () {
-  do_self_build ; validate_xcvb
+validate_mk_build () {
+  do_self_mk_build ; validate_xcvb
+}
+validate_nemk_build () {
+  do_self_nemk_build ; validate_xcvb
 }
 
 do_bootstrapped_build () {
@@ -185,7 +200,8 @@ validate_xcvb_dir () {
   cd $XCVB_DIR
   mkdir -p $obj $INSTALL_BIN
   validate_asdf_build
-  validate_self_build
+  validate_mk_build
+  validate_nemk_build
 }
 
 validate_release_dir () {

@@ -1,6 +1,6 @@
 #+xcvb
 (module
  (:fullname "/xcvb/test/a2x"
-  :supersedes-asdf ("xcvb-test-a2x")
+  :supersedes-asdf ("a2x-test")
   :build-depends-on ("/cl-launch")
   :depends-on ("main" "help")))
