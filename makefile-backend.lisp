@@ -31,7 +31,9 @@
   (let* ((*print-pretty* nil); otherwise SBCL will slow us down a lot.
          (fullname (canonicalize-fullname fullname))
          (target (resolve-absolute-module-name fullname))
-         (build (build-grain-for target))
+         (build (if target (build-grain-for target)
+                    (errexit 3 "User requested build ~S but it can't be found.~%~
+				You may check available builds with xcvb ssp.~%" fullname)))
          (default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
          (output-path (if output-path (merge-pathnames output-path default-output-path) default-output-path))
          (makefile-path (ensure-absolute-pathname output-path))

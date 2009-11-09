@@ -172,20 +172,29 @@ TMP ?= /tmp
 # EXCLUDE_REVISION_INFO := --exclude .git --exclude _darcs
 EXCLUDE_REVISION_INFO :=
 
+test:
+	./test/runme.zsh XCVB_DIR=$$PWD validate_xcvb_dir
+
+fulltest:
+	./test/runme.zsh XCVB_DIR=$$PWD validate_xcvb_dir_all_lisps
+
 release-tarball:
-	mkdir -p ${TMP}/xcvb-release && \
-	cp doc/Makefile.release ${TMP}/xcvb-release/Makefile && \
-	cd ${TMP}/xcvb-release && \
+	export RELEASE_DIR=${TMP}/xcvb-release && \
+	mkdir -p $$RELEASE_DIR && \
+	cp doc/Makefile.release $$RELEASE_DIR/Makefile && \
+	cd $$RELEASE_DIR && \
 	make checkout update gc prepare-release && \
 	VERSION=$$(cat xcvb/version.lisp | grep '^ *".*")' | cut -d\" -f2) ; \
 	cd .. && rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
 	tar ${EXCLUDE_REVISION_INFO} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
+	$$RELEASE_DIR/xcvb/test/runme.zsh validate_release_dir && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/
 
 .PHONY: all install lisp-install test tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision force \
-	release-tarball xcvb-bootstrapped-install xcvb-asdf-install
+	release-tarball xcvb-bootstrapped-install xcvb-asdf-install \
+	fulltest
 
 # To check out a particular revision: git fetch; git merge $commit

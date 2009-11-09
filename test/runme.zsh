@@ -36,7 +36,7 @@ finalize_variables () {
   INSTALL_LISP="$BUILD_DIR/common-lisp"
   INSTALL_IMAGE="$BUILD_DIR/lib/common-lisp/images"
 
-  ENV=(INSTALL_BIN=$INSTALL_BIN INSTALL_IMAGE=$INSTALL_IMAGE)
+  ENV=(INSTALL_BIN=$INSTALL_BIN INSTALL_IMAGE=$INSTALL_IMAGE LISP=$LISP)
 
   export PATH=$INSTALL_BIN:$PATH
   export XCVB_PATH
@@ -93,12 +93,12 @@ validate_xcvb_ssp () {
 validate_xcvb () {
   # preconditions: env, xcvb built, PWD=.../xcvb/
   validate_xcvb_ssp # can the built xcvb search its search path?
-  #validate_sa_build # can it build itself with the standalone backend?
-  validate_mk_build # can it build itself with the Makefile backend?
-  validate_nemk_build # can it build itself with the non-enforcing Makefile backend?
-  validate_x2a # can it convert a simple build back to asdf?
-  validate_rmx # can it remove the xcvb annotations?
-  validate_a2x # can it migrate from xcvb?
+  #validate_sa_build # can it build hello with the standalone backend?
+  validate_mk_build # can it build hello with the Makefile backend?
+  validate_nemk_build # can it build hello with the non-enforcing Makefile backend?
+  validate_x2a # can it convert hello back to asdf?
+  validate_rmx # can it remove the xcvb annotations from a2x-test?
+  validate_a2x # can it migrate a2x-test from xcvb?
   validate_master # does xcvb-master work?
 }
 
@@ -149,7 +149,15 @@ validate_a2x () {
 }
 
 validate_master () {
-  echo "master test NIY"
+  xcvb eval '(progn(xcvb-master:bnl"xcvb/hello")(let((*print-base* 30))(xcvbd:call :xcvb-hello :hello :name 716822547 :traditional t)))' |
+  fgrep 'hello, tester' ||
+  abort "Failed to use hello through the XCVB master"
+}
+
+validate_slave () {
+  xcvb slave-builder --build /xcvb/hello --lisp-implementation $LISP |
+  fgrep 'Your desires are my orders' ||
+  abort "Failed to drive a slave $LISP to build hello"
 }
 
 do_asdf_build () {
@@ -175,11 +183,13 @@ validate_mk_build () {
 validate_nemk_build () {
   do_self_nemk_build ; validate_xcvb
 }
+validate_bootstrapped_build () {
+  do_bootstrapped_build ; validate_xcvb
+}
 
 do_bootstrapped_build () {
   # pre-requisites (besides env): PWD=.../xcvb-release/
-  make install INSTALL_BIN=$INSTALL_BIN
-  validate-xcvb
+  make install $ENV
 }
 
 clean_xcvb_dir () {
@@ -202,6 +212,13 @@ validate_xcvb_dir () {
   validate_asdf_build
   validate_mk_build
   validate_nemk_build
+  clean_xcvb_dir
+}
+
+validate_xcvb_dir_all_lisps () {
+  for LISP in $LISPS ; do
+    validate_xcvb_dir
+  done
 }
 
 validate_release_dir () {
@@ -209,11 +226,16 @@ validate_release_dir () {
   check_release_dir
   cd $RELEASE_DIR
   mkdir -p $obj $INSTALL_BIN
+  validate_bootstrapped_build
+  validate_asdf_build
+  validate_mk_build
+  validate_nemk_build
+  clean_release_dir
+}
+
+validate_release_dir_all_lisps () {
   for LISP in $LISPS ; do
-    compute_release_variables
-    do_bootstrapped_build
-    validate_xcvb
-    clean_release_dir
+    validate_release_dir
   done
 }
 

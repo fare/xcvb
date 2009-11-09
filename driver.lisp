@@ -92,6 +92,7 @@
      sb-ext:implicit-generic-function-warning
      sb-kernel:lexical-environment-too-complex
      "Couldn't grovel for ~A (unknown to the C compiler).")
+   '("No generic function ~S present when encountering macroexpansion of defmethod. Assuming it will be an instance of standard-generic-function.") ;; from closer2mop
    )
   "Conditions that may be skipped. type symbols, predicates or strings")
 (defvar *fatal-condition*
