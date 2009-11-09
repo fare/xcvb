@@ -177,7 +177,7 @@ release-tarball:
 	cp doc/Makefile.release ${TMP}/xcvb-release/Makefile && \
 	cd ${TMP}/xcvb-release && \
 	make checkout update gc prepare-release && \
-	VERSION=$$(cat xcvb/version.lisp | grep version | cut -d\" -f2) ; \
+	VERSION=$$(cat xcvb/version.lisp | grep '^ *".*")' | cut -d\" -f2) ; \
 	cd .. && rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
 	tar ${EXCLUDE_REVISION_INFO} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
