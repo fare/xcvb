@@ -152,9 +152,6 @@ doc: $(patsubst %.rest, %.html, $(wildcard doc/*.rest)) doc/$(ILCPAPER).pdf
 online-doc: doc
 	rsync -av doc/*.html doc/*.pdf doc/ui common-lisp.net:/project/xcvb/public_html/doc/
 
-test:
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-test --restart xcvb::quit
-
 pull:
 	git pull git@github.com:fare/xcvb.git master:master
 	git pull common-lisp.net:/project/xcvb/public_html/git/xcvb.git master:master

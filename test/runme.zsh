@@ -1,12 +1,7 @@
 #!/bin/zsh -fex
 
-## Plan:
-## 1- Get this called by make with all the correct options as extracted from configure.mk
-##
-## 2- be able to run this on the actual release directory
-##
-## 3- properly cleanup after ourselves in the end.
-##
+# Q: what to do of this old broken test suite?
+# ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-test --restart xcvb::quit
 
 abort () {
   if [ -n "$*" ] ; then print -r "$*" >&2 ; fi
