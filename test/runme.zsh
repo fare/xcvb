@@ -29,9 +29,16 @@ finalize_variables () {
   obj="$BUILD_DIR/obj"
   INSTALL_BIN="$BUILD_DIR/bin"
   INSTALL_LISP="$BUILD_DIR/common-lisp"
-  INSTALL_IMAGE="$BUILD_DIR/lib/common-lisp/images"
+  INSTALL_IMAGE="$BUILD_DIR/common-lisp/images"
+  INSTALL_SOURCE="$BUILD_DIR/common-lisp/source"
+  INSTALL_SYSTEMS="$BUILD_DIR/common-lisp/systems"
 
-  ENV=(INSTALL_BIN=$INSTALL_BIN INSTALL_IMAGE=$INSTALL_IMAGE LISP=$LISP)
+  ENV=(INSTALL_BIN=$INSTALL_BIN
+       INSTALL_IMAGE=$INSTALL_IMAGE
+       INSTALL_LISP=$INSTALL_LISP
+       INSTALL_SOURCE=$INSTALL_SOURCE
+       INSTALL_SYSTEMS=$INSTALL_SYSTEMS
+       LISP=$LISP)
 
   export PATH=$INSTALL_BIN:$PATH
   export XCVB_PATH
@@ -220,7 +227,7 @@ validate_release_dir () {
   compute_release_dir_variables
   check_release_dir
   cd $RELEASE_DIR
-  mkdir -p $obj $INSTALL_BIN
+  mkdir -p $obj $INSTALL_BIN $INSTALL_IMAGE
   validate_bootstrapped_build
   validate_asdf_build
   validate_mk_build
