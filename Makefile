@@ -167,7 +167,7 @@ show-current-revision:
 TMP ?= /tmp
 
 # EXCLUDE_REVISION_INFO := --exclude .git --exclude _darcs
-EXCLUDE_REVISION_INFO :=
+RELEASE_EXCLUDE := --exclude build --exclude obj --exclude obj-ne
 
 test:
 	./test/runme.zsh XCVB_DIR=$$PWD validate_xcvb_dir
@@ -175,23 +175,37 @@ test:
 fulltest:
 	./test/runme.zsh XCVB_DIR=$$PWD validate_xcvb_dir_all_lisps
 
+export RELEASE_DIR := ${TMP}/xcvb-release
+
+release: release-directory release-tarball test-and-release-tarball
+
+release-directory:
+	mkdir -p ${RELEASE_DIR} && \
+	cp doc/Makefile.release ${RELEASE_DIR}/Makefile && \
+	cd ${RELEASE_DIR} && \
+	make checkout update gc prepare-release
+
 release-tarball:
-	export RELEASE_DIR=${TMP}/xcvb-release && \
-	mkdir -p $$RELEASE_DIR && \
-	cp doc/Makefile.release $$RELEASE_DIR/Makefile && \
-	cd $$RELEASE_DIR && \
-	make checkout update gc prepare-release && \
-	VERSION=$$(cat xcvb/version.lisp | grep '^ *".*")' | cut -d\" -f2) ; \
+	cd ${RELEASE_DIR} && \
+	VERSION=$$(cat xcvb/version.lisp | grep '^ *".*")' | cut -d\" -f2) && \
 	cd .. && rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
-	tar ${EXCLUDE_REVISION_INFO} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
-	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 && \
-	$$RELEASE_DIR/xcvb/test/runme.zsh validate_release_dir && \
+	tar ${RELEASE_EXCLUDE} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
+	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2
+
+test-release-tarball:
+	${RELEASE_DIR}/xcvb/test/runme.zsh validate_release_dir
+
+test-and-release-tarball: test-release-tarball
+	cd ${RELEASE_DIR} && \
+	VERSION=$$(cat xcvb/version.lisp | grep '^ *".*")' | cut -d\" -f2) && \
+	cd ${TMP} && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/
 
-.PHONY: all install lisp-install test tidy clean mrproper \
+.PHONY: all install lisp-install tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision force \
-	release-tarball xcvb-bootstrapped-install xcvb-asdf-install \
-	fulltest
+	release release-directory release-tarball test-and-release-tarball \
+	xcvb-bootstrapped-install xcvb-asdf-install \
+	test fulltest
 
 # To check out a particular revision: git fetch; git merge $commit

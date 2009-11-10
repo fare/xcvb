@@ -38,10 +38,12 @@ finalize_variables () {
        INSTALL_LISP=$INSTALL_LISP
        INSTALL_SOURCE=$INSTALL_SOURCE
        INSTALL_SYSTEMS=$INSTALL_SYSTEMS
+       XCVB_PATH=$XCVB_PATH
        LISP=$LISP)
 
   export PATH=$INSTALL_BIN:$PATH
   export XCVB_PATH
+  export LISP_FASL_CACHE="$BUILD_DIR/cache"
   CL_LAUNCH_FLAGS=(
     --lisp "$LISP"
     #${(s: :)asdf_path+"--path ${(j: --path :)asdf_path}"} ## fails when path contains spaces!
@@ -53,7 +55,7 @@ compute_release_dir_variables () {
   BUILD_DIR="$RELEASE_DIR/build"
   XCVB_DIR="$RELEASE_DIR/xcvb"
   asdf_path=($XCVB_DIR "$RELEASE_DIR"/dependencies/*)
-  XCVB_PATH="$RELEASE_DIR"
+  XCVB_PATH="${BUILD_DIR}:${RELEASE_DIR}"
   finalize_variables
   ENV=($ENV CL_LAUNCH_FLAGS="$CL_LAUNCH_FLAGS")
 }
@@ -151,13 +153,14 @@ validate_a2x () {
 }
 
 validate_master () {
-  xcvb eval '(progn(xcvb-master:bnl"xcvb/hello")(let((*print-base* 30))(xcvbd:call :xcvb-hello :hello :name 716822547 :traditional t)))' |
+  xcvb eval "(progn(xcvb-master:bnl\"xcvb/hello\":output-path\"$BUILD_DIR/\":object-directory\"$obj\")(let((*print-base* 30))(xcvbd:call :xcvb-hello :hello :name 716822547 :traditional t)))" |
   fgrep 'hello, tester' ||
   abort "Failed to use hello through the XCVB master"
 }
 
 validate_slave () {
-  xcvb slave-builder --build /xcvb/hello --lisp-implementation $LISP |
+  xcvb slave-builder --build /xcvb/hello \
+	--lisp-implementation $LISP --object-directory $obj --output-path $BUILD_DIR/ |
   fgrep 'Your desires are my orders' ||
   abort "Failed to drive a slave $LISP to build hello"
 }
@@ -176,16 +179,20 @@ do_self_nemk_build () {
   make xcvb-using-nemk INSTALL_BIN=$INSTALL_BIN INSTALL_LISP=$INSTALL_LISP
 }
 
-validate_asdf_build () {
+validate_asdf_xcvb () {
+  cd $XCVB_DIR
   do_asdf_build ; validate_xcvb
 }
-validate_mk_build () {
+validate_mk_xcvb () {
+  cd $XCVB_DIR
   do_self_mk_build ; validate_xcvb
 }
-validate_nemk_build () {
+validate_nemk_xcvb () {
+  cd $XCVB_DIR
   do_self_nemk_build ; validate_xcvb
 }
-validate_bootstrapped_build () {
+validate_bootstrapped_xcvb () {
+  cd ${RELEASE_DIR:-/dev/null}
   do_bootstrapped_build ; validate_xcvb
 }
 
@@ -200,10 +207,10 @@ clean_xcvb_dir () {
   rm -rf "${XCVB_DIR}/build/"
 }
 
-clean_release_dir () {
-  cd $XCVB_DIR ;
-  make clean
-  rm -rf "${RELEASE_DIR}/build/"
+with_xcvb_build_dir () {
+  mkdir -p $obj $INSTALL_BIN $INSTALL_IMAGE
+  $@
+  clean_xcvb_dir
 }
 
 validate_xcvb_dir () {
@@ -211,9 +218,9 @@ validate_xcvb_dir () {
   check_xcvb_dir
   cd $XCVB_DIR
   mkdir -p $obj $INSTALL_BIN
-  validate_asdf_build
-  validate_mk_build
-  validate_nemk_build
+  with_xcvb_build_dir validate_asdf_xcvb
+  with_xcvb_build_dir validate_mk_xcvb
+  with_xcvb_build_dir validate_nemk_xcvb
   clean_xcvb_dir
 }
 
@@ -223,16 +230,24 @@ validate_xcvb_dir_all_lisps () {
   done
 }
 
+clean_release_dir () {
+  cd $XCVB_DIR ;
+  make clean
+  rm -rf "${RELEASE_DIR}/build/"
+}
+
+with_release_build_dir () {
+  mkdir -p $obj $INSTALL_BIN $INSTALL_IMAGE
+  $@
+  clean_release_dir
+}
 validate_release_dir () {
   compute_release_dir_variables
   check_release_dir
-  cd $RELEASE_DIR
-  mkdir -p $obj $INSTALL_BIN $INSTALL_IMAGE
-  validate_bootstrapped_build
-  validate_asdf_build
-  validate_mk_build
-  validate_nemk_build
-  clean_release_dir
+  with_release_build_dir validate_bootstrapped_xcvb
+  with_release_build_dir validate_asdf_xcvb
+  with_release_build_dir validate_mk_xcvb
+  with_release_build_dir validate_nemk_xcvb
 }
 
 validate_release_dir_all_lisps () {
