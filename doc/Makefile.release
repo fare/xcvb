@@ -26,8 +26,12 @@ install-cl-launch:
 	./dependencies/cl-launch/cl-launch.sh \
 		-l ${LISP} \
 		-I ${LISP_SOURCE}/cl-launch \
+		-B install_path
+	./dependencies/cl-launch/cl-launch.sh \
+		-l ${LISP} \
+		+I \
 		-o ${INSTALL_BIN}/cl-launch \
-		-B install
+		-B install_bin
 
 install: install-cl-launch
 	mkdir -p ${INSTALL_BIN}
