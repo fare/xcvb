@@ -44,12 +44,12 @@ finalize_variables () {
   export PATH=$INSTALL_BIN:$PATH
   export XCVB_PATH
   export LISP_FASL_CACHE="$BUILD_DIR/cache"
-  CL_LAUNCH_FLAGS=(
+  TEST_CL_LAUNCH_FLAGS=(
     --lisp "$LISP"
-    $CL_LAUNCH_FLAGS
+    $TEST_CL_LAUNCH_FLAGS
     #${(s: :)asdf_path+"--path ${(j: --path :)asdf_path}"} ## fails when path contains spaces!
   )
-  for i in $asdf_path ; do CL_LAUNCH_FLAGS=(${CL_LAUNCH_FLAGS} --path $i) ; done
+  for i in $asdf_path ; do TEST_CL_LAUNCH_FLAGS=(${TEST_CL_LAUNCH_FLAGS} --path $i) ; done
 }
 compute_release_dir_variables () {
   initialize_variables
@@ -58,7 +58,7 @@ compute_release_dir_variables () {
   asdf_path=($XCVB_DIR "$RELEASE_DIR"/dependencies/*)
   XCVB_PATH="${BUILD_DIR}:${RELEASE_DIR}"
   finalize_variables
-  ENV=($ENV CL_LAUNCH_FLAGS="$CL_LAUNCH_FLAGS")
+  ENV=($ENV CL_LAUNCH_FLAGS="$TEST_CL_LAUNCH_FLAGS")
 }
 compute_xcvb_dir_variables () {
   initialize_variables
@@ -79,10 +79,10 @@ check_xcvb_dir () {
   abort "Please configure your configure.mk (and don't forget to properly setup ASDF)"
 }
 check_asdf_setup () {
-  CONFIGURED_CL_LAUNCH_FLAGS="$(make show-config | grep "^CL_LAUNCH_FLAGS=" | cut -d= -c2-)"
+  CONFIGURED_CL_LAUNCH_FLAGS="$(make show-config $ENV | grep "^CL_LAUNCH_FLAGS=" | cut -d= -f2-)"
   for i in asdf-dependency-grovel cl-launch closer-mop command-line-arguments poiu ; do
-    cl-launch $CONFIGURED_CL_LAUNCH_FLAGS -i \
-    "(cl-launch::quit (if (find-system :$i nil) 0 1))" ||
+    cl-launch $=CONFIGURED_CL_LAUNCH_FLAGS -i \
+    "(cl-launch::quit (if (asdf:find-system :$i nil) 0 1))" ||
     abort "Couldn't locate ASDF system $i. Make sure your configure.mk has it."
   done
 }
@@ -179,6 +179,7 @@ validate_slave () {
 do_asdf_build () {
   # preconditions: env, PWD=.../xcvb/
   # postconditions: xcvb built
+  check_asdf_setup
   make xcvb-using-asdf $ENV # bootstrap
 }
 do_self_mk_build () {

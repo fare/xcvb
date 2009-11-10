@@ -207,16 +207,16 @@ test-and-release-tarball: test-release-tarball
 		common-lisp.net:/project/xcvb/public_html/releases/
 
 show-config:
-	echo "LISP='${LISP}'" ; \
-	echo "CL_LAUNCH='${CL_LAUNCH}'" ; \
-	echo "CL_LAUNCH_FLAGS='${CL_LAUNCH_FLAGS}'" ; \
-	echo "CL_LAUNCH_MODE='${CL_LAUNCH_MODE}'" ; \
-	echo "INSTALL_BIN='${INSTALL_BIN}'" ; \
-	echo "INSTALL_LISP='${INSTALL_LISP}'" ; \
-	echo "INSTALL_SOURCE='${INSTALL_SOURCE}'" ; \
-	echo "INSTALL_SYSTEM='${INSTALL_SYSTEM}'" ; \
-	echo "INSTALL_IMAGE='${INSTALL_IMAGE}'" ; \
-	echo "INSTALL_XCVB='${INSTALL_XCVB}'"
+	echo "LISP=${LISP}" ; \
+	echo "CL_LAUNCH=${CL_LAUNCH}" ; \
+	echo "CL_LAUNCH_FLAGS=${CL_LAUNCH_FLAGS}" ; \
+	echo "CL_LAUNCH_MODE=${CL_LAUNCH_MODE}" ; \
+	echo "INSTALL_BIN=${INSTALL_BIN}" ; \
+	echo "INSTALL_LISP=${INSTALL_LISP}" ; \
+	echo "INSTALL_SOURCE=${INSTALL_SOURCE}" ; \
+	echo "INSTALL_SYSTEM=${INSTALL_SYSTEM}" ; \
+	echo "INSTALL_IMAGE=${INSTALL_IMAGE}" ; \
+	echo "INSTALL_XCVB=${INSTALL_XCVB}"
 
 .PHONY: all install lisp-install tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision force \
