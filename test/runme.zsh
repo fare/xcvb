@@ -188,7 +188,10 @@ do_self_mk_build () {
 }
 do_self_nemk_build () {
   # pre-requisites (besides env): PWD=.../xcvb/
+  rm setup.lisp
+  make setup.lisp $ENV
   make xcvb-using-nemk $ENV
+  rm setup.lisp
 }
 
 validate_asdf_xcvb () {
