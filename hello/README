@@ -1,0 +1,3 @@
+This is a simple Common Lisp application, loosely modelled after GNU hello.
+It serves as an example to illustrate how to build Common Lisp applications
+with XCVB.

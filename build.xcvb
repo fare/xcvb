@@ -25,7 +25,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                        (:require :sb-grovel)
                        (:require :sb-posix)))
   :depends-on ("conditions"
-               "digest"
+               "manifest"
                "normalize-dependency"
                "makefile-backend"
                "ne-makefile-backend"

@@ -20,11 +20,6 @@
     :long-description ""
     :depends-on (:xcvb)
     :components
-    (;;(:file "pkgdcl" :pathname "test/pkgdcl")
-     (:module "test"
-              ;;:depends-on ("pkgdcl")
+    ((:module "test"
               :components
-              ((:file "utilities")
-               (:file "search-path")
-               (:file "static-backends" :depends-on ("search-path"))
-               (:file "makefile-backend" :depends-on ("search-path"))))))
+              ((:file "utilities")))))

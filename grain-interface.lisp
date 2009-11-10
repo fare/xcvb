@@ -1,8 +1,5 @@
 #+xcvb (module (:depends-on ("utilities" "conditions")))
 
-;;; TODO: rename this to "grain-interface"
-;;; rename "lisp-grain" to "grain-implementation" or something.
-
 (in-package :xcvb)
 
 ;;; A few generic functions

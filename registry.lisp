@@ -1,5 +1,5 @@
 ;;;;; Registry mapping names to grains, particularly BUILD files.
-#+xcvb (module (:depends-on ("portablish-pathnames" "grains" "specials")))
+#+xcvb (module (:depends-on ("portablish-pathnames" "grain-interface" "specials")))
 
 (in-package :xcvb)
 

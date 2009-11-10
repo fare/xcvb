@@ -1,7 +1,7 @@
 #+xcvb
 (module
  (:depends-on
-  ("macros" "specials" "static-backends"
+  ("macros" "specials" "static-traversal"
    (:when (:featurep :sbcl)
      (:require :sb-grovel)
      (:require :sb-posix)))))

@@ -25,4 +25,4 @@ xcvb-bootstrapped
 todf
 patches
 commit.txt
-test/hello/xcvb-hello.asd
+hello/xcvb-hello.asd

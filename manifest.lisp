@@ -1,4 +1,3 @@
-;;; Dealing with manifests. TODO: rename to manifest.lisp
 #+xcvb (module (:depends-on ("macros")))
 
 (in-package :xcvb)

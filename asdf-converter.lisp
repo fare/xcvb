@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("lisp-grain")))
+#+xcvb (module (:depends-on ("grain-interface")))
 
 (in-package :xcvb)
 

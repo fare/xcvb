@@ -34,9 +34,9 @@ concepts underlying XCVB.
       2.5   profiling.lisp
       2.6   macros.lisp
       2.7   utilities.lisp
-      2.8   digest.lisp
+      2.8   manifest.lisp
       2.9   logging.lisp
-      2.10  grains.lisp
+      2.10  grain-interface.lisp
       2.11  portablish-pathnames.lisp
       2.12  registry.lisp
       2.13  computations.lisp
@@ -385,8 +385,8 @@ A collection of utility functions.
 TODO: Most utilities should be moved to a library that XCVB would depend upon, e.g. alexandria.
 
 
-digest.lisp
------------
+manifest.lisp
+-------------
 
 Manage (cryptographic) digests of files.
 Notably used by the master and slave to determine what files (not) to (re)load.
@@ -401,8 +401,8 @@ A trivial facility for logging messages directed to the user,
 depending on a varying degree of verbosity.
 
 
-grains.lisp
------------
+grain-interface.lisp
+--------------------
 
 Definition of the main datastructures of XCVB and helper functions.
 

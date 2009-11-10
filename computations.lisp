@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("grains" "registry")))
+#+xcvb (module (:depends-on ("grain-interface" "registry")))
 
 (in-package :xcvb)
 

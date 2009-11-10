@@ -123,7 +123,7 @@ validate_hello () {
 
 validate_hello_build () {
   mkdir -p $INSTALL_BIN $INSTALL_IMAGE
-  cd $XCVB_DIR/test/hello
+  cd $XCVB_DIR/hello
   rm -f $INSTALL_BIN/hello || :
   $@
   validate_hello
