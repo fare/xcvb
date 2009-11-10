@@ -82,7 +82,6 @@ update:
 prepare-release:
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
 	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
-	{ rm -rf "${RELEASE_DIR}/build" ; : } \
 	./dependencies/cl-launch/cl-launch.sh \
 		-I ./dependencies/cl-launch \
 		-B install_path && \

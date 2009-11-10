@@ -185,6 +185,7 @@ release-directory:
 	mkdir -p ${RELEASE_DIR} && \
 	cp doc/Makefile.release ${RELEASE_DIR}/Makefile && \
 	cd ${RELEASE_DIR} && \
+	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} && \
 	make checkout update gc prepare-release
 
 release-tarball:
