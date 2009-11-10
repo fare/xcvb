@@ -37,6 +37,8 @@ export INSTALL_XCVB
 LISP_SOURCES := $(wildcard *.lisp */*.lisp *.asd */*.asd)
 LISP_INSTALL_FILES := build.xcvb *.asd *.lisp
 
+export XCVB_DIR := $(shell pwd)
+
 ## cl-launch mode: standalone executable, script+image or script+fasls?
 define CL_LAUNCH_MODE_standalone
 	--output ${INSTALL_BIN}/$1 --dump !
@@ -84,7 +86,7 @@ XCVB_INIT :=	--init "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCV
 
 xcvb-bootstrapped-install:
 	mkdir -p ${INSTALL_BIN}
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb.image \
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image ${XCVB_DIR}/obj/xcvb.image \
 		$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb) \
 		${XCVB_INIT}
 
@@ -110,7 +112,7 @@ obj-ne/xcvb-tmp.image: xcvb-ne.mk
 xcvb-using-nemk: obj-ne/xcvb-tmp.image
 	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
-	--image $$PWD/obj-ne/xcvb-tmp.image ${XCVB_INIT} \
+	--image ${XCVB_DIR}/obj-ne/xcvb-tmp.image ${XCVB_INIT} \
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
 
 
@@ -170,10 +172,10 @@ TMP ?= /tmp
 RELEASE_EXCLUDE := --exclude build --exclude obj --exclude obj-ne
 
 test:
-	./test/runme.zsh XCVB_DIR=$$PWD validate_xcvb_dir
+	./test/runme.zsh XCVB_DIR=${XCVB_DIR} validate_xcvb_dir
 
 fulltest:
-	./test/runme.zsh XCVB_DIR=$$PWD validate_xcvb_dir_all_lisps
+	./test/runme.zsh XCVB_DIR=${XCVB_DIR} validate_xcvb_dir_all_lisps
 
 export RELEASE_DIR := ${TMP}/xcvb-release
 
@@ -193,7 +195,8 @@ release-tarball:
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2
 
 test-release-tarball:
-	${RELEASE_DIR}/xcvb/test/runme.zsh validate_release_dir
+	cd ${RELEASE_DIR}/xcvb && \
+	./test/runme.zsh validate_release_dir
 
 test-and-release-tarball: test-release-tarball
 	cd ${RELEASE_DIR} && \
