@@ -32,7 +32,7 @@ ifndef CL_LAUNCH_MODE
   $(error Please define CL_LAUNCH_MODE in your configure.mk.)
 endif
 
-export INSTALL_XCVB
+export INSTALL_XCVB XCVB_OBJECT_DIRECTORY
 
 LISP_SOURCES := $(wildcard *.lisp */*.lisp *.asd */*.asd)
 LISP_INSTALL_FILES := build.xcvb *.asd *.lisp
@@ -77,7 +77,7 @@ xcvb.mk: force
 PARALLELIZE := -j
 
 ${XCVB_OBJECT_DIRECTORY}/xcvb.image: xcvb.mk
-	${MAKE} -f xcvb.mk ${PARALLELIZE} $@ || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk $@
+	${MAKE} -f xcvb.mk ${PARALLELIZE} || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk
 
 xcvb-using-xcvb: ${XCVB_OBJECT_DIRECTORY}/xcvb.image
 	${MAKE} xcvb-bootstrapped-install
@@ -109,7 +109,7 @@ xcvb-ne.mk: force
 	     --lisp-binary-path ${LISP_BIN}
 
 ${XCVB_OBJECT_DIRECTORY}/_ne/xcvb-tmp.image: xcvb-ne.mk
-	${MAKE} -f xcvb-ne.mk $@
+	${MAKE} -f xcvb-ne.mk
 
 xcvb-using-nemk: ${XCVB_OBJECT_DIRECTORY}/_ne/xcvb-tmp.image
 	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}

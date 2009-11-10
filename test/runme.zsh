@@ -26,7 +26,7 @@ initialize_variables () {
   : ${LISP:=sbcl}
 }
 finalize_variables () {
-  obj="$BUILD_DIR/obj"
+  obj="${BUILD_DIR}/obj"
   INSTALL_BIN="$BUILD_DIR/bin"
   INSTALL_LISP="$BUILD_DIR/common-lisp"
   INSTALL_IMAGE="$BUILD_DIR/common-lisp/images"
@@ -39,11 +39,12 @@ finalize_variables () {
        INSTALL_SOURCE=$INSTALL_SOURCE
        INSTALL_SYSTEMS=$INSTALL_SYSTEMS
        XCVB_PATH=$XCVB_PATH
+       XCVB_OBJECT_DIRECTORY=$obj
        LISP=$LISP)
 
   export PATH=$INSTALL_BIN:$PATH
   export XCVB_PATH
-  export LISP_FASL_CACHE="$BUILD_DIR/cache"
+  export LISP_FASL_CACHE="$BUILD_DIR/_cache"
   TEST_CL_LAUNCH_FLAGS=(
     --lisp "$LISP"
     $TEST_CL_LAUNCH_FLAGS
@@ -71,11 +72,12 @@ compute_xcvb_dir_variables () {
 check_release_dir () {
   [ -d "$RELEASE_DIR" -a -f "$RELEASE_DIR/INSTALL" ] ||
   abort "Invalid release directory $RELEASE_DIR"
+  check_xcvb_dir
 }
 check_xcvb_dir () {
   [ -f $XCVB_DIR/xcvb.asd -a -f $XCVB_DIR/driver.lisp ] ||
   abort "Invalid xcvb directory $XCVB_DIR"
-  [ -f $XCVB/configure.mk ] ||
+  [ -f $XCVB_DIR/configure.mk ] ||
   abort "Please configure your configure.mk (and don't forget to properly setup ASDF)"
 }
 check_asdf_setup () {
