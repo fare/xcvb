@@ -26,6 +26,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                        (:require :sb-posix)))
   :depends-on ("conditions"
                "manifest"
+               "grain-implementation"
                "normalize-dependency"
                "makefile-backend"
                "ne-makefile-backend"
