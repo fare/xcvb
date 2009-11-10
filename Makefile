@@ -86,7 +86,7 @@ XCVB_INIT :=	--init "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCV
 
 xcvb-bootstrapped-install:
 	mkdir -p ${INSTALL_BIN}
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image ${XCVB_DIR}/obj/xcvb.image \
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image ${XCVB_DIR}/obj/xcvb.image --no-include \
 		$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb) \
 		${XCVB_INIT}
 
@@ -112,7 +112,7 @@ obj-ne/xcvb-tmp.image: xcvb-ne.mk
 xcvb-using-nemk: obj-ne/xcvb-tmp.image
 	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
-	--image ${XCVB_DIR}/obj-ne/xcvb-tmp.image ${XCVB_INIT} \
+	--image ${XCVB_DIR}/obj-ne/xcvb-tmp.image ${XCVB_INIT} --no-include \
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
 
 
