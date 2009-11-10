@@ -70,11 +70,12 @@ in a fast way that doesn't enforce dependencies."
          (*default-pathname-defaults* makefile-dir)
          (*makefile-target-directories* nil)
          (*makefile-phonies* nil)
+         (smt (make-instance 'static-makefile-traversal))
          (env (make-instance 'nem-traversal))
          (static-rules
           (prog2
-              (issue-image-named env nil)
-              (computations-to-Makefile env)
+              (issue-image-named smt nil)
+              (computations-to-Makefile smt)
             (setf *computations* nil)))
          (build-rules
           (loop
@@ -89,7 +90,7 @@ in a fast way that doesn't enforce dependencies."
                            :direction :output
                            :if-exists :supersede)
         (write-makefile-prelude out)
-        (dolist (body (cons static-rules build-rules))
+        (dolist (body (reverse (cons static-rules build-rules)))
           (princ body out))
         (write-makefile-conclusion out))))
 
@@ -113,37 +114,20 @@ in a fast way that doesn't enforce dependencies."
 ;  (("profiling" #\P) :type boolean :optional t :documentation "profiling")
    ))
 
-(defun non-enforcing-makefile (&key
+(defun non-enforcing-makefile (&rest keys &key
                                build base-image setup xcvb-path name
                                output-path object-directory
                                lisp-implementation lisp-binary-path
                                verbosity parallel #|force-cfasl profiling|#)
-  (reset-variables)
-  (when xcvb-path
-    (set-search-path! xcvb-path))
-  (when verbosity
-    (setf *xcvb-verbosity* verbosity))
-  (when output-path
-    (setf *default-pathname-defaults*
-          (ensure-absolute-pathname (pathname-directory-pathname output-path))))
-  (when object-directory
-    (setf *object-directory* ;; strip last "/"
-          (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
-  (when lisp-implementation
-    (setf *lisp-implementation-type*
-          (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
-  (when lisp-binary-path
-    (setf *lisp-executable-pathname* lisp-binary-path))
-  (extract-target-properties)
-  (read-target-properties)
-  ;;(setf *use-cfasls* force-cfasl)
-  (setf *use-base-image* base-image)
-  (setf *lisp-setup-dependencies*
-        (append +xcvb-setup-dependencies+
-                (when setup `((:lisp ,setup)))))
-  (search-search-path)
+  (declare (ignore xcvb-path setup verbosity
+                   lisp-implementation lisp-binary-path
+                   object-directory base-image))
+  ;;(with-maybe-profiling (profiling)
+  (apply 'handle-global-options
+         ;;:disable-cfasl (not force-cfasl)
+         keys)
   (write-non-enforcing-makefile
    (mapcar #'canonicalize-fullname build)
    :asdf-name name
-   :output-path output-path
+   :output-path (pathname-base-pathname output-path)
    :parallel parallel))

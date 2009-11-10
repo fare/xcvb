@@ -1,7 +1,7 @@
 #+xcvb
 (module
  (:depends-on
-  ("macros" "specials" "static-traversal"
+  ("macros" "specials" "static-traversal" "profiling"
    (:when (:featurep :sbcl)
      (:require :sb-grovel)
      (:require :sb-posix)))))
@@ -174,8 +174,7 @@ waiting at this state of the world.")
 
 |#
 
-(defun standalone-build (fullname &key output-path)
-  (declare (ignore output-path))
+(defun standalone-build (fullname)
   (let* ((target (resolve-absolute-module-name fullname))
          (build (if target (build-grain-for target)
                     (error "User requested build ~S but it can't be found.~%~
@@ -200,46 +199,17 @@ waiting at this state of the world.")
    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
    (("base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
    (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
-   ;;(("profiling" #\P) :type boolean :optional t :documentation "profiling")
+   (("profiling" #\P) :type boolean :optional t :documentation "profiling")
    ))
 
 (defun standalone-build-command
-    (arguments &key
+    (&rest keys &key
      xcvb-path setup verbosity output-path
      build lisp-implementation lisp-binary-path
-     disable-cfasl master object-directory base-image)
-  ;;; TODO: parse arguments (see other backends)
-  (reset-variables)
-  (when arguments
-    (error "Invalid arguments to build"))
-  (when xcvb-path
-    (set-search-path! xcvb-path))
-  (when verbosity
-    (setf *xcvb-verbosity* verbosity))
-  (when output-path
-    (setf *default-pathname-defaults*
-          (ensure-absolute-pathname (pathname-directory-pathname output-path))))
-  (when object-directory
-    (setf *object-directory* ;; strip last "/"
-          (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
-  (when lisp-implementation
-    (setf *lisp-implementation-type*
-          (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
-  (when lisp-binary-path
-    (setf *lisp-executable-pathname* lisp-binary-path))
-  (extract-target-properties)
-  (read-target-properties)
-  (when disable-cfasl
-    (setf *use-cfasls* nil))
-  (setf *use-base-image* base-image)
-  (search-search-path)
-  (setf *use-master* master)
-  (when master
-    (ensure-tthsum-present)
-    (append1f *lisp-setup-dependencies* '(:fasl "/xcvb/master")))
-  (when setup
-    (let ((module (resolve-absolute-module-name setup)))
-      (unless module
-        (error "Cannot find setup module ~A" setup))
-      (append1f *lisp-setup-dependencies* `(:lisp ,(fullname module)))))
-  (standalone-build (canonicalize-fullname build) :output-path output-path))
+     disable-cfasl master object-directory base-image profiling)
+  (declare (ignore xcvb-path setup verbosity output-path
+                   lisp-implementation lisp-binary-path
+                   disable-cfasl master object-directory base-image))
+  (with-maybe-profiling (profiling)
+    (apply 'handle-global-options keys)
+    (standalone-build (canonicalize-fullname build))))

@@ -31,8 +31,12 @@ endif
 ifndef CL_LAUNCH_MODE
   $(error Please define CL_LAUNCH_MODE in your configure.mk.)
 endif
+ifndef XCVB_OBJECT_DIRECTORY
+  $(error Please define XCVB_OBJECT_DIRECTORY in your configure.mk.)
+endif
 
-export INSTALL_XCVB XCVB_OBJECT_DIRECTORY
+export INSTALL_XCVB
+export XCVB_OBJECT_DIRECTORY
 
 LISP_SOURCES := $(wildcard *.lisp */*.lisp *.asd */*.asd)
 LISP_INSTALL_FILES := build.xcvb *.asd *.lisp
@@ -100,7 +104,7 @@ xcvb-using-asdf:
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
 
 ## The non-enforcing backend
-xcvb-ne.mk: force
+xcvb-ne.mk: setup.lisp force
 	xcvb non-enforcing-makefile \
 	     --build /xcvb \
 	     --setup /xcvb/setup \
@@ -170,8 +174,15 @@ show-current-revision:
 
 TMP ?= /tmp
 
-# EXCLUDE_REVISION_INFO := --exclude .git --exclude _darcs
-RELEASE_EXCLUDE := --exclude build --exclude obj --exclude obj-ne
+GIT_DEPENDENCIES := asdf asdf-dependency-grovel command-line-arguments poiu
+DARCS_DEPENDENCIES := closer-mop
+DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
+
+RELEASE_EXCLUDE := \
+	--exclude build --exclude obj --exclude obj-ne \
+	--exclude "*~" --exclude ".\#*" --exclude "xcvb*.mk" \
+	--exclude patches
+# To exclude revision information: --exclude .git --exclude _darcs
 
 test:
 	./test/runme.zsh XCVB_DIR=${XCVB_DIR} validate_xcvb_dir
@@ -181,14 +192,14 @@ fulltest:
 
 export RELEASE_DIR := ${TMP}/xcvb-release
 
+
 release: release-directory release-tarball test-and-release-tarball
 
 release-directory:
 	mkdir -p ${RELEASE_DIR} && \
-	cp doc/Makefile.release ${RELEASE_DIR}/Makefile && \
-	cd ${RELEASE_DIR} && \
-	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} && \
-	make checkout update gc prepare-release
+	${MAKE} -C ${RELEASE_DIR} -f ${XCVB_DIR}/doc/Makefile.release \
+		checkout reset update gc prepare-release && \
+	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;}
 
 release-tarball:
 	cd ${RELEASE_DIR} && \
@@ -197,16 +208,34 @@ release-tarball:
 	tar ${RELEASE_EXCLUDE} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2
 
-test-release-tarball:
+test-release-directory:
 	cd ${RELEASE_DIR}/xcvb && \
 	./test/runme.zsh validate_release_dir
 
-test-and-release-tarball: test-release-tarball
+test-and-release-tarball: release-tarball test-release-directory
 	cd ${RELEASE_DIR} && \
 	VERSION=$$(cat xcvb/version.lisp | grep '^ *".*")' | cut -d\" -f2) && \
 	cd ${TMP} && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/
+
+fake-release-directory:
+	mkdir -p ${RELEASE_DIR}/dependencies ${RELEASE_DIR}/xcvb  && \
+	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} && \
+	rsync -av ${RELEASE_EXCLUDE} ./ ${RELEASE_DIR}/xcvb/ && \
+	for i in ${DEPENDENCIES} ; do \
+	  rsync -avC ${RELEASE_EXCLUDE} ../$$i ${RELEASE_DIR}/dependencies/ ; \
+	done ; \
+	${MAKE} -C ${RELEASE_DIR} -f ${XCVB_DIR}/doc/Makefile.release \
+		prepare-release
+
+version-bumped-test:
+	@if git diff HEAD -- version.lisp | cmp --quiet - /dev/null ; then \
+	  echo "You need to bump up version.lisp" ; exit 2 ; \
+	fi
+
+pre-release-test: version-bumped-test fake-release-directory test-release-directory
+	${MAKE} -C ${RELEASE_DIR} reset
 
 show-config:
 	echo "LISP=${LISP}" ; \
@@ -218,7 +247,8 @@ show-config:
 	echo "INSTALL_SOURCE=${INSTALL_SOURCE}" ; \
 	echo "INSTALL_SYSTEM=${INSTALL_SYSTEM}" ; \
 	echo "INSTALL_IMAGE=${INSTALL_IMAGE}" ; \
-	echo "INSTALL_XCVB=${INSTALL_XCVB}"
+	echo "INSTALL_XCVB=${INSTALL_XCVB}" ; \
+	echo "XCVB_OBJECT_DIRECTORY=${XCVB_OBJECT_DIRECTORY}"
 
 .PHONY: all install lisp-install tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision force \

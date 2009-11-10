@@ -15,6 +15,9 @@
 (defun pathname-directory-pathname (pathname)
   (make-pathname :type nil :name nil :defaults pathname))
 
+(defun pathname-base-pathname (pathname)
+  (make-pathname :directory nil :defaults pathname))
+
 (defun pathname-parent (pathname)
   "Takes a pathname and returns the pathname of the parent directory
 of the directory of the given pathname"

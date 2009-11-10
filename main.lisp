@@ -186,10 +186,7 @@ for this version of XCVB.")))
 ;; Using the build.xcvb as a starting point, finds files and
 ;; strips XCVB modules from them.
 (defun remove-xcvb-from-build (&key xcvb-path build)
-  (reset-variables)
-  (when xcvb-path
-    (set-search-path! xcvb-path))
-  (search-search-path)
+  (handle-global-options :xcvb-path xcvb-path)
   (let ((build (registered-build (canonicalize-fullname build))))
     (with-slots (depends-on) build
       (dolist (name depends-on)
@@ -197,6 +194,48 @@ for this version of XCVB.")))
           (remove-module-from-file path)))
       (delete-file (grain-pathname build)))))
 
+
+;;;; Common option handling
+
+(defun handle-global-options (&key
+                              verbosity
+                              xcvb-path 
+                              output-path object-directory
+                              lisp-implementation lisp-binary-path
+                              disable-cfasl master setup
+                              base-image
+                              &allow-other-keys)
+    (reset-variables)
+    (when xcvb-path
+      (set-search-path! xcvb-path))
+    (when verbosity
+      (setf *xcvb-verbosity* verbosity))
+    (when output-path
+      (setf *default-pathname-defaults*
+            (ensure-absolute-pathname (pathname-directory-pathname output-path))))
+    (when object-directory
+      (setf *object-directory* ;; strip last "/"
+            (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
+    (when lisp-implementation
+      (setf *lisp-implementation-type*
+            (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+    (when lisp-binary-path
+      (setf *lisp-executable-pathname* lisp-binary-path))
+    (extract-target-properties)
+    (read-target-properties)
+    (when disable-cfasl
+      (setf *use-cfasls* nil))
+    (setf *use-base-image* base-image)
+    (search-search-path)
+    (setf *use-master* master)
+    (when master
+      (ensure-tthsum-present)
+      (append1f *lisp-setup-dependencies* '(:fasl "/xcvb/master")))
+    (when setup
+      (let ((module (resolve-absolute-module-name setup)))
+        (unless module
+          (error "Cannot find setup module ~A" setup))
+        (append1f *lisp-setup-dependencies* `(:lisp ,(fullname module))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

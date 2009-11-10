@@ -94,25 +94,26 @@ check_asdf_setup () {
 validate_xcvb_ssp () {
   # preconditions: env, xcvb built, PWD=.../xcvb/
   # postconditions: xcvb ssp working
+  local out=${BUILD_DIR}/xcvb-ssp.out
 
-  xcvb ssp --xcvb-path $XCVB_DIR > $TMP/xcvb-ssp.out
+  xcvb ssp --xcvb-path $XCVB_DIR > $out
 
-  fgrep -q "(:BUILD \"/xcvb\") in \"$XCVB_DIR/build.xcvb\"" $TMP/xcvb-ssp.out ||
+  fgrep -q "(:BUILD \"/xcvb\") in \"$XCVB_DIR/build.xcvb\"" $out ||
   abort "Can't find build for xcvb"
 
-  fgrep -q "(:ASDF \"xcvb\") superseded by (:BUILD \"/xcvb\")" $TMP/xcvb-ssp.out ||
+  fgrep -q "(:ASDF \"xcvb\") superseded by (:BUILD \"/xcvb\")" $out ||
   abort "can't find superseded asdf for xcvb"
 
-  grep -q "CONFLICT for \"/xcvb/test/conflict/b\" between (\"$XCVB_DIR/test/conflict/b2\\?/build.xcvb\" \"$XCVB_DIR/test/conflict/b2\\?/build.xcvb\")" $TMP/xcvb-ssp.out ||
+  grep -q "CONFLICT for \"/xcvb/test/conflict/b\" between (\"$XCVB_DIR/test/conflict/b2\\?/build.xcvb\" \"$XCVB_DIR/test/conflict/b2\\?/build.xcvb\")" $out ||
   abort "can't find conflict for /xcvb/test/conflict/b"
 }
 
 validate_xcvb () {
   # preconditions: env, xcvb built, PWD=.../xcvb/
   validate_xcvb_ssp # can the built xcvb search its search path?
-  #validate_sa_build # can it build hello with the standalone backend?
-  validate_mk_build # can it build hello with the Makefile backend?
-  validate_nemk_build # can it build hello with the non-enforcing Makefile backend?
+  #validate_sa_backend # can it build hello with the standalone backend?
+  validate_mk_backend # can it build hello with the Makefile backend?
+  validate_nemk_backend # can it build hello with the non-enforcing Makefile backend?
   validate_x2a # can it convert hello back to asdf?
   validate_rmx # can it remove the xcvb annotations from a2x-test?
   validate_a2x # can it migrate a2x-test from xcvb?
@@ -132,11 +133,11 @@ validate_hello_build () {
   rm $INSTALL_BIN/hello
 }
 
-validate_mk_build () {
+validate_mk_backend () {
   validate_hello_build make hello $ENV
 }
 
-validate_nemk_build () {
+validate_nemk_backend () {
   validate_hello_build make hello-using-nemk $ENV
 }
 
@@ -216,7 +217,6 @@ validate_bootstrapped_xcvb () {
 do_bootstrapped_build () {
   # pre-requisites (besides env): PWD=.../xcvb-release/
   rm -rf "$XCVB_DIR/obj"
-  ln -s $obj "$XCVB_DIR/obj"
   make install $ENV
 }
 

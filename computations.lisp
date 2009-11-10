@@ -2,14 +2,11 @@
 
 (in-package :xcvb)
 
-(defclass computation () ())
-(defclass computation-type () ())
-
 ;;(defparameter *computations-inputing-grain*
 ;;  (make-hash-table :test 'equal)
 ;;  "hash mapping each grain to a list of computations that take said grain as input")
 
-(defclass concrete-computation (computation)
+(defclass computation ()
   ((inputs
     :initarg :inputs
     :accessor computation-inputs)
@@ -21,77 +18,10 @@
     :initarg :command
     :accessor computation-command)))
 
-#|
-(defgeneric computation-command (type computation &key))
-
-(defclass lisp-command ()
-  ((implementation
-    :initarg :implementation
-    :initform *lisp-implementation-type*
-    :accessor lisp-implementation)
-   (executable
-    :initarg :executable
-    :initform *lisp-executable-pathname*
-    :accessor lisp-executable)
-   (image
-    :initarg :image
-    :initform *lisp-image-pathname*
-    :accessor lisp-image)
-   (flags
-    :initarg :flags
-    :initform *lisp-flags*
-    :accessor lisp-flags)))
-
-(defun make-lisp-command (&rest r)
-  (apply #'make-the 'lisp-command r))
-
-(defvar *lisp-command* (make-lisp-command))
-
-(defun lisp-command-using-image (lisp-command image)
-   (make-the 'lisp-command
-    :implementation (lisp-implementation lisp-command)
-    :executable (lisp-executable lisp-command)
-    :image image
-    :flags (lisp-flags lisp-command)))
-
-(defclass shell-command (computation-type) ())
-
-(defvar *shell-command* (make-the 'shell-command))
-
-(defclass concrete-shell-computation (concrete-computation)
-  ())
-
-(defclass concrete-lisp-computation (concrete-computation)
-  ())
-
-(defmethod computation-command ((s shell-command) (c concrete-shell-computation))
-  (slot-value c 'command))
-
-(defmethod computation-command ((l lisp-command) (c concrete-lisp-computation))
-  (slot-value c 'command))
-
-(defmethod computation-command ((s shell-command) (c concrete-lisp-computation)
-                                &key (lisp-command (make-lisp-command)))
-  (let* ((a (lisp-invocation-arglist
-             :implementation-type (lisp-implementation lisp-command)
-             :lisp-path (lisp-executable lisp-command)
-             :image-path (lisp-image lisp-command)
-             :lisp-flags (lisp-flags lisp-command)
-             :eval (strcat (computation-command l c)
-                           (quit-form 0 (lisp-implementation lisp-command))))))
-    (shell-tokens-to-string a)))
-|#
-
 (defgeneric make-computation (env &key))
 
 (defmethod make-computation ((env null) &rest keys &key &allow-other-keys)
-  (apply #'make-computation 'concrete-computation keys))
-
-(defmethod make-computation ((class symbol) &rest keys &key &allow-other-keys)
-  (apply #'make-computation (find-class class) keys))
-
-(defmethod make-computation ((class standard-class) &rest keys &key &allow-other-keys)
-  (let ((computation (apply #'make-instance class keys)))
+  (let ((computation (apply #'make-instance 'computation keys)))
     (link-computation-outputs computation)
     (push computation *computations*)
     computation))

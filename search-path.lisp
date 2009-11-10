@@ -139,8 +139,5 @@
   '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
 
 (defun show-search-path-command (&key xcvb-path)
-  (reset-variables)
-  (when xcvb-path
-    (set-search-path! xcvb-path))
-  (search-search-path)
+  (handle-global-options :xcvb-path xcvb-path)
   (show-search-path))

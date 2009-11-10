@@ -24,7 +24,6 @@
                       output-path object-directory
                       lisp-implementation lisp-binary-path
                       disable-cfasl base-image verbosity profiling)
-  (xcvb-driver::debugging)
   (multiple-value-bind (makefile-path makefile-dir)
       (make-makefile
        :master t

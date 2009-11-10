@@ -15,12 +15,19 @@ endif
 
 export XCVB_PATH:=$(shell pwd):${LISP_SOURCE}
 export PATH:=${INSTALL_BIN}:${PATH}
-export XCVB_OBJECT_DIRECTORY ?= $(shell pwd)/obj
+export RELEASE_DIR := $(shell pwd)
+export XCVB_DIR := ${RELEASE_DIR}/xcvb
+export XCVB_OBJECT_DIRECTORY ?= ${RELEASE_DIR}/build/obj
 
 OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 		INSTALL_BIN=${INSTALL_BIN} INSTALL_LISP=${INSTALL_LISP} \
 		LISP_SOURCE=${LISP_SOURCE} LISP_SYSTEMS=${LISP_SYSTEMS} \
-		XCVB_OBJECT_DIRECTORY=${XCVB_OBJECT_DIRECTORY}
+		XCVB_OBJECT_DIRECTORY=${XCVB_OBJECT_DIRECTORY} \
+		RELEASE_DIR=${RELEASE_DIR} XCVB_DIR=${XCVB_DIR}
+
+GIT_DEPENDENCIES := asdf asdf-dependency-grovel command-line-arguments poiu
+DARCS_DEPENDENCIES := closer-mop
+DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
 
 install-cl-launch:
 	mkdir -p ${LISP_SOURCE}/cl-launch ${INSTALL_BIN}
@@ -36,7 +43,7 @@ install-cl-launch:
 
 install: install-cl-launch
 	mkdir -p ${INSTALL_BIN}
-	${MAKE} ${XSH} -f xcvb.mk.${LISP} obj/xcvb.image
+	${MAKE} ${XSH} -f xcvb.mk.${LISP} ${OPTIONS}
 	${MAKE} -C xcvb xcvb-bootstrapped-install ${OPTIONS}
 
 install-source: install-cl-launch
@@ -83,9 +90,19 @@ update:
 	(echo -n "Updating dependencies/closer-mop... " ; cd dependencies/closer-mop ; \
 	darcs pull -a )
 
+reset:
+	for i in xcvb dependencies/asdf dependencies/asdf-dependency-grovel \
+		dependencies/cl-launch dependencies/command-line-arguments \
+		dependencies/poiu ; do \
+	  (echo -n "Resetting $$i... " ; cd $$i ; git reset --hard) ; \
+	done ; \
+	(echo -n "Updating dependencies/closer-mop... " ; cd dependencies/closer-mop ; \
+	darcs revert -a )
+
 prepare-release:
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
-	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
+	cp -flax xcvb/doc/configure.mk.example xcvb/configure.mk && \
+	cp -flax xcvb/doc/Makefile.release Makefile && \
 	./dependencies/cl-launch/cl-launch.sh \
 		-I ./dependencies/cl-launch \
 		-B install_path && \
@@ -97,14 +114,13 @@ prepare-release:
 		--lisp-implementation $$l \
 		--output-path=${RELEASE_DIR}/xcvb.mk.$$l \
 		--no-master \
-		--object-directory obj \
+		--object-directory build/obj \
 		--disable-cfasl ; done && \
-	rm -rf obj xcvb/obj
+	rm -rf build obj xcvb/obj
 
 test: install
-	rm -rf obj/*
-	PATH=${INSTALL_BIN}:$$PATH XCVB_PATH=${LISP_SOURCE} \
-	make -C xcvb xcvb LISP=${LISP}
+	cd ${XCVB_DIR} && \
+	./test/runme.zsh ${OPTIONS} validate_release_dir
 
 .PHONY: install-cl-launch install install-source install-using-asdf \
 	checkout update gc prepare-release test

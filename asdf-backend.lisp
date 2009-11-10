@@ -161,22 +161,11 @@ Declare asd system as ASDF-NAME."
     (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
     (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")))
 
-(defun xcvb-to-asdf-command (&key
+(defun xcvb-to-asdf-command (&rest keys &key
                              build name output-path verbosity xcvb-path
                              lisp-implementation lisp-binary-path)
-  (reset-variables)
-  (when verbosity
-    (setf *xcvb-verbosity* verbosity))
-  (when xcvb-path
-    (set-search-path! xcvb-path))
-  (when lisp-implementation
-    (setf *lisp-implementation-type*
-          (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
-  (when lisp-binary-path
-    (setf *lisp-executable-pathname* lisp-binary-path))
-  (extract-target-properties)
-  (read-target-properties)
-  (search-search-path)
+  (declare (ignore xcvb-path verbosity lisp-implementation lisp-binary-path))
+  (apply 'handle-global-options keys)
   (write-asd-file
    :asdf-name name
    :build-names (mapcar #'canonicalize-fullname build)
