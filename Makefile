@@ -70,15 +70,16 @@ xcvb.mk: force
 	xcvb make-makefile \
 	     --build /xcvb \
 	     --setup /xcvb/no-asdf \
+	     --object-directory ${XCVB_OBJECT_DIRECTORY} \
 	     --lisp-implementation ${LISP_IMPL} \
 	     --lisp-binary-path ${LISP_BIN}
 
 PARALLELIZE := -j
 
-obj/xcvb.image: xcvb.mk
+${XCVB_OBJECT_DIRECTORY}/xcvb.image: xcvb.mk
 	${MAKE} -f xcvb.mk ${PARALLELIZE} $@ || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk $@
 
-xcvb-using-xcvb: obj/xcvb.image
+xcvb-using-xcvb: ${XCVB_OBJECT_DIRECTORY}/xcvb.image
 	${MAKE} xcvb-bootstrapped-install
 
 XCVB_INIT :=	--init "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCVB}/\"))" \
@@ -86,7 +87,7 @@ XCVB_INIT :=	--init "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCV
 
 xcvb-bootstrapped-install:
 	mkdir -p ${INSTALL_BIN}
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image ${XCVB_DIR}/obj/xcvb.image --no-include \
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image ${XCVB_OBJECT_DIRECTORY}/xcvb.image --no-include \
 		$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb) \
 		${XCVB_INIT}
 
@@ -103,16 +104,17 @@ xcvb-ne.mk: force
 	xcvb non-enforcing-makefile \
 	     --build /xcvb \
 	     --setup /xcvb/setup \
+	     --object-directory ${XCVB_OBJECT_DIRECTORY}/_ne \
 	     --lisp-implementation ${LISP_IMPL} \
 	     --lisp-binary-path ${LISP_BIN}
 
-obj-ne/xcvb-tmp.image: xcvb-ne.mk
+${XCVB_OBJECT_DIRECTORY}/_ne/xcvb-tmp.image: xcvb-ne.mk
 	${MAKE} -f xcvb-ne.mk $@
 
-xcvb-using-nemk: obj-ne/xcvb-tmp.image
+xcvb-using-nemk: ${XCVB_OBJECT_DIRECTORY}/_ne/xcvb-tmp.image
 	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
-	--image ${XCVB_DIR}/obj-ne/xcvb-tmp.image ${XCVB_INIT} --no-include \
+	--image $< ${XCVB_INIT} --no-include \
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
 
 

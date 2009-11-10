@@ -38,13 +38,15 @@ $(shell ( export XCVB_PATH=${XCVB_PATH} ) >&2)
 # See the ASDF build for more information on making such a setup file.
 
 xcvb.mk: force
-	xcvb make-makefile --build /xcvb/hello
+	xcvb make-makefile \
+	     --build /xcvb/hello \
+	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello
 
 # The PARALLELIZE trick allows the user to disable or tweak build parallelism with
 # make PARALLELIZE= or make PARALLELIZE=-j8 or make PARALLELIZE=-l4
 # The XCVB_DEBUGGING trick allows the user to debug the build when and only when it fails.
 PARALLELIZE ?= -j
-obj/xcvb/hello.image: xcvb.mk
+${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello.image: xcvb.mk
 	${MAKE} -f xcvb.mk ${PARALLELIZE} $@ || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk $@
 
 # This uses cl-launch to build an executable from the image created by xcvb.
@@ -52,9 +54,9 @@ obj/xcvb/hello.image: xcvb.mk
 # With SBCL and CLISP, you could use "--dump !" to create a standalone executable instead
 # IN THE FUTURE,
 # xcvb may have builtin option to specify such executables.
-hello-using-mk: obj/xcvb/hello.image
+hello-using-mk: ${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello.image
 	mkdir -p ${INSTALL_BIN}
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb/hello.image --no-include \
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $< --no-include \
 		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
 		--init '(xcvb-hello::main)'
 
@@ -89,17 +91,20 @@ xcvb-hello.asd: force
 	xcvb x2a --build /xcvb/hello --build /xcvb/hello/lib --name xcvb-hello
 
 # This builds hello using our non-enforcing Makefile backend
-hello-using-nemk: obj-ne/xcvb-tmp.image
+hello-using-nemk:  ${XCVB_OBJECT_DIRECTORY}/hello_ne/xcvb/hello.image
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj-ne/xcvb-tmp.image --no-include \
 		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
 		--init '(xcvb-hello::main)'
 
-obj-ne/xcvb-tmp.image: xcvb-ne.mk
+${XCVB_OBJECT_DIRECTORY}/hello_ne/xcvb/hello.image: xcvb-ne.mk
 	${MAKE} -f xcvb-ne.mk $@
 
 xcvb-ne.mk: setup.lisp force
-	xcvb non-enforcing-makefile --setup /xcvb/hello/setup --build /xcvb/hello
+	xcvb non-enforcing-makefile \
+	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello_ne \
+	     --setup /xcvb/hello/setup \
+	     --build /xcvb/hello
 
 
 # Declare some targets as phony.

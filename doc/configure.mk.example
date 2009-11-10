@@ -122,3 +122,19 @@ CL_LAUNCH_MODE ?= image
 ## cl-launch >=2.10 and sbcl >=1.0.22 or clisp >=2.48.
 #CL_LAUNCH_MODE := standalone
 ##
+
+
+#### Where to store object files?
+##
+## DEFAULT: subdirectory obj under each project's current directory
+XCVB_OBJECT_DIRECTORY := obj
+##
+## This will put object files under /tmp/fare/xcvb/
+## Beware that if you share the same object directory between projects
+## that use the Makefile backend with incompatible options, you'll have bad surprises,
+## as e.g. a CLISP tries to load SBCL images and fasls, or a SBCL with its builtin ASDF
+## tries to load a file that depends on a newer ASDF (the old one having been obliterated
+## with --setup /xcvb/no-asdf in the case of a build of XCVB itself).
+## In between configuration changes, and assuming the Makefile backend, you may want
+## to clear (rm -rf) this directory.
+#XCVB_OBJECT_DIRECTORY := /tmp/fare/xcvb
