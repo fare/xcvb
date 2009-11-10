@@ -16,7 +16,7 @@ all: hello
 # ~/.config/common-lisp/xcvb.ini or /etc/common-lisp/xcvb.ini
 # (that you can override on the command-line) that includes all the configuration
 # for your user or site.
-XCVB_ROOT := $(shell readlink -f ../..)
+XCVB_ROOT := $(shell readlink -f ..)
 #May also work: XCVB_ROOT := $(shell xcvb ssp | grep '^ (:BUILD "/xcvb") ' | cut -d'"' -f4)
 include ${XCVB_ROOT}/configure.mk
 
