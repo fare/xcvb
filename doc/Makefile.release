@@ -37,7 +37,6 @@ install-cl-launch:
 install: install-cl-launch
 	mkdir -p ${INSTALL_BIN}
 	${MAKE} ${XSH} -f xcvb.mk.${LISP} obj/xcvb.image
-	rm -f xcvb/obj ; ln -s ../obj xcvb/
 	${MAKE} -C xcvb xcvb-bootstrapped-install ${OPTIONS}
 
 install-source: install-cl-launch
@@ -98,6 +97,7 @@ prepare-release:
 		--lisp-implementation $$l \
 		--output-path=${RELEASE_DIR}/xcvb.mk.$$l \
 		--no-master \
+		--object-directory obj \
 		--disable-cfasl ; done && \
 	rm -rf obj xcvb/obj
 

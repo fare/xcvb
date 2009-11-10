@@ -215,6 +215,8 @@ validate_bootstrapped_xcvb () {
 
 do_bootstrapped_build () {
   # pre-requisites (besides env): PWD=.../xcvb-release/
+  rm -rf "$XCVB_DIR/obj"
+  ln -s $obj "$XCVB_DIR/obj"
   make install $ENV
 }
 
