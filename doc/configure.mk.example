@@ -61,7 +61,7 @@ INSTALL_XCVB ?= ${LISP_SOURCE}/xcvb
 #### Where to find cl-launch?
 ##
 ## DEFAULT: look for it in your $PATH
-CL_LAUNCH := cl-launch
+CL_LAUNCH ?= cl-launch
 ##
 ## You may want a specific version stashed somewhere else
 # CL_LAUNCH := /usr/bin/cl-launch
@@ -73,7 +73,7 @@ CL_LAUNCH := cl-launch
 # LISP := sbcl
 # LISP := clisp
 # LISP :=
-LISP := sbcl
+LISP ?= sbcl
 
 #### What options to pass to cl-launch?
 ##
@@ -81,7 +81,7 @@ LISP := sbcl
 ## This assumes that the default will work because you have already configured
 ## cl-launch and/or the underlying Lisp implementation, so it will find all
 ## the required .asd's.
-CL_LAUNCH_FLAGS :=
+CL_LAUNCH_FLAGS ?=
 ##
 ## If you want to specify a search order for Lisp implementations,
 ## you may do it as follows (see cl-launch documentation for details)
@@ -127,7 +127,7 @@ CL_LAUNCH_MODE ?= image
 #### Where to store object files?
 ##
 ## DEFAULT: subdirectory obj under each project's current directory
-XCVB_OBJECT_DIRECTORY := obj
+XCVB_OBJECT_DIRECTORY ?= obj
 ##
 ## This will put object files under /tmp/fare/xcvb/
 ## Beware that if you share the same object directory between projects
