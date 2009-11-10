@@ -54,7 +54,7 @@ obj/xcvb/hello.image: xcvb.mk
 # xcvb may have builtin option to specify such executables.
 hello-using-mk: obj/xcvb/hello.image
 	mkdir -p ${INSTALL_BIN}
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb/hello.image \
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj/xcvb/hello.image --no-include \
 		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
 		--init '(xcvb-hello::main)'
 
@@ -91,7 +91,7 @@ xcvb-hello.asd: force
 # This builds hello using our non-enforcing Makefile backend
 hello-using-nemk: obj-ne/xcvb-tmp.image
 	mkdir -p ${INSTALL_BIN}
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj-ne/xcvb-tmp.image \
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $$PWD/obj-ne/xcvb-tmp.image --no-include \
 		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
 		--init '(xcvb-hello::main)'
 
