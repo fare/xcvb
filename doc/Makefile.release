@@ -82,16 +82,17 @@ update:
 prepare-release:
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
 	cp xcvb/doc/configure.mk.example xcvb/configure.mk && \
+	{ rm -rf "${RELEASE_DIR}/build" ; : } \
 	./dependencies/cl-launch/cl-launch.sh \
 		-I ./dependencies/cl-launch \
 		-B install_path && \
 	for l in sbcl clisp ccl ; do \
 	    xcvb make-makefile \
-		--xcvb-path=$$PWD \
+		--xcvb-path=${RELEASE_DIR} \
 		--build /xcvb \
 		--setup /xcvb/no-asdf \
 		--lisp-implementation $$l \
-		--output-path=$$PWD/xcvb.mk.$$l \
+		--output-path=${RELEASE_DIR}/xcvb.mk.$$l \
 		--no-master \
 		--disable-cfasl ; done && \
 	rm -rf obj xcvb/obj
