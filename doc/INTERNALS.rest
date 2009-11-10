@@ -43,13 +43,13 @@ concepts underlying XCVB.
       2.14  lisp-invocation.lisp
       2.15  string-escape.lisp
       2.16  extract-target-properties.lisp
-      2.17  lisp-grain.lisp
+      2.17  grain-implementation.lisp
       2.18  names.lisp
       2.19  search-path.lisp
       2.20  normalize-dependency.lisp
       2.21  traversal.lisp
       2.22  dependencies-interpreter.lisp
-      2.23  static-backends.lisp
+      2.23  static-traversal.lisp
       2.24  makefile-backend.lisp
       2.25  simplifying-traversal.lisp
       2.26  asdf-backend.lisp
@@ -476,8 +476,8 @@ various information such as the ``*features*``,
 whether CFASLs are supported, etc.
 
 
-lisp-grain.lisp
----------------
+grain-implementation.lisp
+-------------------------
 
 Handles parsing module forms in lisp grains,
 including the naming of other modules within a module form.
@@ -526,8 +526,8 @@ to the traversal of grains
 and issuing of load commands for such.
 
 
-static-backends.lisp
---------------------
+static-traversal.lisp
+---------------------
 
 Builds a static graph, for use with GNU Make, ASDF, and other static backends.
 
@@ -625,6 +625,12 @@ See the README section about XCVB master.
 Good places to extend XCVB
 ==========================
 
+Add more tests
+--------------
+
+See in ``test/runme.zsh`` and in the ``Makefile``.
+
+
 Extending the driver
 --------------------
 
@@ -639,7 +645,6 @@ functions are loaded before these commands are used
 (e.g. by listing them first in dependencies)::
 
 	(defun xcvb-driver::my-new-function (arguments ...) ...)
-
 
 
 Simple dispatchers as extension points
@@ -687,7 +692,7 @@ that process this output language,
 currently the simple-dispatchers ``load-command-for``
 and ``dependency-namestring``.
 That will probably also mean adding new graph nodes,
-with appropriate simple-dispatchers in ``static-backends.lisp``
+with appropriate simple-dispatchers in ``static-traversal.lisp``
 and ``makefile-backend.lisp``.
 
 Finally, we have reserved a place for "extension forms" in the module syntax.

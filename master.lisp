@@ -292,7 +292,7 @@ with associated pathnames and tthsums.")
 
 ;;; Simplifying options for XCVB invocation
 (defun string-option-arguments (string value)
-  (when value (list string (princ-to-string value))))
+  (when value (list string (let ((*print-case* :downcase)) (princ-to-string value)))))
 (defun pathname-option-arguments (string value)
   (when value (list string (namestring value))))
 (defun boolean-option-arguments (string value)
@@ -348,10 +348,7 @@ with associated pathnames and tthsums.")
 			Slave command:~%  ~S~%~
 			Slave output:~%~A~%~
 			(If using SLIME, you might have useful output in your *inferior-lisp* buffer.)"
-                     (with-output-to-string (*standard-output*)
-                       (dolist (element slave-command)
-                         (write-string element)
-                         (write-char #\Space)))
+                     slave-command
                      slave-output)
               (error "XCVB slave failed"))
             (read-from-string

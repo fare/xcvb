@@ -258,7 +258,7 @@ Examples
 
 XCVB itself is an example.
 A simpler example is the trivial Common Lisp application ``hello``
-distributed in directory ``test/hello/``. See the source and its ``Makefile``.
+distributed in directory ``hello/``. See the source and its ``Makefile``.
 
 
 Timeline
