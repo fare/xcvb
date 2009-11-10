@@ -172,11 +172,11 @@ do_asdf_build () {
 }
 do_self_mk_build () {
   # pre-requisites (besides env): PWD=.../xcvb/
-  make xcvb INSTALL_BIN=$INSTALL_BIN INSTALL_LISP=$INSTALL_LISP
+  make xcvb $ENV
 }
 do_self_nemk_build () {
   # pre-requisites (besides env): PWD=.../xcvb/
-  make xcvb-using-nemk INSTALL_BIN=$INSTALL_BIN INSTALL_LISP=$INSTALL_LISP
+  make xcvb-using-nemk $ENV
 }
 
 validate_asdf_xcvb () {
