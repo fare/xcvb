@@ -358,9 +358,7 @@ so that the system can now be compiled with XCVB."
     (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")
     (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
 
-(defun asdf-to-xcvb-command (arguments &key system setup system-path preload verbosity base name)
-  (when arguments
-    (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
+(defun asdf-to-xcvb-command (&key system setup system-path preload verbosity base name)
   (when verbosity
     (setf *xcvb-verbosity* verbosity))
   (setf asdf:*central-registry*

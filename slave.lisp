@@ -19,7 +19,7 @@
    (("profiling" #\P) :type boolean :optional t :documentation "profiling")
    ))
 
-(defun slave-builder (arguments &key
+(defun slave-builder (&key
                       build setup xcvb-path
                       output-path object-directory
                       lisp-implementation lisp-binary-path
@@ -27,12 +27,13 @@
   (xcvb-driver::debugging)
   (multiple-value-bind (makefile-path makefile-dir)
       (make-makefile
-       arguments :master t
+       :master t
        :build build :setup setup
        :xcvb-path xcvb-path :output-path output-path
        :object-directory object-directory
        :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
-       :disable-cfasl disable-cfasl :base-image base-image :verbosity verbosity :profiling profiling)
+       :disable-cfasl disable-cfasl :base-image base-image
+       :verbosity verbosity :profiling profiling)
     (let ((*default-pathname-defaults* makefile-dir))
       (let ((*standard-output* *error-output*))
         (run-program/process-output-stream

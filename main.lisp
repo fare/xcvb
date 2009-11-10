@@ -65,7 +65,10 @@ For debugging your XCVB configuration.")
     (("make-manifest") make-manifest +make-manifest-option-spec+
      "Create a manifest of files to load (for internal use)"
      "given fullnames and paths, output fullnames, tthsum and paths")
-    (("load") build-command ()
+    (("build") standalone-build-command +standalone-build-option-spec+
+     "build a project (not implemented yet - will fail)"
+     "build the project directly")
+    (("load") load-command ()
      "Load a Lisp file"
      "Load a Lisp file in the context of XCVB itself. For XCVB developers only.")
     (("eval") eval-command ()
@@ -124,7 +127,7 @@ for this version of XCVB.")))
           *xcvb-version* (lisp-implementation-type) (lisp-implementation-version)))
 
 ;; Command to load a file.
-(defun build-command (args)
+(defun load-command (args)
   (unless (list-of-length-p 1 args)
     (error "load requires exactly 1 argument, a file to load"))
     (load (car args)))
@@ -172,10 +175,8 @@ for this version of XCVB.")))
      :documentation "override your XCVB_PATH")
     (("verbosity" #\v) :type integer :optional t :initial-value 5 :documentation "set verbosity (default: 5)")))
 
-(defun remove-xcvb-command (arguments &key xcvb-path verbosity build)
+(defun remove-xcvb-command (&key xcvb-path verbosity build)
   ;;(declare (ignore xcvb-path verbosity))
-  (when arguments
-    (error "Invalid arguments to remove-xcvb: ~S~%" arguments))
   (when verbosity
     (setf *xcvb-verbosity* verbosity))
   (remove-xcvb-from-build
@@ -244,9 +245,8 @@ for this version of XCVB.")))
          (option-spec-var (third command-spec)))
     (cond
       (option-spec-var
-       (multiple-value-bind (options arguments)
-           (process-command-line-options (symbol-value option-spec-var) args)
-         (apply fun arguments options)))
+       (handle-command-line (symbol-value option-spec-var) fun
+                            :command-line args :name command))
       (fun
        (funcall fun args))
       ((not command)

@@ -138,9 +138,7 @@
 (defparameter +show-search-path-option-spec+
   '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
 
-(defun show-search-path-command (arguments &key xcvb-path)
-  (when arguments
-    (error "Invalid arguments to show-search-path: ~S~%" arguments))
+(defun show-search-path-command (&key xcvb-path)
   (reset-variables)
   (when xcvb-path
     (set-search-path! xcvb-path))

@@ -161,11 +161,9 @@ Declare asd system as ASDF-NAME."
     (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
     (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")))
 
-(defun xcvb-to-asdf-command (arguments &key
+(defun xcvb-to-asdf-command (&key
                              build name output-path verbosity xcvb-path
                              lisp-implementation lisp-binary-path)
-  (when arguments
-    (error "Invalid arguments to asdf-to-xcvb: ~S~%" arguments))
   (reset-variables)
   (when verbosity
     (setf *xcvb-verbosity* verbosity))

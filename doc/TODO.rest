@@ -535,14 +535,17 @@ They modify the underlying build model.
 XCVB Self-Test [V2]
 -------------------
 
-We should write a comprehensive test suite for XCVB.
+We should maintain a comprehensive test suite for XCVB.
 
-This would be a good way for a hacker to start
-without knowing much about how XCVB works:
+There is now test/runme.zsh, and enhancing it would be
+a good way for a hacker to start without knowing much about how XCVB works:
 collect a list of things it does, write a Makefile to test them all, etc.
 As failures are detected and fixed, knowledge will seep in.
 
 An XCVB self-test suite would include:
+
+   + Eventually, test all keywords if not all combinations,
+     but start especially with those with big effects such as --no-master.
 
    + When building XCVB, create one in a staging area, then
      try to make from clean using that XCVB, and to make from incremental, too.

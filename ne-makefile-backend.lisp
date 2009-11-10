@@ -113,14 +113,12 @@ in a fast way that doesn't enforce dependencies."
 ;  (("profiling" #\P) :type boolean :optional t :documentation "profiling")
    ))
 
-(defun non-enforcing-makefile (arguments &key
+(defun non-enforcing-makefile (&key
                                build base-image setup xcvb-path name
                                output-path object-directory
                                lisp-implementation lisp-binary-path
                                verbosity parallel #|force-cfasl profiling|#)
   (reset-variables)
-  (when arguments
-    (error "Invalid arguments to non-enforcing-makefile"))
   (when xcvb-path
     (set-search-path! xcvb-path))
   (when verbosity

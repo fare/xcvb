@@ -104,7 +104,5 @@ new or updated FASLs that you build with XCVB.~%")))
     (("spec" #\s) :type string :optional nil
      :documentation "list of plists specifying command and optional pathname, source-pathname")))
 
-(defun make-manifest (arguments &key output spec)
-  (when arguments
-    (error "Invalid arguments to make-manifest: ~S~%" arguments))
+(defun make-manifest (&key output spec)
   (create-manifest output (with-safe-io-syntax () (read-from-string spec))))

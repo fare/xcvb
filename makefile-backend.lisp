@@ -404,14 +404,12 @@ will create the desired content. An atomic rename() will have to be performed af
    (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
    (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
 
-(defun make-makefile (arguments &key
-                                xcvb-path setup verbosity output-path
-                                build lisp-implementation lisp-binary-path
-                                disable-cfasl master object-directory base-image profiling)
+(defun make-makefile (&key
+                      xcvb-path setup verbosity output-path
+                      build lisp-implementation lisp-binary-path
+                      disable-cfasl master object-directory base-image profiling)
   (with-maybe-profiling (profiling)
     (reset-variables)
-    (when arguments
-      (error "Invalid arguments to make-makefile"))
     (when xcvb-path
       (set-search-path! xcvb-path))
     (when verbosity
