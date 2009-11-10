@@ -174,12 +174,57 @@ waiting at this state of the world.")
 
 |#
 
-(defun standalone-build (&key)
-  ;;; TODO: parse arguments (see other backends)
-  (let* ((target (error "NIY"))
+(defun standalone-build (fullname &key output-path)
+  (declare (ignore output-path))
+  (let* ((target (resolve-absolute-module-name fullname))
+         (build (if target (build-grain-for target)
+                    (errexit 3 "User requested build ~S but it can't be found.~%~
+				You may check available builds with xcvb ssp.~%" fullname)))
          (*use-master* nil)
          (*root-world* (make-initial-world))
          (traversal (make-instance 'farmer-traversal)))
+    (declare (ignore build))
     (graph-for traversal target)
     ;;; TODO: actually walk the world tree
-    (error "NIY"))) ;;
+    (break)
+    (error "NIY")))
+
+(defun standalone-build-command
+    (arguments &key
+     xcvb-path setup verbosity output-path
+     build lisp-implementation lisp-binary-path
+     disable-cfasl master object-directory base-image)
+  ;;; TODO: parse arguments (see other backends)
+  (when arguments
+    (error "Invalid arguments to build"))
+  (when xcvb-path
+    (set-search-path! xcvb-path))
+  (when verbosity
+    (setf *xcvb-verbosity* verbosity))
+  (when output-path
+    (setf *default-pathname-defaults*
+          (ensure-absolute-pathname (pathname-directory-pathname output-path))))
+  (when object-directory
+    (setf *object-directory* ;; strip last "/"
+          (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
+  (when lisp-implementation
+    (setf *lisp-implementation-type*
+          (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+  (when lisp-binary-path
+    (setf *lisp-executable-pathname* lisp-binary-path))
+  (extract-target-properties)
+  (read-target-properties)
+  (when disable-cfasl
+    (setf *use-cfasls* nil))
+  (setf *use-base-image* base-image)
+  (search-search-path)
+  (setf *use-master* master)
+  (when master
+    (ensure-tthsum-present)
+    (append1f *lisp-setup-dependencies* '(:fasl "/xcvb/master")))
+  (when setup
+    (let ((module (resolve-absolute-module-name setup)))
+      (unless module
+        (error "Cannot find setup module ~A" setup))
+      (append1f *lisp-setup-dependencies* `(:lisp ,(fullname module)))))
+  (standalone-build (canonicalize-fullname build) :output-path output-path))

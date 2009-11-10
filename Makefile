@@ -206,10 +206,22 @@ test-and-release-tarball: test-release-tarball
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/
 
+show-config:
+	echo "LISP='${LISP}'" ; \
+	echo "CL_LAUNCH='${CL_LAUNCH}'" ; \
+	echo "CL_LAUNCH_FLAGS='${CL_LAUNCH_FLAGS}'" ; \
+	echo "CL_LAUNCH_MODE='${CL_LAUNCH_MODE}'" ; \
+	echo "INSTALL_BIN='${INSTALL_BIN}'" ; \
+	echo "INSTALL_LISP='${INSTALL_LISP}'" ; \
+	echo "INSTALL_SOURCE='${INSTALL_SOURCE}'" ; \
+	echo "INSTALL_SYSTEM='${INSTALL_SYSTEM}'" ; \
+	echo "INSTALL_IMAGE='${INSTALL_IMAGE}'" ; \
+	echo "INSTALL_XCVB='${INSTALL_XCVB}'"
+
 .PHONY: all install lisp-install tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision force \
 	release release-directory release-tarball test-and-release-tarball \
 	xcvb-bootstrapped-install xcvb-asdf-install \
-	test fulltest
+	test fulltest show-config
 
 # To check out a particular revision: git fetch; git merge $commit

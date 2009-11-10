@@ -46,6 +46,7 @@ finalize_variables () {
   export LISP_FASL_CACHE="$BUILD_DIR/cache"
   CL_LAUNCH_FLAGS=(
     --lisp "$LISP"
+    $CL_LAUNCH_FLAGS
     #${(s: :)asdf_path+"--path ${(j: --path :)asdf_path}"} ## fails when path contains spaces!
   )
   for i in $asdf_path ; do CL_LAUNCH_FLAGS=(${CL_LAUNCH_FLAGS} --path $i) ; done
@@ -74,6 +75,16 @@ check_release_dir () {
 check_xcvb_dir () {
   [ -f $XCVB_DIR/xcvb.asd -a -f $XCVB_DIR/driver.lisp ] ||
   abort "Invalid xcvb directory $XCVB_DIR"
+  [ -f $XCVB/configure.mk ] ||
+  abort "Please configure your configure.mk (and don't forget to properly setup ASDF)"
+}
+check_asdf_setup () {
+  CONFIGURED_CL_LAUNCH_FLAGS="$(make show-config | grep "^CL_LAUNCH_FLAGS=" | cut -d= -c2-)"
+  for i in asdf-dependency-grovel cl-launch closer-mop command-line-arguments poiu ; do
+    cl-launch $CONFIGURED_CL_LAUNCH_FLAGS -i \
+    "(cl-launch::quit (if (find-system :$i nil) 0 1))" ||
+    abort "Couldn't locate ASDF system $i. Make sure your configure.mk has it."
+  done
 }
 
 #### And now, the Tests! ####

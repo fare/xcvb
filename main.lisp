@@ -142,7 +142,7 @@ for this version of XCVB.")))
   (initialize-environment)
   (xcvb-driver:debugging)
   #+clisp (setf *standard-input* *terminal-io*)
-  (invoke-restart 'rever-to-repl))
+  (invoke-restart 'revert-to-repl))
 
 (defun repl ()
   (let (/ // /// * ** *** + ++ +++ -)
