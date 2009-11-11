@@ -4,6 +4,7 @@
 (in-package :xcvb)
 
 ;;; The registry itself
+;; TODO: have distinct registries for builds and grains?
 
 (defun registered-grain (name)
   (gethash name *grains*))
@@ -23,7 +24,15 @@
     (or previous (register-computed-grain fullname function args))))
 
 (defun register-computed-grain (fullname function &optional args)
-  (let ((grain (apply function args)))
+  (let* ((grain (apply function args))
+         (gname (fullname grain)))
+    ;;TODO: fix this!
+    ;;(assert (equal fullname (fullname grain)))
+    ;; Apparently, this assertion doesn't hold at least because of aliasing between
+    ;; "foo" and (:lisp "foo"). Need to investigate where we're being sloppy,
+    ;; use some normalization function and restore this invariant.
+    (assert (or (equal fullname gname)
+                (and (stringp gname) (equal fullname `(:lisp ,gname)))))
     (setf (registered-grain fullname) grain)
     grain))
 

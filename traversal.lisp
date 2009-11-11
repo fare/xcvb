@@ -105,3 +105,16 @@
 (define-graph-for :require ((env xcvb-traversal) name)
   (declare (ignore env))
   (make-require-grain :name name))
+
+(defun handle-target (fullname)
+  (let* ((fullname (canonicalize-fullname fullname))
+         (target (resolve-absolute-module-name fullname))
+         (build (if target (build-grain-for target)
+                    (error "User requested build ~S but it can't be found.~%~
+			    You may check available builds with xcvb ssp.~%" fullname)))
+         (fun (etypecase target
+                (build-grain
+                 (lambda (env) (graph-for-build-grain env build)))
+                (lisp-grain
+                 (lambda (env) (graph-for-fasl env fullname))))))
+    (values fun build)))

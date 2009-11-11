@@ -28,37 +28,31 @@
 
 (defun write-makefile (fullname &key output-path)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
-  (let* ((*print-pretty* nil); otherwise SBCL will slow us down a lot.
-         (fullname (canonicalize-fullname fullname))
-         (target (resolve-absolute-module-name fullname))
-         (build (if target (build-grain-for target)
-                    (errexit 3 "User requested build ~S but it can't be found.~%~
-				You may check available builds with xcvb ssp.~%" fullname)))
-         (default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
-         (output-path (if output-path (merge-pathnames output-path default-output-path) default-output-path))
-         (makefile-path (ensure-absolute-pathname output-path))
-         (makefile-dir (pathname-directory-pathname makefile-path))
-         (*default-pathname-defaults* makefile-dir)
-         (*makefile-target-directories* nil)
-         (*makefile-phonies* nil)
-         (env (make-instance 'static-makefile-traversal)))
-    (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
-    (etypecase target
-      (build-grain
-       (graph-for-build-grain env build))
-      (lisp-grain
-       (graph-for-fasl env fullname)))
-    (log-format 6 "T=~A building makefile~%" (get-universal-time))
-    (let ((body (computations-to-Makefile env)))
-      (with-open-file (out makefile-path
-                           :direction :output
-                           :if-exists :supersede)
-        (log-format 6 "T=~A printing makefile~%" (get-universal-time))
-        (write-makefile-prelude out)
-        (princ body out)
-        (write-makefile-conclusion out)))
-    (log-format 6 "T=~A done~%" (get-universal-time))
-    (values makefile-path makefile-dir)))
+  (multiple-value-bind (fun build) (handle-target fullname)
+    (let* ((default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
+           (output-path (if output-path
+                            (merge-pathnames output-path default-output-path)
+                            default-output-path))
+           (makefile-path (ensure-absolute-pathname output-path))
+           (makefile-dir (pathname-directory-pathname makefile-path))
+           (*print-pretty* nil); otherwise SBCL will slow us down a lot.
+           (*default-pathname-defaults* makefile-dir)
+           (*makefile-target-directories* nil)
+           (*makefile-phonies* nil)
+           (env (make-instance 'static-makefile-traversal)))
+      (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
+      (funcall fun env)
+      (log-format 6 "T=~A building makefile~%" (get-universal-time))
+      (let ((body (computations-to-Makefile env)))
+        (with-open-file (out makefile-path
+                             :direction :output
+                             :if-exists :supersede)
+          (log-format 6 "T=~A printing makefile~%" (get-universal-time))
+          (write-makefile-prelude out)
+          (princ body out)
+          (write-makefile-conclusion out)))
+      (log-format 6 "T=~A done~%" (get-universal-time))
+      (values makefile-path makefile-dir))))
 
 (defun write-makefile-prelude (&optional stream)
   (let ((directories
@@ -161,7 +155,7 @@ xcvb-ensure-object-directories:
   name)
 
 (define-dependency-namestring :manifest (env name)
-  (object-namestring env (strcat name "--manifest") +lisp-pathname+))
+  (object-namestring env (strcat name "__manifest") +lisp-pathname+))
 
 ;; Renaming of targets ensures reasonable atomicity
 ;; whereas CL implementations may create bad invalid stale output files
@@ -190,7 +184,7 @@ will create the desired content. An atomic rename() will have to be performed af
 (defun tempname-target (target)
   (let* ((path (pathname target))
          (tempname (namestring
-                    (make-pathname :name (strcat (pathname-name path) "--temp")
+                    (make-pathname :name (strcat (pathname-name path) "__temp")
                                    :defaults path))))
     (rename-target target tempname)))
 

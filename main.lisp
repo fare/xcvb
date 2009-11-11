@@ -19,7 +19,8 @@
         *target-system-features* nil
         *search-path-searched-p* nil
         *lisp-setup-dependencies* +fast-xcvb-setup-dependencies+
-        *pathname-grain-cache* (make-hash-table :test 'equal))
+        *pathname-grain-cache* (make-hash-table :test 'equal)
+        *worlds* (make-hash-table :test 'equal))
   (initialize-search-path)
   (values))
 

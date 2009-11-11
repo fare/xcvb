@@ -54,6 +54,7 @@ enforced locally-declared dependencies.
       7.7  Fast non-enforcing builds using POIU
     8  Frequently Asked Questions
       8.1  Why can't module declarations be moved to a central file?
+      8.2  How do I prevent clash between incompatible FASLs?
 
 
 About XCVB
@@ -741,7 +742,7 @@ Lisp implementation, Operating system, pathname host and device.
 Also, XCVB will only accept module names where all characters are valid: ``[-_.,A-Za-z0-9]``.
 XCVB build names are case-sensitive (unlike ASDF names)
 but it is strongly suggested to respect the current convention
-of using all lowercase names.
+of using all lowercase names, and leaving ``_`` reserved to XCVB internals.
 Finally, XCVB assumes that Lisp files have type ``lisp`` as far as pathnames are considered.
 
 
@@ -1450,3 +1451,30 @@ but it's just something painful and non-trivial that hasn't shown anywhere
 near the top of my TODO list yet.
 
 .. _TODO: http://common-lisp.net/project/xcvb/doc/TODO.html
+
+
+How do I prevent clash between incompatible FASLs?
+--------------------------------------------------
+
+The current Make-based backends of XCVB rely on your specifying
+a ``--object-directory`` argument (often defaulting to ``obj``).
+If you make changes to your Lisp implementation and/or to your `Lisp setup`_
+you need to either clear the contents of this directory.
+If you want to alternate between Lisp implementations and/or setups,
+you are responsible for segregating the object files
+from the alternate configurations in alternate object directories.
+
+Note that many defaults of XCVB are probably wrong wrt paths.
+Currently, XCVB defaults the output path of ``xcvb.mk`` and ``obj``
+to the path of the target build, which kind of makes sense
+if you are constantly using a one big project,
+but might not make sense for other hackers.
+
+There should probably instead be a per-user default defined
+in the user configuration, and otherwise defaulting to something under
+``~/.cache/common-lisp/`` just like with ``cl-launch``.
+
+In the future, Exploded File Dependencies and tthsum-based change detection
+will enable a content- and intent- addressed cache in which
+clashes cannot happen by construction
+(or rather, you win a free publication at a crypto conference if you hit one).

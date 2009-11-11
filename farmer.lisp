@@ -34,7 +34,7 @@ waiting at this state of the world.")
 (defmethod worker-send (worker (x cons))
   (worker-send worker (readable-string x)))
 
-(defclass active-world (world-grain)
+(defclass active-world (world-grain buildable-grain)
   ((futures
     :initform nil
     :accessor world-futures
@@ -44,12 +44,11 @@ waiting at this state of the world.")
     :accessor world-handler
     :documentation "a handler that will accept commands to run actions on this world")))
 
-(defvar *root-world* nil
-  "root of active worlds")
-(defvar *worlds* (make-hash-table :test 'equal))
+;;(defvar *root-worlds* nil "root of active worlds")
 
 (defun make-world-summary (setup commands-r)
-  (cons setup commands-r))
+  ;;(cons (canonicalize-image-setup setup) commands-r)
+  (make-world-name setup commands-r))
 (defun world-summary (world)
   (make-world-summary (image-setup world) (build-commands-r world)))
 (defun world-summary-hash (world-summary)
@@ -58,27 +57,24 @@ waiting at this state of the world.")
   (world-summary-hash (world-summary world))) ; use tthsum?
 (defun world-equal (w1 w2)
   (equal (world-summary w1) (world-summary w2)))
-(defun intern-world-summary (setup commands-r thunk)
-  (loop
-    :with summary = (make-world-summary setup commands-r)
-    :with hash = (world-summary-hash summary)
-    :for w :in (gethash hash *worlds*)
-    :do (when (equal summary (world-summary w)) (return w))
-    :finally (let ((world (apply #'make-instance 'active-world
-                                 :hash hash
-                                 :setup setup
-                                 :commands-r commands-r
-                                 (funcall thunk))))
-               (push world (gethash hash *worlds* '()))
-               (return world))))
-(defun make-initial-world ()
-  (intern-world-summary
-   () ()
-   (lambda ()
-     (list
-      :setup () :commands-r ()
-      :included-dependencies (make-hash-table :test 'equal)
-      :issued-build-commands (make-hash-table :test 'equal)))))
+(defun intern-world-summary (setup commands-r key-thunk fun)
+  (let ((fullname (make-world-name setup commands-r)))
+    (call-with-grain-registration
+     fullname
+     (lambda ()
+       (let* ((summary (make-world-summary setup commands-r))
+              (hash (world-summary-hash summary)))
+         #|(loop
+           :for w :in (gethash hash *worlds*)
+           :when (equal summary (world-summary w))
+           :do (error "new world already hashed??? ~S" w))|#
+         (let ((world (apply #'make-instance 'active-world
+                             :fullname fullname
+                             :hash hash
+                             (funcall key-thunk))))
+           #|(push world (gethash hash *worlds* '()))|#
+           (funcall fun world)
+           world))))))
 (defun setup-world (world fullname)
   (let ((new-setup (append1 (image-setup world) fullname)))
     (intern-world-summary
@@ -86,8 +82,10 @@ waiting at this state of the world.")
      (build-commands-r world)
      (lambda ()
        (list
+        :computation nil
         :included-dependencies (make-hash-table :test 'equal)
-        :issued-build-commands (make-hash-table :test 'equal))))))
+        :issued-build-commands (make-hash-table :test 'equal)))
+     (constantly nil))))
 
 (defclass farmer-traversal (static-traversal)
   ())
@@ -120,6 +118,8 @@ waiting at this state of the world.")
           ((and (<= 2 l) (eq h :compile-lisp))
            (emit-simplified-commands collector (cddr c))
            (collect `(:compile-lisp ,(second c))))
+          ((and (<= 2 l 3) (eq h :compile-file-directly))
+           (collect c))
           ((and (<= 2 l) (eq h :create-image))
            ;; TODO: distinguish the case when the target lisp is linking rather than dumping,
            ;; e.g. ECL. -- or in the future, any Lisp when linking C code.
@@ -131,9 +131,10 @@ waiting at this state of the world.")
 (defun setup-dependencies (env setup)
   (destructuring-bind (&key image load) setup
     (mapcar/
-     env #'graph-for
+     #'graph-for env
      (append
       ;; TODO: include the lisp implementation itself, binary and image, when image is the default.
+      ;; when there are no executable cores, always include the loader, too.
       (when image (list image))
       (when load load)))))
 
@@ -143,24 +144,27 @@ waiting at this state of the world.")
   (multiple-value-bind (setup commands)
       (simplified-xcvb-driver-command command)
     (loop
-      :for command = nil :then (if commands (pop commands) (return computation))
-      :for commands-r = nil :then (cons commands-r command)
+      :for command = nil :then (if commands (pop commands) (return (grain-computation world)))
+      :for commands-r = nil :then (cons command commands-r)
       :for grain-name = (unwrap-load-file-command command)
       :for grain = (when grain-name (registered-grain grain-name))
-      :for world-name = `(:world :setup ,setup :commands-r ,commands-r)
-      :for previous = *root-world* :then world
+      :for previous = nil :then world
       :for world = (intern-world-summary
                     setup commands-r
                     (lambda ()
-                      (list)))
-      :for computation = (make-computation
-                          ()
-                          :inputs (append (when previous (list previous))
-                                          (setup-dependencies env (image-setup world))
-                                          (when grain (list grain)))
-                          :outputs (if commands (list world) outputs)
-                          :command `(:active-command ,(fullname previous) ,command))
-      :do (pushnew world (world-futures previous)))))
+                      (unless previous '(:computation nil)))
+                    (lambda (world)
+                      (when previous
+                        (make-computation
+                         ()
+                         :inputs (append (list previous)
+                                         (setup-dependencies env (image-setup world))
+                                         (when grain (list grain)))
+                         :outputs (cons world (unless commands outputs))
+                         :command `(:active-command ,(fullname previous) ,command)))))
+      :do (when previous (pushnew world (world-futures previous)))
+      :do (DBG :mc command commands-r grain-name grain previous world)
+      )))
 
 #|
 ((world
@@ -174,18 +178,31 @@ waiting at this state of the world.")
 
 |#
 
+(defmethod object-namestring ((env farmer-traversal) name &optional merge)
+  ;; TODO: replace that by something that will DTRT, whatever THAT is.
+  ;; probably we need to refactor or gf away the parts that currently depend on it,
+  ;; notably fasl-grains-for-name's :pathname thingie.
+  (let* ((pathname (portable-pathname-from-string name))
+         (merged (if merge (merge-pathnames merge pathname) pathname))
+         (namestring (strcat *object-directory* (portable-namestring merged))))
+    (ensure-makefile-will-make-pathname env namestring)
+    namestring))
+
 (defun standalone-build (fullname)
-  (let* ((target (resolve-absolute-module-name fullname))
-         (build (if target (build-grain-for target)
-                    (error "User requested build ~S but it can't be found.~%~
-			    You may check available builds with xcvb ssp.~%" fullname)))
-         (*use-master* nil)
-         (*root-world* (make-initial-world))
-         (traversal (make-instance 'farmer-traversal)))
+  #+DEBUG
+  (trace graph-for build-command-for issue-dependency
+         graph-for-fasls graph-for-image-grain make-computation issue-image-named
+         simplified-xcvb-driver-command make-world-name
+         call-with-grain-registration register-computed-grain
+         )
+  (multiple-value-bind (fun build) (handle-target fullname)
     (declare (ignore build))
-    (graph-for traversal target)
-    ;;; TODO: actually walk the world tree
-    (error "NIY")))
+    ;; TODO: use build for default pathname to object directory?
+    (let* ((*use-master* nil)
+           (traversal (make-instance 'farmer-traversal)))
+      (funcall fun traversal)
+      ;; TODO: actually walk the world tree
+      (error "NIY"))))
 
 (defparameter +standalone-build-option-spec+
  '((("build" #\b) :type string :optional nil :documentation "specify what system to build")

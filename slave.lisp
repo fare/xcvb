@@ -25,6 +25,7 @@
                       lisp-implementation lisp-binary-path
                       disable-cfasl base-image verbosity profiling)
   (multiple-value-bind (makefile-path makefile-dir)
+      ;; Note that make-makefile calls handle-common-options for us.
       (make-makefile
        :master t
        :build build :setup setup
@@ -40,7 +41,7 @@
          (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
       (let* ((target-build
               (make-instance 'build-grain :fullname "/_TARGET_"
-                             :pathname "/dev/null/invalid/path"
+                             :pathname "/dev/null/NUL/invalid/path" ;; no one should match that
                              :depends-on (list build)
                              :extension-forms nil
                              :build-image t))

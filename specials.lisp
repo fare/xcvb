@@ -71,7 +71,8 @@ Autodetected from the target Lisp system.")
   "Registry of known files, indexed by namestring.
 Negatives are stored as NIL. Positives as grains.")
 
-(defvar *print-concisely* '(build-grain lisp-grain fasl-grain cfasl-grain image-grain)
+(defvar *print-concisely* '(build-grain lisp-grain fasl-grain cfasl-grain
+                            image-grain world-grain active-world)
   "For debugging purpose, controls the verbosity of print-object on grains")
 
 (defvar *use-master* t
@@ -102,3 +103,7 @@ then enriched as we build the graph from the main build.xcvb file.")
   "Path of the target executable")
 (defvar *target-lisp-image-pathname* nil
   "Path of the target image")
+
+(defvar *worlds* (make-hash-table :test 'equal)
+  ;; TODO: either make active use of it (if *grains* is not enough), or get rid of it
+  "Worlds for the standalone backend")

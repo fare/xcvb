@@ -59,7 +59,7 @@
 in a fast way that doesn't enforce dependencies."
   (let* ((*print-pretty* nil); otherwise SBCL will slow us down a lot.
          (*use-cfasls* nil) ;; We use ASDF that doesn't know about them
-         (builds (mapcar #'registered-build build-names))
+         (builds (mapcar #'registered-build build-names)) ;; TODO: somehow use handle-target instead
          (last-build (first (last builds)))
          (asdf-names (loop :for (build . rest) :on build-names :for i :from 1
                        :collect (if rest (format nil "~A-stage~D-~A" asdf-name i build) asdf-name)))

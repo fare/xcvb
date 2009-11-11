@@ -282,8 +282,12 @@ Modeled after the asdf function coerce-name"
 (defun canonicalize-image-setup (setup)
   (destructuring-bind (&key image load) setup
     (append
-     (when image `(:image image))
-     (when load `(:load load)))))
+     (when image `(:image ,image))
+     (when load `(:load ,load)))))
+
+(defun make-world-name (setup commands-r)
+  `(:world :setup ,(canonicalize-image-setup setup)
+           :commands-r ,commands-r))
 
 (defun fullname-pathname (fullname)
   (grain-pathname (registered-grain fullname)))

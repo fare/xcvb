@@ -151,7 +151,7 @@
   (if (not *use-master*)
     (values nil build-commands)
     (let* ((initial-loads (getf image-setup :load))
-           (initial-name (strcat name "--initial")))
+           (initial-name (strcat name "__initial")))
       (values
        (append
         (when initial-loads
@@ -182,8 +182,7 @@
            (build-commands-spec (second manifest-and-build-commands))
            (world (make-instance
                    'world-grain
-                   :fullname `(:world :setup ,(canonicalize-image-setup image-setup)
-                                      :commands-r ,build-commands-r)
+                   :fullname `(make-world-name image-setup build-commands-r)
                    :issued-build-commands
                    (make-hashset :test 'equal :list build-commands-r)
                    :included-dependencies
@@ -237,7 +236,7 @@
 
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
-  (let* ((lisp (graph-for env `(:lisp ,fullname)))
+  (let* ((lisp (graph-for env fullname))
          (fullname (fullname lisp)) ;; canonicalize the fullname
          (driverp (equal fullname "/xcvb/driver"))
          (specialp (member `(:fasl ,fullname) *lisp-setup-dependencies* :test #'equal)))

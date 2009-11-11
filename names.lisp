@@ -140,13 +140,14 @@ of decreasing fullname length"
 
 (defun resolve-absolute-module-name (name)
   "Resolve absolute NAME into an appropriate grain, if any"
-  (or (registered-grain name)
-      (walk-build-ancestry
-       name "module name"
-       (lambda (build suffix)
-         (let ((grain (resolve-module-name-at suffix build)))
-           (when (typep grain 'grain)
-             (return-from resolve-absolute-module-name grain)))))))
+  (let ((name (canonicalize-fullname name)))
+    (or (registered-grain name)
+        (walk-build-ancestry
+         name "module name"
+         (lambda (build suffix)
+           (let ((grain (resolve-module-name-at suffix build)))
+             (when (typep grain 'grain)
+               (return-from resolve-absolute-module-name grain))))))))
 
 (defun resolve-module-name-at (name build)
   (check-type build build-grain)
