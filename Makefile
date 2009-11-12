@@ -139,7 +139,7 @@ mrproper: clean
 	rm -f configure.mk
 
 wc:
-	wc *.lisp | sort -n | less
+	wc *.lisp | sort -nr | less
 
 ## For use on common-lisp.net
 %.html: %.rest

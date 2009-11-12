@@ -38,13 +38,13 @@ waiting at this state of the world.")
   ((futures
     :initform nil
     :accessor world-futures
-    :documentation "a list of (action . grain) in the future of this world")
+    :documentation "a list of computations in the future of this world")
    (handler
     :initform nil
     :accessor world-handler
     :documentation "a handler that will accept commands to run actions on this world")))
 
-;;(defvar *root-worlds* nil "root of active worlds")
+(defvar *root-worlds* nil "root of active worlds")
 
 (defun make-world-summary (setup commands-r)
   ;;(cons (canonicalize-image-setup setup) commands-r)
@@ -75,17 +75,6 @@ waiting at this state of the world.")
            #|(push world (gethash hash *worlds* '()))|#
            (funcall fun world)
            world))))))
-(defun setup-world (world fullname)
-  (let ((new-setup (append1 (image-setup world) fullname)))
-    (intern-world-summary
-     new-setup
-     (build-commands-r world)
-     (lambda ()
-       (list
-        :computation nil
-        :included-dependencies (make-hash-table :test 'equal)
-        :issued-build-commands (make-hash-table :test 'equal)))
-     (constantly nil))))
 
 (defclass farmer-traversal (static-traversal)
   ())
@@ -154,17 +143,19 @@ waiting at this state of the world.")
                     (lambda ()
                       (unless previous '(:computation nil)))
                     (lambda (world)
-                      (when previous
-                        (make-computation
-                         ()
-                         :inputs (append (list previous)
-                                         (setup-dependencies env (image-setup world))
-                                         (when grain (list grain)))
-                         :outputs (cons world (unless commands outputs))
-                         :command `(:active-command ,(fullname previous) ,command)))))
-      :do (when previous (pushnew world (world-futures previous)))
-      :do (DBG :mc command commands-r grain-name grain previous world)
-      )))
+                      (if previous
+                        (push
+                         (make-computation
+                          ()
+                          :inputs (append (list previous)
+                                          (setup-dependencies env (image-setup world))
+                                          (when grain (list grain)))
+                          :outputs (cons world (unless commands outputs))
+                          :command `(:active-command ,(fullname previous) ,command))
+                         (world-futures previous))
+                        (push world *root-worlds*))))
+      :do (DBG :mc command commands-r grain-name grain previous world))
+      ))
 
 #|
 ((world
@@ -188,6 +179,43 @@ waiting at this state of the world.")
     (ensure-makefile-will-make-pathname env namestring)
     namestring))
 
+
+
+(defun farm-out-world-tree ()
+  ;; TODO: actually walk the world tree
+  ;; 1- minimize total latency, maximize parallelism
+  ;; 2- maximize ... minimize memory usage
+  ;; 3- estimate cost by duration of previous successful runs (or last one)
+  ;;   interpolated with known (+ K (size file)),
+  ;;   using average from known files if new file, and 1 if all unknown.
+  ;; 4- allow for a pure simulation, just adding up estimates.
+  (let ((computation-queue (NIY make-priority-queue *computations*)) ;; queue of computations
+        (job-set (make-hash-table :test 'equal))) ;; set of pending jobs
+    (labels ((event-step ()
+               (or
+                (maybe-handle-finished-jobs)
+                (maybe-issue-computation)
+                (NIY wait-for-event-with-timeout)))
+             (maybe-handle-finished-jobs ()
+               (NIY when-bind
+                    (subprocess (NIY wait-for-any-terminated-subprocess :nohang t))
+                    (NIY finalize-subprocess-outputs subprocess)))
+             (maybe-issue-computation ()
+               (when (and (NIY some-computations-ready-p)
+                          (NIY cpu-resources-available-p))
+                 (issue-one-computation)))
+             (wait-for-event-with-timeout ()
+               (NIT with-EINTR-recovery ()
+                    (NIY set-timer-to-deadline)
+                    (NIY wait-for-any-terminated-subprocess)))
+             (issue-one-computation ()
+               (when-bind (computation (NIY pick-one-computation-amongst-the-ready-ones))
+                 (NIY issue-computation computation))))
+      (loop
+        :until (and (NIY empty-p job-set) (NIY empty-p computation-queue))
+        :do (event-step)))))
+
+
 (defun standalone-build (fullname)
   #+DEBUG
   (trace graph-for build-command-for issue-dependency
@@ -199,10 +227,10 @@ waiting at this state of the world.")
     (declare (ignore build))
     ;; TODO: use build for default pathname to object directory?
     (let* ((*use-master* nil)
+           (*root-worlds* nil)
            (traversal (make-instance 'farmer-traversal)))
       (funcall fun traversal)
-      ;; TODO: actually walk the world tree
-      (error "NIY"))))
+      (farm-out-world-tree))))
 
 (defparameter +standalone-build-option-spec+
  '((("build" #\b) :type string :optional nil :documentation "specify what system to build")

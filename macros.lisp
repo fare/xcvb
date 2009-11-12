@@ -106,3 +106,8 @@ Otherwise, signal an error."
        (flet ,(mapcar #'(lambda (c v) `(,c (x) (push x ,v))) collectors vars)
          ,@body
          (values ,@(mapcar #'(lambda (v) `(nreverse ,v)) vars))))))
+
+
+;;; Error
+(defmacro NIY (&rest args)
+  `(error "Not Implemented Yet~@[: ~S~]" ',args))
