@@ -99,6 +99,9 @@ sufficient to bootstrap the whole thing (depending on CLISP or SBCL with or with
 
            http://common-lisp.net/project/xcvb/releases/
 
+From the toplevel directory of the expanded release tarball, you can afterwards ``make update``
+and it will update XCVB and its dependencies to the latest version.
+
 You can checkout our public repository with::
 
 	git clone http://common-lisp.net/project/xcvb/git/xcvb.git

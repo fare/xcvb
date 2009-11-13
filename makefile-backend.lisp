@@ -40,8 +40,10 @@
            (*makefile-target-directories* nil)
            (*makefile-phonies* nil)
            (env (make-instance 'static-makefile-traversal)))
+      ;; Pass 1: Traverse the graph of dependencies
       (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
       (funcall fun env)
+      ;; Pass 2: Build a Makefile out of the *computations*
       (log-format 6 "T=~A building makefile~%" (get-universal-time))
       (let ((body (computations-to-Makefile env)))
         (with-open-file (out makefile-path
@@ -52,6 +54,7 @@
           (princ body out)
           (write-makefile-conclusion out)))
       (log-format 6 "T=~A done~%" (get-universal-time))
+      ;; Return data for use by the non-enforcing Makefile backend.
       (values makefile-path makefile-dir))))
 
 (defun write-makefile-prelude (&optional stream)

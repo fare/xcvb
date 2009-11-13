@@ -22,14 +22,14 @@ a reference to the system was superseded by a build.xcvb file.")
 (defun unrecognized-dependency (dep)
   (error "unrecognized dependency ~S" dep))
 
-(defun normalize-dependency (dep grain)
-  (normalize-dependency-dispatcher grain dep))
-
 (defun normalize-dependencies (deps grain type)
   (unless (listp deps)
     (error "In module ~S, ~S dependencies are not a list but ~S"
            (fullname grain) type deps))
-  (mapcar (lambda (dep) (normalize-dependency dep grain)) deps))
+  (mapcar/ normalize-dependency grain deps))
+
+(defun normalize-dependency (grain dep)
+  (normalize-dependency-dispatcher grain dep))
 
 (define-simple-dispatcher normalize-dependency #'normalize-dependency-atom)
 
@@ -43,12 +43,12 @@ a reference to the system was superseded by a build.xcvb file.")
 (define-normalize-dependency :when (grain expression &rest dependencies)
   ;; TODO: parse and make sure that expression is well-formed, which
   ;; should issue an error message early if there user-provided code is wrong.
-  `(:when ,expression ,@(normalize-dependencies dependencies grain :when)))
+  `(:when ,expression ,@(normalize-dependencies grain dependencies :when)))
 
 (define-normalize-dependency :cond (grain &rest cond-expressions)
   ;; TODO: parse and make sure that expression is well-formed, which
   ;; should issue an error message early if there user-provided code is wrong.
-  `(:cond ,@(mapcar (lambda (x) (cons (car x) (normalize-dependencies (cdr x) grain :cond)))
+  `(:cond ,@(mapcar (lambda (x) (cons (car x) (normalize-dependencies grain (cdr x) :cond)))
                     cond-expressions)))
 
 (defun normalize-dependency-lisp* (type grain name)

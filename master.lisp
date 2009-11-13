@@ -263,7 +263,13 @@ with associated pathnames and tthsums.")
 ;;; Maintaining memory of which grains have been loaded in the current image.
 (defun process-manifest-entry (&key command tthsum pathname &allow-other-keys)
   ;; also source source-tthsum source-pathname
-  (unless (and tthsum (equal tthsum (cdr (assoc command *manifest* :test #'equal))))
+  (unless (and tthsum
+               (equal tthsum (cdr (assoc command *manifest* :test #'equal)))
+               (progn
+                 (when (>= *xcvb-verbosity 8)
+                   (format *error-output* "~&Skipping XCVB command ~S ~@[from already loaded file ~S (tthsum: ~A)~]~%"
+              command pathname tthsum))
+                 t))
     (when (>= *xcvb-verbosity* 7)
       (format *error-output* "~&Executing XCVB command ~S ~@[from ~S (tthsum: ~A)~]~%"
               command pathname tthsum))
@@ -355,7 +361,7 @@ with associated pathnames and tthsums.")
              slave-output t nil
              :start (length +xcvb-slave-greeting+)
              :end (- (length slave-output) (length +xcvb-slave-farewell+)))))
-         (*xcvb-verbosity* (+ *xcvb-verbosity* 2)))
+         (*xcvb-verbosity* (+ verbosity 2)))
     (process-manifest manifest)))
 
 (defun bnl (build &rest keys &key

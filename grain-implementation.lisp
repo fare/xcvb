@@ -31,7 +31,7 @@
   (unless (slot-boundp grain 'load-dependencies) ;; Only do it once
     (handle-extension-forms grain)
     (macrolet ((normalize (deps)
-                 `(normalize-dependencies ,deps grain ,(keywordify deps))))
+                 `(normalize-dependencies grain ,deps ,(keywordify deps))))
       (with-slots (build-depends-on compile-depends-on load-depends-on
                    cload-depends-on depends-on
                    build-dependencies compile-dependencies cload-dependencies load-dependencies)
@@ -92,7 +92,7 @@
 	 (generator
 	  (make-instance 'generator
 	    :targets targets
-	    :dependencies (normalize-dependencies depends-on grain :depends-on))))
+	    :dependencies (normalize-dependencies grain depends-on :depends-on))))
     (dolist (target targets)
       (slot-makunbound target 'computation)
       (setf (gethash (fullname target) *generators*) generator)

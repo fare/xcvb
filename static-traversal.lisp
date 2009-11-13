@@ -1,6 +1,5 @@
 #+xcvb (module (:depends-on
 		("specials" "grain-interface" "dependencies-interpreter")))
-;;TODO: rename to static-traversal
 
 (in-package :xcvb)
 

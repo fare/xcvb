@@ -125,6 +125,34 @@ To debug XCVB, I use the following::
 	C-u M-x slime env SBCL_HOME=/usr/lib/sbcl xcvb repl
 
 
+General Architecture of XCVB
+----------------------------
+
+  0- Read command-line.
+     Choose the backend that corresponds to what the user
+
+  1- Do a first pass of traversal of the requested build and its recursive dependencies,
+     and create a graph of the grains involved in the build and
+     the computations by which some grains are created from other grains.
+     The traversal strategy is characterized by an object of the ``traversal`` class
+     (variable ``env`` in a lot of methods); the
+
+  2- Do a second pass to take the list of ``*computations*`` created in the first pass,
+     and whatever makes sense for the current backend: build a Makefile, a .asd file,
+     actually build the system, etc.
+
+Along the way, we use plenty of extensible "little languages" processed by functions
+that use ``define-simple-dispatcher``
+(see below `Simple dispatchers as extension points`_).
+
+We use (multiple) inheritance for incremental development of our code
+and specializing the passes to the various stragegies available to the users;
+this maximizes code sharing between these various strategies but results in code
+that isn't modular: there is little hope of making further specializations without
+modifying the code, refactoring the class hierarchy and the existing methods.
+But that's OK, we don't expect non-XCVB hackers to reuse XCVB internals anyway.
+
+
 Fullnames
 ---------
 

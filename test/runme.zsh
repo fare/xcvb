@@ -167,7 +167,7 @@ validate_a2x () {
 }
 
 validate_master () {
-  xcvb eval "(progn(xcvb-master:bnl\"xcvb/hello\":output-path\"$BUILD_DIR/\":object-directory\"$obj\")(let((*print-base* 30))(xcvbd:call :xcvb-hello :hello :name 716822547 :traditional t)))" |
+  xcvb eval "(progn(xcvb-master:bnl\"xcvb/hello\":output-path\"$BUILD_DIR/\":object-directory\"$obj\":verbosity 9)(let((*print-base* 30))(xcvbd:call :xcvb-hello :hello :name 716822547 :traditional t)))" |
   fgrep 'hello, tester' ||
   abort "Failed to use hello through the XCVB master"
 }
