@@ -113,7 +113,6 @@ Declare asd system as ASDF-NAME."
       (write-asd-prelude out)
       (with-safe-io-syntax (:package :asdf)
         (let* ((form (make-asdf-form asdf-name build))
-               (*print-escape* nil)
                (*print-case* :downcase))
           (format out "~@[~{(require ~S)~%~}~%~]" (reverse *require-dependencies*))
           (write form :stream out :pretty t :miser-width 79)

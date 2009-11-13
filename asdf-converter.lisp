@@ -55,7 +55,6 @@ top of a source file"
 top of a source file"
   (with-safe-io-syntax (:package :xcvb)
     (let* ((form (module-form grain))
-           (*print-escape* nil)
            (*print-pprint-dispatch* *module-pprint-dispatch*)
            (*print-case* :downcase)
            (short-string (format nil "~S" form))
@@ -65,7 +64,8 @@ top of a source file"
         (cond
           ((< l 73) (princ " " s) (princ short-string s))
           ((< l 80) (terpri s) (princ short-string s))
-          (t (terpri) (terpri s) (write form :stream s :pretty t :miser-width 79)))))))
+          (t (terpri s)
+             (write form :stream s :pretty t :readably t :miser-width 79)))))))
 
 (defun read-comment-header (in)
   "From Lisp file stream IN, read any header made of blanks and ;-comments
