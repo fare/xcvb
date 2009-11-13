@@ -190,6 +190,7 @@ with associated pathnames and tthsums.")
 (defun call-with-safe-io-syntax (thunk &key (package :cl))
   (with-standard-io-syntax ()
     (let ((*package* (find-package package))
+          (*print-readably* nil)
 	  (*read-eval* nil))
       (funcall thunk))))
 
@@ -362,6 +363,8 @@ with associated pathnames and tthsums.")
              :start (length +xcvb-slave-greeting+)
              :end (- (length slave-output) (length +xcvb-slave-farewell+)))))
          (*xcvb-verbosity* (+ verbosity 2)))
+    (when (>= *xcvb-verbosity* 9)
+      (format *error-output* "~&Slave XCVB returned following manifest:~%~A~%" manifest))
     (process-manifest manifest)))
 
 (defun bnl (build &rest keys &key

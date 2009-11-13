@@ -1,11 +1,7 @@
 ;;; Shell command-line interface for XCVB
 
 #+xcvb
-(module (:depends-on
-         ("specials" "macros"
-          (:when (:featurep :sbcl)
-            (:require :sb-grovel)
-            (:require :sb-posix)))))
+(module (:depends-on ("specials" "macros")))
 
 (in-package :xcvb)
 
@@ -20,7 +16,8 @@
         *search-path-searched-p* nil
         *lisp-setup-dependencies* +fast-xcvb-setup-dependencies+
         *pathname-grain-cache* (make-hash-table :test 'equal)
-        *worlds* (make-hash-table :test 'equal))
+        *worlds* (make-hash-table :test 'equal)
+        *print-readably* nil)
   (initialize-search-path)
   (values))
 

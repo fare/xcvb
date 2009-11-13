@@ -112,9 +112,8 @@
          (build (if target (build-grain-for target)
                     (error "User requested build ~S but it can't be found.~%~
 			    You may check available builds with xcvb ssp.~%" fullname)))
-         (fun (etypecase target
-                (build-grain
-                 (lambda (env) (graph-for-build-grain env build)))
-                (lisp-grain
-                 (lambda (env) (graph-for-fasl env fullname))))))
-    (values fun build)))
+         (name (fullname target))
+         (dep (etypecase target
+                (build-grain `(:build ,name))
+                (lisp-grain `(:fasl ,name)))))
+    (values dep build)))

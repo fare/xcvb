@@ -58,7 +58,7 @@ Otherwise, signal an error."
   (defun kintern (format &rest rest)
     (apply #'fintern nil format rest))
   (defun keywordify (x)
-    (with-standard-io-syntax (kintern "~A" x))))
+    (with-safe-io-syntax () (kintern "~A" x))))
 
 ;;; Nesting binding forms (from a suggestion by marco baringer)
 (defmacro with-nesting (() &rest things)

@@ -22,6 +22,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
   :build-depends-on ("/asdf" "/cl-launch" "/asdf-dependency-grovel"
                      "/closer-mop" "/command-line-arguments" "/xcvb/master"
                      (:when (:featurep :sbcl)
+                       ;; make life easy for SLIME
+                       (:require :sb-introspect)
+                       (:require :sb-bsd-sockets)
                        (:require :sb-grovel)
                        (:require :sb-posix)))
   :depends-on ("conditions"

@@ -39,22 +39,15 @@
         (run-program/process-output-stream
          (list "make" "-C" (namestring makefile-dir) "-f" (namestring makefile-path))
          (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
-      (let* ((target-build
-              (make-instance 'build-grain :fullname "/_TARGET_"
-                             :pathname "/dev/null/NUL/invalid/path" ;; no one should match that
-                             :depends-on (list build)
-                             :extension-forms nil
-                             :build-image t))
-             (ignored
-              (setf (grain-parent target-build) nil
-                    (registered-grain "/_TARGET_") target-build))
-             (env (make-instance 'static-makefile-traversal))
-             (image-grain (graph-for env `(:image "/_TARGET_")))
-             (issued (reverse (build-commands-r image-grain))))
-        (declare (ignore ignored))
+      (let* ((env (make-instance 'static-makefile-traversal))
+             (issued
+              (progn
+                (build-command-for env (handle-target build))
+                (reverse (traversed-build-commands-r env))))
+             (manifest-spec (commands-to-manifest-spec env issued))
+             (manifest-form (manifest-form manifest-spec)))
         (with-safe-io-syntax ()
           (write-string +xcvb-slave-greeting+)
-          (write (manifest-form (commands-to-manifest-spec env issued))
-                 :readably nil :pretty t :case :downcase)
+          (write manifest-form :readably nil :pretty t :case :downcase)
           (write-string +xcvb-slave-farewell+)))))
   (values))

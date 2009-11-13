@@ -53,11 +53,10 @@ top of a source file"
 (defun module-string (grain)
   "Returns a string representation of a module object that can be put at the
 top of a source file"
-  (with-standard-io-syntax ()
+  (with-safe-io-syntax (:package :xcvb)
     (let* ((form (module-form grain))
            (*print-escape* nil)
            (*print-pprint-dispatch* *module-pprint-dispatch*)
-           (*package* (find-package :xcvb))
            (*print-case* :downcase)
            (short-string (format nil "~S" form))
            (l (length short-string)))

@@ -110,7 +110,7 @@ prepare-release:
 		-B install_path && \
 	for l in sbcl clisp ccl ; do \
 	    xcvb make-makefile \
-		--xcvb-path=${RELEASE_DIR} \
+		--xcvb-path=${XCVB_PATH} \
 		--build /xcvb \
 		--setup /xcvb/no-asdf \
 		--lisp-implementation $$l \

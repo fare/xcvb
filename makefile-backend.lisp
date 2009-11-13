@@ -28,7 +28,7 @@
 
 (defun write-makefile (fullname &key output-path)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
-  (multiple-value-bind (graph-builder build) (handle-target fullname)
+  (multiple-value-bind (target-dependency build) (handle-target fullname)
     (let* ((default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
            (output-path (if output-path
                             (merge-pathnames output-path default-output-path)
@@ -42,7 +42,7 @@
            (env (make-instance 'static-makefile-traversal)))
       ;; Pass 1: Traverse the graph of dependencies
       (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
-      (funcall graph-builder env)
+      (build-command-for env target-dependency)
       ;; Pass 2: Build a Makefile out of the *computations*
       (log-format 6 "T=~A building makefile~%" (get-universal-time))
       (let ((body (computations-to-Makefile env)))
@@ -297,9 +297,9 @@ will create the desired content. An atomic rename() will have to be performed af
   (list (shell-tokens-to-Makefile
          (cmdize 'xcvb 'make-manifest
                  :output (dependency-namestring env manifest)
-                 :spec (with-safe-io-syntax ()
-                         (write-to-string (commands-to-manifest-spec env commands)
-                                          :case :downcase))))))
+                 :spec (let ((manifest-spec (commands-to-manifest-spec env commands)))
+                         (with-safe-io-syntax ()
+                           (write-to-string manifest-spec :case :downcase)))))))
 
 (defun compile-file-directly-shell-token (env name &optional cfasl)
   (quit-form

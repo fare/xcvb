@@ -10,6 +10,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #+sbcl (require :sb-grovel)
+#+sbcl (require :sb-introspect)
+#+sbcl (require :sb-bsd-sockets)
 #+sbcl (require :sb-posix)
 #+sbcl (require :sb-sprof)
 
