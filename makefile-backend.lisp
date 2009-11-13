@@ -42,7 +42,7 @@
            (env (make-instance 'static-makefile-traversal)))
       ;; Pass 1: Traverse the graph of dependencies
       (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
-      (build-command-for env target-dependency)
+      (graph-for env target-dependency)
       ;; Pass 2: Build a Makefile out of the *computations*
       (log-format 6 "T=~A building makefile~%" (get-universal-time))
       (let ((body (computations-to-Makefile env)))

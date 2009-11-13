@@ -37,7 +37,9 @@
     (let ((*default-pathname-defaults* makefile-dir))
       (let ((*standard-output* *error-output*))
         (run-program/process-output-stream
-         (list "make" "-C" (namestring makefile-dir) "-f" (namestring makefile-path))
+         (list "make"
+               "-C" (namestring makefile-dir)
+               "-f" (namestring makefile-path))
          (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
       (let* ((env (make-instance 'static-makefile-traversal))
              (issued
