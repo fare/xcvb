@@ -7,14 +7,14 @@
 ;;  "hash mapping each grain to a list of computations that take said grain as input")
 
 (defclass computation ()
-  ((inputs
+  ((inputs ;; a list of grains
     :initarg :inputs
     :accessor computation-inputs)
-   (outputs
+   (outputs ;; a list of grains
     :initarg :outputs
     :accessor computation-outputs)
    ;; (side-effects) ; for additional files being side-effected
-   (command
+   (command ;; SEXP in the command language as used by e.g. Makefile-commands-for-computation
     :initarg :command
     :accessor computation-command)))
 
@@ -23,6 +23,7 @@
 (defmethod make-computation ((env null) &rest keys &key &allow-other-keys)
   (let ((computation (apply #'make-instance 'computation keys)))
     (link-computation-outputs computation)
+    ;;(link-computation-inputs computation) ;TODO - have forward links, too!
     (push computation *computations*)
     computation))
 

@@ -108,8 +108,7 @@
   (make-require-grain :name name))
 
 (defun handle-target (fullname)
-  (let* ((fullname (canonicalize-fullname fullname))
-         (target (resolve-absolute-module-name fullname))
+  (let* ((target (resolve-absolute-module-name fullname))
          (build (if target (build-grain-for target)
                     (error "User requested build ~S but it can't be found.~%~
 			    You may check available builds with xcvb ssp.~%" fullname)))

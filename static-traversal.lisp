@@ -262,10 +262,9 @@
          :inputs (traversed-dependencies env)
          :command
          (if driverp
+           `(:compile-file-directly ,fullname ,(second outputs))
            `(:xcvb-driver-command
-             ()
-             (:compile-file-directly ,fullname ,(second outputs)))
-           `(:xcvb-driver-command
-             ,(if specialp '(:load ((:fasl "/xcvb/driver"))) (image-setup env))
+             ,(if specialp '(:load ((:fasl "/xcvb/driver")))
+		(image-setup env))
              (:compile-lisp (,fullname) ,@(traversed-build-commands env)))))
         outputs))))

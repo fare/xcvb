@@ -266,7 +266,7 @@ with associated pathnames and tthsums.")
   (unless (and tthsum
                (equal tthsum (cdr (assoc command *manifest* :test #'equal)))
                (progn
-                 (when (>= *xcvb-verbosity 8)
+                 (when (>= *xcvb-verbosity* 8)
                    (format *error-output* "~&Skipping XCVB command ~S ~@[from already loaded file ~S (tthsum: ~A)~]~%"
               command pathname tthsum))
                  t))

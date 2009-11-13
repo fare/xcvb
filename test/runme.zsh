@@ -244,6 +244,7 @@ validate_xcvb_dir () {
 }
 
 validate_xcvb_dir_all_lisps () {
+  compute_xcvb_dir_variables
   for LISP in $LISPS ; do
     validate_xcvb_dir
   done
@@ -270,6 +271,7 @@ validate_release_dir () {
 }
 
 validate_release_dir_all_lisps () {
+  compute_release_dir_variables
   for LISP in $LISPS ; do
     validate_release_dir
   done

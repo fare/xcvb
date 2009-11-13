@@ -22,11 +22,11 @@ a reference to the system was superseded by a build.xcvb file.")
 (defun unrecognized-dependency (dep)
   (error "unrecognized dependency ~S" dep))
 
-(defun normalize-dependencies (deps grain type)
+(defun normalize-dependencies (grain deps type)
   (unless (listp deps)
     (error "In module ~S, ~S dependencies are not a list but ~S"
            (fullname grain) type deps))
-  (mapcar/ normalize-dependency grain deps))
+  (mapcar/ #'normalize-dependency grain deps))
 
 (defun normalize-dependency (grain dep)
   (normalize-dependency-dispatcher grain dep))

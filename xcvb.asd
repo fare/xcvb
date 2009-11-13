@@ -9,6 +9,7 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#+sbcl (require :sb-grovel)
 #+sbcl (require :sb-posix)
 #+sbcl (require :sb-sprof)
 
@@ -50,7 +51,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "dependencies-interpreter" :depends-on ("normalize-dependency" "traversal"))
      (:file "static-traversal" :depends-on
             ("specials" "grain-interface" "dependencies-interpreter" "logging"))
-     (:file "makefile-backend" :depends-on ("profiling" "static-traversal" "string-escape" "computations"))
+     (:file "makefile-backend" :depends-on ("profiling" "static-traversal"
+					    "string-escape" "computations"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
      (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging"))
      (:file "ne-makefile-backend" :depends-on ("specials" "makefile-backend"

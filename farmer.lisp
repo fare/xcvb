@@ -87,7 +87,11 @@ waiting at this state of the world.")
     ((and (consp computation-command)
           (eq :xcvb-driver-command (first computation-command)))
      (values (second computation-command)
-             (simplify-xcvb-driver-commands (cddr computation-command))))
+	     (cons :xcvb-driver-command
+		   (simplify-xcvb-driver-commands (cddr computation-command)))))
+    ((and (consp computation-command) (<= 2 (length computation-command) 3)
+	  (eq (car computation-command) :compile-file-directly))
+     (values () computation-command)) ;;; TODO: what need we do in this magic case?
     (t (error "Unrecognized computation command ~S" computation-command))))
 
 (defun simplify-xcvb-driver-commands (commands)
@@ -107,8 +111,6 @@ waiting at this state of the world.")
           ((and (<= 2 l) (eq h :compile-lisp))
            (emit-simplified-commands collector (cddr c))
            (collect `(:compile-lisp ,(second c))))
-          ((and (<= 2 l 3) (eq h :compile-file-directly))
-           (collect c))
           ((and (<= 2 l) (eq h :create-image))
            ;; TODO: distinguish the case when the target lisp is linking rather than dumping,
            ;; e.g. ECL. -- or in the future, any Lisp when linking C code.
@@ -191,6 +193,8 @@ waiting at this state of the world.")
   ;; 4- allow for a pure simulation, just adding up estimates.
   (let ((computation-queue (NIY make-priority-queue *computations*)) ;; queue of computations
         (job-set (make-hash-table :test 'equal))) ;; set of pending jobs
+    computation-queue
+    job-set
     (labels ((event-step ()
                (or
                 (maybe-handle-finished-jobs)
@@ -205,11 +209,11 @@ waiting at this state of the world.")
                           (NIY cpu-resources-available-p))
                  (issue-one-computation)))
              (wait-for-event-with-timeout ()
-               (NIT with-EINTR-recovery ()
+               (NIY with-EINTR-recovery ()
                     (NIY set-timer-to-deadline)
                     (NIY wait-for-any-terminated-subprocess)))
              (issue-one-computation ()
-               (when-bind (computation (NIY pick-one-computation-amongst-the-ready-ones))
+               (NIY when-bind (computation (NIY pick-one-computation-amongst-the-ready-ones))
                  (NIY issue-computation computation))))
       (loop
         :until (and (NIY empty-p job-set) (NIY empty-p computation-queue))

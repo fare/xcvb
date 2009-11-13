@@ -28,7 +28,7 @@
 
 (defun write-makefile (fullname &key output-path)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
-  (multiple-value-bind (fun build) (handle-target fullname)
+  (multiple-value-bind (graph-builder build) (handle-target fullname)
     (let* ((default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
            (output-path (if output-path
                             (merge-pathnames output-path default-output-path)
@@ -42,7 +42,7 @@
            (env (make-instance 'static-makefile-traversal)))
       ;; Pass 1: Traverse the graph of dependencies
       (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
-      (funcall fun env)
+      (funcall graph-builder env)
       ;; Pass 2: Build a Makefile out of the *computations*
       (log-format 6 "T=~A building makefile~%" (get-universal-time))
       (let ((body (computations-to-Makefile env)))
@@ -259,23 +259,31 @@ will create the desired content. An atomic rename() will have to be performed af
   (let* ((*renamed-targets* nil)
          (commands (Makefile-commands-for-computation-dispatcher env computation-command)))
     (append commands
-            (when *renamed-targets*
-              (loop :for (target . tempname) :in *renamed-targets*
-                    :collect (shell-tokens-to-Makefile (list "mv" tempname target)))))))
+	    (loop :for (target . tempname) :in *renamed-targets*
+		  :collect (shell-tokens-to-Makefile (list "mv" tempname target))))))
 
 (define-Makefile-commands-for-computation :xcvb-driver-command (env keys &rest commands)
   (list
-   (destructuring-bind (&key image load) keys
-     (shell-tokens-to-Makefile
-      (lisp-invocation-arglist
-       :image-path (if image (dependency-namestring env image) *lisp-image-pathname*)
-       :load (mapcar/ #'dependency-namestring env load)
-       :eval (xcvb-driver-commands-to-shell-token env commands))))))
+   (lisp-invocation-for env keys (xcvb-driver-commands-to-shell-token env commands))))
+
+(defun lisp-invocation-for (env keys eval)
+  (destructuring-bind (&key image load) keys
+    (shell-tokens-to-Makefile
+     (lisp-invocation-arglist
+      :image-path (if image (dependency-namestring env image) *lisp-image-pathname*)
+      :load (mapcar/ #'dependency-namestring env load)
+      :eval eval))))
+
+(define-Makefile-commands-for-computation :compile-file-directly (env fullname &optional cfasl)
+  (list
+   (lisp-invocation-for env ()
+    (compile-file-directly-shell-token env fullname cfasl))))
 
 (define-Makefile-commands-for-computation :progn (env &rest commands)
   (loop :for command :in commands
     :append (Makefile-commands-for-computation env command)))
 
+#|
 (define-Makefile-commands-for-computation :shell-command (env command)
   (declare (ignore env))
   (list (escape-string-for-Makefile command)))
@@ -283,6 +291,7 @@ will create the desired content. An atomic rename() will have to be performed af
 (define-Makefile-commands-for-computation :exec-command (env &rest argv)
   (declare (ignore env))
   (list (shell-tokens-to-Makefile argv)))
+|#
 
 (define-Makefile-commands-for-computation :make-manifest (env manifest &rest commands)
   (list (shell-tokens-to-Makefile
@@ -309,15 +318,11 @@ will create the desired content. An atomic rename() will have to be performed af
              (tempname-target (dependency-namestring env `(:cfasl ,name)))))))
 
 (defun xcvb-driver-commands-to-shell-token (env commands)
-  (cond
-    ((eq :compile-file-directly (caar commands))
-     (apply #'compile-file-directly-shell-token env (cdar commands)))
-    (t
-     (with-output-to-string (s)
-       (write-string "(xcvb-driver:run " s)
-       (dolist (c commands)
-         (write-string (text-for-xcvb-driver-command env c) s))
-       (write-string ")" s)))))
+  (with-output-to-string (s)
+    (write-string "(xcvb-driver:run " s)
+    (dolist (c commands)
+      (write-string (text-for-xcvb-driver-command env c) s))
+    (write-string ")" s)))
 
 (defgeneric grain-pathname-text (env grain))
 
