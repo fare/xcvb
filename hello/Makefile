@@ -40,6 +40,7 @@ $(shell ( export XCVB_PATH=${XCVB_PATH} ) >&2)
 xcvb.mk: force
 	xcvb make-makefile \
 	     --build /xcvb/hello \
+	     --lisp-implementation ${LISP} \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello
 
 # The PARALLELIZE trick allows the user to disable or tweak build parallelism with
@@ -47,7 +48,7 @@ xcvb.mk: force
 # The XCVB_DEBUGGING trick allows the user to debug the build when and only when it fails.
 PARALLELIZE ?= -j
 ${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello.image: xcvb.mk
-	${MAKE} -f xcvb.mk ${PARALLELIZE} $@ || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk $@
+	${MAKE} -f xcvb.mk ${PARALLELIZE} || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk
 
 # This uses cl-launch to build an executable from the image created by xcvb.
 # For portability across Lisp implementation, we use an image on the side.
@@ -104,6 +105,7 @@ xcvb-ne.mk: setup.lisp force
 	xcvb non-enforcing-makefile \
 	     --setup /xcvb/hello/setup \
 	     --build /xcvb/hello \
+	     --lisp-implementation ${LISP} \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello_ne
 
 

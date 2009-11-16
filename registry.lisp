@@ -92,9 +92,10 @@ for each of its registered names."
   ;; Detect ambiguities.
   ;; If the name has already been registered, then
   ;; * if the previous entry is from a previous root, it has precedence
-  ;; * if the previous entry is from same root and is in an ancestor directory, it has precedence
-  ;; * otherwise, it's a conflict, and the name shall be marked as conflicted and an error be printed
-  ;;  if/when it is used.
+  ;; * else if the previous entry is from same root and is in an ancestor directory,
+  ;;   it has precedence
+  ;; * otherwise, it's a conflict, and the name shall be marked as conflicted and
+  ;;   an error be printed if/when it is used.
   ;; Note: to do that in a more functional way, have some mechanism
   ;; that applies a modify-function to a gethash value, allowing (values NIL NIL) to specify remhash.
   (check-type previous-build (or null build-registry-conflict build-grain))
@@ -117,4 +118,3 @@ for each of its registered names."
 (defun register-build-named (name build-grain root)
   "Register under NAME pathname BUILD found in user-specified ROOT."
   (funcallf (registered-grain name) #'merge-build build-grain name root))
-

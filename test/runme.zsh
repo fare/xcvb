@@ -3,7 +3,10 @@
 # Q: what to do of this old broken test suite?
 # ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-test --restart xcvb::quit
 
+LISPS=(clisp sbcl ccl)
+
 abort () {
+  : PATH=$PATH
   if [ -n "$*" ] ; then print -r "$*" >&2 ; fi
   exit 42
 }
@@ -19,7 +22,6 @@ doenv () {
 #### Initializing variables ####
 reset_variables () {
   unset RELEASE_DIR asdf_path CL_LAUNCH_ASDF_PATH XCVB_PATH XCVB_DIR
-  LISPS=(clisp sbcl ccl)
 }
 initialize_variables () {
   : ${TMP:=/tmp}
@@ -45,9 +47,9 @@ finalize_variables () {
   export PATH=$INSTALL_BIN:$PATH
   export XCVB_PATH
   export LISP_FASL_CACHE="$BUILD_DIR/_cache"
+  export LISP
   TEST_CL_LAUNCH_FLAGS=(
     --lisp "$LISP"
-    $TEST_CL_LAUNCH_FLAGS
     #${(s: :)asdf_path+"--path ${(j: --path :)asdf_path}"} ## fails when path contains spaces!
   )
   for i in $asdf_path ; do TEST_CL_LAUNCH_FLAGS=(${TEST_CL_LAUNCH_FLAGS} --path $i) ; done
@@ -91,12 +93,22 @@ check_asdf_setup () {
 
 #### And now, the Tests! ####
 
+validate_xcvb_version () {
+  xcvb version
+
+  xcvb version | grep '^XCVB version ' ||
+  abort "XCVB version failed"
+
+  xcvb version | grep -i "^(compiled with $LISP" ||
+  abort "XCVB version using wrong Lisp"
+}
+
 validate_xcvb_ssp () {
   # preconditions: env, xcvb built, PWD=.../xcvb/
   # postconditions: xcvb ssp working
   local out=${BUILD_DIR}/xcvb-ssp.out
 
-  xcvb ssp --xcvb-path $XCVB_DIR > $out
+  xcvb ssp --xcvb-path $XCVB_DIR | tee $out
 
   fgrep -q "(:BUILD \"/xcvb\") in \"$XCVB_DIR/build.xcvb\"" $out ||
   abort "Can't find build for xcvb"
@@ -110,7 +122,8 @@ validate_xcvb_ssp () {
 
 validate_xcvb () {
   # preconditions: env, xcvb built, PWD=.../xcvb/
-  validate_xcvb_ssp # can the built xcvb search its search path?
+  validate_xcvb_version # is built xcvb what we think it is?
+  validate_xcvb_ssp # can it search its search path?
   #validate_sa_backend # can it build hello with the standalone backend?
   validate_mk_backend # can it build hello with the Makefile backend?
   validate_nemk_backend # can it build hello with the non-enforcing Makefile backend?
@@ -127,10 +140,11 @@ validate_hello () {
 validate_hello_build () {
   mkdir -p $INSTALL_BIN $INSTALL_IMAGE
   cd $XCVB_DIR/hello
-  rm -f $INSTALL_BIN/hello || :
+  rm -f $INSTALL_BIN/hello setup.lisp ; :
   $@
+  rehash
   validate_hello
-  rm $INSTALL_BIN/hello
+  rm -f $INSTALL_BIN/hello setup.lisp ; :
 }
 
 validate_mk_backend () {
@@ -184,10 +198,12 @@ do_asdf_build () {
   # postconditions: xcvb built
   check_asdf_setup
   make xcvb-using-asdf $ENV # bootstrap
+  rehash
 }
 do_self_mk_build () {
   # pre-requisites (besides env): PWD=.../xcvb/
   make xcvb $ENV
+  rehash
 }
 do_self_nemk_build () {
   # pre-requisites (besides env): PWD=.../xcvb/
@@ -195,6 +211,7 @@ do_self_nemk_build () {
   make setup.lisp $ENV
   make xcvb-using-nemk $ENV
   rm setup.lisp ; :
+  rehash
 }
 
 validate_asdf_xcvb () {
@@ -218,6 +235,7 @@ do_bootstrapped_build () {
   # pre-requisites (besides env): PWD=.../xcvb-release/
   rm -rf "$XCVB_DIR/obj"
   make install $ENV
+  rehash
 }
 
 clean_xcvb_dir () {
@@ -236,6 +254,7 @@ validate_xcvb_dir () {
   compute_xcvb_dir_variables
   check_xcvb_dir
   cd $XCVB_DIR
+  clean_xcvb_dir
   mkdir -p $obj $INSTALL_BIN
   with_xcvb_build_dir validate_asdf_xcvb
   with_xcvb_build_dir validate_mk_xcvb
@@ -257,6 +276,7 @@ clean_release_dir () {
 }
 
 with_release_build_dir () {
+  clean_release_dir
   mkdir -p $obj $INSTALL_BIN $INSTALL_IMAGE
   $@
   clean_release_dir

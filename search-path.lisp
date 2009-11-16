@@ -128,9 +128,11 @@
                 (if (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf))
                     (format nil " (:ASDF ~S) superseded by (:BUILD ~S)~%"
                             (second fullname) (fullname entry))
-                    (format nil " (:BUILD ~S) in ~S~%" fullname (grain-pathname entry))))
+                    (format nil " (:BUILD ~S) in ~S~%"
+                            fullname (namestring (grain-pathname entry)))))
                (build-registry-conflict
-                (format nil " CONFLICT for ~S between ~S~%" fullname (brc-pathnames entry)))))))
+                (format nil " CONFLICT for ~S between ~S~%"
+                        fullname (mapcar 'namestring (brc-pathnames entry))))))))
     (map () #'princ (sort (mapcar #'entry-string (hash-table->alist *grains*)) #'string<))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Show Search Path ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("grain-interface")))
+#+xcvb (module (:depends-on ("specials" "grain-interface")))
 
 (in-package :xcvb)
 
@@ -93,7 +93,7 @@ until something else is found, then return that header as a string"
   (cond
     ((probe-file filename)
      (let* ((tmppath (make-pathname
-                      :type (strcat (pathname-type filename) ".xcvbtmp")
+                      :type (strcat (pathname-type filename) "_xcvbtmp")
                       :defaults filename))
             (*features* (cons :xcvb *features*)))
        (with-open-file (in filename :direction :input :if-does-not-exist nil)
@@ -121,6 +121,7 @@ until something else is found, then return that header as a string"
            (do ((line (read-line in nil) (read-line in nil)))
                ((null line))
              (write-line line out))))
+       #+clisp (delete-file filename) ;; NO ATOMIC RENAME IN CLISP! :-(
        (rename-file tmppath filename
                     #+clozure :if-exists #+clozure :rename-and-delete)))
      (module

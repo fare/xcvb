@@ -320,10 +320,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    Save a few seconds and hundreds of megabytes of double-image dumping
    by not having to dump once with XCVB, another time with cl-launch.
 
- * [Fixed in SBCL 1.0.31.3 - remove this note when 1.0.32 is released in October 2009]
-   Get SBCL bug 411925 https://bugs.launchpad.net/bugs/411925 fixed
-   so making images from images should work.
-
  * Issue a binary release with a standalone clisp binary?
 
  * Implement `Exploded File Dependencies [V1]`_ then `Centralized Dependency Declaration [V1]`_.
@@ -332,9 +328,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    Ideally, it should also record enough information to invalidate things that are
    going to be built in a different way from before, even though their timestamps
    may now look correct. Once again, see `Exploded File Dependencies [V1]`_
-
- * In some future, have a more robust way to debug than using ``${XCVB_DEBUGGING}``.
-   When XCVB controls the build, it should provide a way to debug, too.
 
  * Change the semantics of dependencies to allow to "upgrade" some CFASL's to FASL's?
    Maybe not, because this is tricky as we want to preserve the order of loads, and
@@ -956,6 +949,14 @@ ECL support
 ECL is a very useful implementation to support because it is very different
 from most other implementations and thus extends the niche of XCVB applicability.
 For precisely the same reason, its supports requires notable differences from other Lisps.
+
+
+Better Debugging [V3]
+=====================
+
+In some future, have a more robust way to debug than using ``${XCVB_DEBUGGING}``.
+When XCVB controls the build, it should provide a way to debug, too.
+
 
 
 Internals [V4]

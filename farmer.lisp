@@ -20,7 +20,7 @@
 (defun mkfifo (pathname mode)
   #+sbcl (sb-posix:mkfifo pathname mode)
   #+clozure (ccl::with-filename-cstrs ((p pathname))(#.(read-from-string "#_mkfifo") p mode))
-  #+clisp (LINUX:mkfifo pathname mode)
+  #+clisp (error "Problem with (LINUX:mkfifo ~S ~S)" pathname mode)
   #-(or sbcl clozure clisp) (error "mkfifo not implemented for your Lisp"))
 
 (defvar *workers* (make-hash-table :test 'equal)
@@ -182,6 +182,10 @@ waiting at this state of the world.")
     namestring))
 
 
+;; TODO: parameterize the farming, so that
+;; 1- a first version computes the best possible latency assuming infinite cpu
+;; 2- a second version computes latency assuming finite cpu (specified or detected)
+;; 3- a third version actually goes on and does it, using strategy based on above estimates
 
 (defun farm-out-world-tree ()
   ;; TODO: actually walk the world tree
@@ -191,15 +195,22 @@ waiting at this state of the world.")
   ;;   interpolated with known (+ K (size file)),
   ;;   using average from known files if new file, and 1 if all unknown.
   ;; 4- allow for a pure simulation, just adding up estimates.
-  (let ((computation-queue (NIY make-priority-queue *computations*)) ;; queue of computations
-        (job-set (make-hash-table :test 'equal))) ;; set of pending jobs
+  (let* ((computation-queue (NIY make-priority-queue)) ;; queue of ready computations
+         (job-set (make-hash-table :test 'equal))) ;; set of pending jobs
     computation-queue
     job-set
-    (labels ((event-step ()
+    (NIY for-each-computation (computation)
+         (backlink-computation-to-input-grains computation))
+    (NIY for-each-grain (grain)
+         (when (null (grain-computation grain))
+           (compute-grain-hash)
+           (mark-grain-as-ready-in-dependencies)))
+    (#+clisp NIY labels
+            ((event-step ()
                (or
                 (maybe-handle-finished-jobs)
                 (maybe-issue-computation)
-                (NIY wait-for-event-with-timeout)))
+                (wait-for-event-with-timeout)))
              (maybe-handle-finished-jobs ()
                (NIY when-bind
                     (subprocess (NIY wait-for-any-terminated-subprocess :nohang t))

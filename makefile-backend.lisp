@@ -415,5 +415,4 @@ will create the desired content. An atomic rename() will have to be performed af
                    disable-cfasl master object-directory base-image))
   (with-maybe-profiling (profiling)
     (apply 'handle-global-options keys)
-    (write-makefile (canonicalize-fullname build)
-                    :output-path (pathname-base-pathname output-path))))
+    (write-makefile build :output-path (pathname-base-pathname output-path))))

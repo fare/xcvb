@@ -185,10 +185,14 @@ RELEASE_EXCLUDE := \
 # To exclude revision information: --exclude .git --exclude _darcs
 
 test:
-	./test/runme.zsh XCVB_DIR=${XCVB_DIR} validate_xcvb_dir
+	./test/runme.zsh \
+		XCVB_DIR=${XCVB_DIR} \
+		validate_xcvb_dir
 
 fulltest:
-	./test/runme.zsh XCVB_DIR=${XCVB_DIR} validate_xcvb_dir_all_lisps
+	./test/runme.zsh \
+		XCVB_DIR=${XCVB_DIR} \
+		validate_xcvb_dir_all_lisps
 
 export RELEASE_DIR := ${TMP}/xcvb-release
 
@@ -210,7 +214,7 @@ release-tarball:
 
 test-release-directory:
 	cd ${RELEASE_DIR}/xcvb && \
-	./test/runme.zsh validate_release_dir
+	./test/runme.zsh validate_release_dir_all_lisps
 
 test-and-release-tarball: release-tarball test-release-directory
 	cd ${RELEASE_DIR} && \

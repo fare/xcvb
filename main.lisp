@@ -174,17 +174,12 @@ for this version of XCVB.")))
     (("verbosity" #\v) :type integer :optional t :initial-value 5 :documentation "set verbosity (default: 5)")))
 
 (defun remove-xcvb-command (&key xcvb-path verbosity build)
-  ;;(declare (ignore xcvb-path verbosity))
-  (when verbosity
-    (setf *xcvb-verbosity* verbosity))
-  (remove-xcvb-from-build
-   :xcvb-path xcvb-path
-   :build build))
+  (handle-global-options :xcvb-path xcvb-path :verbosity verbosity)
+  (remove-xcvb-from-build build))
 
 ;; Using the build.xcvb as a starting point, finds files and
 ;; strips XCVB modules from them.
-(defun remove-xcvb-from-build (&key xcvb-path build)
-  (handle-global-options :xcvb-path xcvb-path)
+(defun remove-xcvb-from-build (build)
   (let ((build (registered-build (canonicalize-fullname build))))
     (with-slots (depends-on) build
       (dolist (name depends-on)

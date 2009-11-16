@@ -131,20 +131,29 @@ General Architecture of XCVB
   0- Read command-line.
      Choose the backend that corresponds to what the user requested.
 
-  1- Do a first pass of traversal of the requested build and its recursive dependencies,
-     and create a graph of the grains involved in the build and
-     the computation objects that describe how some grains are computed from other grains.
-     The traversal strategy is characterized by an object of the ``traversal`` class
-     (variable ``env`` in a lot of methods); specializing this class allows to customize the
-     traversal to the requirements of the backend.
+  1- Do a first pass.
+     Focus on grains (files and intermediate *states* of the computation),
+     traverse on each grain's dependencies, and recurse to build a graph
+     of all grains involved in the build.
+     Along the way, create computation objects that each describe a command
+     by which a list of output grains is computed from a list of input grains.
 
-  2- Do a second pass to take the list of ``*computations*`` created in the first pass,
-     and do whatever makes sense for the current backend:
-     write a Makefile, write a .asd file, actually build the system, etc.
+  2- Do a second pass that iterates on the the list of ``*computations*``
+     produced by the first pass, and takes appropriate action:
+     write them to a Makefile, write them a .asd file, actually effect them,
+     or otherwise do whatever makes sense for the current backend.
 
-Along the way, we use plenty of extensible "little languages" processed by functions
+Along the way, we use plenty of extensible of helper functions and methods that
+take as first argument an ``env`` argument that allows to customize their behavior.
+The traversal strategy is characterized by an object of the ``traversal`` class
+that is passed around as this first argument.
+Said object contains context state for the current graph node
+
+"little languages" processed by functions
 that use ``define-simple-dispatcher``
-(see below `Simple dispatchers as extension points`_).
+(see below `Simple dispatchers as extension points`_), and other helper functions.
+The processors for these languages and associated helper functions
+
 
 We use (multiple) inheritance for incremental development of our code
 and specializing the passes to the various stragegies available to the users;
