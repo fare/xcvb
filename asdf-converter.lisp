@@ -57,6 +57,9 @@ top of a source file"
     (let* ((form (module-form grain))
            (*print-pprint-dispatch* *module-pprint-dispatch*)
            (*print-case* :downcase)
+           (*print-readably* nil)
+           (*print-escape* t)
+           (*print-pretty* nil)
            (short-string (format nil "~S" form))
            (l (length short-string)))
       (with-output-to-string (s)
@@ -65,7 +68,7 @@ top of a source file"
           ((< l 73) (princ " " s) (princ short-string s))
           ((< l 80) (terpri s) (princ short-string s))
           (t (terpri s)
-             (write form :stream s :pretty t :readably t :miser-width 79)))))))
+             (write form :stream s :pretty t :miser-width 79)))))))
 
 (defun read-comment-header (in)
   "From Lisp file stream IN, read any header made of blanks and ;-comments

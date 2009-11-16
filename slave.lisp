@@ -34,12 +34,15 @@
        :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
        :disable-cfasl disable-cfasl :base-image base-image
        :verbosity verbosity :profiling profiling)
-    (let ((*default-pathname-defaults* makefile-dir))
+    (let* ((*default-pathname-defaults* makefile-dir)
+           (make-command
+            (list "make"
+                  "-C" (namestring makefile-dir)
+                  "-f" (namestring makefile-path))))
+      (log-format 6 "~&Building with ~S~%" make-command)
       (let ((*standard-output* *error-output*))
         (run-program/process-output-stream
-         (list "make"
-               "-C" (namestring makefile-dir)
-               "-f" (namestring makefile-path))
+         make-command
          (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
       (let* ((env (make-instance 'static-makefile-traversal))
              (issued

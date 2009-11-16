@@ -30,30 +30,36 @@
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
   (multiple-value-bind (target-dependency build) (handle-target fullname)
     (let* ((default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
-           (output-path (if output-path
-                            (merge-pathnames output-path default-output-path)
-                            default-output-path))
-           (makefile-path (ensure-absolute-pathname output-path))
+           (actual-output-path
+            (if output-path
+                (merge-pathnames output-path default-output-path)
+                default-output-path))
+           (makefile-path (ensure-absolute-pathname actual-output-path))
            (makefile-dir (pathname-directory-pathname makefile-path))
            (*print-pretty* nil); otherwise SBCL will slow us down a lot.
-           (*default-pathname-defaults* makefile-dir)
            (*makefile-target-directories* nil)
            (*makefile-phonies* nil)
            (env (make-instance 'static-makefile-traversal)))
+      (log-format 9 "~&output-path: ~S~%" output-path)
+      (log-format 9 "~&default-output-path: ~S~%" default-output-path)
+      (log-format 9 "~&actual-output-path: ~S~%" actual-output-path)
+      (log-format 6 "~&makefile-path: ~S~%" makefile-path)
+      (log-format 7 "~&object-directory: ~S~%" *object-directory*)
       ;; Pass 1: Traverse the graph of dependencies
-      (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
+      (log-format 8 "T=~A building dependency graph~%" (get-universal-time))
       (graph-for env target-dependency)
       ;; Pass 2: Build a Makefile out of the *computations*
-      (log-format 6 "T=~A building makefile~%" (get-universal-time))
+      (log-format 8 "T=~A computing makefile body~%" (get-universal-time))
       (let ((body (computations-to-Makefile env)))
+        (log-format 8 "T=~A creating makefile~%" (get-universal-time))
         (with-open-file (out makefile-path
                              :direction :output
                              :if-exists :supersede)
-          (log-format 6 "T=~A printing makefile~%" (get-universal-time))
+          (log-format 8 "T=~A printing makefile~%" (get-universal-time))
           (write-makefile-prelude out)
           (princ body out)
           (write-makefile-conclusion out)))
-      (log-format 6 "T=~A done~%" (get-universal-time))
+      (log-format 8 "T=~A done~%" (get-universal-time))
       ;; Return data for use by the non-enforcing Makefile backend.
       (values makefile-path makefile-dir))))
 
@@ -415,4 +421,4 @@ will create the desired content. An atomic rename() will have to be performed af
                    disable-cfasl master object-directory base-image))
   (with-maybe-profiling (profiling)
     (apply 'handle-global-options keys)
-    (write-makefile build :output-path (pathname-base-pathname output-path))))
+    (write-makefile build :output-path output-path)))

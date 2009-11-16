@@ -403,6 +403,8 @@ A simple example would be::
 
 Where ``/foo/bar`` is the fullname of your target
 (usually a build, but can be a single Lisp module).
+If you do not specify a build name, XCVB will attempt to use the build
+in the current working directory.
 
 Note that you need to properly setup your `Search Path`_ with ``XCVB_PATH``,
 or specify it with option ``--xcvb-path``.
@@ -435,6 +437,10 @@ Where ``obj`` is the object directory
 ``-j`` specifies a parallel build (also see ``make`` option ``-l``),
 and ``foo/bar.image`` would be the name of the image for your project
 (assuming its build has fullname ``/foo/bar`` and declares ``:build-image t``.)
+Note that you don't *have* to specify ``obj/foo/bar.image``
+as XCVB will make it the first (and hence default) target in its generated Makefile.
+However, when writing a Makefile, it might still be good practice
+to specify it explicitly, as a safety check that XCVB is doing what you think you're doing.
 
 From the image, you can create an executable with such a command as::
 
@@ -486,6 +492,16 @@ where you will prefer to eschew the automating dumping of this initial base imag
 such as CCL).
 In these cases, you pass to ``xcvb make-makefile`` the option
 ``--no-base-image``.
+
+If you are into sophisticated automation rather than manual configuration,
+XCVB's own ``Makefile`` comes with a target ``setup.lisp``
+that uses ``cl-launch`` to automatically create a ``/xcvb/setup`` module
+to the specifications of your ``configure.mk``.
+You are welcome to reuse the technology.
+Another setup that XCVB uses is the ``/xcvb/no-asdf`` module,
+that cancels any previous copy of ASDF in the Lisp image,
+so that you may replace it with a more recent,
+new and incompatible version of ASDF.
 
 
 Interactive update of a running image with XCVB master

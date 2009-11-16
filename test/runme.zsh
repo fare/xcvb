@@ -3,7 +3,7 @@
 # Q: what to do of this old broken test suite?
 # ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-test --restart xcvb::quit
 
-LISPS=(clisp sbcl ccl)
+LISPS=(sbcl ccl clisp)
 
 abort () {
   : PATH=$PATH
@@ -165,9 +165,10 @@ validate_rmx () {
   cd $BUILD_DIR/a2x_rmx
   XCVB_PATH=$BUILD_DIR/a2x_rmx xcvb ssp
   XCVB_PATH=$BUILD_DIR/a2x_rmx xcvb rmx --build /xcvb/test/a2x
-  diff -urN $XCVB_DIR/test/a2x $BUILD_DIR/a2x_rmx |
-  grep -v '^diff\|^---\|^+++' |
-  diff - $XCVB_DIR/test/rmx.diff
+  [ ! -f $BUILD_DIR/a2x_rmx/build.xcvb ] ||
+  abort "xcvb rmx failed to remove build.xcvb"
+  grep '(module' $BUILD_DIR/a2x_rmx/*.lisp &&
+  abort "xcvb rmx failed to delete module forms"
 }
 
 validate_a2x () {
@@ -175,13 +176,18 @@ validate_a2x () {
   rsync -a $XCVB_DIR/test/a2x/ $BUILD_DIR/a2x_a2x/
   cd $BUILD_DIR/a2x_a2x
   xcvb a2x --system a2x-test --name /xcvb/test/a2x
-  diff -urN $XCVB_DIR/test/a2x $BUILD_DIR/a2x_a2x |
-  grep -v '^diff\|^---\|^+++' |
-  diff - $XCVB_DIR/test/a2x.diff
+  [ -f $BUILD_DIR/a2x_a2x/build.xcvb ] ||
+  abort "xcvb a2x failed to create build.xcvb"
+  for i in $BUILD_DIR/a2x_a2x/*.lisp ; do
+    grep '(module' $i ||
+    abort "xcvb rmx failed to create module form for $i"
+  done
 }
 
 validate_master () {
-  xcvb eval "(progn(xcvb-master:bnl\"xcvb/hello\":output-path\"$BUILD_DIR/\":object-directory\"$obj\":verbosity 9)(let((*print-base* 30))(xcvbd:call :xcvb-hello :hello :name 716822547 :traditional t)))" |
+  which xcvb
+  xcvb version
+  xcvb eval "(progn(xcvb-master:bnl\"xcvb/hello\":output-path\"$BUILD_DIR/\":object-directory\"$obj\":lisp-implementation\"$LISP\":verbosity 9)(let((*print-base* 30))(xcvbd:call :xcvb-hello :hello :name 716822547 :traditional t)))" |
   fgrep 'hello, tester' ||
   abort "Failed to use hello through the XCVB master"
 }

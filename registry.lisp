@@ -35,7 +35,7 @@
                 (and (stringp gname)
                      (or (equal fullname `(:lisp ,gname))
                          (equal fullname `(:build ,gname)))))
-      (log-format 7 "Registered grain for name ~S has fullname ~S" fullname gname))
+      (log-format 7 "~&Registered grain for name ~S has fullname ~S~%" fullname gname))
     (setf (registered-grain fullname) grain)
     grain))
 

@@ -3,4 +3,6 @@
  (:fullname "/xcvb/test/a2x"
   :supersedes-asdf ("a2x-test")
   :build-depends-on ("/cl-launch")
-  :depends-on ("main" "help")))
+  :depends-on
+  ("pkgdcl" "specials" ;; TODO: not have them here and still rmx correctly
+   "main" "help")))

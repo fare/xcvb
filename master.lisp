@@ -365,7 +365,7 @@ with associated pathnames and tthsums.")
              :end (- (length slave-output) (length +xcvb-slave-farewell+)))))
          (*xcvb-verbosity* (+ verbosity 2)))
     (when (>= *xcvb-verbosity* 9)
-      (format *error-output* "~&Slave XCVB returned following manifest:~%~A~%" manifest))
+      (format *error-output* "~&Slave XCVB returned following manifest:~%~S~%" manifest))
     (process-manifest manifest)))
 
 (defun bnl (build &rest keys &key

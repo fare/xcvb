@@ -181,6 +181,9 @@ for this version of XCVB.")))
 ;; strips XCVB modules from them.
 (defun remove-xcvb-from-build (build)
   (let ((build (registered-build (canonicalize-fullname build))))
+    ;; TODO: use simplifying backend and/or other expansion too
+    ;; to find *ALL* indirect dependencies under same build
+    ;; Or walk the filesystem, or trust and warn the user...
     (with-slots (depends-on) build
       (dolist (name depends-on)
         (let ((path (module-subpathname (grain-pathname build) name)))
@@ -190,7 +193,7 @@ for this version of XCVB.")))
 
 ;;;; Common option handling
 
-(defun handle-global-options (&key
+(defun handle-global-options (&rest keys &key
                               verbosity
                               xcvb-path 
                               output-path object-directory
@@ -199,24 +202,27 @@ for this version of XCVB.")))
                               base-image
                               &allow-other-keys)
     (reset-variables)
-    (when xcvb-path
-      (set-search-path! xcvb-path))
     (when verbosity
       (setf *xcvb-verbosity* verbosity))
+    (log-format 9 "~&xcvb options: ~S~%" keys)
+    (when xcvb-path
+      (set-search-path! xcvb-path))
     (when output-path
       (setf *default-pathname-defaults*
             (ensure-absolute-pathname (pathname-directory-pathname output-path))))
+    (log-format 8 "~&output-path: ~S" output-path)
+    (log-format 8 "~&*default-pathname-defaults*: ~S" *default-pathname-defaults*)
     (when object-directory
       (setf *object-directory* ;; strip last "/"
             (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
+    (log-format 8 "~&object-directory: given ~S using ~S " object-directory *object-directory*)
     (when lisp-implementation
       (setf *lisp-implementation-type*
             (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
     (when lisp-binary-path
       (setf *lisp-executable-pathname* lisp-binary-path))
-    (extract-target-properties)
-    (read-target-properties)
-    (when disable-cfasl
+    (read-target-properties) ;; Gets information from target Lisp.
+    (when disable-cfasl ;; Must be done after read-target-properties
       (setf *use-cfasls* nil))
     (setf *use-base-image* base-image)
     (search-search-path)
@@ -234,27 +240,30 @@ for this version of XCVB.")))
 
 (defun main ()
   (with-coded-exit ()
-    (restart-case
-        ;; revert-to-repl is in a nested restart-case so that the other two
-        ;; restarts are available from the repl.
-        (restart-case
-            (progn
-              (interpret-command-line
-               (command-line-arguments:get-command-line-arguments))
-              (quit 0))
-          (revert-to-repl ()
-            :report (lambda (stream)
-                      (format stream "Abort current computation and bring up a toplevel REPL"))
-            (repl)))
-      (exit (&optional (exit-code 0))
-        :report (lambda (stream)
-                  ;; when invoked interactively exit-code is always 0
-                  (format stream "Abort current computation and quit the process with process exit code 0"))
-        (quit exit-code))
-      (abort ()
-        :report (lambda (stream)
-                  (format stream "Abort current computation and quit the process with process exit code -1"))
-        (quit 0)))))
+    (flet ((quit (&optional (code 0))
+             (log-format 9 "~&quitting with code ~A~%" code)
+             (quit code)))
+      (restart-case
+          ;; revert-to-repl is in a nested restart-case so that the other two
+          ;; restarts are available from the repl.
+          (restart-case
+              (progn
+                (interpret-command-line
+                 (command-line-arguments:get-command-line-arguments))
+                (quit 0))
+            (revert-to-repl ()
+              :report (lambda (stream)
+                        (format stream "Abort current computation and bring up a toplevel REPL"))
+              (repl)))
+        (exit (&optional (exit-code 0))
+          :report (lambda (stream)
+                    ;; when invoked interactively exit-code is always 0
+                    (format stream "Abort current computation and quit the process with process exit code 0"))
+          (quit exit-code))
+        (abort ()
+          :report (lambda (stream)
+                    (format stream "Abort current computation and quit the process with process exit code 111"))
+          (quit 111))))))
 
 (defun initialize-environment ()
   #+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))

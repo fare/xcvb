@@ -129,5 +129,5 @@ in a fast way that doesn't enforce dependencies."
   (write-non-enforcing-makefile
    (mapcar #'canonicalize-fullname build)
    :asdf-name name
-   :output-path (pathname-base-pathname output-path)
+   :output-path output-path
    :parallel parallel))
