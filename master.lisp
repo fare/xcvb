@@ -279,7 +279,7 @@ with associated pathnames and tthsums.")
       (pathname
        (assert (and (consp command) (eq :load-file (car command))
                     (consp (cdr command)) (null (cddr command))))
-       (load pathname))
+       (load pathname :verbose (>= *xcvb-verbosity* 8) :print (>= *xcvb-verbosity* 9)))
       (t
        ;; the driver better be loaded by the time any command is issued
        (funcall (find-symbol "RUN-COMMAND" :xcvb-driver) command)))

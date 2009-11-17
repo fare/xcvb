@@ -174,14 +174,13 @@ show-current-revision:
 
 TMP ?= /tmp
 
-GIT_DEPENDENCIES := asdf asdf-dependency-grovel command-line-arguments poiu
+GIT_DEPENDENCIES := asdf asdf-dependency-grovel cl-launch command-line-arguments poiu
 DARCS_DEPENDENCIES := closer-mop
 DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
 
 RELEASE_EXCLUDE := \
 	--exclude build --exclude obj --exclude obj-ne \
 	--exclude "*~" --exclude ".\#*" --exclude "xcvb*.mk" \
-	--exclude patches
 # To exclude revision information: --exclude .git --exclude _darcs
 
 test:

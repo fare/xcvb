@@ -36,10 +36,14 @@ $(shell ( export XCVB_PATH=${XCVB_PATH} ) >&2)
 # in a setup file, that you specify on the xcvb command with option
 # --setup /fullname/of/setup
 # See the ASDF build for more information on making such a setup file.
-
+#
+# Here, we use xcvb/no-asdf as a setup, because hello depends on cl-launch,
+# which depends on a recent XCVB-ready ASDF, which may conflict with any ASDF
+# provided by your implementation.
 xcvb.mk: force
 	xcvb make-makefile \
 	     --build /xcvb/hello \
+	     --setup xcvb/no-asdf \
 	     --lisp-implementation ${LISP} \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello
 

@@ -57,6 +57,10 @@ the previous image, a build and its dependencies.")
      "Show builds in the specified XCVB path"
      "Show builds in the implicitly or explicitly specified XCVB path.
 For debugging your XCVB configuration.")
+    (("find-module" "fm") find-module +find-module-option-spec+
+     "Show builds in the specified XCVB path"
+     "Show builds in the implicitly or explicitly specified XCVB path.
+For debugging your XCVB configuration.")
     (("slave-builder") slave-builder +slave-builder-option-spec+
      "Build some project as a slave to the XCVB master (for internal use)"
      "Build some project as a slave to the XCVB master (for internal use)")
@@ -214,7 +218,11 @@ for this version of XCVB.")))
     (log-format 8 "~&*default-pathname-defaults*: ~S" *default-pathname-defaults*)
     (when object-directory
       (setf *object-directory* ;; strip last "/"
-            (but-last-char (enough-namestring (ensure-pathname-is-directory object-directory)))))
+            (but-last-char
+             (namestring
+              (ensure-absolute-pathname ;; must come after output-path processing
+               (ensure-pathname-is-directory
+                object-directory))))))
     (log-format 8 "~&object-directory: given ~S using ~S " object-directory *object-directory*)
     (when lisp-implementation
       (setf *lisp-implementation-type*

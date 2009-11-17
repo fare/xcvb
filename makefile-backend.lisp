@@ -137,7 +137,8 @@ xcvb-ensure-object-directories:
 (defmethod object-namestring ((env makefile-traversal) name &optional merge)
   (let* ((pathname (portable-pathname-from-string name))
          (merged (if merge (merge-pathnames merge pathname) pathname))
-         (namestring (strcat *object-directory* (portable-namestring merged))))
+         (namestring (enough-namestring
+                      (strcat *object-directory* (portable-namestring merged)))))
     (ensure-makefile-will-make-pathname env namestring)
     namestring))
 

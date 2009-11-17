@@ -19,6 +19,8 @@
 ;;    Then comes the question of how to fix CL so that it becomes possible
 ;; to safely redefine a function, generic function, structure, variable,
 ;; constant, symbol-macro, etc.
+;;
+;; Note for SBCL: <nyef> _deepfire: I have a possibly-more-complete "solution" for package destruction. For each symbol to be destroyed, and each non-nil element in the array sb-c::*info-types*, (sb-c::clear-info-value <symbol> <element>).
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (let ((package (find-package :asdf))

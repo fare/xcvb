@@ -117,6 +117,8 @@
   (unless *search-path-searched-p*
     (search-search-path)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Show Search Path ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun show-search-path ()
   "Show registered builds"
   (format t "~&Registered search paths:~{~% ~S~}~%" *search-path*)
@@ -135,11 +137,33 @@
                         fullname (mapcar 'namestring (brc-pathnames entry))))))))
     (map () #'princ (sort (mapcar #'entry-string (hash-table->alist *grains*)) #'string<))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Show Search Path ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defparameter +show-search-path-option-spec+
   '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
 
 (defun show-search-path-command (&key xcvb-path)
   (handle-global-options :xcvb-path xcvb-path)
   (show-search-path))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Find Module ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun find-module (&key xcvb-path name short)
+  "find modules of given full name"
+  (handle-global-options :xcvb-path xcvb-path)
+  (let ((all-good t))
+    (dolist (fullname name)
+      (let ((grain (resolve-absolute-module-name fullname)))
+        (cond
+          (grain
+           (if short
+             (format t "~A~%" (namestring (grain-pathname grain)))
+             (format t "Found ~S at ~S~%" (fullname grain) (namestring (grain-pathname grain)))))
+          (t
+           (format *error-output* "Could not find ~S. Check your paths with xcvb ssp.~%" fullname)
+           (setf all-good nil)))))
+    (exit (if all-good 0 1))))
+
+(defparameter +find-module-option-spec+
+  (append
+   '((("name" #\n) :type string :optional nil :list t :documentation "name to search for")
+     (("short" #\s) :type boolean :optional t :documentation "short output"))
+   +show-search-path-option-spec+))
