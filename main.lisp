@@ -275,6 +275,8 @@ for this version of XCVB.")))
 
 (defun initialize-environment ()
   #+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
+  #+clozure (let ((error-output (ccl::make-fd-stream 2 :direction :output))) ;; bug in CCL?
+              (setf *error-output* error-output *trace-output* error-output))
   (labels ((v (x)
              (let ((s (cl-launch:getenv x)))
                (and (not (equal s "")) s))))

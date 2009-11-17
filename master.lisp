@@ -218,7 +218,7 @@ with associated pathnames and tthsums.")
            #+clozure ccl:run-program
            (car command) #+clisp :arguments (cdr command)
            :input nil :output :stream
-           #+(or sbcl cmu scl) :error #+(or sbcl cmu scl) t
+           #+(or sbcl cmu scl clozure) :error #+(or sbcl cmu scl) t #+clozure *error-output*
            :wait nil
            #+sbcl :search #+sbcl t))
          (stream (#+sbcl sb-ext:process-output
