@@ -124,7 +124,9 @@ until something else is found, then return that header as a string"
            (do ((line (read-line in nil) (read-line in nil)))
                ((null line))
              (write-line line out))))
-       #+clisp (delete-file filename) ;; NO ATOMIC RENAME IN CLISP! :-(
+       #+clisp
+       (posix:copy-file tmppath filename :method :rename)
+       #-clisp
        (rename-file tmppath filename
                     #+clozure :if-exists #+clozure :rename-and-delete)))
      (module
@@ -299,11 +301,12 @@ so that the system can now be compiled with XCVB."
       (asdf:operate 'asdf:load-op sys)))
   (setf systems (mapcar 'asdf::coerce-name systems)
         system (if system (asdf::coerce-name system) (car systems)))
-  ;; Remove any system possibly used by XCVB itself so that asdf-to-xcvb may work on them.
+  (log-format 6 "Remove any system possibly used by XCVB itself ~%~
+		 so that asdf-to-xcvb may work on them.~%")
   (dolist (sys systems) (remhash sys asdf::*defined-systems*))
-  ;; Extract the original traverse order from ASDF before any transformation
+  (log-format 6 "Extract the original traverse order from ASDF before any transformation.~%")
   (let ((original-traverse-order-map (systems-traverse-order-map systems)))
-    ;; Clear the system cache *again* because we'll re-define thing transformed.
+    (log-format 6 "Clear the system cache *again* because we'll re-define thing transformed.~%")
     (dolist (sys systems) (remhash sys asdf::*defined-systems*))
     (setf cl-launch:*output-pathname-translations* nil)
     (eval
