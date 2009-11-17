@@ -116,13 +116,13 @@ validate_xcvb_ssp () {
 
   xcvb ssp --xcvb-path $XCVB_DIR | tee $out
 
-  fgrep -q "(:BUILD \"/xcvb\") in \"$XCVB_DIR/build.xcvb\"" $out ||
+  grep -q "(:BUILD \"/xcvb\") in \".*/build.xcvb\"" $out ||
   abort "Can't find build for xcvb"
 
   fgrep -q "(:ASDF \"xcvb\") superseded by (:BUILD \"/xcvb\")" $out ||
   abort "can't find superseded asdf for xcvb"
 
-  grep -q "CONFLICT for \"/xcvb/test/conflict/b\" between (\"$XCVB_DIR/test/conflict/b2\\?/build.xcvb\" \"$XCVB_DIR/test/conflict/b2\\?/build.xcvb\")" $out ||
+  grep -q "CONFLICT for \"/xcvb/test/conflict/b\" between (\".*/test/conflict/b2\\?/build.xcvb\" \".*/test/conflict/b2\\?/build.xcvb\")" $out ||
   abort "can't find conflict for /xcvb/test/conflict/b"
 }
 
