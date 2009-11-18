@@ -3,7 +3,7 @@
 # Q: what to do of this old broken test suite?
 # ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-test --restart xcvb::quit
 
-LISPS=(sbcl ccl clisp)
+LISPS=(clisp ccl sbcl)
 
 abort () {
   : PATH=$PATH
@@ -130,9 +130,9 @@ validate_xcvb () {
   # preconditions: env, xcvb built, PWD=.../xcvb/
   validate_xcvb_version # is built xcvb what we think it is?
   validate_xcvb_ssp # can it search its search path?
-  validate_x2a # can it convert hello back to asdf?
-  validate_rmx # can it remove the xcvb annotations from a2x-test?
   validate_a2x # can it migrate a2x-test from xcvb?
+  validate_rmx # can it remove the xcvb annotations from a2x-test?
+  validate_x2a # can it convert hello back to asdf?
   #validate_sa_backend # can it build hello with the standalone backend?
   validate_mk_backend # can it build hello with the Makefile backend?
   validate_nemk_backend # can it build hello with the non-enforcing Makefile backend?

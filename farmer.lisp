@@ -6,16 +6,15 @@
      (:require :sb-grovel)
      (:require :sb-posix)))))
 
-;;TODO: split and rename into active-traversal and standalone-backend
+#|
+* TODO: split and rename into active-traversal and standalone-backend
+
+* TODO: compute world hash incrementally in an O(1) way instead of O(n)
+
+|#
 
 (in-package :xcvb)
 
-#|
-0- don't use hash consing
-1- instead keep a TTH(?) hash for each "state of the world" -
- hashname and fullhashnames
-2- equal-hash that!
-|#
 
 (defun mkfifo (pathname mode)
   #+sbcl (sb-posix:mkfifo pathname mode)

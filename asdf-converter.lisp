@@ -124,8 +124,11 @@ until something else is found, then return that header as a string"
            (do ((line (read-line in nil) (read-line in nil)))
                ((null line))
              (write-line line out))))
+       (log-format 9 "Moving temporary file ~A to permanent file ~A~%" tmppath filename)
        #+clisp
-       (posix:copy-file tmppath filename :method :rename)
+       (when (probe-file filename) (delete-file filename)) ;; Workaround BUG in CLISP 2.48, lose atomicity
+       #+clisp
+       (posix:copy-file tmppath filename :method :rename :if-exists :overwrite)
        #-clisp
        (rename-file tmppath filename
                     #+clozure :if-exists #+clozure :rename-and-delete)))
@@ -329,10 +332,10 @@ so that the system can now be compiled with XCVB."
                     (get-dependencies-from-components (mapcar 'asdf:find-system systems))))
            (system-components
             (read-first-file-form
-             (cl-launch:apply-output-pathname-translations
-              (merge-pathnames components-path))))
+             components-path))
            (asdf-system
             (progn
+              (log-format 6 "Creating a system with simplified dependencies ~%")
               (remhash system asdf::*defined-systems*)
               (eval
                `(asdf:defsystem ,system
@@ -345,10 +348,11 @@ so that the system can now be compiled with XCVB."
                          asdf-system systems original-asdf-deps
                          original-traverse-order-map :name name))
            (name-component-map (name-component-map asdf-system))) ; Precompute to ensure O(n) behavior
+      (log-format 6 "Adding module to build.xcvb~%")
       (add-module-to-file build-grain)
-      (log-format 6 "Added module to build.xcvb~%")
+      (log-format 6 "Adding module to each component~%")
       (dolist (component (asdf:module-components asdf-system))
-        (log-format 6 "Add module to component ~S~%" component)
+        (log-format 6 "Adding module to component ~S~%" component)
         (add-module-to-file (get-module-for-component
                              component build-grain
                              name-component-map original-traverse-order-map))))))
