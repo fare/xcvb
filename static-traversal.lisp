@@ -125,6 +125,12 @@
       (setf (image-setup env) `(:image ,(fullname image)))
             image)
     (progn
+      ;; TODO: issue dependency for
+      ;; lisp executable/wrapper (in $PATH),
+      ;; actual executable/driver (self/exe),
+      ;; base image/core
+      ;; if one is not found (or even if it is?),
+      ;; use lisp-implementation-version and *features* as a proxy.
       (setf (image-setup env)
             `(:load ,(loop
                        :for dep :in *lisp-setup-dependencies*

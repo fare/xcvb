@@ -125,10 +125,8 @@ until something else is found, then return that header as a string"
                ((null line))
              (write-line line out))))
        (log-format 9 "Moving temporary file ~A to permanent file ~A~%" tmppath filename)
-       #+clisp
-       (when (probe-file filename) (delete-file filename)) ;; Workaround BUG in CLISP 2.48, lose atomicity
-       #+clisp
-       (posix:copy-file tmppath filename :method :rename :if-exists :overwrite)
+       #+clisp ;; But for a bug in CLISP 2.48, we should use :if-exists :overwrite and be atomic
+       (posix:copy-file tmppath filename :method :rename)
        #-clisp
        (rename-file tmppath filename
                     #+clozure :if-exists #+clozure :rename-and-delete)))

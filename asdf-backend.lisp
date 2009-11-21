@@ -5,26 +5,6 @@
 
 (in-package :xcvb)
 
-#|
-The conversion to ASDF is lossy. We handle the simple base cases perfectly,
-but beyond that, we currently output something that will hopefully work
-well enough to load a system, but that will not encode such information as
-conditional compilation, generated files, etc.
-
-This should be good enough for deployment purposes, or as the basis on which
-a hacker may manually flesh out a full-fledged ASDF system.
-
-TODO to make it more correct:
-(a) have a system "xcvb-extensions.asd" that extends ASDF to have the missing
-  features provided by XCVB.
-(b) push these extensions for inclusion in upstream ASDF, and/or
-(c) just punt and have ASDF delegate to our in-image backend (if/when implemented)
-
-
-The conversion can be tested with:
-	xcvb x2a -b /xcvb -o /tmp/blah.asd
-|#
-
 (defclass asdf-traversal (simplifying-traversal)
   ())
 

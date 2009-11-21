@@ -9,11 +9,16 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#+sbcl (require :sb-grovel)
-#+sbcl (require :sb-introspect)
-#+sbcl (require :sb-bsd-sockets)
-#+sbcl (require :sb-posix)
-#+sbcl (require :sb-sprof)
+#+sbcl
+(progn
+  ;;; Actually used by XCVB
+  (require :sb-posix)
+  (require :sb-sprof)
+  ;;; Used by SLIME
+  (require :sb-grovel)
+  (require :sb-cltl2)
+  (require :sb-introspect)
+  (require :sb-bsd-sockets))
 
 (proclaim '(optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
 

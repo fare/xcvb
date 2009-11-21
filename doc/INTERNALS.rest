@@ -21,11 +21,13 @@ concepts underlying XCVB.
     1  Design Notes
       1.1  Introduction
       1.2  Debugging XCVB
-      1.3  Fullnames
-      1.4  Eager vs Lazy Module Scanning
-      1.5  Filesystem Access
-      1.6  Conditional Build
-      1.7  Ideas from jknight
+      1.3  General Architecture of XCVB
+      1.4  Porting XCVB
+      1.5  Fullnames
+      1.6  Eager vs Lazy Module Scanning
+      1.7  Filesystem Access
+      1.8  Conditional Build
+      1.9  Ideas from jknight
     2  Current Files
       2.1   driver.lisp
       2.2   pkgdcl.lisp
@@ -61,11 +63,12 @@ concepts underlying XCVB.
       2.32  version.lisp
       2.33  master.lisp
     3  Good places to extend XCVB
-      3.1  Extending the driver
-      3.2  Simple dispatchers as extension points
-      3.3  Enriching the system
-      3.4  Dynamic XCVB extensions
-      3.5  Backwards Compatibility
+      3.1  Add more tests
+      3.2  Extending the driver
+      3.3  Simple dispatchers as extension points
+      3.4  Enriching the system
+      3.5  Dynamic XCVB extensions
+      3.6  Backwards Compatibility
     4  High-level description
       4.1  XCVB's Architecture
       4.2  Grains and Types
@@ -161,6 +164,25 @@ this maximizes code sharing between these various strategies but results in code
 that isn't modular: there is little hope of making further specializations without
 modifying the code, refactoring the class hierarchy and the existing methods.
 But that's OK, we don't expect non-XCVB hackers to reuse XCVB internals anyway.
+
+
+Porting XCVB
+------------
+
+To port XCVB to a new Common Lisp implementation,
+grep the sources for ``sbcl``, which is the best supported implementation so far,
+and/or grep for ``clozure`` or ``clisp``
+if your implementation is more similar to one of those.
+Then, everywhere that ``sbcl`` appears, unless it's a ``sbcl`` bug or workaround,
+add support for your implementation.
+Finally, run the tests with your implementation::
+
+	make test LISP=ecl
+
+Of course, you favorite implementation will also necessitate adaptations
+that are unique for it. Don't hesitate to ask for help on the mailing-list.
+
+Speaking of ECL, see the relevant section in the TODO file.
 
 
 Fullnames
@@ -592,6 +614,9 @@ asdf-backend.lisp
 This is our ASDF backend,
 traversing the graph in a simplified way and
 iterating over computations to create an ASDF defsystem.
+
+See doc/README.rest section Converting XCVB builds into ASDF systems.
+See doc/TODO.rest section Better ASDF backend.
 
 
 ne-makefile-backend.lisp

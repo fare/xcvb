@@ -10,7 +10,8 @@ Raises an error if the string contains a newline."
   (with-output (out)
     (loop :for c :across string :do
       (case c
-        ;;TODO - instead of erroring, should this insert a "\" to escape the newline?
+        ;; Q: Instead of erroring, should this insert a "\\n" or something to escape the newline???
+        ;; Q: Do we need to handle #\\ specially?
         (#\newline (error "Makefile line cannot contain a newline"))
         (#\$ (write-string "$$" out))
         (otherwise (write-char c out))))))

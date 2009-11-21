@@ -19,7 +19,7 @@
 (defun mkfifo (pathname mode)
   #+sbcl (sb-posix:mkfifo pathname mode)
   #+clozure (ccl::with-filename-cstrs ((p pathname))(#.(read-from-string "#_mkfifo") p mode))
-  #+clisp (error "Problem with (LINUX:mkfifo ~S ~S)" pathname mode)
+  #+clisp (LINUX:mkfifo pathname mode) ;;(error "Problem with (LINUX:mkfifo ~S ~S)" pathname mode)
   #-(or sbcl clozure clisp) (error "mkfifo not implemented for your Lisp"))
 
 (defvar *workers* (make-hash-table :test 'equal)
@@ -167,7 +167,6 @@ waiting at this state of the world.")
 (defmethod dependency-already-included-p ((env farmer-traversal) grain)
   (or (gethash grain (included-dependencies env))
       (call-next-method)))
-
 |#
 
 (defmethod object-namestring ((env farmer-traversal) name &optional merge)
@@ -179,7 +178,6 @@ waiting at this state of the world.")
          (namestring (strcat *object-directory* (portable-namestring merged))))
     (ensure-makefile-will-make-pathname env namestring)
     namestring))
-
 
 ;; TODO: parameterize the farming, so that
 ;; 1- a first version computes the best possible latency assuming infinite cpu

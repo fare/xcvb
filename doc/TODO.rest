@@ -46,8 +46,10 @@ and background on the design and ultimate goals of XCVB.
       4.15  Template Instantiations [V5]
       4.16  XCVB configuration [V2]
       4.17  Configuration Management [V2]
-      4.18  Finer-grain ASDF supersession
-      4.19  ECL support
+      4.18  Better ASDF backend [V2]
+      4.19  ECL support [V1]
+      4.20  Finer-grain ASDF supersession [V2]
+      4.21  Better Debugging [V3]
     5  Internals [V4]
       5.1  Type-Checking [V4]
       5.2  Error handling [V4]
@@ -386,22 +388,22 @@ We already have what we need for [V1]:
 we can already do simple cases with a proper command-line interface.
 See the ``README.rest``.
 
-Now, we need to handle more complex cases involving migrating
-several ASDF systems to XCVB.
-The converter could recursively migrate dependencies:
-starting from specified systems,
-transitively migrate asdf system dependencies,
-stopping at given ones,
-and skipping those already migrated unless explicitly requested.
-Systems that rely on ASDF extensions such as
-compile-time reading of data files,
-dynamic creation of Lisp files
-or conditional compilation
-may have to be manually migrated and/or
-their automatically migrated ``build.xcvb`` may have to be manually edited.
-Some systems may also be merged together, as specified by the user.
+Cases we do not handle correctly involve:
 
-So should be merging changes into previously manually-edited ``build.xcvb`` files.
+  * Migrating several ASDF systems to XCVB.
+   The converter could recursively migrate dependencies:
+   starting from specified systems,
+   transitively migrate asdf system dependencies,
+   stopping at given ones,
+   and skipping those already migrated unless explicitly requested.
+
+  * Systems that rely on ASDF extensions such as
+   compile-time reading of data files, dynamic creation of Lisp files
+   or conditional compilation may have to be manually migrated and/or
+   their automatically migrated ``build.xcvb`` may have to be manually edited.
+
+  * We don't currently correctly merge changes into
+   previously manually-edited ``build.xcvb`` files.
 
 
 Non-enforcing builds [V2]
@@ -936,23 +938,65 @@ but then again used in a way that flags dependencies
 on the values of the variables that are used.
 
 
-Finer-grain ASDF supersession
------------------------------
+Better ASDF backend [V2]
+------------------------
 
-Allow XCVB to supersede ``xcvb-driver`` by redirecting to just ``/xcvb/driver``,
-and similarly ``xcvb-master`` should be just ``/xcvb/master``.
+The conversion to ASDF is lossy.
+We handle the simple base cases perfectly,
+but beyond that, we currently output something
+that will hopefully work well enough to load a system,
+but that will not encode such information as
+conditional compilation, generated files, etc.
+
+This should be good enough for deployment purposes, or
+as the basis on which a hacker may manually flesh out a full-fledged ASDF system.
+
+To correctly handle more complex cases,
+
+ * have a system "xcvb-extensions.asd" that extends ASDF to have the missing
+  features provided by XCVB.
+
+ * push these extensions for inclusion in upstream ASDF, and/or
+
+ * just punt and have ASDF delegate to xcvb-master.
+
+Note that the conversion can be tested with::
+
+	xcvb x2a -b /xcvb -o /tmp/blah.asd
 
 
-ECL support
------------
+ECL support [V1]
+----------------
 
 ECL is a very useful implementation to support because it is very different
 from most other implementations and thus extends the niche of XCVB applicability.
 For precisely the same reason, its supports requires notable differences from other Lisps.
 
+To support it, we may need to
+
+  * create a variant or subclass of ``static-traversal``
+    to handle the linking model of ECL instead of the dumping model of other Lisps.
+    Probably duplicate or refine a lot of module ``static-traversal``.
+
+  * add new types of files ``:linker-object`` and ``:linker-archive`` for ``.o`` and ``.a``
+    files respectively. Add support for these in modules ``normalize-dependency``,
+    ``dependencies-interpreter``, ``makefile-backend`` at least.
+
+  * make simple changes in the ``driver``, the ``forker``, etc., and
+    probably less simple changes in the ``farmer`` when it's ready.
+
+As usual, the test suite is your friend.
+
+
+Finer-grain ASDF supersession [V2]
+----------------------------------
+
+Allow XCVB to supersede ``xcvb-driver`` by redirecting to just ``/xcvb/driver``,
+and similarly ``xcvb-master`` should be just ``/xcvb/master``.
+
 
 Better Debugging [V3]
-=====================
+---------------------
 
 In some future, have a more robust way to debug than using ``${XCVB_DEBUGGING}``.
 When XCVB controls the build, it should provide a way to debug, too.

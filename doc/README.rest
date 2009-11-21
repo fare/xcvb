@@ -55,6 +55,8 @@ enforced locally-declared dependencies.
     8  Frequently Asked Questions
       8.1  Why can't module declarations be moved to a central file?
       8.2  How do I prevent clash between incompatible FASLs?
+      8.3  What are CFASLs?
+      8.4  Why not just extend ASDF?
 
 
 About XCVB
@@ -626,6 +628,7 @@ when you use the CFASL option of XCVB.
 This option is enabled by default on implementations that support it,
 currently only SBCL
 (but there are plans for Clozure CL to support it if and when XCVB takes off).
+See our FAQ `What are CFASLs?`_.
 
 When you use this option, ``(:compile "foo")`` dependencies
 turn into ``(:cfasl "foo")`` and specify that the specified CFASL will be loaded.
@@ -1190,6 +1193,9 @@ and use that as a system that other ASDF systems may depend upon.
 (See `Converting XCVB builds into ASDF systems`_ below.)
 Or you can use a manually maintained ``.asd`` file that covers
 the same software as an XCVB build.
+Finally, you can have create a ``.asd`` file that depends on ``xcvb-master``
+and contains only one file that calls ``xcvb-master:build-and-load``
+to bring the XCVB-compiled software into your ASDF-controlled image.
 
 Now, there may at this point be "interesting" situations
 where some software is loaded both as an ASDF system and an XCVB build.
@@ -1497,3 +1503,74 @@ In the future, Exploded File Dependencies and tthsum-based change detection
 will enable a content- and intent- addressed cache in which
 clashes cannot happen by construction
 (or rather, you win a free publication at a crypto conference if you hit one).
+
+
+What are CFASLs?
+----------------
+
+If a FASL is Common Lisp's analogue of a C object file,
+then a CFASL is Common Lisp's analogue of a C precompiled header.
+When compiling file ``foo.lisp``, while the FASL ``foo.fasl`` would record
+the load-time side-effects specified in the code,
+that affect the execution environment of the final program,
+the CFASL ``foo.cfasl`` would record the compile-time side-effects
+specified in the code, that affect the compilation environment
+for the compiler.
+If your Lisp implementation is a cross-compiler,
+the CFASL will contain code for the host processor,
+while the FASL would contain code for the target processor.
+
+In many simple cases, and barring cross-compilation,
+compile-time side-effects are a subset of load-time side-effects,
+those that matter to the compiler.
+For instance, when compiling a ``defvar`` or a ``defparameter``,
+the FASL would include the computation of the value and
+the binding of the variable, whereas the CFASL would merely record
+that a symbol was interned and declaimed special.
+For a ``defun``, the FASL would similarly contain the compiled code,
+while the CFASL would only contain some ``ftype`` information,
+possibly more if the function is declaimed inlined.
+Sometimes, these two effects may be identical,
+as in a ``defmacro`` or a ``deftype``.
+
+Note that since function definitions and side-effects to variables
+do not usually take place in the compilation environment,
+you need to use the ``:compile-toplevel`` option to ``eval-when``
+when want to specify these effects to indeed take place in the
+compilation environment. This is especially important when you
+are defining functions for use in macros.
+See section `Compile-time side-effects`_ above.
+
+If you want to be able to do interactive compilation and debugging
+in the target run-time environment, you probably want any
+``:compile-toplevel`` side-effect to *also* be a ``load-toplevel``
+side-effect -- and for good measure you should also include
+the ``:execute`` option to ``eval-when``.
+See my blog post on `eval-when`_.
+
+
+Why not just extend ASDF?
+-------------------------
+
+Before we started XCVB, we had already done many experiments with ASDF.
+See POIU, and imagine the tens of small unpublished ASDF customizations
+used at ITA. With this experience, we confidently believe the following:
+
+ * While we could conceivably be compatible with the surface syntax of an
+   ASDF defsystem, this would both be a significant amount of additional work,
+   and still be fundamentally incompatible with corner cases of ASDF usage and
+   any existing ASDF extension such as the many we use. Moreover, unless
+   we also reimplement all our extensions to the regular ASDF, any ``.asd`` file
+   that uses them would actually be a lie as it would only run with XCVB.
+
+ * With the tools to convert ASDF systems to XCVB builds and vice versa,
+   tools that work perfectly in the simple case,
+   and since it is further possible for XCVB builds
+   to declare dependency on ASDF systems, and
+   for ASDF systems to load XCVB-built software via xcvb-master,
+   XCVB is are already as compatible with ASDF as we can hope it to be.
+
+ * Yes, future tighter integration of ASDF and XCVB is conceivable,
+   but as usual is more work and not very high on my priority list,
+   since I'm after what seems to me to be lower-hanging fruits:
+   fork-based compilation, "(exploded) dependency caching", etc.
