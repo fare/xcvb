@@ -27,7 +27,7 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 		XCVB_OBJECT_DIRECTORY=${XCVB_OBJECT_DIRECTORY} \
 		RELEASE_DIR=${RELEASE_DIR} XCVB_DIR=${XCVB_DIR}
 
-GIT_DEPENDENCIES := asdf asdf-dependency-grovel command-line-arguments poiu
+GIT_DEPENDENCIES := asdf asdf-dependency-grovel command-line-arguments fare-utils poiu
 DARCS_DEPENDENCIES := closer-mop
 DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
 
@@ -50,7 +50,7 @@ install: install-cl-launch
 
 install-source: install-cl-launch
 	mkdir -p ${LISP_SOURCE}/xcvb ${LISP_SYSTEMS}
-	for dir in asdf asdf-dependency-grovel closer-mop command-line-arguments poiu ; do \
+	for dir in ${DEPENDENCIES} ; do \
 	  rsync -aC --exclude _darcs dependencies/$$dir ${LISP_SOURCE}/ ; \
 	done
 	cd xcvb && cp -a *.asd *.lisp *.xcvb ${LISP_SOURCE}/xcvb/
@@ -72,32 +72,31 @@ checkout:
 	  echo "Already got cl-launch.git" ) && \
 	( git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git || \
 	  echo "Already got command-line-arguments.git" ) && \
+	( git clone http://common-lisp.net/~frideau/git/fare-utils.git || \
+	  echo "Already got poiu.git" ) && \
 	( git clone http://common-lisp.net/project/qitab/git/poiu.git || \
 	  echo "Already got poiu.git" ) && \
 	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
 	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi )
 
 gc:
-	for i in xcvb dependencies/asdf dependencies/asdf-dependency-grovel \
-		dependencies/cl-launch dependencies/command-line-arguments \
-		dependencies/poiu ; do \
-	  (echo -n "packing $$i..." ; cd $$i ; git gc) ; done
+	echo -n "Packing xcvb..." ; cd xcvb ; git gc
+	for i in ${GIT_DEPENDENCIES} ; do \
+	  (echo -n "Packing $$i..." ; cd dependencies/$$i ; git gc) ; done
 
 update:
-	for i in xcvb dependencies/asdf dependencies/asdf-dependency-grovel \
-		dependencies/cl-launch dependencies/command-line-arguments \
-		dependencies/poiu ; do \
-	  (echo -n "Updating $$i... " ; cd $$i ; git pull origin master:master) ; \
-	done ; \
+	echo -n "Updating xcvb..." ; cd xcvb ; git pull -a
+	for i in ${GIT_DEPENDENCIES} ; do \
+	  (echo -n "Updating $$i... " ; cd dependencies/$$i ; git pull origin master:master) ; \
+	done
 	(echo -n "Updating dependencies/closer-mop... " ; cd dependencies/closer-mop ; \
 	darcs pull -a )
 
 reset:
-	for i in xcvb dependencies/asdf dependencies/asdf-dependency-grovel \
-		dependencies/cl-launch dependencies/command-line-arguments \
-		dependencies/poiu ; do \
-	  (echo -n "Resetting $$i... " ; cd $$i ; git reset --hard) ; \
-	done ; \
+	echo -n "Resetting xcvb..." ; cd xcvb ; git reset --hard
+	for i in ${GIT_DEPENDENCIES} ; do \
+	  (echo -n "Resetting $$i... " ; cd dependencies/$$i ; git reset --hard) ; \
+	done
 	(echo -n "Updating dependencies/closer-mop... " ; cd dependencies/closer-mop ; \
 	darcs revert -a )
 

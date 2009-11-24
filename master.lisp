@@ -34,9 +34,10 @@
    #:*xcvb-path*
    #:*loaded-grains*
 
-   ;;; String utilities
-   #:string-prefix-p
-   #:string-postfix-p
+   ;;; String utilities - also in fare-utils
+   ;#:string-prefix-p
+   ;#:string-postfix-p
+   ;#:string-enclosed-p
 
    ;;; I/O utilities
    #:slurp-stream-string

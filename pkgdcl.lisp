@@ -6,8 +6,7 @@
   (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3))))
 
 (cl:defpackage :xcvb
-  (:use :closer-common-lisp :xcvb-driver :command-line-arguments :xcvb-master)
-  (:import-from :cl-launch #:DBG)
+  (:use :closer-common-lisp :xcvb-driver :command-line-arguments :xcvb-master :fare-utils)
 
   ;;; THIS EXPORT LIST IS MASSIVELY OUT-OF-DATE.
   ;;; No wonder why: the CL package system is not very maintainable,

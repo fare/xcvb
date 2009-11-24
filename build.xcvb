@@ -9,7 +9,6 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#+xcvb
 (module
  (:fullname "xcvb"
   :author ("Francois-Rene Rideau" "Joyce Chen" "Spencer Brody")
@@ -20,7 +19,8 @@
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
   :build-depends-on ("/asdf" "/cl-launch" "/asdf-dependency-grovel"
-                     "/closer-mop" "/command-line-arguments" "/xcvb/master"
+                     "/closer-mop" "/command-line-arguments" "/fare-utils"
+                     "/xcvb/master"
                      (:when (:featurep :sbcl)
                        ;; Used by XCVB
                        (:require :sb-posix)
@@ -30,7 +30,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
                        (:require :sb-cltl2)
                        (:require :sb-introspect)
                        (:require :sb-bsd-sockets)))
-  :depends-on ("conditions"
+  :depends-on ("driver"
+               "conditions"
                "manifest"
                "grain-implementation"
                "normalize-dependency"

@@ -91,7 +91,7 @@
                                                :directory (reverse rdir))
                                 :build-p t)))
                  (if ancestor
-                     (let ((relname (join-strings "/" subnames)))
+                     (let ((relname (join-strings subnames :separator "/")))
                        (setf (grain-parent grain) ancestor
                              (fullname grain) (strcat (fullname ancestor) "/" relname)))
                      (recurse rdir subnames))))

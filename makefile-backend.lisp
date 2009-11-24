@@ -65,9 +65,10 @@
 
 (defun write-makefile-prelude (&optional stream)
   (let ((directories
-         (join-strings " "
-                       (mapcar #'escape-string-for-Makefile
-                               *makefile-target-directories*))))
+         (join-strings
+          (mapcar #'escape-string-for-Makefile
+                  *makefile-target-directories*)
+          :separator " ")))
     (format stream "~
 ### This file was automatically created by XCVB ~A with the arguments~%~
 ### ~{~A~^ ~}~%~

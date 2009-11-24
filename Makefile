@@ -174,7 +174,7 @@ show-current-revision:
 
 TMP ?= /tmp
 
-GIT_DEPENDENCIES := asdf asdf-dependency-grovel cl-launch command-line-arguments poiu
+GIT_DEPENDENCIES := asdf asdf-dependency-grovel cl-launch command-line-arguments fare-utils poiu
 DARCS_DEPENDENCIES := closer-mop
 DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
 

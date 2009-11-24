@@ -391,19 +391,19 @@ See the ``README.rest``.
 Cases we do not handle correctly involve:
 
   * Migrating several ASDF systems to XCVB.
-   The converter could recursively migrate dependencies:
-   starting from specified systems,
-   transitively migrate asdf system dependencies,
-   stopping at given ones,
-   and skipping those already migrated unless explicitly requested.
+    The converter could recursively migrate dependencies:
+    starting from specified systems,
+    transitively migrate asdf system dependencies,
+    stopping at given ones,
+    and skipping those already migrated unless explicitly requested.
 
   * Systems that rely on ASDF extensions such as
-   compile-time reading of data files, dynamic creation of Lisp files
-   or conditional compilation may have to be manually migrated and/or
-   their automatically migrated ``build.xcvb`` may have to be manually edited.
+    compile-time reading of data files, dynamic creation of Lisp files
+    or conditional compilation may have to be manually migrated and/or
+    their automatically migrated ``build.xcvb`` may have to be manually edited.
 
   * We don't currently correctly merge changes into
-   previously manually-edited ``build.xcvb`` files.
+    previously manually-edited ``build.xcvb`` files.
 
 
 Non-enforcing builds [V2]
@@ -954,7 +954,7 @@ as the basis on which a hacker may manually flesh out a full-fledged ASDF system
 To correctly handle more complex cases,
 
  * have a system "xcvb-extensions.asd" that extends ASDF to have the missing
-  features provided by XCVB.
+   features provided by XCVB.
 
  * push these extensions for inclusion in upstream ASDF, and/or
 

@@ -179,6 +179,53 @@ waiting at this state of the world.")
     (ensure-makefile-will-make-pathname env namestring)
     namestring))
 
+(defun map-dag (dag fun)
+  (NIY)
+  (funcall fun dag))
+
+(defun compute-computation-generation (dag)
+  (let ((generation (make-hash-table :test 'equal)))
+    (labels ((f (x)
+               (or (gethash x generation)
+                   (setf (gethash x generation)
+                         (let ((parents (NIY 'node-parents x)))
+                           (if parents
+                               (1+ (loop :for p :in parents :maximize (f p)))
+                               0))))))
+      (NIY 'map-dag dag #'f))
+    generation))
+
+(defclass latency-parameters ()
+  ((total-lisp-compile-duration
+    :initform 0)
+   (total-lisp-compile-size
+    :initform 0)
+   (total-fasl-load-duration
+    :initform 0)
+   (total-fasl-load-size
+    :initform 0)
+   (total-lisp-load-duration
+    :initform 0)
+   (total-lisp-load-size
+    :initform 0)
+   (total-fork-size
+    :initform 0)
+   (total-fork-duration
+    :initform 0)))
+
+(defun compute-latency-model (computations &key
+                              (parameters (make-instance 'latency-parameters))
+                              (current-measurements (make-hash-table))
+                              (previous-parameters (make-instance 'latency-parameters))
+                              (previous-measurements (make-hash-table)))
+  (NIY computations parameters current-measurements previous-parameters previous-measurements)
+  '(let ((latency 0))
+    (NIY 'map-computations
+     (lambda (c)
+       (setf latency (+ (max (NIY 'latency children)))))
+     computations)
+    latency))
+
 ;; TODO: parameterize the farming, so that
 ;; 1- a first version computes the best possible latency assuming infinite cpu
 ;; 2- a second version computes latency assuming finite cpu (specified or detected)
@@ -192,39 +239,39 @@ waiting at this state of the world.")
   ;;   interpolated with known (+ K (size file)),
   ;;   using average from known files if new file, and 1 if all unknown.
   ;; 4- allow for a pure simulation, just adding up estimates.
-  (let* ((computation-queue (NIY make-priority-queue)) ;; queue of ready computations
+  (let* ((computation-queue (NIY 'make-priority-queue)) ;; queue of ready computations
          (job-set (make-hash-table :test 'equal))) ;; set of pending jobs
     computation-queue
     job-set
-    (NIY for-each-computation (computation)
-         (backlink-computation-to-input-grains computation))
-    (NIY for-each-grain (grain)
+    (NIY '(for-each-computation (computation)
+         (backlink-computation-to-input-grains computation)))
+    (NIY 'for-each-grain (lambda (grain)
          (when (null (grain-computation grain))
-           (compute-grain-hash)
-           (mark-grain-as-ready-in-dependencies)))
-    (#+clisp NIY labels
-            ((event-step ()
-               (or
-                (maybe-handle-finished-jobs)
-                (maybe-issue-computation)
-                (wait-for-event-with-timeout)))
-             (maybe-handle-finished-jobs ()
-               (NIY when-bind
-                    (subprocess (NIY wait-for-any-terminated-subprocess :nohang t))
-                    (NIY finalize-subprocess-outputs subprocess)))
-             (maybe-issue-computation ()
-               (when (and (NIY some-computations-ready-p)
-                          (NIY cpu-resources-available-p))
-                 (issue-one-computation)))
-             (wait-for-event-with-timeout ()
-               (NIY with-EINTR-recovery ()
-                    (NIY set-timer-to-deadline)
-                    (NIY wait-for-any-terminated-subprocess)))
-             (issue-one-computation ()
-               (NIY when-bind (computation (NIY pick-one-computation-amongst-the-ready-ones))
-                 (NIY issue-computation computation))))
+           (NIY 'compute-grain-hash)
+           (NIY 'mark-grain-as-ready-in-dependencies))))
+    (labels
+        ((event-step ()
+           (or
+            (maybe-handle-finished-jobs)
+            (maybe-issue-computation)
+            (wait-for-event-with-timeout)))
+         (maybe-handle-finished-jobs ()
+           (NIY 'when-bind
+                '(subprocess (NIY 'wait-for-any-terminated-subprocess :nohang t))
+                (NIY 'finalize-subprocess-outputs 'subprocess)))
+         (maybe-issue-computation ()
+           (when (and (NIY 'some-computations-ready-p)
+                      (NIY 'cpu-resources-available-p))
+             (issue-one-computation)))
+         (wait-for-event-with-timeout ()
+           (NIY 'with-EINTR-recovery ()
+                (NIY 'set-timer-to-deadline)
+                (NIY 'wait-for-any-terminated-subprocess)))
+         (issue-one-computation ()
+           (NIY 'when-bind '(computation (NIY 'pick-one-computation-amongst-the-ready-ones))
+                (NIY 'issue-computation 'computation))))
       (loop
-        :until (and (NIY empty-p job-set) (NIY empty-p computation-queue))
+        :until (and (NIY 'empty-p job-set) (NIY 'empty-p computation-queue))
         :do (event-step)))))
 
 
