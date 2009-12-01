@@ -121,7 +121,7 @@ prepare-release:
 
 test: install
 	cd ${XCVB_DIR} && \
-	./test/runme.zsh ${OPTIONS} validate_release_dir
+	./test/runme.zsh ${OPTIONS} validate_release_dir_all_lisps
 
 .PHONY: install-cl-launch install install-source install-using-asdf \
 	checkout update gc prepare-release test

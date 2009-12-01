@@ -118,7 +118,6 @@ xcvb-ensure-object-directories:
 
 (defun dependency-namestring-for-atom (env name)
   (declare (ignore env))
-  (DBG :dnfa *default-pathname-defaults*)
   (enough-namestring (grain-pathname (resolve-absolute-module-name name))))
 
 (define-dependency-namestring :lisp (env name)

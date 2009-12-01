@@ -293,7 +293,7 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    with arbitrary output redirection, that does at least what
    ``asdf:run-shell-program`` does, but hopefully much more,
    like python's ``popen2.popen3`` or ``subprocess.popen``,
-   or even like what SCSH provides.
+   or Perl 5's ``open`` or even like what SCSH provides.
    This feature will eventually be used by
    our standalone distributed build system.
    Stelian Ionescu is possibly working on such a library as part of IOLib,
