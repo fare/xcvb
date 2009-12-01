@@ -70,6 +70,9 @@ setup.lisp:
 
 xcvb: xcvb-using-xcvb
 
+# Below you may use either of these setups, or none at all.
+# --setup /xcvb/no-asdf   ## This will be made obsolete by newer ASDF (>= 1.371).
+# --setup /xcvb/setup     ## Edit your own or create one from cl-launch with make setup.lisp
 xcvb.mk: force
 	xcvb make-makefile \
 	     --build /xcvb \
@@ -77,6 +80,7 @@ xcvb.mk: force
 	     --object-directory ${XCVB_OBJECT_DIRECTORY} \
 	     --lisp-implementation ${LISP_IMPL} \
 	     --lisp-binary-path ${LISP_BIN}
+
 
 PARALLELIZE := -j
 

@@ -36,6 +36,7 @@
                 default-output-path))
            (makefile-path (ensure-absolute-pathname actual-output-path))
            (makefile-dir (pathname-directory-pathname makefile-path))
+           (*default-pathname-defaults* makefile-dir)
            (*print-pretty* nil); otherwise SBCL will slow us down a lot.
            (*makefile-target-directories* nil)
            (*makefile-phonies* nil)
@@ -44,6 +45,7 @@
       (log-format 9 "~&default-output-path: ~S~%" default-output-path)
       (log-format 9 "~&actual-output-path: ~S~%" actual-output-path)
       (log-format 6 "~&makefile-path: ~S~%" makefile-path)
+      (log-format 9 "~&*default-pathname-defaults*: ~S" *default-pathname-defaults*)
       (log-format 7 "~&object-directory: ~S~%" *object-directory*)
       ;; Pass 1: Traverse the graph of dependencies
       (log-format 8 "T=~A building dependency graph~%" (get-universal-time))
@@ -116,6 +118,7 @@ xcvb-ensure-object-directories:
 
 (defun dependency-namestring-for-atom (env name)
   (declare (ignore env))
+  (DBG :dnfa *default-pathname-defaults*)
   (enough-namestring (grain-pathname (resolve-absolute-module-name name))))
 
 (define-dependency-namestring :lisp (env name)
@@ -129,9 +132,11 @@ xcvb-ensure-object-directories:
   (declare (ignore env))
   (let* ((p (position #\/ namestring :from-end t :end nil))
          (dir (subseq namestring 0 p)))
-    (unless (find-if (lambda (d) (portable-namestring-prefix<= dir d)) *makefile-target-directories*)
+    (unless (find-if (lambda (d) (portable-namestring-prefix<= dir d))
+                     *makefile-target-directories*)
       (setf *makefile-target-directories*
-            (remove-if (lambda (d) (portable-namestring-prefix<= d dir)) *makefile-target-directories*))
+            (remove-if (lambda (d) (portable-namestring-prefix<= d dir))
+                       *makefile-target-directories*))
       (push dir *makefile-target-directories*)))
   (values))
 

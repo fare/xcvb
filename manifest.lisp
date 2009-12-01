@@ -80,7 +80,7 @@ Until then, let's rely on the external utility tthsum.
          (source-fullname (fullname-source fullname)))
     `(:command ,command
       ,@(when fullname `(:pathname ,(dependency-pathname env fullname)))
-      ,@(when source-fullname `(:pathname ,(dependency-pathname env source-fullname))))))
+      ,@(when source-fullname `(:source-pathname ,(dependency-pathname env source-fullname))))))
 
 (defun commands-to-manifest-spec (env commands)
   (mapcar/ #'command-to-manifest-spec env commands))

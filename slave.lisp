@@ -34,25 +34,25 @@
        :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
        :disable-cfasl disable-cfasl :base-image base-image
        :verbosity verbosity :profiling profiling)
-    (let* ((*default-pathname-defaults* makefile-dir)
-           (make-command
+    (let* ((make-command
             (list "make"
                   "-C" (namestring makefile-dir)
-                  "-f" (namestring makefile-path))))
+                  "-f" (namestring makefile-path)))
+           (*standard-output* *error-output*))
       (log-format 6 "~&Building with ~S~%" make-command)
-      (let ((*standard-output* *error-output*))
-        (run-program/process-output-stream
-         make-command
-         (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
-      (let* ((env (make-instance 'static-makefile-traversal))
-             (issued
-              (progn
-                (build-command-for env (handle-target build))
-                (reverse (traversed-build-commands-r env))))
-             (manifest-spec (commands-to-manifest-spec env issued))
-             (manifest-form (manifest-form manifest-spec)))
-        (with-safe-io-syntax ()
-          (write-string +xcvb-slave-greeting+)
-          (write manifest-form :readably nil :pretty t :case :downcase)
-          (write-string +xcvb-slave-farewell+)))))
+      (run-program/process-output-stream
+       make-command
+       (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
+    (let* ((*default-pathname-defaults* makefile-dir)
+           (env (make-instance 'static-makefile-traversal))
+           (issued
+            (progn
+              (build-command-for env (handle-target build))
+              (reverse (traversed-build-commands-r env))))
+           (manifest-spec (commands-to-manifest-spec env issued))
+           (manifest-form (manifest-form manifest-spec)))
+      (with-safe-io-syntax ()
+        (write-string +xcvb-slave-greeting+)
+        (write manifest-form :readably nil :pretty t :case :downcase)
+        (write-string +xcvb-slave-farewell+))))
   (values))

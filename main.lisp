@@ -199,8 +199,8 @@ for this version of XCVB.")))
 
 (defun handle-global-options (&rest keys &key
                               verbosity
-                              xcvb-path 
-                              output-path object-directory
+                              xcvb-path
+                              object-directory
                               lisp-implementation lisp-binary-path
                               disable-cfasl master setup
                               base-image
@@ -211,18 +211,12 @@ for this version of XCVB.")))
     (log-format 9 "~&xcvb options: ~S~%" keys)
     (when xcvb-path
       (set-search-path! xcvb-path))
-    (when output-path
-      (setf *default-pathname-defaults*
-            (ensure-absolute-pathname (pathname-directory-pathname output-path))))
-    (log-format 8 "~&output-path: ~S" output-path)
-    (log-format 8 "~&*default-pathname-defaults*: ~S" *default-pathname-defaults*)
     (when object-directory
       (setf *object-directory* ;; strip last "/"
             (but-last-char
              (namestring
-              (ensure-absolute-pathname ;; must come after output-path processing
-               (ensure-pathname-is-directory
-                object-directory))))))
+              (ensure-pathname-is-directory
+               object-directory)))))
     (log-format 8 "~&object-directory: given ~S using ~S " object-directory *object-directory*)
     (when lisp-implementation
       (setf *lisp-implementation-type*

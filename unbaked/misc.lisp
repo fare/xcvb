@@ -33,3 +33,10 @@
 (FOO)
 
 )))
+
+(defun chdir (x)
+  (let ((p (ensure-absolute-pathname x)))
+    #+sbcl (sb-posix:chdir p)
+    #+clisp (linux:chdir p)
+    #+clozure (ccl:%chdir p)
+    (setf *default-pathname-defaults* p)))
