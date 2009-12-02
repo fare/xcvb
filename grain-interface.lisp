@@ -35,7 +35,10 @@
     :accessor grain-computation)
    (computation-index ;; index of the grain amongst the outputs of the computation
     :initarg :computation-index
-    :accessor grain-computation-index))
+    :accessor grain-computation-index)
+   (users
+    :initform nil
+    :accessor grain-users))
   (:documentation "Mixin for a grain you can build (for V2)"))
 
 (defclass persistent-grain (grain)
@@ -47,7 +50,7 @@
     :initarg :fullname
     :accessor fullname)))
 
-(defclass world-grain (named-grain)
+(defclass world-grain (buildable-grain named-grain)
   ;; the fullname a plist of the form
   ;; (:world :setup ,setup :commands-r ,commands-r)
   ((hash
@@ -197,7 +200,7 @@ into an image that will be used for all future compile/load operations")
     :reader load-dependencies))
   (:documentation "Lisp CFASL file grain"))
 
-(defclass asdf-grain (named-grain)
+(defclass asdf-grain (buildable-grain named-grain)
   ((name
     :initarg :name
     :reader asdf-grain-system-name)
@@ -206,7 +209,7 @@ into an image that will be used for all future compile/load operations")
     :reader asdf-grain-implementation))
   (:documentation "Loaded ASDF system"))
 
-(defclass require-grain (named-grain)
+(defclass require-grain (buildable-grain named-grain)
   ((name
     :initarg :name
     :reader require-grain-name))

@@ -111,15 +111,15 @@ for this version of XCVB.")))
              (command-spec (lookup-command command))
              (command-options (symbol-value (third command-spec))))
         (unless (null (cdr args))
-          (errexit 2 "~&Too many arguments -- try 'xcvb help'.~%"))
+          (errexit 2 "Too many arguments -- try 'xcvb help'."))
         (cond
           (command-spec
-            (format t "~&~1{Command: ~A~%Aliases:~{ ~A~^ ~}~%~%~3*~A~}~%"
+            (format t "~1{Command: ~A~%Aliases:~{ ~A~^ ~}~%~%~3*~A~}"
                     (cons command command-spec))
             (when command-options
               (command-line-arguments:show-option-help command-options :sort-names t)))
           (t
-           (errexit 2 "~&Invalid XCVB command ~S -- try 'xcvb help'.~%"
+           (errexit 2 "Invalid XCVB command ~S -- try 'xcvb help'."
                     command))))))
 
 ;; Command to print out a version string.
@@ -131,19 +131,19 @@ for this version of XCVB.")))
 ;; Command to load a file.
 (defun load-command (args)
   (unless (list-of-length-p 1 args)
-    (error "load requires exactly 1 argument, a file to load"))
+    (errexit 2 "load requires exactly 1 argument, a file to load"))
     (load (car args)))
 
 ;; Command to eval a file.
 (defun eval-command (args)
   (unless (list-of-length-p 1 args)
-    (error "eval requires exactly 1 argument, a form to evaluate"))
+    (errexit 2 "eval requires exactly 1 argument, a form to evaluate"))
     (eval (read-from-string (car args))))
 
 ;; Command to start a REPL.
 (defun repl-command (args)
   (unless (null args)
-    (error "repl doesn't take any argument"))
+    (errexit 2 "repl doesn't take any argument"))
   (initialize-environment)
   (xcvb-driver:debugging)
   #+clisp (setf *standard-input* *terminal-io*)
@@ -219,8 +219,10 @@ for this version of XCVB.")))
                object-directory)))))
     (log-format 8 "~&object-directory: given ~S using ~S " object-directory *object-directory*)
     (when lisp-implementation
-      (setf *lisp-implementation-type*
-            (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+      (let ((type (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
+        (unless (and type (get-lisp-implementation type))
+          (errexit 2 "No known supported Lisp implementation ~S" lisp-implementation))
+        (setf *lisp-implementation-type* type)))
     (when lisp-binary-path
       (setf *lisp-executable-pathname* lisp-binary-path))
     (read-target-properties) ;; Gets information from target Lisp.
@@ -294,9 +296,9 @@ for this version of XCVB.")))
       (fun
        (funcall fun args))
       ((not command)
-       (errexit 2 "~&XCVB requires a command -- try 'xcvb help'.~%"))
+       (errexit 2 "XCVB requires a command -- try 'xcvb help'."))
       (t
-       (errexit 2 "~&Invalid XCVB command ~S -- try 'xcvb help'.~%" command)))))
+       (errexit 2 "Invalid XCVB command ~S -- try 'xcvb help'." command)))))
 
 (defun cmdize/1 (x)
   (typecase x
@@ -322,7 +324,9 @@ for this version of XCVB.")))
   (invoke-restart 'exit code))
 
 (defun errformat (fmt &rest args)
-  (apply #'format *error-output* fmt args))
+  (fresh-line *error-output*)
+  (apply #'format *error-output* fmt args)
+  (fresh-line *error-output*))
 
 (defun errexit (code fmt &rest args)
   (apply #'errformat fmt args)

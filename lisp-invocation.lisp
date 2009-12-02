@@ -84,6 +84,8 @@
   :quit-format "(ccl:quit ~A)"
   :dump-format "(save-application ~S :prepend-kernel t)")
 
+#| ;; Support for CMUCL is missing in other parts of XCVB.
+;; If you feel like adding support for CMUCL, start by uncomment this.
 (define-lisp-implementation :cmucl ()
   :fullname "CMU CL"
   :name "cmucl"
@@ -97,6 +99,7 @@
   :disable-debugger ("-batch")
   :quit-format "(unix:unix-exit ~A)"
   :dump-format "(extensions:save-lisp ~S)")
+|#
 
 (defun ensure-path-executable (x)
   (if (and (stringp x)

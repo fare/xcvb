@@ -179,10 +179,6 @@ waiting at this state of the world.")
     (ensure-makefile-will-make-pathname env namestring)
     namestring))
 
-(defun map-dag (dag fun)
-  (NIY)
-  (funcall fun dag))
-
 (defun compute-computation-generation (dag)
   (let ((generation (make-hash-table :test 'equal)))
     (labels ((f (x)
@@ -213,18 +209,36 @@ waiting at this state of the world.")
    (total-fork-duration
     :initform 0)))
 
+(defun direct-computation-latency
+    (computation &key
+     latencies
+     parameters
+     current-measurements
+     previous-parameters
+     previous-measurements)
+  (values 'NIY computation latencies parameters current-measurements
+   previous-parameters previous-measurements)
+  1)
+
 (defun compute-latency-model (computations &key
+                              (latencies (make-hash-table))
                               (parameters (make-instance 'latency-parameters))
                               (current-measurements (make-hash-table))
                               (previous-parameters (make-instance 'latency-parameters))
                               (previous-measurements (make-hash-table)))
-  (NIY computations parameters current-measurements previous-parameters previous-measurements)
-  '(let ((latency 0))
-    (NIY 'map-computations
-     (lambda (c)
-       (setf latency (+ (max (NIY 'latency children)))))
-     computations)
-    latency))
+  ;; assumes computations in reverse chronological order,
+  ;; as is the case for *computations* after a traversal.
+  (loop :for c :in computations
+    :for latency = (+ (direct-computation-latency
+                           c :latencies latencies
+                           :parameters parameters
+                           :current-measurements current-measurements
+                           :previous-parameters previous-parameters
+                           :previous-measurements previous-measurements)
+                      (loop :for child :in (computation-children c)
+                        :maximize (gethash child latencies)))
+    :do (setf (gethash c latencies) latency)
+    :maximize latency))
 
 ;; TODO: parameterize the farming, so that
 ;; 1- a first version computes the best possible latency assuming infinite cpu
@@ -239,16 +253,15 @@ waiting at this state of the world.")
   ;;   interpolated with known (+ K (size file)),
   ;;   using average from known files if new file, and 1 if all unknown.
   ;; 4- allow for a pure simulation, just adding up estimates.
-  (let* ((computation-queue (NIY 'make-priority-queue)) ;; queue of ready computations
+  (let* ((computation-queue (make-hash-table)) ;; set of computations
          (job-set (make-hash-table :test 'equal))) ;; set of pending jobs
-    computation-queue
-    job-set
-    (NIY '(for-each-computation (computation)
-         (backlink-computation-to-input-grains computation)))
-    (NIY 'for-each-grain (lambda (grain)
-         (when (null (grain-computation grain))
-           (NIY 'compute-grain-hash)
-           (NIY 'mark-grain-as-ready-in-dependencies))))
+    (loop :for c :in *computations* :do
+      (setf (gethash c computation-queue) (length (computation-inputs c))))
+    (loop :for grain :being :the :hash-values :of *grains*
+      :when (and (null (grain-computation grain))
+                 (grain-users grain)) :do
+      (NIY 'compute-grain-hash)
+      (NIY 'mark-grain-as-ready-in-dependencies))
     (labels
         ((event-step ()
            (or

@@ -23,6 +23,7 @@
 (defmethod make-computation ((env null) &rest keys &key &allow-other-keys)
   (let ((computation (apply #'make-instance 'computation keys)))
     (link-computation-outputs computation)
+    (link-computation-inputs computation)
     ;;(link-computation-inputs computation) ;TODO - have forward links, too!
     (push computation *computations*)
     computation))
@@ -34,6 +35,10 @@
       (error "Grain ~S already is the output of an existing computation!" target))
     (setf (grain-computation target) computation
           (grain-computation-index target) n)))
+
+(defun link-computation-inputs (computation)
+  (loop :for input :in (computation-inputs computation) :do
+    (pushnew computation (grain-users input))))
 
 (defun make-nop-computation (dependencies &optional targets)
   (make-computation ()
@@ -62,6 +67,9 @@
     (if computation
       (computation-target computation)
       grain)))
+
+(defun computation-children (computation)
+  (mappend #'grain-users (computation-outputs computation)))
 
 ;;; TODO: use a more declarative model to describe the various types of objects
 ;;; and the types of relations between them within a given first-class context,
