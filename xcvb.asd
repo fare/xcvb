@@ -53,12 +53,13 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "grain-implementation" :depends-on ("registry" "extract-target-properties"))
      (:file "names" :depends-on ("registry" "grain-interface" "specials"))
      (:file "search-path" :depends-on ("utilities" "specials"))
-     (:file "virtual-pathnames" :depends-on ("specials"))
+     (:file "virtual-pathnames" :depends-on ("specials" "utilities"))
      (:file "normalize-dependency" :depends-on ("names" "specials" "grain-interface"))
      (:file "traversal" :depends-on ("names" "specials" "computations"))
      (:file "dependencies-interpreter" :depends-on ("normalize-dependency" "traversal"))
      (:file "static-traversal" :depends-on
             ("specials" "grain-interface" "dependencies-interpreter" "logging"))
+     (:file "driver-commands" :depends-on ("specials" "utilities" "grain-interface"))
      (:file "makefile-backend" :depends-on ("profiling" "static-traversal"
 					    "string-escape" "computations"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))

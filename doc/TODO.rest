@@ -1156,10 +1156,11 @@ using the virtual location foo/bar/baz.lisp (and foo/bar/quux.lisp),
 and additionally identify the hash of the file's contents
 and possibly its revision in the version control system.
 
-Of course, logical pathnames as defined by the CLHS are about unusable.
+Of course, logical pathnames as defined by the CLHS are about unusable:
+case-dropping, no underscore, not-so-portable, etc.
 So offer to standardize something different for those virtual paths,
 and the way that SLIME and/or the builtin debugger with interpret those paths.
-Or actually use CLHS logical pathnames, and enforce their restrictions.
+Or actually use CLHS logical pathnames, and enforce their restrictions in XCVB names.
 Or see that CL logical pathnames work in practice, and issue a semi-official
 replacement for the CLHS.
 

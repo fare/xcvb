@@ -13,11 +13,6 @@
 (defclass static-makefile-traversal (static-traversal makefile-traversal)
   ())
 
-(defvar +lisp-pathname+ (make-pathname :type "lisp"))
-(defvar +fasl-pathname+ (make-pathname :type "fasl"))
-(defvar +cfasl-pathname+ (make-pathname :type "cfasl"))
-(defvar +image-pathname+ (make-pathname :type "image"))
-
 (defvar *makefile-target-directories* ())
 (defvar *makefile-phonies* ())
 
@@ -103,30 +98,6 @@ xcvb-ensure-object-directories:
           (shell-tokens-to-Makefile *makefile-target-directories*)
           *makefile-phonies*))
 
-
-;;; dependency-namestring: extract Makefile-printable pathname from dependency spec
-(define-simple-dispatcher dependency-namestring #'dependency-namestring-for-atom)
-
-(defun dependency-pathname (env fullname)
-  (ensure-absolute-pathname (dependency-namestring env fullname)))
-
-(defun dependency-namestring (env fullname)
-  ;; TODO: double pcheck that a namestring is only used by one fullname,
-  ;; using a table to record namestring => fullname mappings
-  ;; maybe also have a table the other way to cache these computations?
-  (dependency-namestring-dispatcher env fullname))
-
-(defun dependency-namestring-for-atom (env name)
-  (declare (ignore env))
-  (enough-namestring (grain-pathname (resolve-absolute-module-name name))))
-
-(define-dependency-namestring :lisp (env name)
-  (dependency-namestring-for-atom env name))
-
-(define-dependency-namestring :file (env name)
-  (declare (ignore env))
-  name)
-
 (defun ensure-makefile-will-make-pathname (env namestring)
   (declare (ignore env))
   (let* ((p (position #\/ namestring :from-end t :end nil))
@@ -146,31 +117,6 @@ xcvb-ensure-object-directories:
                       (strcat *object-directory* (portable-namestring merged)))))
     (ensure-makefile-will-make-pathname env namestring)
     namestring))
-
-(define-dependency-namestring :fasl (env name)
-  (object-namestring env name +fasl-pathname+))
-
-(define-dependency-namestring :cfasl (env name)
-  (object-namestring env name +cfasl-pathname+))
-
-(define-dependency-namestring :image (env name)
-  (object-namestring env name +image-pathname+))
-
-(define-dependency-namestring :object (env name)
-  (object-namestring env name))
-
-(define-dependency-namestring :source (env name &key in)
-  (declare (ignore env))
-  (enough-namestring
-   (merge-pathnames (portable-pathname-from-string name)
-                    (grain-pathname (registered-build in)))))
-
-(define-dependency-namestring :path (env name)
-  (declare (ignore env))
-  name)
-
-(define-dependency-namestring :manifest (env name)
-  (object-namestring env (strcat name "__manifest") +lisp-pathname+))
 
 ;; Renaming of targets ensures reasonable atomicity
 ;; whereas CL implementations may create bad invalid stale output files
@@ -203,61 +149,6 @@ will create the desired content. An atomic rename() will have to be performed af
                                    :defaults path))))
     (rename-target target tempname)))
 
-(define-simple-dispatcher text-for-xcvb-driver-command #'text-for-xcvb-driver-command-atom)
-
-(defun text-for-xcvb-driver-command-atom (env foo)
-  (declare (ignore env foo))
-  (error "FOO"))
-
-(defun text-for-xcvb-driver-command (env clause)
-  (text-for-xcvb-driver-command-dispatcher env clause))
-
-(define-text-for-xcvb-driver-command :load-file (env dep)
-  (format nil "(:load-file ~S)" (dependency-namestring env dep)))
-
-(define-text-for-xcvb-driver-command :require (env name)
-  (declare (ignore env))
-  (format nil "(:cl-require ~(~S~))" name))
-
-(define-text-for-xcvb-driver-command :load-asdf (env name &key parallel)
-  (declare (ignore env))
-  (format nil "(:load-asdf ~(~S~)~@[ :parallel t~])" name parallel))
-
-(define-text-for-xcvb-driver-command :register-asdf-directory (env directory)
-  (declare (ignore env))
-  (format nil "(:register-asdf-directory ~S)" (namestring directory)))
-
-(define-text-for-xcvb-driver-command :initialize-manifest (env manifest)
-  (format nil "(:initialize-manifest ~S)" (dependency-namestring env manifest)))
-
-(define-text-for-xcvb-driver-command :load-manifest (env name)
-  (format nil "(:load-manifest ~S)" (dependency-namestring env name)))
-
-(defun text-for-xcvb-driver-helper (env dependencies format &rest args)
-  (with-output-to-string (stream)
-    (format stream "(")
-    (apply #'format stream format args)
-    (dolist (dep dependencies)
-      (write-string (text-for-xcvb-driver-command env dep) stream))
-    (format stream ")")))
-
-(define-text-for-xcvb-driver-command :compile-lisp (env name-options &rest dependencies)
-  (destructuring-bind (name &key) name-options
-    (text-for-xcvb-driver-helper
-     env dependencies
-     ":compile-lisp (~S ~S~@[ :cfasl ~S~])"
-     (dependency-namestring env name)
-     (tempname-target (dependency-namestring env `(:fasl ,name)))
-     (when *use-cfasls* (tempname-target (dependency-namestring env `(:cfasl ,name)))))))
-
-(define-text-for-xcvb-driver-command :create-image (env spec &rest dependencies)
-  (destructuring-bind (&key image standalone package) spec
-    (text-for-xcvb-driver-helper
-     env dependencies
-     ":create-image (~S~@[~* :standalone t~]~@[ :package ~S~])"
-     (tempname-target (dependency-namestring env `(:image ,image)))
-     standalone package)))
-
 (define-simple-dispatcher Makefile-commands-for-computation #'Makefile-commands-for-computation-atom)
 
 (defun Makefile-commands-for-computation-atom (env computation-command)
@@ -277,14 +168,6 @@ will create the desired content. An atomic rename() will have to be performed af
 (define-Makefile-commands-for-computation :xcvb-driver-command (env keys &rest commands)
   (list
    (lisp-invocation-for env keys (xcvb-driver-commands-to-shell-token env commands))))
-
-(defun lisp-invocation-for (env keys eval)
-  (destructuring-bind (&key image load) keys
-    (shell-tokens-to-Makefile
-     (lisp-invocation-arglist
-      :image-path (if image (dependency-namestring env image) *lisp-image-pathname*)
-      :load (mapcar/ #'dependency-namestring env load)
-      :eval eval))))
 
 (define-Makefile-commands-for-computation :compile-file-directly (env fullname &optional cfasl)
   (list
@@ -312,49 +195,6 @@ will create the desired content. An atomic rename() will have to be performed af
                  :spec (let ((manifest-spec (commands-to-manifest-spec env commands)))
                          (with-safe-io-syntax ()
                            (write-to-string manifest-spec :case :downcase)))))))
-
-(defun compile-file-directly-shell-token (env name &optional cfasl)
-  (quit-form
-   :code
-   (format nil "(multiple-value-bind (output warningp failurep) ~
-                  (let ((*default-pathname-defaults* ~
-                         (truename *default-pathname-defaults*))) ~
-                        (compile-file ~S ~
-                         :output-file (merge-pathnames ~S) ~
-                         ~@[:emit-cfasl (merge-pathnames ~S) ~]~
-                         :verbose nil :print nil)) ~
-                    (if (or (not output) warningp failurep) 1 0))"
-           (dependency-namestring env name)
-           (tempname-target (dependency-namestring env `(:fasl ,name)))
-           (when cfasl
-             (tempname-target (dependency-namestring env `(:cfasl ,name)))))))
-
-(defun xcvb-driver-commands-to-shell-token (env commands)
-  (with-output-to-string (s)
-    (write-string "(xcvb-driver:run " s)
-    (dolist (c commands)
-      (write-string (text-for-xcvb-driver-command env c) s))
-    (write-string ")" s)))
-
-(defgeneric grain-pathname-text (env grain))
-
-(defmethod grain-pathname-text (env (grain file-grain))
-  (let ((pathname (dependency-namestring env (fullname grain))))
-    (values (escape-shell-token-for-Makefile pathname) pathname)))
-
-(defmethod grain-pathname-text (env (grain asdf-grain))
-  (declare (ignore env grain))
-  "")
-
-(defmethod grain-pathname-text (env (grain require-grain))
-  (declare (ignore env grain))
-  "")
-
-(defmethod grain-pathname-text (env (grain phony-grain))
-  (declare (ignore env))
-  (let ((n (normalize-name-for-makefile (princ-to-string (fullname grain)))))
-    (pushnew n *makefile-phonies* :test 'equal)
-    n))
 
 (defun write-computation-to-makefile (env stream computation)
   (with-accessors ((command computation-command)
@@ -401,6 +241,12 @@ will create the desired content. An atomic rename() will have to be performed af
                       (mapcar #'asdf-grain-system-name asdf-grains)))
        s)
       (format s " || echo force)"))))
+
+(defmethod grain-pathname-text ((env makefile-traversal) (grain phony-grain))
+  (declare (ignore env))
+  (let ((n (normalize-name-for-makefile (princ-to-string (fullname grain)))))
+    (pushnew n *makefile-phonies* :test 'equal)
+    n))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
