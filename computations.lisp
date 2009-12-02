@@ -24,7 +24,6 @@
   (let ((computation (apply #'make-instance 'computation keys)))
     (link-computation-outputs computation)
     (link-computation-inputs computation)
-    ;;(link-computation-inputs computation) ;TODO - have forward links, too!
     (push computation *computations*)
     computation))
 
@@ -71,9 +70,3 @@
 (defun computation-children (computation)
   (mappend #'grain-users (computation-outputs computation)))
 
-;;; TODO: use a more declarative model to describe the various types of objects
-;;; and the types of relations between them within a given first-class context,
-;;; so that there can be pure functions from context to context,
-;;; mapping sets of facts (atoms and relationships) to sets of facts.
-;;; make good use of linear relationships for in-place modification,
-;;; automatically create indices, etc.

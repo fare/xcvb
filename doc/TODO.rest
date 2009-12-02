@@ -53,6 +53,8 @@ and background on the design and ultimate goals of XCVB.
     5  Internals [V4]
       5.1  Type-Checking [V4]
       5.2  Error handling [V4]
+      5.3  Declarative model [V4]
+      5.4  Propagation Networks [V4]
     6  Advanced Build Issues [V3]
       6.1   Read the classics [V3]
       6.2   distclc [V3]
@@ -913,11 +915,14 @@ XCVB configuration [V2]
 -----------------------
 
 XCVB should be use the unix and windows configuration best practices.
-A .ini file in ``~/.config/common-lisp/xcvb.ini``
-overriding ``/etc/common-lisp/xcvb.ini``
-and itself overridable from the command-line.
+A configuration file in ``~/.config/common-lisp/source-registry.conf``
+overriding ``/etc/common-lisp/source-registry.conf``
+and itself overridable from the environment and the command-line.
 
-For parsing the configuration file, see `cl-iniparser`_ and/or `trivial-configuration-parser`_
+For parsing the configuration file, use a sexp language with keywords,
+and share it with ASDF.
+
+See https://bugs.launchpad.net/asdf/+bug/485918
 
 .. _trivial-configuration-parser: http://www.cliki.net/trivial-configuration-parser
 .. _cl-iniparser: http://github.com/TheDarkTrumpet/cl-iniparser
@@ -1029,6 +1034,32 @@ using a condition defined specifically for that error.
 We should also provide a nicer way of presenting errors to the end-user.
 Maybe there should also be some library for that.
 
+
+Declarative model [V4]
+----------------------
+
+Use a more declarative model to describe the various types of objects
+and the types of relations between them within a given first-class context,
+so that there can be pure functions from context to context,
+mapping sets of facts (atoms and relationships) to sets of facts.
+
+Make good use of linear relationships for in-place modification,
+automatically create indices, etc.
+
+
+Propagation Networks [V4]
+-------------------------
+
+Use them for initialization: declare a variable (and subvariables)
+as requiring initialization when some events occur
+(i.e. process started, command-line passed, module form parsed,
+computation started, etc.),
+finalization/deinitialization when other events occur
+(i.e. ready to dump image, end of command, etc.).
+
+Use them for the farmer: create a network for the computations,
+propagate latency estimates, propagate actual computations,
+repropagate latency estimates as feedback comes back in.
 
 
 Advanced Build Issues [V3]

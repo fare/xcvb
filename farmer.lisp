@@ -255,13 +255,6 @@ waiting at this state of the world.")
   ;; 4- allow for a pure simulation, just adding up estimates.
   (let* ((computation-queue (make-hash-table)) ;; set of computations
          (job-set (make-hash-table :test 'equal))) ;; set of pending jobs
-    (loop :for c :in *computations* :do
-      (setf (gethash c computation-queue) (length (computation-inputs c))))
-    (loop :for grain :being :the :hash-values :of *grains*
-      :when (and (null (grain-computation grain))
-                 (grain-users grain)) :do
-      (NIY 'compute-grain-hash)
-      (NIY 'mark-grain-as-ready-in-dependencies))
     (labels
         ((event-step ()
            (or
@@ -269,9 +262,8 @@ waiting at this state of the world.")
             (maybe-issue-computation)
             (wait-for-event-with-timeout)))
          (maybe-handle-finished-jobs ()
-           (NIY 'when-bind
-                '(subprocess (NIY 'wait-for-any-terminated-subprocess :nohang t))
-                (NIY 'finalize-subprocess-outputs 'subprocess)))
+           (when-bind (subprocess (NIY 'wait-for-any-terminated-subprocess :nohang t))
+              (NIY 'finalize-subprocess-outputs subprocess)))
          (maybe-issue-computation ()
            (when (and (NIY 'some-computations-ready-p)
                       (NIY 'cpu-resources-available-p))
@@ -282,10 +274,19 @@ waiting at this state of the world.")
                 (NIY 'wait-for-any-terminated-subprocess)))
          (issue-one-computation ()
            (NIY 'when-bind '(computation (NIY 'pick-one-computation-amongst-the-ready-ones))
-                (NIY 'issue-computation 'computation))))
+                (NIY 'issue-computation 'computation)))
+         (handle-done-grain (grain)
+           (NIY 'compute-grain-hash grain)
+           (NIY 'notify-users-grain-is-ready))))
+      (loop :for c :in *computations* :do
+        (setf (gethash c computation-queue) (length (computation-inputs c))))
+      (loop :for grain :being :the :hash-values :of *grains*
+        :when (and (null (grain-computation grain))
+                   (grain-users grain))
+        :do (handle-done-grain grain))
       (loop
         :until (and (NIY 'empty-p job-set) (NIY 'empty-p computation-queue))
-        :do (event-step)))))
+        :do (event-step))))
 
 
 (defun standalone-build (fullname)

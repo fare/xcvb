@@ -134,15 +134,19 @@ General Architecture of XCVB
   0- Read command-line.
      Choose the backend that corresponds to what the user requested.
 
-  1- Do a first pass.
-     Focus on grains (files and intermediate *states* of the computation),
-     traverse on each grain's dependencies, and recurse to build a graph
+  1- Do a first pass, that
+     focuses on grains (files and intermediate *states* of the computation),
+     and in the style of denotational semantics,
+     traverses on each grain's dependencies,
+     making the grain's environment explicit,
+     and recurses to build a graph
      of all grains involved in the build.
      Along the way, create computation objects that each describe a command
      by which a list of output grains is computed from a list of input grains.
 
   2- Do a second pass that iterates on the the list of ``*computations*``
-     produced by the first pass, and takes appropriate action:
+     produced by the first pass, and in the style of operational semantics,
+     takes appropriate action:
      write them to a Makefile, write them a .asd file, actually effect them,
      or otherwise do whatever makes sense for the current backend.
 
