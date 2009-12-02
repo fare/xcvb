@@ -83,11 +83,14 @@ Negatives are stored as NIL. Positives as grains.")
 
 (defparameter *grains*
   (make-hash-table :test 'equal)
-  "A registry of known grains,
+  "A registry of known grains in the traversed build DAG,
 indexed by normalized name, either fullname of a module,
-nickname, or SEXP representing a computed entity.
-Initially populated with all build.xcvb files from the search path,
-then enriched as we build the graph from the main build.xcvb file.")
+nickname, or SEXP representing a computed entity.")
+
+(defparameter *builds*
+  (make-hash-table :test 'equal)
+  "A registry of known builds, indexed by canonical name.
+Initially populated with all build.xcvb files from the search path.")
 
 (defparameter *superseded-asdf*
   (make-hash-table :test 'equalp)

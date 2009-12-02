@@ -129,7 +129,7 @@ of decreasing fullname length"
                       (subseq name 0 p)
                       (return nil))
     :for suffix = nil then (subseq name (1+ p))
-    :for build = (if prefix (registered-grain prefix)) :do
+    :for build = (when prefix (registered-build prefix)) :do
     (typecase build
       (build-grain
        (funcall build-handler build suffix))
@@ -142,6 +142,7 @@ of decreasing fullname length"
   "Resolve absolute NAME into an appropriate grain, if any"
   (let ((name (canonicalize-fullname name)))
     (or (registered-grain name)
+        (registered-build name)
         (walk-build-ancestry
          name "module name"
          (lambda (build suffix)
@@ -179,3 +180,4 @@ of decreasing fullname length"
           (error "Specified name ~A isn't under build ~A but under build ~A"
                  name build-name (fullname actual-build))))))
   t)
+

@@ -110,7 +110,7 @@ a reference to the system was superseded by a build.xcvb file.")
               `(:source ,suffix :in ,(fullname build))
               (error "Couldn't find in a build to which ~S is relative" name)))
         (let ((build (if in
-                         (registered-build in)
+                         (registered-build in :ensure-build t)
                          (build-grain-for grain))))
         `(:source ,name :in ,(fullname build))))))
 

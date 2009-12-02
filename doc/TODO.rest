@@ -1159,6 +1159,9 @@ and possibly its revision in the version control system.
 Of course, logical pathnames as defined by the CLHS are about unusable.
 So offer to standardize something different for those virtual paths,
 and the way that SLIME and/or the builtin debugger with interpret those paths.
+Or actually use CLHS logical pathnames, and enforce their restrictions.
+Or see that CL logical pathnames work in practice, and issue a semi-official
+replacement for the CLHS.
 
 jsnell suggests to look at what SLIME does -- presumably (for SBCL)
 ask for extra information to be stored in the debug info with

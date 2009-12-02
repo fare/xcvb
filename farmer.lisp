@@ -7,6 +7,20 @@
      (:require :sb-posix)))))
 
 #|
+* TODO: debug current scheduler by commenting out tthsum thing,
+  having a trivial fake job worker that returns immediately,
+  and computes the time. Make that a parameter.
+
+* TODO: between the scheduler and the worker backend,
+  there is a layer of state management (1-to-n relationship
+  between states and workers) that might require its own layer.
+
+* TODO: complete a simple local worker backend based on the forker,
+  i.e. for each active-world state with , have a one process in
+
+* TODO: complete a simple local worker backend based on forking
+  new processes anew for every job? For testing purposes, do like make!
+
 * TODO: split and rename into active-traversal and standalone-backend
 
 * TODO: compute world hash incrementally in an O(1) way instead of O(n)
@@ -14,7 +28,6 @@
 |#
 
 (in-package :xcvb)
-
 
 (defun mkfifo (pathname mode)
   #+sbcl (sb-posix:mkfifo pathname mode)
@@ -179,17 +192,9 @@ waiting at this state of the world.")
     (ensure-makefile-will-make-pathname env namestring)
     namestring))
 
-(defun compute-computation-generation (dag)
-  (let ((generation (make-hash-table :test 'equal)))
-    (labels ((f (x)
-               (or (gethash x generation)
-                   (setf (gethash x generation)
-                         (let ((parents (NIY 'node-parents x)))
-                           (if parents
-                               (1+ (loop :for p :in parents :maximize (f p)))
-                               0))))))
-      (NIY 'map-dag dag #'f))
-    generation))
+(defun compute-grain-hash (grain)
+  (when (typep grain 'buildable-grain)
+    (setf (grain-content-digest grain) (tthsum-for-file (grain-pathname grain)))))
 
 (defclass latency-parameters ()
   ((total-lisp-compile-duration
@@ -216,7 +221,7 @@ waiting at this state of the world.")
      current-measurements
      previous-parameters
      previous-measurements)
-  (values 'NIY computation latencies parameters current-measurements
+  (values computation latencies parameters current-measurements ;; TODO: do better than that!
    previous-parameters previous-measurements)
   1)
 
@@ -245,48 +250,94 @@ waiting at this state of the world.")
 ;; 2- a second version computes latency assuming finite cpu (specified or detected)
 ;; 3- a third version actually goes on and does it, using strategy based on above estimates
 
-(defun farm-out-world-tree ()
-  ;; TODO: actually walk the world tree
-  ;; 1- minimize total latency, maximize parallelism
-  ;; 2- maximize ... minimize memory usage
-  ;; 3- estimate cost by duration of previous successful runs (or last one)
-  ;;   interpolated with known (+ K (size file)),
-  ;;   using average from known files if new file, and 1 if all unknown.
-  ;; 4- allow for a pure simulation, just adding up estimates.
-  (let* ((computation-queue (make-hash-table)) ;; set of computations
-         (job-set (make-hash-table :test 'equal))) ;; set of pending jobs
+;; TODO: for a scheduler,
+;; 1- minimize total latency, maximize parallelism
+;; 2- maximize ... minimize memory usage
+;; 3- estimate cost by duration of previous successful runs (or last one)
+;;   interpolated with known (+ K (size file)),
+;;   using average from known files if new file, and 1 if all unknown.
+;; 4- allow for a pure simulation, just adding up estimates.
+
+(defun wait-for-event-with-timeout ()
+  '(with-EINTR-recovery () ;; TODO: the real thing
+     (set-timer-to-deadline)
+     (wait-for-any-terminated-computation))
+  (or (wait-for-any-terminated-computation :nohang t) ;; dumb wrong thing for now.
+      (sleep .05)))
+
+(defun work-on-computation (env computation)
+  (NIY env computation))
+
+(defun wait-for-any-terminated-computation (&key nohang)
+  (NIY 'wait nohang))
+
+(defun cpu-resources-available-p ()
+  t)
+
+(defun farm-out-world-tree (env)
+  ;; TODO: parametrize the a- the scheduling b- the action itself (or lack thereof)
+  (let* ((ready-computations (make-hash-table)) ;; set of computations ready to be issued
+         (waiting-computations (make-hash-table)) ;; set of computations waiting for inputs
+         (pending-computations (make-hash-table :test 'equal)) ;; set of pending active computation
+         (expected-latencies (make-hash-table)))
     (labels
         ((event-step ()
            (or
-            (maybe-handle-finished-jobs)
+            (maybe-handle-finished-computations)
             (maybe-issue-computation)
             (wait-for-event-with-timeout)))
-         (maybe-handle-finished-jobs ()
-           (when-bind (subprocess (NIY 'wait-for-any-terminated-subprocess :nohang t))
-              (NIY 'finalize-subprocess-outputs subprocess)))
+         (maybe-handle-finished-computations ()
+           (when-bind (computation) (wait-for-any-terminated-computation :nohang t)
+             (finalize-computation computation)))
+         (finalize-computation (computation)
+           (remhash computation pending-computations)
+           (map () #'handle-done-grain (computation-outputs computation)))
          (maybe-issue-computation ()
-           (when (and (NIY 'some-computations-ready-p)
-                      (NIY 'cpu-resources-available-p))
+           (when (and (ready-computation-p)
+                      (cpu-resources-available-p))
              (issue-one-computation)))
-         (wait-for-event-with-timeout ()
-           (NIY 'with-EINTR-recovery ()
-                (NIY 'set-timer-to-deadline)
-                (NIY 'wait-for-any-terminated-subprocess)))
          (issue-one-computation ()
-           (NIY 'when-bind '(computation (NIY 'pick-one-computation-amongst-the-ready-ones))
-                (NIY 'issue-computation 'computation)))
+           (when-bind (computation) (pick-one-computation-amongst-the-ready-ones)
+             (issue-computation computation)))
+         (pick-one-computation-amongst-the-ready-ones ()
+           (loop :with best-computation = nil
+             :with max-latency = 0
+             :for computation :being :the :hash-values :of ready-computations
+             :for latency = (gethash computation expected-latencies)
+             :when (> latency max-latency) :do
+               (setf best-computation computation max-latency latency)
+             :finally (return best-computation)))
+         (issue-computation (computation)
+           (work-on-computation env computation)
+           (setf (gethash computation pending-computations) t))
+         (ready-computation-p ()
+           (not (zerop (hash-table-count ready-computations))))
+         (waiting-computation-p ()
+           (not (zerop (hash-table-count waiting-computations))))
+         (pending-computation-p ()
+           (not (zerop (hash-table-count pending-computations))))
+         (notify-users-grain-is-ready (grain)
+           (map () #'notify-one-fewer-dependency (grain-users grain)))
+         (notify-one-fewer-dependency (computation)
+           (when (zerop (decf (gethash computation waiting-computations)))
+             (remhash computation waiting-computations)
+             (mark-computation-ready computation)))
+         (mark-computation-ready (computation)
+           (setf (gethash computation ready-computations) t))
          (handle-done-grain (grain)
-           (NIY 'compute-grain-hash grain)
-           (NIY 'notify-users-grain-is-ready))))
+           (compute-grain-hash grain)
+           (notify-users-grain-is-ready grain)))
+      ;; Compute a static cost model.
+      (compute-latency-model *computations* :latencies expected-latencies)
       (loop :for c :in *computations* :do
-        (setf (gethash c computation-queue) (length (computation-inputs c))))
+        (setf (gethash c waiting-computations) (length (computation-inputs c))))
       (loop :for grain :being :the :hash-values :of *grains*
         :when (and (null (grain-computation grain))
                    (grain-users grain))
         :do (handle-done-grain grain))
       (loop
-        :until (and (NIY 'empty-p job-set) (NIY 'empty-p computation-queue))
-        :do (event-step))))
+        :while (or (pending-computation-p) (ready-computation-p) (waiting-computation-p))
+        :do (event-step)))))
 
 
 (defun standalone-build (fullname)
@@ -303,7 +354,7 @@ waiting at this state of the world.")
            (*root-worlds* nil)
            (traversal (make-instance 'farmer-traversal)))
       (funcall fun traversal)
-      (farm-out-world-tree))))
+      (farm-out-world-tree traversal))))
 
 (defparameter +standalone-build-option-spec+
  '((("build" #\b) :type string :optional nil :documentation "specify what system to build")
