@@ -27,7 +27,7 @@
   `(setf (gethash ,key *lisp-implementations*)
     (apply #'make-lisp-implementation ',keys)))
 
-(defun get-lisp-implementation (implementation-type)
+(defun get-lisp-implementation (&optional (implementation-type *lisp-implementation-type*))
   (or (gethash implementation-type *lisp-implementations*)
       (error "Unknown Lisp implementation type ~S" implementation-type)))
 
@@ -51,7 +51,7 @@
   :dump-format "(sb-ext:save-lisp-and-die ~S :executable t)")
 
 (define-lisp-implementation :clisp ()
-  :fullname "GNU clisp"
+  :fullname "GNU CLISP"
   :name "clisp"
   :feature :clisp
   :flags ("-norc" "--quiet" "--quiet")

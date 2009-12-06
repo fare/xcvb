@@ -167,14 +167,6 @@
        (add-subprocess pid reaper))))
   (values))
 
-(defun start-listener (inpath outpath)
-  (with-open-file (o outpath :direction :output
-                     :if-exists :overwrite :if-does-not-exist :create)
-    (with-open-file (i inpath :direction :input :if-does-not-exist :error)
-      (let ((*standard-input* i)
-            (*standard-output* o))
-        (read-eval-loop i)))))
-
 (defun read-eval-loop (&optional (i *standard-input*))
   (loop :with eof = '#:eof
     :for form = (read i nil eof)
@@ -182,8 +174,22 @@
     :do (eval form)))
 
 (defun spawn-listener (inpath outpath)
-  (spawn-fork
-   (lambda ()
-     (close *standard-input*)
-     (close *standard-output*)
-     (start-listener inpath outpath))))
+  ;; NB: we open the new input/output pipes from the parent,
+  ;; and close them right after the fork,
+  ;; so that closing of the pipe be a signal to the controller
+  ;; that the controlled process is dead.
+  ;; Note that the controller process will have to open the pipe
+  ;; in non-blocking mode, and to select on it.
+  (with-open-file (o outpath :direction :output
+                     :if-exists :overwrite :if-does-not-exist :create)
+    (with-open-file (i inpath :direction :input :if-does-not-exist :error)
+      (spawn-fork
+       (lambda ()
+         (close *standard-input*)
+         (close *standard-output*)
+         (let ((*standard-input* i)
+               (*standard-output* o)
+               (*standard-error* o))
+           (read-eval-loop))))
+      (close o)
+      (close i))))

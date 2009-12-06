@@ -13,17 +13,20 @@
 
 * TODO: between the scheduler and the worker backend,
   there is a layer of state management (1-to-n relationship
-  between states and workers) that might require its own layer.
+  between states and workers) that might require its own layer,
+  including management of keeping the successor world alive
+  if and only if it itself has users.
 
 * TODO: complete a simple local worker backend based on the forker,
-  i.e. for each active-world state with , have a one process in
+  i.e. communicate with a descendant.
 
 * TODO: complete a simple local worker backend based on forking
   new processes anew for every job? For testing purposes, do like make!
 
 * TODO: split and rename into active-traversal and standalone-backend
 
-* TODO: compute world hash incrementally in an O(1) way instead of O(n)
+* TODO: cache world hash, compute it incrementally in an O(1) way
+  instead of O(n) by keeping a link to the previous world.
 
 |#
 
@@ -135,11 +138,15 @@ waiting at this state of the world.")
   (destructuring-bind (&key image load) setup
     (mapcar/
      #'graph-for env
-     (append
-      ;; TODO: include the lisp implementation itself, binary and image, when image is the default.
-      ;; when there are no executable cores, always include the loader, too.
-      (when image (list image))
-      (when load load)))))
+     (remove-if #'null
+      (remove-duplicates
+       (append
+        (unless (lisp-implementation-image-executable-p (get-lisp-implementation))
+          (list *lisp-executable-pathname*))
+        (list
+         (or image *lisp-image-pathname*))
+        (when load load))
+       :test 'equal)))))
 
 (defmethod make-computation ((env farmer-traversal)
                              &key inputs outputs command &allow-other-keys)
@@ -249,6 +256,8 @@ waiting at this state of the world.")
 ;; 1- a first version computes the best possible latency assuming infinite cpu
 ;; 2- a second version computes latency assuming finite cpu (specified or detected)
 ;; 3- a third version actually goes on and does it, using strategy based on above estimates
+;; compute maximum possible parallelization using the Hopcroft-Karp algorithm?
+;;   http://en.wikipedia.org/wiki/Hopcroft–Karp_algorithm
 
 ;; TODO: for a scheduler,
 ;; 1- minimize total latency, maximize parallelism
@@ -258,18 +267,59 @@ waiting at this state of the world.")
 ;;   using average from known files if new file, and 1 if all unknown.
 ;; 4- allow for a pure simulation, just adding up estimates.
 
+(defvar *pipes* (make-hash-table :test 'equal)) ; maps pipe streams to computations
+(defvar +poll-sleep-duration+ .05)
+
+(defun poll-sleep () ;; we should be using IOLib, not polling and sleeping.
+  (sleep +poll-sleep-duration+))
+
 (defun wait-for-event-with-timeout ()
-  '(with-EINTR-recovery () ;; TODO: the real thing
-     (set-timer-to-deadline)
-     (wait-for-any-terminated-computation))
+  #|(wait-for-any-terminated-computation :deadline (...)))|#
   (or (wait-for-any-terminated-computation :nohang t) ;; dumb wrong thing for now.
-      (sleep .05)))
+      (poll-sleep)))
+
+(defparameter +fifo-subpathname+ "_fifo/")
+(defvar +working-directory-subpathname+)
+
+(defun make-fifo (hash)
+  (let ((name (subpathname
+               (subpathname
+                (merge-pathnames +working-directory-subpathname+)
+                +fifo-subpathname+)
+               (princ-to-string hash))))
+    (mkfifo name #o600)))
 
 (defun work-on-computation (env computation)
-  (NIY env computation))
+  (with-nesting ()
+    (let ((input-world? (first (computation-inputs computation)))
+          (output-world? (first (computation-outputs computation)))))
+    (multiple-value-bind ()
+        (cond
+          ((typep output-world? 'active-world)
+           (NIY
+            '(let* ((fifoname XXX)
+                    (output-fifo (mkfifo)))
+              XXX)))
+          ;;(values ...)
+          ;;(values ...))
+          ))
+    (progn
+      (if (typep input-world? 'active-world)
+          (let ((input-fifo (NIY 'world-fifo input-world?)))
+            (NIY 'handle-computation input-fifo (world-handler input-world?))))
+      (NIY env computation))))
 
 (defun wait-for-any-terminated-computation (&key nohang)
-  (NIY 'wait nohang))
+  ;; TODO: use IOLib, etc.
+  (loop :named :w :do
+    (loop
+      :for pipe :being :the :hash-keys :of *pipes* :using (:hash-value computation)
+      :do (when (listen pipe)
+            (NIY 'finalize-computation-pipe pipe)
+            (return-from :w computation)))
+    (if nohang
+      (poll-sleep)
+      (return-from :w nil))))
 
 (defun cpu-resources-available-p ()
   t)
