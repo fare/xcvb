@@ -281,7 +281,7 @@ waiting at this state of the world.")
 (defparameter +fifo-subpathname+ "_fifo/")
 (defvar +working-directory-subpathname+)
 
-(defun make-fifo (hash)
+(defun make-world-fifo (hash)
   (let ((name (subpathname
                (subpathname
                 (merge-pathnames +working-directory-subpathname+)

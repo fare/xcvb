@@ -202,14 +202,20 @@ until something else is found, then return that header as a string"
                    :type "xcvb"
                    :defaults (component-truename asdf-system))))))
 
-(defun component-truename (x)
+(defgeneric component-truename (x))
+
+(defmethod component-truename ((x asdf:component))
   (truename (asdf:component-pathname x)))
+
+(defmethod component-truename ((x asdf:system))
+  (truename (asdf:system-definition-pathname x)))
 
 (defun systems-traverse-order-map (systems &optional (traverse-type 'asdf:load-op))
   (let* ((systems (mapcar #'asdf:find-system systems))
          (op (make-instance traverse-type))
          (opspecs (mapcan (lambda (system) (asdf::traverse op system)) systems)))
-    (sequence-position-map (mapcar 'component-truename (mapcar 'cdr opspecs)))))
+    (sequence-position-map
+     (mapcar 'component-truename (mapcar 'cdr opspecs)))))
 
 (defun name-component-map (asdf-module)
   (sequence-function-map #'identity (asdf:module-components asdf-module)
@@ -364,11 +370,12 @@ so that the system can now be compiled with XCVB."
     (("setup" #\s) :type string :optional t :documentation "Specify the path to a Lisp setup file.")
     (("system-path" #\p) :type string :optional t :list t :documentation "Register an ASDF system path (can be repeated)")
     (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")
+    (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
     (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
 
-(defun asdf-to-xcvb-command (&key system setup system-path preload verbosity base name)
-  (when verbosity
-    (setf *xcvb-verbosity* verbosity))
+(defun asdf-to-xcvb-command
+    (&key system setup system-path preload verbosity base name debugging)
+  (handle-global-options :verbosity verbosity :debugging debugging)
   (setf asdf:*central-registry*
         (append (mapcar #'ensure-pathname-is-directory system-path) asdf:*central-registry*))
   (when setup (load setup))

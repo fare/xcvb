@@ -204,8 +204,11 @@ for this version of XCVB.")))
                               lisp-implementation lisp-binary-path
                               disable-cfasl master setup
                               base-image
+                              debugging
                               &allow-other-keys)
     (reset-variables)
+    (when debugging
+      (xcvb-driver:debugging))
     (when verbosity
       (setf *xcvb-verbosity* verbosity))
     (log-format 9 "~&xcvb options: ~S~%" keys)
