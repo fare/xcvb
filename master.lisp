@@ -203,7 +203,10 @@ with associated pathnames and tthsums.")
       (read in nil nil))))
 
 #+sbcl
-(defun run-program* (&rest args) ;; FIX THAT BUG WITH posix-environ!
+(defun run-program* (&rest args)
+  ;; This is a workaround for a bug in SBCL regarding posix-environ
+  ;; By currently disabling this workaround, the bug can be reproduced,
+  ;; tracked and hopefully fixed. https://bugs.launchpad.net/sbcl/+bug/460455
   (let ((sb-alien::*default-c-string-external-format* :iso-8859-1))
     (apply 'sb-ext:run-program args)))
     

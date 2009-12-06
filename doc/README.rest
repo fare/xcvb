@@ -15,10 +15,12 @@ enforced locally-declared dependencies.
     1  About XCVB
       1.1  Status
       1.2  Home page
-      1.3  Dependencies
-      1.4  Documentation
-      1.5  Examples
-      1.6  Timeline
+      1.3  Getting Help
+      1.4  Downloading the Code
+      1.5  Dependencies
+      1.6  Documentation
+      1.7  Examples
+      1.8  Timeline
     2  Using XCVB
       2.1  Building XCVB
       2.2  Starting a new XCVB project
@@ -67,11 +69,15 @@ Status
 
 Bottom line:
 XCVB is available as a working deterministic build system for Common Lisp.
-It isn't yet ready as a full replacement for ASDF for the Lisp masses.
+It can already replace ASDF for the better in many cases,
+but is not yet a universal replacement for it.
+
+Currently only SBCL, CCL and CLISP are supported.
 
 The current version (in git master branch or the release tarball)
 can handle builds of very large and complex systems,
-though it is not very user-friendly in its failure modes.
+though it is not very user-friendly in its failure modes
+(though arguably better than ASDF).
 
 You can either write your project directly as an XCVB build
 or automatically convert an existing ASDF project
@@ -96,14 +102,32 @@ The home page of the project is at:
 
 	http://common-lisp.net/project/xcvb/
 
-You can find a tarball containing XCVB, all its dependencies, and a few generated files
-sufficient to bootstrap the whole thing (depending on CLISP or SBCL with or without CFASL) in:
+
+Getting Help
+------------
+
+We have two mailing-lists, one reserved for announcements,
+``xcvb-announce`` http://www.common-lisp.net/mailman/listinfo/XCVB-announce
+and one open to general discussions,
+``xcvb-devel`` http://www.common-lisp.net/mailman/listinfo/xcvb-devel
+
+For reporting bugs, we also have opened a project on https://launchpad.net/xcvb
+
+
+Downloading the Code
+--------------------
+
+You can find a tarball containing XCVB ready to build,
+with all its dependencies (except a Lisp implementation)
+and a few generated files sufficient to bootstrap the whole thing in:
 
            http://common-lisp.net/project/xcvb/releases/
 
 From the toplevel directory of the expanded release tarball, you can afterwards ``make update``
 and it will update XCVB and its dependencies to the latest version.
 
+If you want instead to download XCVB as part of your pre-existing Lisp development environment,
+you will have to also download all our `dependencies`_.
 You can checkout our public repository with::
 
 	git clone http://common-lisp.net/project/xcvb/git/xcvb.git
@@ -117,11 +141,6 @@ You can also browse the repository at either of these:
 	http://common-lisp.net/gitweb?p=projects/xcvb/xcvb.git
 
 	http://github.com/fare/xcvb/tree/master
-
-We also have two mailing-lists, one reserved for announcements,
-``xcvb-announce`` http://www.common-lisp.net/mailman/listinfo/XCVB-announce
-and one open to general discussions,
-``xcvb-devel`` http://www.common-lisp.net/mailman/listinfo/xcvb-devel
 
 
 Dependencies
@@ -354,7 +373,7 @@ and ``:load-depends-on``
 and even ``:cload-depends-on``:
 
 
- * ``:load-depends-on`` specifies what must be loaded the compiled FASL file may be loaded.
+ * ``:load-depends-on`` specifies what must be loaded before the compiled FASL file may be loaded.
  * ``:compile-depends-on`` specifies what must be loaded before the Lisp file may be compiled
    (by default, the compile-time versions of the files listed in ``:load-depends-on`` above;
    where compile-time version is a CFASL if available, or else a FASL).
@@ -1487,7 +1506,8 @@ If you make changes to your Lisp implementation and/or to your `Lisp setup`_
 you need to either clear the contents of this directory.
 If you want to alternate between Lisp implementations and/or setups,
 you are responsible for segregating the object files
-from the alternate configurations in alternate object directories.
+from the alternate configurations in alternate object directories,
+or for cleaning the object directories between incompatible builds.
 
 Note that many defaults of XCVB are probably wrong wrt paths.
 Currently, XCVB defaults the output path of ``xcvb.mk`` and ``obj``

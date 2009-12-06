@@ -81,7 +81,7 @@ a reference to the system was superseded by a build.xcvb file.")
 (define-normalize-dependency :asdf (grain name)
   (declare (ignore grain))
   (let* ((n (coerce-asdf-system-name name))
-         (superseding (registered-grain `(:supersedes-asdf ,n))))
+         (superseding (registered-build `(:supersedes-asdf ,n))))
     (etypecase superseding
       (null
        `(:asdf ,n))

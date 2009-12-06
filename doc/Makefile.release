@@ -102,8 +102,8 @@ reset:
 
 prepare-release:
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
-	cp -flax xcvb/doc/configure.mk.example xcvb/configure.mk && \
-	cp -flax xcvb/doc/Makefile.release Makefile && \
+	cp -fax xcvb/doc/configure.mk.example xcvb/configure.mk && \
+	cp -fax xcvb/doc/Makefile.release Makefile && \
 	./dependencies/cl-launch/cl-launch.sh \
 		-I ./dependencies/cl-launch \
 		-B install_path && \
