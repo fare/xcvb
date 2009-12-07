@@ -137,12 +137,13 @@ Declare asd system as ASDF-NAME."
     (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
     (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
     (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+    (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
     (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")))
 
 (defun xcvb-to-asdf-command (&rest keys &key
                              build name output-path verbosity xcvb-path
-                             lisp-implementation lisp-binary-path)
-  (declare (ignore xcvb-path verbosity lisp-implementation lisp-binary-path))
+                             lisp-implementation lisp-binary-path debugging)
+  (declare (ignore xcvb-path verbosity lisp-implementation lisp-binary-path debugging))
   (apply 'handle-global-options keys)
   (write-asd-file
    :asdf-name name

@@ -175,10 +175,12 @@ for this version of XCVB.")))
      :documentation "Specify XCVB build to remove modules from")
     (("xcvb-path" #\x) :type string :optional t
      :documentation "override your XCVB_PATH")
+    (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
     (("verbosity" #\v) :type integer :optional t :initial-value 5 :documentation "set verbosity (default: 5)")))
 
-(defun remove-xcvb-command (&key xcvb-path verbosity build)
-  (handle-global-options :xcvb-path xcvb-path :verbosity verbosity)
+(defun remove-xcvb-command (&rest keys &key xcvb-path verbosity build debugging)
+  (declare (ignore xcvb-path verbosity debugging))
+  (apply 'handle-global-options keys)
   (remove-xcvb-from-build build))
 
 ;; Using the build.xcvb as a starting point, finds files and
@@ -273,7 +275,8 @@ for this version of XCVB.")))
           (quit 111))))))
 
 (defun initialize-environment ()
-  #+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
+  ;;; sb-posix:putenv doesn't work correctly! See https://bugs.launchpad.net/sbcl/+bug/460455
+  ;;;#+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
   #+clozure (setf *error-output* ccl::*stderr* *trace-output* ccl::*stderr*)
   (labels ((v (x)
              (let ((s (cl-launch:getenv x)))

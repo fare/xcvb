@@ -407,28 +407,28 @@ waiting at this state of the world.")
       (farm-out-world-tree traversal))))
 
 (defparameter +standalone-build-option-spec+
- '((("build" #\b) :type string :optional nil :documentation "specify what system to build")
-   (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
-   (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
-   (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
-   (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
-   (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
-   (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
-   (("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")
-   (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
-   (("base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
-   (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
-   (("profiling" #\P) :type boolean :optional t :documentation "profiling")
-   ))
+  '((("build" #\b) :type string :optional nil :documentation "specify what system to build")
+    (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
+    (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
+    (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
+    (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
+    (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
+    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+    (("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")
+    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
+    (("base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
+    (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
+    (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
+    (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
 
 (defun standalone-build-command
     (&rest keys &key
      xcvb-path setup verbosity output-path
      build lisp-implementation lisp-binary-path
-     disable-cfasl master object-directory base-image profiling)
+     disable-cfasl master object-directory base-image debugging profiling)
   (declare (ignore xcvb-path setup verbosity output-path
                    lisp-implementation lisp-binary-path
-                   disable-cfasl master object-directory base-image))
+                   disable-cfasl master object-directory base-image debugging))
   (with-maybe-profiling (profiling)
     (apply 'handle-global-options keys)
     (standalone-build (canonicalize-fullname build))))

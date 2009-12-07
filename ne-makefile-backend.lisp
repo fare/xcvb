@@ -109,7 +109,7 @@ in a fast way that doesn't enforce dependencies."
    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
    (("parallel" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")
-   ;;(("debugging" #\D) :type boolean :optional t :initial-value nil :documentation "debug")
+   (("debugging" #\Z) :type boolean :optional t :initial-value nil :documentation "debug")
 ;  (("force-cfasl" #\C) :type boolean :optional t :initial-value nil :documentation "force use of CFASL")
 ;  (("profiling" #\P) :type boolean :optional t :documentation "profiling")
    ))
@@ -118,10 +118,10 @@ in a fast way that doesn't enforce dependencies."
                                build base-image setup xcvb-path name
                                output-path object-directory
                                lisp-implementation lisp-binary-path
-                               verbosity parallel #|force-cfasl profiling|#)
+                               verbosity parallel debugging #|force-cfasl profiling|#)
   (declare (ignore xcvb-path setup verbosity
                    lisp-implementation lisp-binary-path
-                   object-directory base-image))
+                   object-directory base-image debugging))
   ;;(with-maybe-profiling (profiling)
   (apply 'handle-global-options
          ;;:disable-cfasl (not force-cfasl)

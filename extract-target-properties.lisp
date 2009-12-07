@@ -66,15 +66,16 @@
   ;; And so, to provide deterministic behavior whatever the build implementation is,
   ;; we unset SBCL_HOME when invoking the target SBCL.
   ;;
-  ;; I used to append ("env" "-u" "SBCL_HOME") to the arglist
+  ;; On Linux, we append ("env" "-u" "SBCL_HOME") to the arglist
   ;; when the target implementation type was sbcl, and
   ;; whichever implementation XCVB itself was using,
   ;; so the semantics of XCVB would not depend on said implementation,
   ;; but -u is apparently a GNU extension not available on other systems
   ;; (most notably BSD systems including OS X),
-  ;; so I instead resort to unsetting SBCL_HOME when the XCVB implementation is sbcl.
-  ;; Ouch.
-  #+sbcl (sb-posix:putenv "SBCL_HOME=")
-  (lisp-invocation-arglist
-   :eval (format nil "(progn ~A (finish-output) ~A)"
-                 query-string (quit-form :code 0))))
+  ;; so we'd instead resort to unsetting SBCL_HOME when the XCVB implementation is sbcl.
+  ;; Except that sb-posix:putenv is broken! https://bugs.launchpad.net/sbcl/+bug/460455
+  (append
+   #+(and sbcl (or linux cygwin)) '("env" "-u" "SBCL_HOME")
+   (lisp-invocation-arglist
+    :eval (format nil "(progn ~A (finish-output) ~A)"
+                  query-string (quit-form :code 0)))))

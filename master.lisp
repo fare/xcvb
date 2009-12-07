@@ -202,14 +202,6 @@ with associated pathnames and tthsums.")
     (with-open-file (in filepath)
       (read in nil nil))))
 
-#+sbcl
-(defun run-program* (&rest args)
-  ;; This is a workaround for a bug in SBCL regarding posix-environ
-  ;; By currently disabling this workaround, the bug can be reproduced,
-  ;; tracked and hopefully fixed. https://bugs.launchpad.net/sbcl/+bug/460455
-  (let ((sb-alien::*default-c-string-external-format* :iso-8859-1))
-    (apply 'sb-ext:run-program args)))
-    
 ;;; Simple variant of run-program with no input, and capturing output
 (defun run-program/process-output-stream (command output-processor
                                           &key ignore-error-status)
@@ -217,7 +209,7 @@ with associated pathnames and tthsums.")
   #-(or sbcl cmu scl clozure clisp)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
   (let* ((process
-          (#+sbcl run-program*
+          (#+sbcl sb-ext:run-program
            #+(or cmu scl clisp) ext:run-program
            #+clozure ccl:run-program
            (car command) #+clisp :arguments (cdr command)

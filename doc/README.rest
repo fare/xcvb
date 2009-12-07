@@ -1576,21 +1576,25 @@ Before we started XCVB, we had already done many experiments with ASDF.
 See POIU, and imagine the tens of small unpublished ASDF customizations
 used at ITA. With this experience, we confidently believe the following:
 
- * While we could conceivably be compatible with the surface syntax of an
-   ASDF defsystem, this would both be a significant amount of additional work,
-   and still be fundamentally incompatible with corner cases of ASDF usage and
-   any existing ASDF extension such as the many we use. Moreover, unless
-   we also reimplement all our extensions to the regular ASDF, any ``.asd`` file
-   that uses them would actually be a lie as it would only run with XCVB.
+ * The semantics of compiling with XCVB are essentially backwards incompatible
+   with the semantics of compiling with ASDF.
+   While we could conceivably be compatible with
+   the surface syntax of an ASDF defsystem, this would both
+   entail a significant amount of additional work for us
+   and necessarily break down into distressing incompatibilities
+   in the corner cases of ASDF usage.
+   Moreover, unless we also reimplement all our extensions twice
+   so they work with the regular ASDF as well as with XCVB,
+   any ``.asd`` file that uses them would actually be a lie
+   as it would only run with XCVB.
 
  * With the tools to convert ASDF systems to XCVB builds and vice versa,
-   tools that work perfectly in the simple case,
-   and since it is further possible for XCVB builds
-   to declare dependency on ASDF systems, and
-   for ASDF systems to load XCVB-built software via xcvb-master,
-   XCVB is are already as compatible with ASDF as we can hope it to be.
+   XCVB is already as compatible with ASDF as we can hope it to be.
+   These tools work perfectly in the simple cases that matter.
+   Moreover, it is possible for XCVB builds to depend on ASDF systems, and
+   for ASDF systems to load XCVB-built software via xcvb-master.
 
  * Yes, future tighter integration of ASDF and XCVB is conceivable,
    but as usual is more work and not very high on my priority list,
    since I'm after what seems to me to be lower-hanging fruits:
-   fork-based compilation, "(exploded) dependency caching", etc.
+   fork-based compilation, (exploded) dependency caching, etc.

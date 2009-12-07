@@ -15,6 +15,7 @@
    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
    (("disable-cfasl" #\C) :type boolean :optional t :initial-value nil :documentation "disable use of CFASL")
    (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
+   (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
    (("profiling" #\P) :type boolean :optional t :documentation "profiling")
    ))
@@ -23,7 +24,7 @@
                       build setup xcvb-path
                       output-path object-directory
                       lisp-implementation lisp-binary-path
-                      disable-cfasl base-image verbosity profiling)
+                      disable-cfasl base-image verbosity profiling debugging)
   (multiple-value-bind (makefile-path makefile-dir)
       ;; Note that make-makefile calls handle-common-options for us.
       (make-makefile
@@ -33,7 +34,7 @@
        :object-directory object-directory
        :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
        :disable-cfasl disable-cfasl :base-image base-image
-       :verbosity verbosity :profiling profiling)
+       :verbosity verbosity :profiling profiling :debugging debugging)
     (let* ((make-command
             (list "make"
                   "-C" (namestring makefile-dir)
