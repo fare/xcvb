@@ -36,3 +36,6 @@
              :implementation implementation
              :loaded dependencies)
             (compile-module (filename lisp) :fasl (filename fasl) :cfasl (filename cfasl))))
+
+(def rule grovel-lisp-file ()
+  ...)

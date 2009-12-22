@@ -80,9 +80,9 @@ checkout:
 	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi )
 
 gc:
-	echo -n "Packing xcvb..." ; cd xcvb ; git gc
+	echo -n "Packing xcvb..." ; cd xcvb ; git gc ; git repack -Ad
 	for i in ${GIT_DEPENDENCIES} ; do \
-	  (echo -n "Packing $$i..." ; cd dependencies/$$i ; git gc) ; done
+	  (echo -n "Packing $$i..." ; cd dependencies/$$i ; git gc ; git repack -Ad) ; done
 
 update:
 	echo -n "Updating xcvb..." ; cd xcvb ; git pull -a

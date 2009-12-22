@@ -275,16 +275,25 @@ for this version of XCVB.")))
           (quit 111))))))
 
 (defun initialize-environment ()
-  ;;; sb-posix:putenv doesn't work correctly! See https://bugs.launchpad.net/sbcl/+bug/460455
-  ;;;#+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
+  ;;; This setting helps extract-target-properties.lisp
+  ;;; NOTE: sb-posix:putenv only works in SBCL 1.0.33.21 and later.
+  ;;#+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
+
+  ;;; This setting makes things sensible for run-program on CCL
   #+clozure (setf *error-output* ccl::*stderr* *trace-output* ccl::*stderr*)
+
+  ;;; Determine the temporary directory
   (labels ((v (x)
              (let ((s (cl-launch:getenv x)))
                (and (not (equal s "")) s))))
     (let ((tmp (or (v "TMP") (v "TMPDIR"))))
       (when tmp
         (setf *tmp-directory-pathname* (ensure-pathname-is-directory tmp)))))
+
+  ;;; For the sake of a2x, exclude this system directory on the fasl cache
   (cl-launch::exclude-from-cache *lisp-implementation-directory*)
+
+  ;;; In case debugging is involved, make things easier on the printer
   (setf *print-pretty* nil
         *print-readably* nil))
 

@@ -393,7 +393,8 @@ This is designed to abstract away the implementation specific quit forms."
   (let* ((hash (sxhash goal))
          (*gensym-counter* (* hash 10000))
          #+sbcl (sb-impl::*gentemp-counter* (* hash 10000))
-         ;;; SBCL will hopefully export a better mechanism soon
+         ;;; SBCL will hopefully export a better mechanism soon. See:
+         ;;; https://bugs.launchpad.net/sbcl/+bug/310116
          (*random-state*
           #+sbcl (sb-kernel::%make-random-state
                   :state (sb-kernel::init-random-state (ldb (byte 32 0) hash)))

@@ -72,8 +72,9 @@
   ;; so the semantics of XCVB would not depend on said implementation,
   ;; but -u is apparently a GNU extension not available on other systems
   ;; (most notably BSD systems including OS X),
-  ;; so we'd instead resort to unsetting SBCL_HOME when the XCVB implementation is sbcl.
-  ;; Except that sb-posix:putenv is broken! https://bugs.launchpad.net/sbcl/+bug/460455
+  ;; so we'd instead resort to unsetting SBCL_HOME when the XCVB implementation is sbcl
+  ;; (in main.lisp)
+  ;; Except that sb-posix:putenv is broken before SBCL 1.0.33.21 (SBCL bug 460455).
   (append
    #+(and sbcl (or linux cygwin)) '("env" "-u" "SBCL_HOME")
    (lisp-invocation-arglist

@@ -57,7 +57,7 @@
         (build-command-for* env dependencies)
         (setf (generator-computation generator)
               (make-computation
-               ()
+               env
                :outputs targets
                :inputs (traversed-dependencies env)
                :command
@@ -198,7 +198,7 @@
             (make-grain 'image-grain
                         :fullname `(:image ,name)
                         :world world)))
-      (make-computation ()
+      (make-computation env
        :outputs (list grain)
        :inputs traversed
        :command

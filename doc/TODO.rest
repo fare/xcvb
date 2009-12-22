@@ -50,6 +50,7 @@ and background on the design and ultimate goals of XCVB.
       4.19  ECL support [V1]
       4.20  Finer-grain ASDF supersession [V2]
       4.21  Better Debugging [V3]
+      4.22  Support common ASDF Extensions [V1]
     5  Internals [V4]
       5.1  Type-Checking [V4]
       5.2  Error handling [V4]
@@ -1006,6 +1007,13 @@ Better Debugging [V3]
 In some future, have a more robust way to debug than using ``${XCVB_DEBUGGING}``.
 When XCVB controls the build, it should provide a way to debug, too.
 
+
+Support common ASDF Extensions [V1]
+-----------------------------------
+
+Support ``cffi-grovel``.
+
+Support ``:static-file``.
 
 
 Internals [V4]
