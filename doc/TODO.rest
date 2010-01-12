@@ -1101,6 +1101,9 @@ See also:
         * Haskell Cabal http://www.haskell.org/cabal/
         * Boost Jam http://www.boost.org/doc/tools/jam/index.html
 	* SCons http://www.scons.org/
+        * SEBS http://code.google.com/p/sebs/
+        * VESTA http://www.vestasys.org/
+        * Rebar http://dizzyd.com/blog/post/194
 
 distclc [V3]
 ------------
