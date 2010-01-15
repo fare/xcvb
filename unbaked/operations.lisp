@@ -119,3 +119,13 @@ that are subsequently compiled and/or loaded."))
         ;; FIXME: hardcoded library path.
         (values (generate-bindings-file lib-file lib-soname lisp-forms output-defaults)
                 lib-file)))))
+
+
+#|
+Have a hierarchy of rules.
+1- matching constants
+2- matching a cons -> bind, matcher for the head, if yes, matcher for the rest
+
+...
+
+|#

@@ -168,35 +168,6 @@ for this version of XCVB.")))
     (format t "~{~S~^ ;~%~}" /)
     (xcvb-driver:finish-outputs)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Remove XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defparameter +remove-xcvb-option-spec+
-  '((("build" #\b) :type string :optional nil
-     :documentation "Specify XCVB build to remove modules from")
-    (("xcvb-path" #\x) :type string :optional t
-     :documentation "override your XCVB_PATH")
-    (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
-    (("verbosity" #\v) :type integer :optional t :initial-value 5 :documentation "set verbosity (default: 5)")))
-
-(defun remove-xcvb-command (&rest keys &key xcvb-path verbosity build debugging)
-  (declare (ignore xcvb-path verbosity debugging))
-  (apply 'handle-global-options keys)
-  (remove-xcvb-from-build build))
-
-;; Using the build.xcvb as a starting point, finds files and
-;; strips XCVB modules from them.
-(defun remove-xcvb-from-build (build)
-  (let ((build (registered-build (canonicalize-fullname build))))
-    ;; TODO: use simplifying backend and/or other expansion too
-    ;; to find *ALL* indirect dependencies under same build
-    ;; Or walk the filesystem, or trust and warn the user...
-    (with-slots (depends-on) build
-      (dolist (name depends-on)
-        (let ((path (module-subpathname (grain-pathname build) name)))
-          (remove-module-from-file path)))
-      (delete-file (grain-pathname build)))))
-
-
 ;;;; Common option handling
 
 (defun handle-global-options (&rest keys &key

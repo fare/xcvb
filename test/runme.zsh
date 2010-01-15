@@ -170,7 +170,7 @@ validate_rmx () {
   rsync -a $XCVB_DIR/test/a2x/ $BUILD_DIR/a2x_rmx/
   cd $BUILD_DIR/a2x_rmx
   XCVB_PATH=$BUILD_DIR/a2x_rmx xcvb ssp
-  XCVB_PATH=$BUILD_DIR/a2x_rmx xcvb rmx --build /xcvb/test/a2x
+  XCVB_PATH=$BUILD_DIR/a2x_rmx:${XCVB_PATH:-"!"} xcvb rmx --build /xcvb/test/a2x --verbosity 9
   [ ! -f $BUILD_DIR/a2x_rmx/build.xcvb ] ||
   abort "xcvb rmx failed to remove build.xcvb"
   grep '(module' $BUILD_DIR/a2x_rmx/*.lisp &&
@@ -268,6 +268,17 @@ clean_xcvb_dir () {
 with_xcvb_build_dir () {
   mkdir -p $obj $INSTALL_BIN $INSTALL_IMAGE
   $@
+  clean_xcvb_dir
+}
+
+validate_current_xcvb () {
+  XCVB_DIR=$PWD
+  compute_xcvb_dir_variables
+  check_xcvb_dir
+  cd $XCVB_DIR
+  clean_xcvb_dir
+  mkdir -p $obj $INSTALL_BIN
+  with_xcvb_build_dir validate_xcvb
   clean_xcvb_dir
 }
 

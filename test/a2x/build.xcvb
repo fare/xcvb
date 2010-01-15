@@ -4,5 +4,4 @@
   :supersedes-asdf ("a2x-test")
   :build-depends-on ("/cl-launch")
   :depends-on
-  ("pkgdcl" "specials" ;; TODO: not have them here and still rmx correctly
-   "main" "help")))
+  ("main" "help")))

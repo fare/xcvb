@@ -109,7 +109,7 @@
 (defun search-search-path ()
   (setf *search-path-searched-p* t)
   (finalize-search-path)
-  (dolist (root *search-path*)
+  (loop :for root :in (remove-duplicates *search-path* :test 'equal) :do
     (map-build-files-under root #'(lambda (x) (register-build-file x root)))
     (register-build-nicknames-under root)))
 

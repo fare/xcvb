@@ -3,7 +3,7 @@
 ;;;                                                                  ;;;
 ;;; Free Software available under an MIT-style license. See LICENSE  ;;;
 ;;;                                                                  ;;;
-;;; Copyright (c) 2008-2009 ITA Software, Inc.  All rights reserved. ;;;
+;;; Copyright (c) 2008-2010 ITA Software, Inc.  All rights reserved. ;;;
 ;;;                                                                  ;;;
 ;;; Original authors: Spencer Brody, Francois-Rene Rideau            ;;;
 ;;;                                                                  ;;;
@@ -63,6 +63,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "makefile-backend" :depends-on ("profiling" "static-traversal" "driver-commands"
 					    "computations"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
+     (:file "list-files" :depends-on ("simplifying-traversal"))
      (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging"))
      (:file "ne-makefile-backend" :depends-on ("specials" "makefile-backend"
                                                "asdf-backend" "simplifying-traversal"))

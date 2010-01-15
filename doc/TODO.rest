@@ -327,7 +327,8 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
 
  * Issue a binary release with a standalone clisp binary?
 
- * Implement `Exploded File Dependencies [V1]`_ then `Centralized Dependency Declaration [V1]`_.
+ * Implement `Exploded File Dependencies [V1]`_
+   then `Centralized Dependency Declaration [V1]`_.
 
  * It is best if ``xcvb.mk`` should be systematically recomputed before any build.
    Ideally, it should also record enough information to invalidate things that are
