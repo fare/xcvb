@@ -139,7 +139,7 @@ until something else is found, then return that header as a string"
 
 
 (defun remove-module-from-file (filename)
-  (replace-module-in-file filename NIL))
+  (replace-module-in-file filename nil))
 
 (defun add-module-to-file (module &optional (filename (grain-pathname module)))
   (replace-module-in-file filename module))
