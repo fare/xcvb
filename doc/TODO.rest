@@ -26,8 +26,10 @@ and background on the design and ultimate goals of XCVB.
       3.3  In-image loading [V2]
       3.4  Centralized Dependency Declaration [V1]
       3.5  Exploded File Dependencies [V1]
-      3.6  Lack of Manual [V2]
-      3.7  Producing Executables [V3]
+      3.6  Environment Variables [V2]
+      3.7  Computed Dependencies [V2]
+      3.8  Lack of Manual [V2]
+      3.9  Producing Executables [V3]
     4  Features [V2]
       4.1   XCVB Self-Test [V2]
       4.2   Improve Makefile backend [V2]
@@ -477,6 +479,39 @@ that are outside the distributed sources.
 Therefore it should be possible to disable this feature
 at least for the dependencies of such project.
 
+
+Environment Variables [V2]
+--------------------------
+
+Have an magic dependency type::
+
+   (:build-time-environment-variable "FOO")
+
+That generates a variable like that::
+
+   (defparameter build-time-environment-variable::*FOO* "bar")
+
+Except of course that the package must be created, etc.
+
+
+Computed Dependencies [V2]
+--------------------------
+
+As a generalization of environment variables,
+XCVB should allow all kinds of computed dependencies.
+
+For instance, modules can be made to declare dependencies
+on things other than Lisp files as such.
+These generalized dependencies could include
+Lisp code generated as specified by a form
+(e.g. "the function needed by the LIST-OF type",
+or "support for this encoding").
+Such generated code would then only have to be compiled and loaded once.
+Other obvious generalized dependencies could include
+compilation or otherwise processing of
+C files, python files, data files, etc.,
+with arbitrary commands and flags, yielding a variety of object files.
+XCVB could thus be eventually turned into a generally useful build system.
 
 Lack of Manual [V2]
 -------------------

@@ -125,7 +125,10 @@ that are subsequently compiled and/or loaded."))
 Have a hierarchy of rules.
 1- matching constants
 2- matching a cons -> bind, matcher for the head, if yes, matcher for the rest
-
 ...
+
+Meh, as a first approximation, have a table for things with rules,
+(the same as the build table?)
+and another table for actual nodes of the computation graph.
 
 |#

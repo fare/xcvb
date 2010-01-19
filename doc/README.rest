@@ -320,7 +320,7 @@ In late August 2009, we released XCVB 0.366
 which successfully compiled a large system at ITA.
 
 We are working hard towards making a 1.0 release
-usable by random Common Lisp programmer by the end of 2009.
+usable by random Common Lisp programmer by Spring 2010.
 
 Subscribe to one of our mailing-lists
 if you're interested in learning about our progress
@@ -1563,7 +1563,7 @@ See section `Compile-time side-effects`_ above.
 
 If you want to be able to do interactive compilation and debugging
 in the target run-time environment, you probably want any
-``:compile-toplevel`` side-effect to *also* be a ``load-toplevel``
+``:compile-toplevel`` side-effect to *also* be a ``:load-toplevel``
 side-effect -- and for good measure you should also include
 the ``:execute`` option to ``eval-when``.
 See my blog post on `eval-when`_.
