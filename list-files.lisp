@@ -29,6 +29,7 @@
 
 ;;; TODO: some magic to break circularities that are due to flattening conditionals.
 (define-build-command-for :when ((env file-listing-traversal) expression &rest dependencies)
+  (declare (ignore expression))
   (build-command-for* env dependencies))
 (define-build-command-for :cond ((env file-listing-traversal) &rest cond-expressions)
   (dolist (cond-expression cond-expressions)
