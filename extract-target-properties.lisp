@@ -16,8 +16,8 @@
     (*target-lisp-image-pathname*
      . "(or #+clozure(namestring ccl:*HEAP-IMAGE-NAME*) #+sbcl(namestring sb-ext:*core-pathname*))")
     (*target-lisp-executable-pathname*
-     . "(or #+sbcl sb-ext:*runtime-pathname*
-            #+(and clozure linux) (namestring(truename\"/proc/self/exe\"))
+     . "(or #+sbcl (symbol-value (find-symbol \"*RUNTIME-PATHNAME*\" :sb-ext))
+            #+(and linux (or sbcl clozure)) (namestring(truename\"/proc/self/exe\"))
             #+(and clisp linux) (read-line (run-program \"readlink\" :arguments (list (format nil \"/proc/~A/exe\" (LINUX:getpid))) :output :stream)))"))
     "alist of variables and how to compute them in the target system")
 
