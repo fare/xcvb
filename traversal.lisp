@@ -26,6 +26,7 @@
 (defgeneric graph-for-source (env name &key in))
 (defgeneric graph-for-asdf (env name))
 (defgeneric graph-for-require (env name))
+(defgeneric ensure-grain-generated (env grain))
 
 (defclass xcvb-traversal (simple-print-object-mixin)
   ((image-setup
@@ -48,11 +49,20 @@
     :documentation "dependencies issued as part of the current computation, in reverse order")))
 
 (defmethod graph-for ((env xcvb-traversal) spec)
-  (let* ((current-grains-r (traversed-grain-names-r env)))
+  (let ((current-grains-r (traversed-grain-names-r env)))
     (when (member spec current-grains-r :test 'equal)
       (error "circularity in the dependencies:~%~{ ~S~%~}"
-             (member spec (reverse current-grains-r) :test 'equal)))
-    (do-graph-for (next-traversal env spec) spec)))
+             (member spec (reverse current-grains-r) :test 'equal))))
+  (let ((grain (do-graph-for (next-traversal env spec) spec)))
+    (if (typep grain 'buildable-grain)
+      (ensure-grain-generated env grain)
+      (error "Grain for ~S is not buildable." spec))
+    grain))
+
+(defmethod ensure-grain-generated (env (grain buildable-grain))
+  (let ((generator (grain-generator grain)))
+    (when generator
+      (funcall generator env))))
 
 (defun do-graph-for (env spec)
   (call-with-grain-registration

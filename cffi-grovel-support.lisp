@@ -9,13 +9,14 @@
 
 ;; Do something about cc-flags
 (defclass cffi-grovel-lisp-grain (lisp-grain)
-  ((cc-flags :initform cc-flags :initform nil :reader cc-flags-of)))
+  ((cc-flags :initarg cc-flags :initform nil :reader cc-flags-of)))
 
 (defclass cffi-grovel-results-lisp-grain (lisp-grain)
   ())
 
 ;; Use a generated file, with a (:eval (:call :cffi-grovel :process-grovel-file ...))
 ;; as the last command to execute?
+#|
 (defun process-grovel-file (input-file &optional (output-defaults input-file))
   (with-standard-io-syntax
     (let* ((c-file (generate-c-file input-file output-defaults))
@@ -24,12 +25,14 @@
       (cc-compile-and-link c-file exe-file)
       (invoke exe-file (native-namestring lisp-file))
       lisp-file)))
+|#
 
 ;;;; asdf-backend
 ;; export a cffi-grovel:grovel-file component (?)
 
 ;;;; dependencies-interpreter
 
+#|
 (make-computation
  env
  :inputs ...
@@ -37,10 +40,9 @@
     (:call :cffi-grovel :process-grovel-file
            ,(grain-pathname cffi-grovel-lisp-grain)
            ,(grain-pathname cffi-grovel-results-lisp-grain))))
-
-
+|#
 ;;;# ASDF component: WRAPPER-FILE
-
+#|
 (defclass wrapper-file (asdf:cl-source-file cc-flags-mixin)
   ((soname :initform nil :initarg :soname :accessor soname-of))
   (:documentation
@@ -66,3 +68,4 @@ that are subsequently compiled and/or loaded."))
 
 (defmethod asdf:perform ((op asdf:load-source-op) (c wrapper-file))
   (load (%perform-process-wrapper-file op c)))
+|#

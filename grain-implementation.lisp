@@ -5,7 +5,7 @@
 (defun parse-module-declaration (form &key path build-p)
   "Takes a module declaration FORM and returns a grain object for that module."
   (unless (module-form-p form)
-    (error "Invalid or missing module declaration"))
+    (error "Invalid or missing module declaration~@[ in ~S~]" path))
   (destructuring-bind ((&rest keys) &rest extension-forms) (cdr form)
     (apply #'make-instance (if build-p 'build-grain 'lisp-grain)
            :pathname path :extension-forms extension-forms
@@ -27,35 +27,40 @@
 
 ;;; Lisp Grains
 
-(defmethod handle-lisp-dependencies ((grain lisp-grain))
-  (unless (slot-boundp grain 'load-dependencies) ;; Only do it once
-    (handle-extension-forms grain)
-    (macrolet ((normalize (deps)
-                 `(normalize-dependencies grain ,deps ,(keywordify deps))))
-      (with-slots (build-depends-on compile-depends-on load-depends-on
-                   cload-depends-on depends-on
-                   build-dependencies compile-dependencies cload-dependencies load-dependencies)
-          grain
-        (let ((common-dependencies (normalize depends-on)))
-          (setf compile-dependencies
-                (append (mapcar #'compiled-dependency common-dependencies)
-                        (normalize compile-depends-on)))
-          (setf cload-dependencies
-                (if (slot-boundp grain 'cload-depends-on)
+(defmethod finalize-grain :around (grain)
+  (unless (grain-finalized-p grain) ;; only do it once per grain
+    (call-next-method)
+    (setf (grain-finalized-p grain) t))
+  (values))
+
+(defmethod finalize-grain :after ((grain lisp-grain))
+  (handle-extension-forms grain)
+  (macrolet ((normalize (deps)
+               `(normalize-dependencies grain ,deps ,(keywordify deps))))
+    (with-slots (build-depends-on compile-depends-on load-depends-on
+                 cload-depends-on depends-on
+                 build-dependencies compile-dependencies cload-dependencies load-dependencies)
+        grain
+      (let ((common-dependencies (normalize depends-on)))
+        (setf compile-dependencies
+              (append (mapcar #'compiled-dependency common-dependencies)
+                      (normalize compile-depends-on))
+              cload-dependencies
+              (if (slot-boundp grain 'cload-depends-on)
                   (append (mapcar #'compiled-dependency common-dependencies)
                           (normalize cload-depends-on))
-                  compile-dependencies))
-          (setf load-dependencies
-                (append common-dependencies
-                        (normalize load-depends-on)))
-          (setf build-dependencies
-                (if (slot-boundp grain 'build-depends-on)
+                  compile-dependencies)
+              load-dependencies
+              (append common-dependencies
+                      (normalize load-depends-on))
+              build-dependencies
+              (if (slot-boundp grain 'build-depends-on)
                   (normalize build-depends-on)
-                  (build-dependencies (grain-parent grain))))))
-      (when (build-grain-p grain)
-        (with-slots (supersedes-asdf) grain
-          (setf supersedes-asdf (mapcar #'coerce-asdf-system-name supersedes-asdf))))))
-  (values))
+                  (build-dependencies (grain-parent grain))))))))
+
+(defmethod finalize-grain :after ((grain build-grain))
+  (with-slots (supersedes-asdf) grain
+    (setf supersedes-asdf (mapcar #'coerce-asdf-system-name supersedes-asdf))))
 
 ;; Lisp grain extension form for generating Lisp files.
 
@@ -69,13 +74,13 @@
   (error "handle-extension-form-atom: Extension form ~a is invalid.  Only currently support :generate extension form."
 	 extension-form))
 
-(defclass generator (simple-print-object-mixin)
-  ((target-grain :initarg :targets :reader generator-targets) ;; generated-grains
-   (dependencies :initarg :dependencies :reader generator-dependencies) ;; generated-to-generator
-   (computation :initform nil :accessor generator-computation))) ;; generated-computation
+(defclass lisp-generator (simple-print-object-mixin)
+  ((build :initarg :build :reader generator-build)
+   (targets :initarg :targets :reader generator-targets)
+   (dependencies :initarg :dependencies :reader generator-dependencies)
+   (computations :accessor generator-computations)))
 
-
-(define-handle-extension-form :generate (grain generate &key depends-on)
+(define-handle-extension-form :generate (build generate &key depends-on)
   (unless generate
     (error "Files to be generated not specified."))
   (unless depends-on
@@ -87,16 +92,40 @@
 			(error "Only know how to generate lisp modules."))
 		      (parse-module-declaration `(module ,keys)
 						:path (module-subpathname
-						       (grain-pathname grain) name))))
+						       (grain-pathname build) name))))
 		  generate))
 	 (generator
-	  (make-instance 'generator
+	  (make-instance 'lisp-generator
+            :build build
 	    :targets targets
-	    :dependencies (normalize-dependencies grain depends-on :depends-on))))
+	    :dependencies (normalize-dependencies build depends-on :depends-on))))
+    (loop :for target :in targets :do
+      (setf (grain-generator target) generator))))
+
+(defgeneric run-generator (env generator))
+;;(defmethod run-generator (env (fun function)) (funcall fun env))
+(defmethod run-generator (env (g lisp-generator))
+  (let* ((dependencies (append (build-dependencies grain)
+                               (generator-dependencies generator)))
+         (targets (generator-targets generator))
+         (grain (first targets)))
+    (unless targets
+      (error "no targets"))
+    (unless dependencies
+      (error "graph-for-lisp: Need dependencies to generate file ~S.~%" fullname))
     (dolist (target targets)
-      (slot-makunbound target 'computation)
-      (setf (gethash (fullname target) *generators*) generator)
-      (setf (gethash (namestring (grain-pathname target)) *pathname-grain-cache*) target))))
+      (slot-makunbound target 'computation))
+    (pre-image-for env grain)
+    (build-command-for* env dependencies)
+    (setf (generator-computation generator)
+          (make-computation
+           env
+           :outputs targets
+           :inputs (traversed-dependencies env)
+           :command
+           `(:xcvb-driver-command
+             ,(image-setup env)
+             ,@(traversed-build-commands env))))))
 
 ;;(define-handle-extension-form :in-package (grain files &key package) ...)
 
@@ -126,13 +155,13 @@
     (lisp-grain (grain-parent grain))))
 
 (defmethod load-dependencies :before ((grain lisp-grain))
-  (handle-lisp-dependencies grain))
+  (finalize-grain grain))
 (defmethod cload-dependencies :before ((grain lisp-grain))
-  (handle-lisp-dependencies grain))
+  (finalize-grain grain))
 (defmethod compile-dependencies :before ((grain lisp-grain))
-  (handle-lisp-dependencies grain))
+  (finalize-grain grain))
 (defmethod build-dependencies :before ((grain lisp-grain))
-  (handle-lisp-dependencies grain))
+  (finalize-grain grain))
 
 (defun build-starting-dependencies-p (dependencies)
   (and (consp dependencies)
@@ -149,7 +178,7 @@
   (when (member grain traversed)
     (error "Circular build dependency ~S"
            (member grain (reverse traversed))))
-  (handle-lisp-dependencies grain)
+  (finalize-grain grain)
   (let* ((dependencies (build-dependencies grain))
          (build-grain
           (cond
@@ -185,7 +214,7 @@
   ;; The closest build on top of which to load files to reach the state post loading the build.
   ;; If the build has an image, that's it. Otherwise, it's its pre-image.
   (check-type build-grain build-grain)
-  (handle-lisp-dependencies build-grain)
+  (finalize-grain build-grain)
   (if (build-image build-grain)
       (build-image-name build-grain)
       (build-pre-image-name build-grain)))

@@ -484,22 +484,37 @@ ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
 See `High-level description`_.
 
 
-portablish-pathnames.lisp
--------------------------
+virtual-pathnames.lisp
+----------------------
 
-Abstraction layer to ensure that XCVB uses reasonably portable names when naming modules.
+TODO: this is in flux and seriously broken.
 
-Everywhere that hierarchical module names are involved,
-XCVB uses the "``/``" character as a pathname directory separator,
-in a way that is guaranteed to work portably, however things may vary depending on
-Lisp implementation, Operating system, pathname host and device.
-Also, XCVB will only accept module names where all characters are valid: ``[-_.,A-Za-z0-9]``.
+Abstraction layer for pathnames between the XCVB frontend and the backend,
+so that the planning algorithm may compute abstract file locations
+independently from where the execution algorithm may or may not place them.
 
-We might eventually be using some existing library for dealing with namestrings sensibly,
-mostly bypassing the unreliable CL pathnames.
-Stelian Ionescu may be working on something like that soon for zeta-streams.
-In the meantime, we'll use our own library portablish-pathnames
-to get rid of these non-portable things.
+DESIGN IDEA:
+
+  + XCVB will identify files by their vpn (virtual pathname)
+
+  + A same file can be referenced as different roles in multiple rules.
+    (e.g. as the source of a Lisp compilation, the target of a Lisp generator,
+    etc.)
+
+  + The backend will ensure that an actual output or input/output pathname
+    is never referenced by two different files. (For input only, it's OK
+    if we're using a content-addressed system.)
+
+WORKFLOW:
+
+  + At initialization, some toplevel vpn to pathname mappings are defined.
+
+  + When build files are registered, they get a pathname and a trivial vpn.
+
+  + During traversal, source files are probed as usual, but located by VPN.
+    Files are located by vpn.
+
+  + In the backend, VPNs are resolved as object file locations are found.
 
 
 registry.lisp
@@ -596,6 +611,12 @@ static-traversal.lisp
 Builds a static graph, for use with GNU Make, ASDF, and other static backends.
 
 
+driver-commands.lisp
+--------------------
+
+Prints text for driver commands from mini-language.
+
+
 makefile-backend.lisp
 ---------------------
 
@@ -610,6 +631,18 @@ simplifying-traversal.lisp
 This is a simplifying traversal used by the ASDF backend
 and its associated non-enforcing Makefile backend.
 It conflates all different kinds of dependencies into one.
+
+
+list-files.lisp
+---------------
+
+A traversal that finds all files in a build.
+
+Based on this traversal, a function to remove XCVB forms
+from all files that are part of a build.
+
+TODO: make it resilient to circularities that may appear
+when you eliminate conditionals.
 
 
 asdf-backend.lisp
@@ -672,6 +705,13 @@ main.lisp
 
 The main entry file,
 with XCVB's command-line interface.
+
+
+cffi-grovel-support.lisp
+------------------------
+
+Support for CFFI-Grovel.
+Actually built into XCVB, but written as if it were a plugin.
 
 
 version.lisp

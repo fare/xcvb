@@ -10,14 +10,14 @@
 (defgeneric build-commands-r (env))
 (defgeneric included-dependencies (env))
 (defgeneric (setf included-dependencies) (value env))
-(defgeneric handle-lisp-dependencies (grain))
+(defgeneric finalize-grain (grain))
 (defgeneric object-namestring (env fullname &optional merge))
 
 ;;; Define grains.
 
 ;; Unit of build: a file, a process, etc.
 (defclass grain (simple-print-object-mixin)
-  ()
+  ((finalizedp :accessor grain-finalized-p :initform nil :initarg :finalizedp))
   (:documentation "Unit of abstract state intent"))
 
 (defclass buildable-grain (grain)
@@ -30,6 +30,10 @@
    (content-digest
     :accessor grain-content-digest
     :documentation "digest of the contents of the grain.")
+   (generator
+    :initarg :generator
+    :initform nil
+    :accessor grain-generator)
    (computation
     :initarg :computation
     :accessor grain-computation)
@@ -69,8 +73,11 @@
   (:documentation "virtual grain used for side-effects"))
 
 (defclass file-grain (persistent-grain buildable-grain named-grain)
-  ((pathname
+  ((vpn
     :initarg :pathname
+    :accessor grain-vpn
+    :documentation "The truepath to the file that the module was declared in")
+   (pathname
     :accessor grain-pathname
     :documentation "The truepath to the file that the module was declared in"))
   (:documentation "File grain"))

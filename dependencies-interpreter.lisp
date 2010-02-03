@@ -69,14 +69,14 @@
 
 (define-build-command-for :build (env name)
   (let ((build (registered-build name)))
-    (handle-lisp-dependencies build)
+    (finalize-grain build)
     (with-dependency-loading (env build)
       (build-commands-for-build-dependencies env build)
       (build-commands-for-load-dependencies env build))))
 
 (define-build-command-for :compile-build (env name)
   (let ((build (registered-build name)))
-    (handle-lisp-dependencies build)
+    (finalize-grain build)
     (with-dependency-loading (env build)
       (build-commands-for-build-dependencies env build)
       (build-commands-for-compile-dependencies env build))))

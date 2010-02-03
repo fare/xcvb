@@ -132,3 +132,13 @@ Meh, as a first approximation, have a table for things with rules,
 and another table for actual nodes of the computation graph.
 
 |#
+
+#|
+NEW PLAN FOR LANGUAGES VS CLOS OBJECTS.
+sexp advantages:
+* less infrastructure to debug
+* more infrastructure to use
+object advantages:
+* CLOS objects make it easier to cache information instead of recomputing it
+  (hash, paths, etc.)
+|#

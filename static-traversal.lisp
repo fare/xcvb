@@ -42,28 +42,9 @@
           (make-hashset :test 'equal :set (included-dependencies image)))))
 
 (define-graph-for :lisp ((env static-traversal) name)
-  (let* ((grain (resolve-absolute-module-name name))
-	 (fullname (if grain (fullname grain) (error "Couldn't resolve ~S to a lisp module" name)))
-	 (generator (gethash fullname *generators*)))
-    (check-type grain lisp-grain)
-    (when (and generator (not (generator-computation generator)))
-      (let ((dependencies (append (build-dependencies grain) (generator-dependencies generator)))
-	    (targets (generator-targets generator)))
-	(unless dependencies
-	  (error "graph-for-lisp: Need dependencies to generate file ~S.~%" fullname))
-	(dolist (target targets)
-          (slot-makunbound target 'computation))
-        (pre-image-for env grain)
-        (build-command-for* env dependencies)
-        (setf (generator-computation generator)
-              (make-computation
-               env
-               :outputs targets
-               :inputs (traversed-dependencies env)
-               :command
-               `(:xcvb-driver-command
-                 ,(image-setup env)
-                 ,@(traversed-build-commands env))))))
+  (let* ((grain (resolve-absolute-module-name name)))
+    (unless (typep grain 'lisp-grain)
+      (error "Couldn't resolve ~S to a lisp module" name))
     grain))
 
 (define-graph-for :build (env name)
@@ -77,7 +58,7 @@
 
 (defmethod graph-for-build-grain :before (env (grain build-grain))
   (declare (ignore env))
-  (handle-lisp-dependencies grain))
+  (finalize-grain grain))
 
 (defmethod graph-for-build-grain ((env enforcing-traversal) (grain build-grain))
   (let ((post-image-name (build-image-name grain)))
@@ -102,7 +83,7 @@
      (let* ((build-name (subseq name 5))
             (build (registered-build build-name)))
        (check-type build build-grain)
-       (handle-lisp-dependencies build)
+       (finalize-grain build)
        (let* ((dependencies (build-dependencies build))
               (starting-build-name (build-starting-dependencies-p dependencies))
               (starting-build-image-name
@@ -246,7 +227,7 @@
          (driverp (equal fullname "/xcvb/driver"))
          (specialp (member `(:fasl ,fullname) *lisp-setup-dependencies* :test #'equal)))
     (check-type lisp lisp-grain)
-    (handle-lisp-dependencies lisp)
+    (finalize-grain lisp)
     (let ((build-dependencies (if specialp
                                   (setup-dependencies-before-fasl fullname)
                                   (build-dependencies lisp)))

@@ -33,7 +33,7 @@ and the non-enforcing Makefile backend.
 	 (fullname (if grain (fullname grain) (error "Couldn't resolve ~S to a lisp module" name)))
 	 (generator (gethash fullname *generators*)))
     (check-type grain lisp-grain)
-    (handle-lisp-dependencies grain)
+    (finalize-grain grain)
     (issue-dependency env grain)
     (let* ((dependencies
             (remove-duplicates

@@ -88,9 +88,16 @@ Top ITA TODO [V1]
 Here is the top of our TODO list at ITA:
 
   Fix our performance issue:
-    Provide for fast compilation of QRes with XCVB.
-    The enforcing build of QRes is an order of magnitude slower than the ASDF build
-    (on a quad-core system). See below `Enhancing Build Speed [V1]`_.
+
+   + Profile make-makefile and see where it's wasting its time.
+     Probably, we need to guard dependency recursion
+     with a dependency already having been issued, if not already.
+
+   + Provide for fast compilation of QRes with XCVB and POIU.
+
+   + Finish the standalone backend, for a fast(er) enforcing build?
+     The enforcing build of QRes is an order of magnitude slower than the ASDF build
+     (on a quad-core system). See below `Enhancing Build Speed [V1]`_.
 
   Finish applying XCVB to QRes:
 
@@ -220,6 +227,8 @@ Other Top TODO Items [V1]
 
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
+
+ * In a2x, don't bork on static-file's
 
  * Have an option to load from the command-line all the (compile and load) dependencies
    of some builds or modules X1..Xn with all the dependencies of X1..Xn loaded,

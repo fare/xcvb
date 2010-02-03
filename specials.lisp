@@ -78,9 +78,6 @@ Negatives are stored as NIL. Positives as grains.")
 (defvar *use-master* t
   "Should we use the XCVB master?")
 
-(defparameter *generators* (make-hash-table :test 'equal)
-  "Table of generators declared in :generate forms")
-
 (defparameter *grains*
   (make-hash-table :test 'equal)
   "A registry of known grains in the traversed build DAG,

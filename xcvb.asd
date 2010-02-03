@@ -72,4 +72,6 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "farmer" :depends-on ("profiling" "specials"
                                   "grain-interface" "dependencies-interpreter"))
      (:file "main" :depends-on ("static-traversal" "search-path" "computations"))
+     (:file "cffi-grovel-support" :depends-on
+            ("makefile-backend" "static-traversal" "computations" "driver-commands"))
      (:file "version" :depends-on ("specials"))))
