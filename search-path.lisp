@@ -1,17 +1,62 @@
 ;;; Handle the Search Path for XCVB modules.
-#+xcvb (module (:depends-on ("specials" "utilities")))
+#+xcvb (module (:depends-on ("macros")))
 (in-package :xcvb)
 
-(defun default-search-path ()
-  (list
-   *default-pathname-defaults*
-   (subpathname (user-homedir-pathname) ".local/share/common-lisp/source/")
-   *xcvb-lisp-directory*
-   #p"/usr/local/share/common-lisp/source/"
-   #p"/usr/share/common-lisp/source/"))
+
+;;; The Source Registry itself.
+;;; We directly use the code from ASDF, therefore ensuring 100% compatibility.
+
+(defparameter *source-registry* ()
+  "Either NIL (for uninitialized), or a list of one element,
+said element itself being a list of directory pathnames where to look for build.xcvb files")
+
+(defun default-source-registry ()
+  `(:source-registry
+    (:tree ,*default-pathname-defaults*)
+    (:tree ,(subpathname (user-homedir-pathname) ".local/share/common-lisp/source/"))
+    (:directory ,*xcvb-lisp-directory*)
+    (:tree #p"/usr/local/share/common-lisp/source/")
+    (:tree #p"/usr/share/common-lisp/source/")
+    :inherit-configuration))
+
+(defun register-source-directory (directory &key exclude recurse collect)
+  (funcall collect (list directory :recurse recurse :exclude exclude)))
+
+(defun compute-source-registry (&optional parameter)
+  (while-collecting (collect)
+    (inherit-source-registry
+     (append
+      (list parameter)
+      *default-source-registries*
+      '(default-source-registry))
+     :register
+     (lambda (directory &key recurse exclude)
+       (register-source-directory
+        directory
+        :recurse recurse :exclude exclude :collect #'collect)))))
+
+(defun initialize-source-registry (&optional parameter)
+  (let ((source-registry (compute-source-registry parameter)))
+    (setf *source-registry* (list source-registry))
+    source-registry))
+
+(defun ensure-source-registry ()
+  (unless *source-registry*
+    (error "You should have already initialized the source registry by now!")))
+
+
+;;; Now for actually searching the source registry!
+
+(defparameter *builds*
+  (make-hash-table :test 'equal)
+  "A registry of known builds, indexed by canonical name.
+Initially populated with all build.xcvb files from the search path.")
+
+(defparameter *source-registry-searched-p* nil
+  "Has the source registry been searched yet?")
 
 (defun verify-path-element (element)
-  (let* ((absolute-path (ensure-absolute-pathname (ensure-pathname-is-directory element))))
+  (let* ((absolute-path (ensure-absolute-pathname (first element))))
     (cond
       ((ignore-errors (truename absolute-path))
        absolute-path)
@@ -20,40 +65,35 @@
                (namestring element))
        nil))))
 
-(defun expand-search-path-string (string &optional (previous-path *search-path*))
-  (cond
-    ((or (null string) (equal string ""))
-     previous-path)
-    ((stringp string)
-     (loop
-	 :with path = ()
-	 :with start = 0
-	 :with end = (length string)
-	 :for i = (or (position #\: string :start start) end) :do
-	 (let ((s (subseq string start i)))
-	   (cond
-	     ((equal "" s) ; empty element
-	      nil)
-	     ((equal "!" s) ; previous path
-	      (setf path (append (reverse previous-path) path)))
-	     (t
-	      (push s path))))
-	 (setf start (1+ i))
-	 (when (>= start end) (return (nreverse path)))))))
-
-(defun set-search-path! (string)
-  (setf *search-path* (expand-search-path-string string)))
-
-(defun initialize-search-path ()
-  (setf *search-path-searched-p* nil)
-  (setf *search-path* (default-search-path))
-  (set-search-path! (cl-launch:getenv "XCVB_PATH")))
-
-(defun finalize-search-path ()
-  (setf *search-path*
-	(loop :for elt :in *search-path*
+(defun finalize-source-registry ()
+  (setf *source-registry*
+	(loop :for elt :in *source-registry*
 	      :for v = (verify-path-element elt)
 	      :when v :collect v)))
+
+(defvar +all-builds-path+
+  (make-pathname :directory '(:relative :wild-inferiors)
+                 :name "build"
+                 :type "xcvb"
+                 :version :newest))
+
+
+#|
+(defun
+  (if (not recurse)
+      ()
+  (let* ((files (ignore-errors
+                  (directory (merge-pathnames #P"**/*.asd" directory)
+                             #+sbcl #+sbcl :resolve-symlinks nil
+                             #+clisp #+clisp :circle t)))
+         (dirs (remove-duplicates (mapcar #'pathname-sans-name+type files) :test #'equal)))
+    (loop
+     :for dir :in dirs
+     :unless (loop :for x :in exclude
+                   :thereis (find x (pathname-directory dir) :test #'equal))
+     :do (funcall collect dir))))
+|#
+
 
 (defun pathname-newest-version-p (x)
   (or
@@ -65,19 +105,6 @@
   (and (equal (pathname-name x) "build")
        (equal (pathname-type x) "xcvb")
        #+genera (pathname-newest-version-p x)))
-
-(defvar *archive-directory-names* '("_darcs" ".svn")
-  "names of archive directories inside which we should not look for BUILD files")
-
-(defun in-archive-directory-p (x)
-  (loop :for d :in (pathname-directory x)
-        :thereis (member d *archive-directory-names* :test #'equal)))
-
-(defvar +all-builds-path+
-  (make-pathname :directory '(:relative :wild-inferiors)
-                 :name "build"
-                 :type "xcvb"
-                 :version :newest))
 
 (defun underscore-for-non-alphanum-chars (x)
   (map 'base-string
@@ -106,16 +133,15 @@
                        :key #'(lambda (p) (length (pathname-directory p))))))
     (map () fn builds)))
 
-(defun search-search-path ()
-  (setf *search-path-searched-p* t)
-  (finalize-search-path)
-  (loop :for root :in (remove-duplicates *search-path* :test 'equal) :do
+(defun search-source-registry ()
+  (finalize-source-registry)
+  (loop :for root :in (remove-duplicates *source-registry* :test 'equal) :do
     (map-build-files-under root #'(lambda (x) (register-build-file x root)))
     (register-build-nicknames-under root)))
 
-(defun ensure-search-path-searched ()
-  (unless *search-path-searched-p*
-    (search-search-path)))
+(defun ensure-source-registry-searched ()
+  (unless *source-registry-searched-p*
+    (search-source-registry)))
 
 ;;;; Registering a build
 
@@ -126,7 +152,7 @@
   (let ((build (gethash name *builds*)))
     (when ensure-build
       (unless (build-grain-p build)
-        (error "Could not find a build with requested fullname ~A. Try xcvb show-search-path"
+        (error "Could not find a build with requested fullname ~A. Try xcvb show-source-registry"
                name)))
     build))
 
@@ -189,9 +215,9 @@ for each of its registered names."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Show Search Path ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun show-search-path ()
+(defun show-source-registry ()
   "Show registered builds"
-  (format t "~&Registered search paths:~{~% ~S~}~%" *search-path*)
+  (format t "~&Registered search paths:~{~% ~S~}~%" *source-registry*)
   (format t "~%Builds found in the search paths:~%")
   (flet ((entry-string (x)
            (destructuring-bind (fullname . entry) x
@@ -207,12 +233,12 @@ for each of its registered names."
                         fullname (mapcar 'namestring (brc-pathnames entry))))))))
     (map () #'princ (sort (mapcar #'entry-string (hash-table->alist *builds*)) #'string<))))
 
-(defparameter +show-search-path-option-spec+
+(defparameter +show-source-registry-option-spec+
   '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
 
-(defun show-search-path-command (&key xcvb-path)
+(defun show-source-registry-command (&key xcvb-path)
   (handle-global-options :xcvb-path xcvb-path)
-  (show-search-path))
+  (show-source-registry))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Find Module ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -236,4 +262,4 @@ for each of its registered names."
   (append
    '((("name" #\n) :type string :optional nil :list t :documentation "name to search for")
      (("short" #\s) :type boolean :optional t :documentation "short output"))
-   +show-search-path-option-spec+))
+   +show-source-registry-option-spec+))

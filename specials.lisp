@@ -56,11 +56,8 @@ Autodetected from the target Lisp system.")
 ;;; and/or make the dependency explicit in a way that XCVB is aware of.
 (defvar *xcvb-lisp-directory*
   #p"/usr/share/common-lisp/source/xcvb/"
-  ;; (pathname (strcat (cl-launch:getenv "INSTALL_XCVB") "/"))
+  ;; (pathname (strcat (asdf-utilities:getenv "INSTALL_XCVB") "/"))
   "Directory pathname for the location where XCVB Lisp files are installed")
-
-(defvar *search-path* '()
-  "Path to search for XCVB modules")
 
 ;; *pathname-grain-cache* is used by code in lisp-grain.lisp and names.lisp.
 ;; lisp-grain:handle-extension-form :generate inserts lisp grains of
@@ -84,17 +81,9 @@ Negatives are stored as NIL. Positives as grains.")
 indexed by normalized name, either fullname of a module,
 nickname, or SEXP representing a computed entity.")
 
-(defparameter *builds*
-  (make-hash-table :test 'equal)
-  "A registry of known builds, indexed by canonical name.
-Initially populated with all build.xcvb files from the search path.")
-
 (defparameter *superseded-asdf*
   (make-hash-table :test 'equalp)
   "ASDF systems that have been superseded")
-
-(defvar *search-path-searched-p* nil
-  "Did we search the search path?")
 
 (defvar *computations* ()
   "A list of all the computations created")
@@ -107,3 +96,6 @@ Initially populated with all build.xcvb files from the search path.")
 (defvar *worlds* (make-hash-table :test 'equal)
   ;; TODO: either make active use of it (if *grains* is not enough), or get rid of it
   "Worlds for the standalone backend")
+
+(defvar *arguments* nil
+  "Arguments passed to the main function")

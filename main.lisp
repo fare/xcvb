@@ -13,12 +13,11 @@
   (setf *grains* (make-hash-table :test 'equal)
         *computations* nil
         *target-system-features* nil
-        *search-path-searched-p* nil
+        *source-registry* nil
         *lisp-setup-dependencies* +fast-xcvb-setup-dependencies+
         *pathname-grain-cache* (make-hash-table :test 'equal)
         *worlds* (make-hash-table :test 'equal)
         *print-readably* nil)
-  (initialize-search-path)
   (values))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Command Spec ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -53,9 +52,9 @@ a chance to load and/or configure ASDF itself and any extension thereof.")
      "Create some Makefile for a non-enforcing build,
 that will use ASDF or POIU to create one or a series of images each containing
 the previous image, a build and its dependencies.")
-    (("show-search-path" "search-path" "ssp") show-search-path-command +show-search-path-option-spec+
-     "Show builds in the specified XCVB path"
-     "Show builds in the implicitly or explicitly specified XCVB path.
+    (("show-source-registry" "source-registry" "ssr") show-source-registry-command +show-source-registry-option-spec+
+     "Show builds in the configured source registry"
+     "Show builds in the implicitly or explicitly configured source registry.
 For debugging your XCVB configuration.")
     (("find-module" "fm") find-module +find-module-option-spec+
      "Show builds in the specified XCVB path"
@@ -172,7 +171,7 @@ for this version of XCVB.")))
 
 (defun handle-global-options (&rest keys &key
                               verbosity
-                              xcvb-path
+                              source-registry
                               object-directory
                               lisp-implementation lisp-binary-path
                               disable-cfasl master setup
@@ -185,8 +184,8 @@ for this version of XCVB.")))
     (when verbosity
       (setf *xcvb-verbosity* verbosity))
     (log-format 9 "~&xcvb options: ~S~%" keys)
-    (when xcvb-path
-      (set-search-path! xcvb-path))
+    (when source-registry
+      (initialize-source-registry source-registry))
     (when object-directory
       (setf *object-directory* ;; strip last "/"
             (but-last-char
@@ -205,7 +204,6 @@ for this version of XCVB.")))
     (when disable-cfasl ;; Must be done after read-target-properties
       (setf *use-cfasls* nil))
     (setf *use-base-image* base-image)
-    (search-search-path)
     (setf *use-master* master)
     (when master
       (ensure-tthsum-present)
@@ -255,20 +253,18 @@ for this version of XCVB.")))
 
   ;;; Determine the temporary directory
   (labels ((v (x)
-             (let ((s (cl-launch:getenv x)))
+             (let ((s (asdf-utilities:getenv x)))
                (and (not (equal s "")) s))))
     (let ((tmp (or (v "TMP") (v "TMPDIR"))))
       (when tmp
         (setf *tmp-directory-pathname* (ensure-pathname-is-directory tmp)))))
-
-  ;;; For the sake of a2x, exclude this system directory on the fasl cache
-  (cl-launch::exclude-from-cache *lisp-implementation-directory*)
 
   ;;; In case debugging is involved, make things easier on the printer
   (setf *print-pretty* nil
         *print-readably* nil))
 
 (defun interpret-command-line (args)
+  (setf *arguments* args)
   (initialize-environment)
   (let* ((*package* (find-package :xcvb-user))
          (command (pop args))

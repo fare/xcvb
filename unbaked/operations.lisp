@@ -141,4 +141,26 @@ sexp advantages:
 object advantages:
 * CLOS objects make it easier to cache information instead of recomputing it
   (hash, paths, etc.)
+
+(normalize env '(:lisp "foo"))
+=>
+(make-instance 'lisp-grain ...)
+
+
+* Data structures
+  * a hash-table of stuff with a provided hashing function,
+    built on top of hash-tables for integers (or some basic type),
+    manually managing buckets?
+  * a balanced sorted tree? - the default thing for everything(!)
+  * a trie?
+
+
+* in a VPN, cache the pathname, namestring (?)
+
+1- a rule store, prioritized by specificity, indexed by whatever works.
+
+So...
+1- 
+
+
 |#

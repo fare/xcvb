@@ -315,7 +315,7 @@ so that the system can now be compiled with XCVB."
   (let ((original-traverse-order-map (systems-traverse-order-map systems)))
     (log-format 6 "Clear the system cache *again* because we'll re-define thing transformed.~%")
     (dolist (sys systems) (remhash sys asdf::*defined-systems*))
-    (setf cl-launch:*output-pathname-translations* nil)
+    (asdf:initialize-output-translations "/:")
     (eval
      `(asdf:defsystem ,simplified-system
        :components ((asdf-dependency-grovel:component-file
@@ -328,7 +328,7 @@ so that the system can now be compiled with XCVB."
                      :verbose ,verbose))))
     (log-format 6 "Starting the dependency grovelling~%")
     (let ((asdf-dependency-grovel::*system-base-dir*
-           (cl-launch:apply-output-pathname-translations base-pathname)))
+           (asdf:apply-output-translations base-pathname)))
       (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system))
     (log-format 6 "Adding dependency information to files~%")
     (let* ((original-asdf-deps

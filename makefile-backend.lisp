@@ -78,7 +78,7 @@ XCVB_EOD :=
 ifneq ($(wildcard ~A),~A)
   XCVB_EOD := xcvb-ensure-object-directories
 endif~2%"
-            *xcvb-version* cl-launch:*arguments* *lisp-implementation-type* *features*
+            *xcvb-version* *arguments* *lisp-implementation-type* *features*
             directories directories)
     (flet ((export-directory (x)
              (format stream "~%~A ?= ~A~%export ~A~%~%"

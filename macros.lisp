@@ -4,13 +4,6 @@
 
 (in-package :xcvb)
 
-(defun xfuncall (x f &rest args) (apply f x args))
-(define-modify-macro funcallf (f &rest args) xfuncall)
-(define-modify-macro appendf (&rest args) append "Append onto list")
-(define-modify-macro nconcf (&rest args) nconc "Destructively append onto list")
-(defun append1 (l x) (append l (list x)))
-(define-modify-macro append1f (x) append1 "Append one element onto list")
-
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun fintern (package format &rest rest)
     (intern (apply #'format nil format rest)
@@ -23,11 +16,6 @@
     (apply #'fintern nil format rest))
   (defun keywordify (x)
     (with-safe-io-syntax () (kintern "~A" x))))
-
-;;; Nesting binding forms (from a suggestion by marco baringer)
-(defmacro with-nesting (() &rest things)
-  (reduce #'(lambda (outer inner) (append outer (list inner)))
-          things :from-end t))
 
 ;;; Simple Dispatcher
 
@@ -60,15 +48,3 @@
           ,atom-interpreter
           ,hash-name
           environment expression)))))
-
-;;; Collecting data
-
-(defmacro while-collecting ((&rest collectors) &body body)
-  (let ((vars (mapcar #'(lambda (x) (gensym (symbol-name x))) collectors))
-        (initial-values (mapcar (constantly nil) collectors)))
-    `(let ,(mapcar #'list vars initial-values)
-       (flet ,(mapcar #'(lambda (c v) `(,c (x) (push x ,v))) collectors vars)
-         ,@body
-         (values ,@(mapcar #'(lambda (v) `(nreverse ,v)) vars))))))
-
-

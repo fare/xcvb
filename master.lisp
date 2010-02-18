@@ -8,7 +8,7 @@
   :licence "MIT" ;; MIT-style license. See LICENSE
   :build-depends-on nil))
 
-(in-package :cl)
+(cl:in-package :cl)
 (declaim (optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3))
          #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note))
 
@@ -31,7 +31,7 @@
 
    ;;; special variables for XCVB master itself
    #:*disable-cfasls*
-   #:*xcvb-path*
+   #:*source-registry*
    #:*loaded-grains*
 
    ;;; String utilities - also in fare-utils
@@ -116,11 +116,9 @@ A list of strings, or the keyword :DEFAULT.")
 (defvar *xcvb-binary* "xcvb"
   "Path to the XCVB binary (a string)")
 
-(defvar *xcvb-path* nil
-  "XCVB search path. A string.
-Will override the shell variable XCVB_PATH when calling slaves
-If you have a list of pathnames and namestrings, you can get a string with
-	(format nil \"~@{~A~^:~}\" search-path-as-list)")
+(defvar *source-registry* nil
+  "CL source registry specification. A sexp or string.
+Will override the shell variable CL_SOURCE_REGISTRY when calling slaves.")
 
 (defvar *xcvb-setup* nil
   "Lisp file to load to setup the target build system, if any")
@@ -321,7 +319,7 @@ with associated pathnames and tthsums.")
     (build &key
      (xcvb-binary *xcvb-binary*)
      (setup *xcvb-setup*)
-     (xcvb-path *xcvb-path*)
+     (source-registry *source-registry*)
      output-path
      (object-directory *object-directory*)
      (lisp-implementation *lisp-implementation-type*)
@@ -336,7 +334,7 @@ with associated pathnames and tthsums.")
            (string-options
             build setup lisp-implementation verbosity)
            (pathname-options
-            xcvb-path output-path object-directory lisp-binary-path)
+            source-registry output-path object-directory lisp-binary-path)
            (boolean-options
             disable-cfasl base-image profiling)))
          (slave-output
@@ -365,12 +363,12 @@ with associated pathnames and tthsums.")
     (process-manifest manifest)))
 
 (defun bnl (build &rest keys &key
-            xcvb-binary setup xcvb-path output-path object-directory
+            xcvb-binary setup source-registry output-path object-directory
             lisp-implementation lisp-binary-path
             disable-cfasl base-image verbosity profiling)
   "Short hand for build-and-load"
   (declare (ignore
-            xcvb-binary setup xcvb-path output-path object-directory
+            xcvb-binary setup source-registry output-path object-directory
             lisp-implementation lisp-binary-path
             disable-cfasl base-image verbosity profiling))
   (apply 'build-and-load build keys))

@@ -47,7 +47,7 @@
     ;;; with the following features:~%~
     ;;;    ~(~S~)~%~%~
    (in-package :asdf)~%~%"
-   *xcvb-version* cl-launch:*arguments* *lisp-implementation-type* *features*))
+   *xcvb-version* *arguments* *lisp-implementation-type* *features*))
 
 (defun write-asd-file (&key build-names output-path asdf-name)
   "Writes an asd file to OUTPUT-PATH

@@ -3,4 +3,4 @@
 (in-package :xcvb)
 
 (defparameter *xcvb-version*
-  "0.484")
+  "0.485")
