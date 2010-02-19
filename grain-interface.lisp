@@ -74,10 +74,11 @@
 
 (defclass file-grain (persistent-grain buildable-grain named-grain)
   ((vpn
-    :initarg :pathname
+    :initarg :vpn
     :accessor grain-vpn
     :documentation "The truepath to the file that the module was declared in")
    (pathname
+    :initarg :pathname
     :accessor grain-pathname
     :documentation "The truepath to the file that the module was declared in"))
   (:documentation "File grain"))

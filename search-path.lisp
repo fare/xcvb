@@ -1,5 +1,5 @@
 ;;; Handle the Search Path for XCVB modules.
-#+xcvb (module (:depends-on ("macros")))
+#+xcvb (module (:depends-on ("macros" "specials" "registry")))
 (in-package :xcvb)
 
 
@@ -38,7 +38,7 @@ said element itself being a list of directory pathnames where to look for build.
 (defun initialize-source-registry (&optional parameter)
   (let ((source-registry (compute-source-registry parameter)))
     (setf *source-registry* (list source-registry))
-    source-registry))
+    *source-registry*))
 
 (defun ensure-source-registry ()
   (unless *source-registry*
@@ -47,53 +47,31 @@ said element itself being a list of directory pathnames where to look for build.
 
 ;;; Now for actually searching the source registry!
 
-(defparameter *builds*
-  (make-hash-table :test 'equal)
-  "A registry of known builds, indexed by canonical name.
-Initially populated with all build.xcvb files from the search path.")
-
 (defparameter *source-registry-searched-p* nil
   "Has the source registry been searched yet?")
 
 (defun verify-path-element (element)
-  (let* ((absolute-path (ensure-absolute-pathname (first element))))
+  (let* ((absolute-path (ensure-absolute-pathname element)))
     (cond
       ((ignore-errors (truename absolute-path))
        absolute-path)
       (t
        (format *error-output* "~&Discarding invalid path element ~S~%"
-               (namestring element))
+               element)
        nil))))
 
 (defun finalize-source-registry ()
   (setf *source-registry*
-	(loop :for elt :in *source-registry*
-	      :for v = (verify-path-element elt)
-	      :when v :collect v)))
+        (list
+         (loop :for (path . flags) :in (car *source-registry*)
+           :for v = (verify-path-element path)
+           :when v :collect (cons v flags)))))
 
 (defvar +all-builds-path+
   (make-pathname :directory '(:relative :wild-inferiors)
                  :name "build"
                  :type "xcvb"
                  :version :newest))
-
-
-#|
-(defun
-  (if (not recurse)
-      ()
-  (let* ((files (ignore-errors
-                  (directory (merge-pathnames #P"**/*.asd" directory)
-                             #+sbcl #+sbcl :resolve-symlinks nil
-                             #+clisp #+clisp :circle t)))
-         (dirs (remove-duplicates (mapcar #'pathname-sans-name+type files) :test #'equal)))
-    (loop
-     :for dir :in dirs
-     :unless (loop :for x :in exclude
-                   :thereis (find x (pathname-directory dir) :test #'equal))
-     :do (funcall collect dir))))
-|#
-
 
 (defun pathname-newest-version-p (x)
   (or
@@ -106,28 +84,35 @@ Initially populated with all build.xcvb files from the search path.")
        (equal (pathname-type x) "xcvb")
        #+genera (pathname-newest-version-p x)))
 
-(defun underscore-for-non-alphanum-chars (x)
-  (map 'base-string
-       (lambda (c) (if (or (char<= #\a c #\z) (char<= #\A c #\Z) (char<= #\0 c #\9)) c #\_))
-       x))
 
 (defun find-build-files-under (root)
-  ;;; This is what we want, but too slow with SBCL.
-  ;; It took 5.8 seconds on my machine, whereas what's below takes .56 seconds
-  ;; I haven't timed it with other implementations -- they might or might not need the same hack.
-  ;; TODO: profile it and fix SBCL.
-  #-sbcl
-  (directory (merge-pathnames +all-builds-path+ root)
-                    #+sbcl #+sbcl :resolve-symlinks nil
-                    #+clisp #+clisp :circle t)
-  #+sbcl
-  (run-program/read-output-lines
-   (list "find" "-H" (escape-shell-token (namestring root)) "-type" "f" "-name" "build.xcvb")))
+  (destructuring-bind (pathname &key recurse exclude) root
+    (if (not recurse)
+        (let ((path (probe-file (merge-pathnames "build.xcvb" pathname))))
+          (when path (list path)))
+        ;; This is what we want, but too slow with SBCL.
+        ;; It took 5.8 seconds on my machine, whereas what's below takes .56 seconds
+        ;; I haven't timed it with other implementations
+        ;; -- they might or might not need the same hack.
+        ;; TODO: profile it and fix SBCL.
+        #-sbcl
+        (loop
+          :for file :in (ignore-errors
+                          (directory (merge-pathnames +all-builds-path+ pathname)
+                                     #+sbcl #+sbcl :resolve-symlinks nil
+                                     #+clisp #+clisp :circle t))
+          :unless (loop :for x :in exclude
+                    :thereis (find x (pathname-directory file) :test #'equal))
+          :collect file)
+        #+sbcl
+        (run-program/read-output-lines
+         `("find" "-H" ,(escape-shell-token (namestring pathname))
+               "(" "(" ,@(loop :for x :in exclude :append `("-name" ,x)) ")" "-prune"
+               "-o" "-name" "build.xcvb" ")" "-type" "f" "-print")))))
 
 (defun map-build-files-under (root fn)
   "Call FN for all BUILD files under ROOT"
   (let* ((builds (find-build-files-under root))
-         (builds (remove-if #'in-archive-directory-p builds))
          #+(or) ;; uncomment it for depth first traversal
          (builds (sort builds #'<
                        :key #'(lambda (p) (length (pathname-directory p))))))
@@ -135,7 +120,7 @@ Initially populated with all build.xcvb files from the search path.")
 
 (defun search-source-registry ()
   (finalize-source-registry)
-  (loop :for root :in (remove-duplicates *source-registry* :test 'equal) :do
+  (loop :for root :in (remove-duplicates (car *source-registry*) :test 'equal) :do
     (map-build-files-under root #'(lambda (x) (register-build-file x root)))
     (register-build-nicknames-under root)))
 
@@ -144,6 +129,11 @@ Initially populated with all build.xcvb files from the search path.")
     (search-source-registry)))
 
 ;;;; Registering a build
+
+(defparameter *builds*
+  (make-hash-table :test 'equal)
+  "A registry of known builds, indexed by canonical name.
+Initially populated with all build.xcvb files from the search path.")
 
 (defun supersedes-asdf-name (x)
   `(:supersedes-asdf ,(coerce-asdf-system-name x)))
@@ -217,7 +207,7 @@ for each of its registered names."
 
 (defun show-source-registry ()
   "Show registered builds"
-  (format t "~&Registered search paths:~{~% ~S~}~%" *source-registry*)
+  (format t "~&Registered search paths:~{~% ~S~}~%" (car *source-registry*))
   (format t "~%Builds found in the search paths:~%")
   (flet ((entry-string (x)
            (destructuring-bind (fullname . entry) x
