@@ -51,5 +51,5 @@
     :initarg :pathnames :reader brc-pathnames
     :documentation "pathnames of conflicting build files with the same name")))
 
-(defmethod brc-pathnames ((build build-grain))
+(defmethod brc-pathnames ((build build-module-grain))
   (list (grain-pathname build)))

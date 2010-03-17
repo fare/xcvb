@@ -59,16 +59,16 @@ Autodetected from the target Lisp system.")
   ;; (pathname (strcat (asdf-utilities:getenv "INSTALL_XCVB") "/"))
   "Directory pathname for the location where XCVB Lisp files are installed")
 
-;; *pathname-grain-cache* is used by code in lisp-grain.lisp and names.lisp.
-;; lisp-grain:handle-extension-form :generate inserts lisp grains of
+;; *pathname-grain-cache* is used by code in names.lisp.
+;; build-module extension-form :generate inserts lisp grains of
 ;; generated files into *pathname-grain-cache*.
-;; names:probe-file-grain looks up lisp grains in *pathname-grain-cache*.
+;; probe-file-grain looks up lisp grains in *pathname-grain-cache*.
 (defvar *pathname-grain-cache*
   (make-hash-table :test 'equal)
   "Registry of known files, indexed by namestring.
 Negatives are stored as NIL. Positives as grains.")
 
-(defvar *print-concisely* '(build-grain lisp-grain fasl-grain cfasl-grain
+(defvar *print-concisely* '(build-module-grain lisp-module-grain fasl-grain cfasl-grain
                             image-grain world-grain active-world)
   "For debugging purpose, controls the verbosity of print-object on grains")
 

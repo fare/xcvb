@@ -33,7 +33,7 @@ top of a source file"
            (handle-slots (slots)
              (mapcan #'handle-slot slots)))
   `(module
-    (,@(when (build-grain-p grain)
+    (,@(when (build-module-grain-p grain)
              `(:fullname ,(fullname grain)))
      ,@(handle-slots '(author maintainer version licence description long-description))
      ,@(with-slots (load-depends-on compile-depends-on depends-on) grain
@@ -41,8 +41,8 @@ top of a source file"
              (when load-depends-on `(:depends-on ,load-depends-on))
              `(:compile-depends-on ,compile-depends-on
                :load-depends-on load-depends-on)))
-     ,@(when (build-grain-p grain) (handle-slots '(build-depends-on supersedes-asdf))))
-    ,@(when (and (build-grain-p grain) (slot-boundp grain 'extension-forms))
+     ,@(when (build-module-grain-p grain) (handle-slots '(build-depends-on supersedes-asdf))))
+    ,@(when (and (build-module-grain-p grain) (slot-boundp grain 'extension-forms))
             (grain-extension-forms grain)))))
 
 (defparameter *module-pprint-dispatch*
@@ -117,7 +117,7 @@ until something else is found, then return that header as a string"
                           (parse-module-declaration
                            first-form
                            :path filename
-                           :build-p (build-grain-p module))))))
+                           :build-p (build-module-grain-p module))))))
              (when module (format out "~a~%~%" (module-string module))))
            (skip-whitespace in)
            ;; Copy rest of file to tmppath file.
@@ -162,9 +162,9 @@ until something else is found, then return that header as a string"
   (get-dependencies-from-components (list component)))
 
 
-(defun get-build-grain-for-asdf-system (asdf-system original-systems asdf-deps
+(defun get-build-module-grain-for-asdf-system (asdf-system original-systems asdf-deps
                                         original-traverse-order-map &key name)
-  "Returns a build-grain with information from the given asdf system"
+  "Returns a build-module-grain with information from the given asdf system"
   (flet ((maybe-slot-value (object slot)
            (if (slot-boundp object slot)
              (slot-value object slot))))
@@ -180,7 +180,7 @@ until something else is found, then return that header as a string"
                       #'asdf-dependency-grovel::normalized-component-name
                       (dependency-sort (asdf:module-components asdf-system)
                                        original-traverse-order-map))))
-      (make-instance 'build-grain
+      (make-instance 'build-module-grain
         :fullname fullname
         :author author
         :maintainer maintainer
@@ -228,7 +228,7 @@ until something else is found, then return that header as a string"
   "Sorts a list of asdf components according to their dependencies."
   (sort components #'< :key (lambda (x) (or (component-position x component-order-map) -1))))
 
-(defun get-module-for-component (asdf-component build-grain
+(defun get-module-for-component (asdf-component build-module-grain
                                  name-component-map original-traverse-order-map)
   "Returns a module object for the file represented by the given asdf-component"
   (let* ((comp-position (component-position asdf-component original-traverse-order-map))
@@ -254,23 +254,23 @@ until something else is found, then return that header as a string"
               dependencies))
          (filepath (component-truename asdf-component))
          (fullname (strcat
-                    (fullname build-grain)
+                    (fullname build-module-grain)
                     "/"
                     (portable-pathname-output
                      (asdf-dependency-grovel::strip-extension
                       (enough-namestring
                        filepath
-                       (grain-pathname build-grain))
+                       (grain-pathname build-module-grain))
                       "lisp")
                      :allow-absolute nil)))
-         (lisp-grain
-          (make-instance 'lisp-grain
+         (lisp-module-grain
+          (make-instance 'lisp-module-grain
                          :pathname filepath
                          :computation nil
                          :compile-depends-on compile-dependencies
                          :load-depends-on dependencies)))
-    (setf (fullname lisp-grain) fullname)
-    lisp-grain))
+    (setf (fullname lisp-module-grain) fullname)
+    lisp-module-grain))
 
 (defvar *components-path* #p"simplified-system-components.lisp-expr")
 
@@ -348,17 +348,17 @@ so that the system can now be compiled with XCVB."
                   ,(mapcan (lambda (x) (getf (cdr x) :components)) system-components)))
               (asdf:find-system system)))
            (*default-pathname-defaults* base-pathname)
-           (build-grain (get-build-grain-for-asdf-system
+           (build-module-grain (get-build-module-grain-for-asdf-system
                          asdf-system systems original-asdf-deps
                          original-traverse-order-map :name name))
            (name-component-map (name-component-map asdf-system))) ; Precompute to ensure O(n) behavior
       (log-format 6 "Adding module to build.xcvb~%")
-      (add-module-to-file build-grain)
+      (add-module-to-file build-module-grain)
       (log-format 6 "Adding module to each component~%")
       (dolist (component (asdf:module-components asdf-system))
         (log-format 6 "Adding module to component ~S~%" component)
         (add-module-to-file (get-module-for-component
-                             component build-grain
+                             component build-module-grain
                              name-component-map original-traverse-order-map))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ASDF to XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

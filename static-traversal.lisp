@@ -43,7 +43,7 @@
 
 (define-graph-for :lisp ((env static-traversal) name)
   (let* ((grain (resolve-absolute-module-name name)))
-    (unless (typep grain 'lisp-grain)
+    (unless (typep grain 'lisp-module-grain)
       (error "Couldn't resolve ~S to a lisp module" name))
     grain))
 
@@ -54,13 +54,13 @@
   (graph-for-build-named env name))
 
 (defmethod graph-for-build-named (env name)
-  (graph-for-build-grain env (registered-build name)))
+  (graph-for-build-module-grain env (registered-build name)))
 
-(defmethod graph-for-build-grain :before (env (grain build-grain))
+(defmethod graph-for-build-module-grain :before (env (grain build-module-grain))
   (declare (ignore env))
   (finalize-grain grain))
 
-(defmethod graph-for-build-grain ((env enforcing-traversal) (grain build-grain))
+(defmethod graph-for-build-module-grain ((env enforcing-traversal) (grain build-module-grain))
   (let ((post-image-name (build-image-name grain)))
     (if post-image-name
         (graph-for env `(:image ,post-image-name))
@@ -82,7 +82,7 @@
     ((string-prefix-p "/_pre/" name)
      (let* ((build-name (subseq name 5))
             (build (registered-build build-name)))
-       (check-type build build-grain)
+       (check-type build build-module-grain)
        (finalize-grain build)
        (let* ((dependencies (build-dependencies build))
               (starting-build-name (build-starting-dependencies-p dependencies))
@@ -226,7 +226,7 @@
          (fullname (fullname lisp)) ;; canonicalize the fullname
          (driverp (equal fullname "/xcvb/driver"))
          (specialp (member `(:fasl ,fullname) *lisp-setup-dependencies* :test #'equal)))
-    (check-type lisp lisp-grain)
+    (check-type lisp lisp-module-grain)
     (finalize-grain lisp)
     (let ((build-dependencies (if specialp
                                   (setup-dependencies-before-fasl fullname)

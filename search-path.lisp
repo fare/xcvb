@@ -2,7 +2,6 @@
 #+xcvb (module (:depends-on ("macros" "specials" "registry")))
 (in-package :xcvb)
 
-
 ;;; The Source Registry itself.
 ;;; We directly use the code from ASDF, therefore ensuring 100% compatibility.
 
@@ -10,30 +9,9 @@
   "Either NIL (for uninitialized), or a list of one element,
 said element itself being a list of directory pathnames where to look for build.xcvb files")
 
-(defun default-source-registry ()
-  `(:source-registry
-    (:tree ,*default-pathname-defaults*)
-    (:tree ,(subpathname (user-homedir-pathname) ".local/share/common-lisp/source/"))
-    (:directory ,*xcvb-lisp-directory*)
-    (:tree #p"/usr/local/share/common-lisp/source/")
-    (:tree #p"/usr/share/common-lisp/source/")
-    :inherit-configuration))
-
-(defun register-source-directory (directory &key exclude recurse collect)
-  (funcall collect (list directory :recurse recurse :exclude exclude)))
-
 (defun compute-source-registry (&optional parameter)
-  (while-collecting (collect)
-    (inherit-source-registry
-     (append
-      (list parameter)
-      *default-source-registries*
-      '(default-source-registry))
-     :register
-     (lambda (directory &key recurse exclude)
-       (register-source-directory
-        directory
-        :recurse recurse :exclude exclude :collect #'collect)))))
+  (let ((*default-pathname-defaults* *xcvb-lisp-directory*))
+    (asdf::flatten-source-registry parameter)))
 
 (defun initialize-source-registry (&optional parameter)
   (let ((source-registry (compute-source-registry parameter)))
@@ -43,7 +21,6 @@ said element itself being a list of directory pathnames where to look for build.
 (defun ensure-source-registry ()
   (unless *source-registry*
     (error "You should have already initialized the source registry by now!")))
-
 
 ;;; Now for actually searching the source registry!
 
@@ -141,14 +118,14 @@ Initially populated with all build.xcvb files from the search path.")
 (defun registered-build (name &key ensure-build)
   (let ((build (gethash name *builds*)))
     (when ensure-build
-      (unless (build-grain-p build)
+      (unless (build-module-grain-p build)
         (error "Could not find a build with requested fullname ~A. Try xcvb show-source-registry"
                name)))
     build))
 
 (defun (setf registered-build) (build name &key ensure-build)
   (when ensure-build
-    (unless (build-grain-p build)
+    (unless (build-module-grain-p build)
       (error "Cannot register build ~S to non-build grain ~S" name build)))
   (setf (gethash name *builds*) build))
 
@@ -157,17 +134,17 @@ Initially populated with all build.xcvb files from the search path.")
 as having found under root path ROOT (another pathname),
 for each of its registered names."
   ;;(format *error-output* "~&Found build file ~S in ~S~%" build root)
-  (let* ((build-grain (make-grain-from-file build :build-p t))
-         (fullname (when build-grain (fullname build-grain))))
-    (when (and fullname (not (slot-boundp build-grain 'root)))
-      (setf (bre-root build-grain) root)
-      (register-build-named fullname build-grain root)))
+  (let* ((build-module-grain (make-grain-from-file build :build-p t))
+         (fullname (when build-module-grain (fullname build-module-grain))))
+    (when (and fullname (not (slot-boundp build-module-grain 'root)))
+      (setf (bre-root build-module-grain) root)
+      (register-build-named fullname build-module-grain root)))
   (values))
 
 (defun register-build-nicknames-under (root)
   (dolist (b (remove-duplicates
               (loop :for b :being :the :hash-values :of *builds*
-                :when (and (build-grain-p b) (equal (bre-root b) root)) :collect b)))
+                :when (and (build-module-grain-p b) (equal (bre-root b) root)) :collect b)))
     (dolist (name (append (mapcar #'canonicalize-fullname (nicknames b))
                           (mapcar #'supersedes-asdf-name (supersedes-asdf b))))
       (register-build-named name b root))))
@@ -182,7 +159,7 @@ for each of its registered names."
   ;;   an error be printed if/when it is used.
   ;; Note: to do that in a more functional way, have some mechanism
   ;; that applies a modify-function to a gethash value, allowing (values NIL NIL) to specify remhash.
-  (check-type previous-build (or null build-registry-conflict build-grain))
+  (check-type previous-build (or null build-registry-conflict build-module-grain))
   (cond
     ((null previous-build)
      ;; we're the first entry with that name. Bingo!
@@ -199,9 +176,9 @@ for each of its registered names."
      ;; the previous entry takes precedence -- do nothing.
      previous-build)))
 
-(defun register-build-named (name build-grain root)
+(defun register-build-named (name build-module-grain root)
   "Register under NAME pathname BUILD found in user-specified ROOT."
-  (funcallf (registered-build name) #'merge-build build-grain name root))
+  (funcallf (registered-build name) #'merge-build build-module-grain name root))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Show Search Path ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -212,7 +189,7 @@ for each of its registered names."
   (flet ((entry-string (x)
            (destructuring-bind (fullname . entry) x
              (etypecase entry
-               (build-grain
+               (build-module-grain
                 (if (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf))
                     (format nil " (:ASDF ~S) superseded by (:BUILD ~S)~%"
                             (second fullname) (fullname entry))
@@ -244,7 +221,7 @@ for each of its registered names."
              (format t "~A~%" (namestring (grain-pathname grain)))
              (format t "Found ~S at ~S~%" (fullname grain) (namestring (grain-pathname grain)))))
           (t
-           (format *error-output* "Could not find ~S. Check your paths with xcvb ssp.~%" fullname)
+           (format *error-output* "Could not find ~S. Check your paths with xcvb ssr.~%" fullname)
            (setf all-good nil)))))
     (exit (if all-good 0 1))))
 

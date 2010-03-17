@@ -3,7 +3,7 @@
 ;;;                                                                  ;;;
 ;;; Free Software available under an MIT-style license. See LICENSE  ;;;
 ;;;                                                                  ;;;
-;;; Copyright (c) 2009 ITA Software, Inc.  All rights reserved.      ;;;
+;;; Copyright (c) 2009-2010 ITA Software, Inc.  All rights reserved. ;;;
 ;;;                                                                  ;;;
 ;;; Original author: Francois-Rene Rideau                            ;;;
 ;;;                                                                  ;;;
@@ -17,9 +17,7 @@
     :maintainer "Francois-Rene Rideau"
     :licence "MIT"
     :description "Tests for XCVB"
-    :long-description ""
+    ;;:long-description ""
     :depends-on (:xcvb)
     :components
-    ((:module "test"
-              :components
-              ((:file "utilities")))))
+    ((:file "utilities")))

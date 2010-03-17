@@ -67,7 +67,8 @@
 
 ;;; These variables are shared with XCVB itself.
 (defvar *lisp-implementation-type*
-  (or #+sbcl :sbcl #+clisp :clisp #+ccl :ccl #+cmu :cmucl)
+  (or #+sbcl :sbcl #+clisp :clisp #+clozure :ccl #+cmu :cmucl
+      (error "Your Lisp implementation is not supported by XCVB master (yet)."))
   "Type of Lisp implementation for the target system. A keyword.
   Default: same as XCVB itself.")
 
@@ -362,13 +363,6 @@ with associated pathnames and tthsums.")
       (format *error-output* "~&Slave XCVB returned following manifest:~%~S~%" manifest))
     (process-manifest manifest)))
 
-(defun bnl (build &rest keys &key
-            xcvb-binary setup source-registry output-path object-directory
-            lisp-implementation lisp-binary-path
-            disable-cfasl base-image verbosity profiling)
+(defun bnl (build &rest keys)
   "Short hand for build-and-load"
-  (declare (ignore
-            xcvb-binary setup source-registry output-path object-directory
-            lisp-implementation lisp-binary-path
-            disable-cfasl base-image verbosity profiling))
   (apply 'build-and-load build keys))

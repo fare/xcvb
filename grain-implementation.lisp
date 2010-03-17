@@ -7,7 +7,7 @@
   (unless (module-form-p form)
     (error "Invalid or missing module declaration~@[ in ~S~]" path))
   (destructuring-bind ((&rest keys) &rest extension-forms) (cdr form)
-    (apply #'make-instance (if build-p 'build-grain 'lisp-grain)
+    (apply #'make-instance (if build-p 'build-module-grain 'lisp-module-grain)
            :pathname path :extension-forms extension-forms
            :computation nil
            keys)))
@@ -33,7 +33,7 @@
     (setf (grain-finalized-p grain) t))
   (values))
 
-(defmethod finalize-grain :after ((grain lisp-grain))
+(defmethod finalize-grain :after ((grain lisp-module-grain))
   (handle-extension-forms grain)
   (macrolet ((normalize (deps)
                `(normalize-dependencies grain ,deps ,(keywordify deps))))
@@ -58,7 +58,7 @@
                   (normalize build-depends-on)
                   (build-dependencies (grain-parent grain))))))))
 
-(defmethod finalize-grain :after ((grain build-grain))
+(defmethod finalize-grain :after ((grain build-module-grain))
   (with-slots (supersedes-asdf) grain
     (setf supersedes-asdf (mapcar #'coerce-asdf-system-name supersedes-asdf))))
 
@@ -149,18 +149,18 @@
                (portable-pathname-from-string name :allow-absolute nil)
                (grain-pathname build)))))
 
-(defun build-grain-for (grain)
+(defun build-module-grain-for (grain)
   (etypecase grain
-    (build-grain grain)
-    (lisp-grain (grain-parent grain))))
+    (build-module-grain grain)
+    (lisp-module-grain (grain-parent grain))))
 
-(defmethod load-dependencies :before ((grain lisp-grain))
+(defmethod load-dependencies :before ((grain lisp-module-grain))
   (finalize-grain grain))
-(defmethod cload-dependencies :before ((grain lisp-grain))
+(defmethod cload-dependencies :before ((grain lisp-module-grain))
   (finalize-grain grain))
-(defmethod compile-dependencies :before ((grain lisp-grain))
+(defmethod compile-dependencies :before ((grain lisp-module-grain))
   (finalize-grain grain))
-(defmethod build-dependencies :before ((grain lisp-grain))
+(defmethod build-dependencies :before ((grain lisp-module-grain))
   (finalize-grain grain))
 
 (defun build-starting-dependencies-p (dependencies)
@@ -174,21 +174,21 @@
     "/_"))
 
 (defun build-pre-image-name (grain &optional traversed)
-  (check-type grain lisp-grain)
+  (check-type grain lisp-module-grain)
   (when (member grain traversed)
     (error "Circular build dependency ~S"
            (member grain (reverse traversed))))
   (finalize-grain grain)
   (let* ((dependencies (build-dependencies grain))
-         (build-grain
+         (build-module-grain
           (cond
-            ((build-grain-p grain) grain)
+            ((build-module-grain-p grain) grain)
             ((or (not (slot-boundp grain 'build-depends-on))
                  (equal dependencies
                         (build-dependencies (grain-parent grain))))
              (grain-parent grain))
             (t nil)))
-         (pre-image-p (when build-grain (build-pre-image build-grain)))
+         (pre-image-p (when build-module-grain (build-pre-image build-module-grain)))
          (starting-build-name (build-starting-dependencies-p dependencies))
          (starting-build
           (when starting-build-name
@@ -202,30 +202,30 @@
       ((and starting-build-image-name (null (cdr dependencies)))
        starting-build-image-name)
       (pre-image-p
-       (strcat "/_pre" (fullname build-grain)))
+       (strcat "/_pre" (fullname build-module-grain)))
       (starting-build-image-name ; and (not pre-image-p)
        starting-build-image-name)
       (starting-build
-       (build-pre-image-name starting-build (cons build-grain traversed)))
+       (build-pre-image-name starting-build (cons build-module-grain traversed)))
       (t ; (not pre-image-p)
        (base-image-name)))))
 
-(defun build-post-image-name (build-grain)
+(defun build-post-image-name (build-module-grain)
   ;; The closest build on top of which to load files to reach the state post loading the build.
   ;; If the build has an image, that's it. Otherwise, it's its pre-image.
-  (check-type build-grain build-grain)
-  (finalize-grain build-grain)
-  (if (build-image build-grain)
-      (build-image-name build-grain)
-      (build-pre-image-name build-grain)))
+  (check-type build-module-grain build-module-grain)
+  (finalize-grain build-module-grain)
+  (if (build-image build-module-grain)
+      (build-image-name build-module-grain)
+      (build-pre-image-name build-module-grain)))
 
-(defun build-image-name (build-grain)
-  (check-type build-grain build-grain)
-  (let ((image (build-image build-grain)))
+(defun build-image-name (build-module-grain)
+  (check-type build-module-grain build-module-grain)
+  (let ((image (build-image build-module-grain)))
     (etypecase image
       (null nil)
       ;;(string image)
-      ((eql t) (fullname build-grain)))))
+      ((eql t) (fullname build-module-grain)))))
 
 (defun make-asdf-grain (&key name implementation)
   (make-instance
@@ -259,11 +259,11 @@
 (defmethod build-dependencies ((grain cfasl-grain))
   nil)
 
-(defun lisp-grain-p (x)
-  (typep x 'lisp-grain))
+(defun lisp-module-grain-p (x)
+  (typep x 'lisp-module-grain))
 
-(defun build-grain-p (x)
-  (typep x 'build-grain))
+(defun build-module-grain-p (x)
+  (typep x 'build-module-grain))
 
 (defun asdf-grain-p (x)
   (typep x 'asdf-grain))

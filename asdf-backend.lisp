@@ -11,8 +11,8 @@
 (defvar *target-builds* (make-hashset :test 'equal)
   "A list of asdf system we supersede")
 
-(defmethod issue-dependency ((env asdf-traversal) (grain lisp-grain))
-  (let* ((build (build-grain-for grain)))
+(defmethod issue-dependency ((env asdf-traversal) (grain lisp-module-grain))
+  (let* ((build (build-module-grain-for grain)))
     (if (build-in-target-p build)
         (call-next-method)
         (cond
@@ -28,7 +28,7 @@
 (defun build-in-target-p (build)
   (gethash (fullname build) *target-builds*))
 
-(defmethod graph-for-build-grain ((env asdf-traversal) grain)
+(defmethod graph-for-build-module-grain ((env asdf-traversal) grain)
   (if (build-in-target-p grain)
     (call-next-method)
     (let ((asdfs (supersedes-asdf grain)))
@@ -77,7 +77,7 @@ Declare asd system as ASDF-NAME."
          (*use-cfasls* nil))
     (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
     (dolist (b builds)
-      (graph-for-build-grain (make-instance 'asdf-traversal) b))
+      (graph-for-build-module-grain (make-instance 'asdf-traversal) b))
     (log-format 6 "T=~A creating asd file ~A~%" (get-universal-time) output-path)
     (do-write-asd-file
       :output-path output-path
@@ -113,10 +113,10 @@ Declare asd system as ASDF-NAME."
          :components ,(loop :for computation :in (reverse *computations*)
                         :for lisp = (first (computation-inputs computation))
                         :for deps = (rest (computation-inputs computation))
-                        :for build = (and lisp (build-grain-for lisp))
+                        :for build = (and lisp (build-module-grain-for lisp))
                         :for includedp = (and build (build-in-target-p build))
                         :for depends-on = (loop :for dep :in deps
-                                            :when (eq (type-of dep) 'lisp-grain)
+                                            :when (eq (type-of dep) 'lisp-module-grain)
                                             :collect (aname dep))
                         :for name = (and lisp (aname lisp))
                         :for pathname = (and lisp (asdf-dependency-grovel::strip-extension

@@ -24,12 +24,12 @@
 	    (setf (gethash string *pathname-grain-cache*) module)
 	    module)))))
 
-(defmethod fullname ((module lisp-grain))
+(defmethod fullname ((module lisp-module-grain))
   (unless (slot-boundp module 'fullname)
     (compute-fullname module))
   (slot-value module 'fullname))
 
-(defmethod specified-fullname ((module lisp-grain))
+(defmethod specified-fullname ((module lisp-module-grain))
   nil)
 
 (defgeneric compute-fullname (grain))
@@ -65,18 +65,18 @@
     (error "Invalid grain fullname ~A" name))
   name)
 
-(defmethod compute-fullname ((grain build-grain))
+(defmethod compute-fullname ((grain build-module-grain))
   (if (specified-fullname grain)
     (setf (fullname grain) (canonicalize-fullname (specified-fullname grain))
           (grain-parent grain) nil)
     (compute-inherited-fullname grain :build-p t))
   (values))
 
-(defmethod compute-fullname ((grain lisp-grain))
+(defmethod compute-fullname ((grain lisp-module-grain))
   (compute-inherited-fullname grain :build-p nil))
 
 (defun compute-inherited-fullname (grain &key build-p)
-  (check-type grain lisp-grain)
+  (check-type grain lisp-module-grain)
   (let* ((pathname (ensure-absolute-pathname (grain-pathname grain)))
          (host (pathname-host pathname))
          (device (pathname-device pathname))
@@ -108,7 +108,7 @@
   "Resolve module NAME in the context of build into an appropriate grain, if any"
   (if (portable-pathname-absolute-p name)
     (resolve-absolute-module-name name)
-    (loop :for b = (build-grain-for grain) :then (grain-parent b)
+    (loop :for b = (build-module-grain-for grain) :then (grain-parent b)
           :for g = (and b (resolve-absolute-module-name (strcat (fullname b) "/" name)))
           :while b
           :when (typep g 'grain) :do (return g)
@@ -131,7 +131,7 @@ of decreasing fullname length"
     :for suffix = nil then (subseq name (1+ p))
     :for build = (when prefix (registered-build prefix)) :do
     (typecase build
-      (build-grain
+      (build-module-grain
        (funcall build-handler build suffix))
       (build-registry-conflict
        (error "Trying to use conflicted build name ~S while resolving ~A ~S"
@@ -151,7 +151,7 @@ of decreasing fullname length"
                (return-from resolve-absolute-module-name grain))))))))
 
 (defun resolve-module-name-at (name build)
-  (check-type build build-grain)
+  (check-type build build-module-grain)
   (if name
       (probe-file-grain (module-subpathname (grain-pathname build) name))
       build))

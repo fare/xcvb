@@ -20,7 +20,7 @@ and the non-enforcing Makefile backend.
 (define-build-command-for :lisp ((env simplifying-traversal) name)
   (build-command-for-fasl env name))
 
-(defmethod graph-for-build-grain ((env simplifying-traversal) grain)
+(defmethod graph-for-build-module-grain ((env simplifying-traversal) grain)
   (build-command-for* env (build-dependencies grain))
   (build-command-for* env (compile-dependencies grain))
   (build-command-for* env (cload-dependencies grain))
@@ -32,7 +32,7 @@ and the non-enforcing Makefile backend.
   (let* ((grain (resolve-absolute-module-name name))
 	 (fullname (if grain (fullname grain) (error "Couldn't resolve ~S to a lisp module" name)))
 	 (generator (gethash fullname *generators*)))
-    (check-type grain lisp-grain)
+    (check-type grain lisp-module-grain)
     (finalize-grain grain)
     (issue-dependency env grain)
     (let* ((dependencies

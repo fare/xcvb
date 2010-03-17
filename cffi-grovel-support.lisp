@@ -4,14 +4,14 @@
 
 (in-package :xcvb)
 
-;; TODO: distinguish lisp-grain and module-grain,
-;; with build-grain being a module-grain but not a lisp-grain?
+;; TODO: distinguish lisp-module-grain and module-grain,
+;; with build-module-grain being a module-grain but not a lisp-module-grain?
 
 ;; Do something about cc-flags
-(defclass cffi-grovel-lisp-grain (lisp-grain)
+(defclass cffi-grovel-lisp-module-grain (lisp-module-grain)
   ((cc-flags :initarg cc-flags :initform nil :reader cc-flags-of)))
 
-(defclass cffi-grovel-results-lisp-grain (lisp-grain)
+(defclass cffi-grovel-results-lisp-module-grain (lisp-module-grain)
   ())
 
 ;; Use a generated file, with a (:eval (:call :cffi-grovel :process-grovel-file ...))
@@ -38,8 +38,8 @@
  :inputs ...
   `(:xcvb-driver-command
     (:call :cffi-grovel :process-grovel-file
-           ,(grain-pathname cffi-grovel-lisp-grain)
-           ,(grain-pathname cffi-grovel-results-lisp-grain))))
+           ,(grain-pathname cffi-grovel-lisp-module-grain)
+           ,(grain-pathname cffi-grovel-results-lisp-module-grain))))
 |#
 ;;;# ASDF component: WRAPPER-FILE
 #|

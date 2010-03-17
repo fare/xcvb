@@ -12,7 +12,7 @@
 (defgeneric graph-for (env spec)
   (:documentation "Build the dependency graph for given dependency, return the node for it"))
 (defgeneric graph-for-atom (env atom))
-(defgeneric graph-for-build-grain (env grain))
+(defgeneric graph-for-build-module-grain (env grain))
 (defgeneric graph-for-fasls (env name))
 (defgeneric graph-for-lisp (env name))
 (defgeneric graph-for-fasls (env name))
@@ -121,27 +121,27 @@
   (let* ((target (if fullname
                    (resolve-absolute-module-name fullname)
                    (let* ((build-file (probe-file "build.xcvb"))
-                          (build-grain (and build-file
+                          (build-module-grain (and build-file
                                             (make-grain-from-file build-file :build-p t)))
-                          (fullname (and build-grain (fullname build-grain)))
+                          (fullname (and build-module-grain (fullname build-module-grain)))
                           (registered-build (and fullname (registered-grain fullname))))
                      ;; Question: should we make the below error cases warnings,
                      ;; and override conflicts with the current build?
                      ;; NB: User can put . in front of his XCVB_PATH if that's what he wants.
                      (unless build-file
                        (error "No build specified, and no build.xcvb in the current directory"))
-                     (unless (and (build-grain-p registered-build)
+                     (unless (and (build-module-grain-p registered-build)
                                   (equal (truename (grain-pathname registered-build))
                                          (truename "build.xcvb")))
                        (error "Implicitly specified build.xcvb ~
                                  in current directory is in conflict~%~
                                  with entries in your XCVB_PATH. Check with xcvb ssp"))
                      registered-build)))
-         (build (if target (build-grain-for target)
+         (build (if target (build-module-grain-for target)
                     (error "User requested build ~S but it can't be found.~%~
 			    You may check available builds with xcvb ssp.~%" fullname)))
          (name (fullname target))
          (dep (etypecase target
-                (build-grain `(:build ,name))
-                (lisp-grain `(:fasl ,name)))))
+                (build-module-grain `(:build ,name))
+                (lisp-module-grain `(:fasl ,name)))))
     (values dep build)))

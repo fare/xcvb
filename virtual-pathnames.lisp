@@ -3,6 +3,35 @@
 
 (in-package :xcvb)
 
+;;;;; Virtual pathname object.
+
+(defclass xcvb-interface (eq:<hashable>) ())
+
+(defclass virtual-pathname ()
+  ((hash :reader vpn-hash :initarg hash)
+   (root :initarg :root :reader vpn-root)
+   (subpath :initarg :path :reader vpn-subpath)
+   (resolved-namestring :accessor vpn-resolved-namestring)))
+
+(defmethod hash ((i xcvb-interface) (vpn virtual-pathname))
+  (vpn-hash vpn))
+(defmethod == ((i xcvb-interface) (vpn1 virtual-pathname) (vpn2 virtual-pathname))
+  (and (equal (vpn-root vpn1) (vpn-root vpn2))
+       (equal (vpn-subpath vpn1) (vpn-subpath vpn2))))
+
+(defun make-vpn (x)
+  (destructuring-bind (root &rest subpath) x
+    (let ((hash (sxhash x)))
+      (make-instance 'virtual-pathname
+        :hash hash :root root :subpath subpath))))
+
+(defmethod print-object ((x virtual-pathname) stream)
+  (if *print-readably*
+      (format stream "#.~S" `(make-vpn '(,(vpn-root x) ,@(vpn-subpath x))))
+      (format stream "#<VPN: ~S>" `(,(vpn-root x) ,@(vpn-subpath x)))))
+
+
+#|
 ;;;;; Define a little-language for virtual pathnames.
 
 (defvar +lisp-pathname+ (make-pathname :type "lisp"))
@@ -224,4 +253,5 @@ mapping actual pathnames back to virtual pathnames.")
 
 (defun (setf registered-pathname) (vp p)
   (setf (gethash p *virtual-pathnames*) vp))
+|#
 |#

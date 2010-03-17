@@ -9,15 +9,15 @@
   "the names of ASDF systems for which we have already issued a warning that
 a reference to the system was superseded by a build.xcvb file.")
 
-(defun lisp-grain-from (name grain)
-  (let ((lisp-grain (resolve-module-name name grain)))
-    (unless (lisp-grain-p lisp-grain)
+(defun lisp-module-grain-from (name grain)
+  (let ((lisp-module-grain (resolve-module-name name grain)))
+    (unless (lisp-module-grain-p lisp-module-grain)
       (error "Couldn't resolve ~S to a valid module from grain ~S"
              name (fullname grain)))
-    lisp-grain))
+    lisp-module-grain))
 
 (defun lisp-fullname-from (name grain)
-  (fullname (lisp-grain-from name grain)))
+  (fullname (lisp-module-grain-from name grain)))
 
 (defun unrecognized-dependency (dep)
   (error "unrecognized dependency ~S" dep))
@@ -34,9 +34,9 @@ a reference to the system was superseded by a build.xcvb file.")
 (define-simple-dispatcher normalize-dependency #'normalize-dependency-atom)
 
 (defun normalize-dependency-atom (grain name)
-  (let ((g (lisp-grain-from name grain))
+  (let ((g (lisp-module-grain-from name grain))
         (n (fullname g)))
-    (if (build-grain-p g)
+    (if (build-module-grain-p g)
         `(:build ,n)
         `(:fasl ,n))))
 
@@ -61,8 +61,8 @@ a reference to the system was superseded by a build.xcvb file.")
   (normalize-dependency-lisp* :cfasl grain name))
 
 (defun normalize-dependency-build* (type grain name)
-  (let ((g (lisp-grain-from name grain)))
-    (check-type g build-grain)
+  (let ((g (lisp-module-grain-from name grain)))
+    (check-type g build-module-grain)
     `(,type ,(fullname g))))
 
 (define-normalize-dependency :build (grain name)
@@ -71,10 +71,10 @@ a reference to the system was superseded by a build.xcvb file.")
   (normalize-dependency-build* :compile-build grain name))
 
 (define-normalize-dependency :compile (grain name)
-  (let ((g (lisp-grain-from name grain)))
-    (check-type g lisp-grain)
+  (let ((g (lisp-module-grain-from name grain)))
+    (check-type g lisp-module-grain)
     (let ((n (fullname g)))
-      (if (build-grain-p g)
+      (if (build-module-grain-p g)
         `(:compile-build ,n)
         `(,(compile-time-fasl-type) ,n)))))
 
@@ -85,7 +85,7 @@ a reference to the system was superseded by a build.xcvb file.")
     (etypecase superseding
       (null
        `(:asdf ,n))
-      (build-grain
+      (build-module-grain
        (let ((nn (fullname superseding)))
          (unless (member nn *asdf-systems-warned* :test 'equal)
            (push nn *asdf-systems-warned*)
@@ -111,7 +111,7 @@ a reference to the system was superseded by a build.xcvb file.")
               (error "Couldn't find in a build to which ~S is relative" name)))
         (let ((build (if in
                          (registered-build in :ensure-build t)
-                         (build-grain-for grain))))
+                         (build-module-grain-for grain))))
         `(:source ,name :in ,(fullname build))))))
 
 (define-normalize-dependency :object (grain name)
@@ -130,11 +130,11 @@ a reference to the system was superseded by a build.xcvb file.")
               name
               (pathname-directory-pathname
                (grain-pathname
-                (build-grain-for grain))))))))
+                (build-module-grain-for grain))))))))
 
 ;;; Matcher for the normalized dependency language
 (defparameter +dependency-type+
-  '((:lisp . lisp-grain)
+  '((:lisp . lisp-module-grain)
     (:fasl . fasl-grain)
     (:cfasl . cfasl-grain)
     (:asdf . asdf-grain)
@@ -167,7 +167,7 @@ a reference to the system was superseded by a build.xcvb file.")
                    (err))
                  (funcall k head name type))))))
       (string
-         (funcall k :lisp dep 'lisp-grain))
+         (funcall k :lisp dep 'lisp-module-grain))
       (t
          (err)))))
 

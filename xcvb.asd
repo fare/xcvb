@@ -9,6 +9,11 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(let ((min "1.648"))
+  (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) min))
+    (error "XCVB requires ASDF ~D or later, you only have ~D"
+           min (asdf:asdf-version))))
+
 #+sbcl
 (progn
   ;;; Actually used by XCVB
@@ -43,17 +48,17 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "profiling" :depends-on ("pkgdcl"))
      (:file "utilities" :depends-on ("macros"))
      (:file "logging" :depends-on ("specials"))
-     (:file "grain-interface" :depends-on ("utilities" "conditions")) ;;; FIX THIS FILE AND BELOW
+     (:file "lisp-invocation" :depends-on ("specials"))
+     (:file "string-escape" :depends-on ("utilities"))
+     (:file "virtual-pathnames" :depends-on ("specials" "utilities")) ;;; FIX THIS FILE AND BELOW
+     (:file "grain-interface" :depends-on ("utilities" "conditions"))
      (:file "registry" :depends-on ("grain-interface" "specials"))
      (:file "search-path" :depends-on ("registry"))
      (:file "computations" :depends-on ("grain-interface" "registry" "specials"))
-     (:file "lisp-invocation" :depends-on ("specials"))
-     (:file "string-escape" :depends-on ("utilities"))
      (:file "manifest" :depends-on ("macros"))
      (:file "extract-target-properties" :depends-on ("string-escape" "lisp-invocation"))
      (:file "grain-implementation" :depends-on ("registry" "extract-target-properties"))
      (:file "names" :depends-on ("registry" "grain-interface" "specials"))
-     (:file "virtual-pathnames" :depends-on ("specials" "utilities"))
      (:file "normalize-dependency" :depends-on ("names" "specials" "grain-interface"))
      (:file "traversal" :depends-on ("names" "specials" "computations"))
      (:file "dependencies-interpreter" :depends-on ("normalize-dependency" "traversal"))
