@@ -56,9 +56,9 @@ Until then, let's rely on the external utility tthsum.
       (destructuring-bind (&key command pathname source-pathname) spec
         `(:command
           ,command
-          ,@(when pathname `(:pathname ,pathname :tthsum ,tthsum))
+          ,@(when pathname `(:pathname ,(namestring pathname) :tthsum ,tthsum))
           ,@(when source-pathname
-              `(:source-pathname ,source-pathname :source-tthsum ,source-tthsum)))))))
+              `(:source-pathname ,(namestring source-pathname) :source-tthsum ,source-tthsum)))))))
 
 (defun create-manifest (output-path grains)
   (with-user-output-file (o output-path)
@@ -79,8 +79,8 @@ Until then, let's rely on the external utility tthsum.
   (let* ((fullname (unwrap-load-file-command command))
          (source-fullname (fullname-source fullname)))
     `(:command ,command
-      ,@(when fullname `(:pathname ,(dependency-pathname env fullname)))
-      ,@(when source-fullname `(:source-pathname ,(dependency-pathname env source-fullname))))))
+      ,@(when fullname `(:pathname ,(dependency-namestring env fullname)))
+      ,@(when source-fullname `(:source-pathname ,(dependency-namestring env source-fullname))))))
 
 (defun commands-to-manifest-spec (env commands)
   (mapcar/ #'command-to-manifest-spec env commands))

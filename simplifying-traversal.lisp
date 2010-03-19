@@ -29,16 +29,15 @@ and the non-enforcing Makefile backend.
 
 (define-graph-for :fasl ((env simplifying-traversal) name)
   (check-type name string)
-  (let* ((grain (resolve-absolute-module-name name))
-	 (fullname (if grain (fullname grain) (error "Couldn't resolve ~S to a lisp module" name)))
-	 (generator (gethash fullname *generators*)))
+  (let ((grain (resolve-absolute-module-name name)))
     (check-type grain lisp-module-grain)
     (finalize-grain grain)
     (issue-dependency env grain)
     (let* ((dependencies
             (remove-duplicates
              (append (build-dependencies grain)
-                     (when generator (generator-dependencies generator))
+                     (let ((generator (grain-generator grain)))
+                       (when generator (generator-dependencies generator)))
                      (compile-dependencies grain)
                      (cload-dependencies grain)
                      (load-dependencies grain))

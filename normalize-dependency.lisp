@@ -34,11 +34,11 @@ a reference to the system was superseded by a build.xcvb file.")
 (define-simple-dispatcher normalize-dependency #'normalize-dependency-atom)
 
 (defun normalize-dependency-atom (grain name)
-  (let ((g (lisp-module-grain-from name grain))
+  (let ((g (module-grain-from name grain))
         (n (fullname g)))
-    (if (build-module-grain-p g)
-        `(:build ,n)
-        `(:fasl ,n))))
+    (etypecase g
+      (build-module-grain `(:build ,n))
+      (lisp-module-grain `(:fasl ,n)))))
 
 (define-normalize-dependency :when (grain expression &rest dependencies)
   ;; TODO: parse and make sure that expression is well-formed, which

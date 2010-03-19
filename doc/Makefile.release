@@ -27,7 +27,10 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 		XCVB_OBJECT_DIRECTORY=${XCVB_OBJECT_DIRECTORY} \
 		RELEASE_DIR=${RELEASE_DIR} XCVB_DIR=${XCVB_DIR}
 
-GIT_DEPENDENCIES := asdf asdf-dependency-grovel command-line-arguments fare-utils poiu
+GIT_DEPENDENCIES := \
+	asdf asdf-dependency-grovel binascii cl-launch \
+	command-line-arguments fare-utils ironclad poiu
+
 DARCS_DEPENDENCIES := closer-mop
 DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
 
@@ -61,21 +64,17 @@ install-using-asdf: install-source
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
 
 checkout:
-	( git clone http://common-lisp.net/project/xcvb/git/xcvb.git || \
-	  echo "Already got xcvb.git" ) && \
+	clone () { git clone $$1 || echo "Already got $$(basename $$1) ; } \
+	clone http://common-lisp.net/project/xcvb/git/xcvb.git && \
 	mkdir -p dependencies && cd dependencies && \
-	( git clone http://common-lisp.net/project/asdf/asdf.git || \
-	  echo "Already got asdf.git" ) && \
-	( git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git || \
-	  echo "Already got asdf-dependency-grovel.git" ) && \
-	( git clone http://common-lisp.net/project/xcvb/git/cl-launch.git || \
-	  echo "Already got cl-launch.git" ) && \
-	( git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git || \
-	  echo "Already got command-line-arguments.git" ) && \
-	( git clone http://common-lisp.net/~frideau/git/fare-utils.git || \
-	  echo "Already got poiu.git" ) && \
-	( git clone http://common-lisp.net/project/qitab/git/poiu.git || \
-	  echo "Already got poiu.git" ) && \
+	clone http://common-lisp.net/project/asdf/asdf.git && \
+	clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git && \
+	clone git://github.com/froydnj/binascii.git && \
+	clone http://common-lisp.net/project/xcvb/git/cl-launch.git && \
+	clone http://common-lisp.net/project/qitab/git/command-line-arguments.git && \
+	clone http://common-lisp.net/~frideau/git/fare-utils.git && \
+	clone git://github.com/froydnj/ironclad.git && \
+	clone http://common-lisp.net/project/qitab/git/poiu.git && \
 	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
 	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi )
 

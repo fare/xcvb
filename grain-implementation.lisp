@@ -78,7 +78,7 @@
   ((build :initarg :build :reader generator-build)
    (targets :initarg :targets :reader generator-targets)
    (dependencies :initarg :dependencies :reader generator-dependencies)
-   (computations :accessor generator-computations)))
+   (computation :accessor generator-computation)))
 
 (define-handle-extension-form :generate (build generate &key depends-on)
   (unless generate
@@ -104,7 +104,7 @@
 
 (defgeneric run-generator (env generator))
 ;;(defmethod run-generator (env (fun function)) (funcall fun env))
-(defmethod run-generator (env (g lisp-generator))
+(defmethod run-generator (env (generator lisp-generator))
   (let* ((dependencies (append (build-dependencies grain)
                                (generator-dependencies generator)))
          (targets (generator-targets generator))
@@ -112,7 +112,8 @@
     (unless targets
       (error "no targets"))
     (unless dependencies
-      (error "graph-for-lisp: Need dependencies to generate file ~S.~%" fullname))
+      (error "run-generator: Need dependencies to generate files ~S.~%"
+             (mapcar #'fullname targets)))
     (dolist (target targets)
       (slot-makunbound target 'computation))
     (pre-image-for env grain)

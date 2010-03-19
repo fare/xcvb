@@ -39,6 +39,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :xcvb-driver :xcvb-master
                  :fare-utils :command-line-arguments
                  :asdf-dependency-grovel :closer-mop
+                 :ironclad :binascii
                  #|:iolib|#)
     :components
     ((:file "pkgdcl")
@@ -55,7 +56,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "registry" :depends-on ("grain-interface" "specials"))
      (:file "search-path" :depends-on ("registry"))
      (:file "computations" :depends-on ("grain-interface" "registry" "specials"))
-     (:file "manifest" :depends-on ("macros"))
+     (:file "manifest" :depends-on ("macros" "virtual-pathnames"))
      (:file "extract-target-properties" :depends-on ("string-escape" "lisp-invocation"))
      (:file "grain-implementation" :depends-on ("registry" "extract-target-properties"))
      (:file "names" :depends-on ("registry" "grain-interface" "specials"))
