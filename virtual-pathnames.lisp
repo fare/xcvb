@@ -13,9 +13,9 @@
    (subpath :initarg :path :reader vpn-subpath)
    (resolved-namestring :accessor vpn-resolved-namestring)))
 
-(defmethod hash ((i xcvb-interface) (vpn virtual-pathname))
+(defmethod eq:hash ((i xcvb-interface) (vpn virtual-pathname))
   (vpn-hash vpn))
-(defmethod == ((i xcvb-interface) (vpn1 virtual-pathname) (vpn2 virtual-pathname))
+(defmethod eq:== ((i xcvb-interface) (vpn1 virtual-pathname) (vpn2 virtual-pathname))
   (and (equal (vpn-root vpn1) (vpn-root vpn2))
        (equal (vpn-subpath vpn1) (vpn-subpath vpn2))))
 

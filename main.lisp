@@ -185,6 +185,7 @@ for this version of XCVB.")))
       (setf *xcvb-verbosity* verbosity))
     (log-format 9 "~&xcvb options: ~S~%" keys)
     (initialize-source-registry source-registry)
+    (search-source-registry)
     (when object-directory
       (setf *object-directory* ;; strip last "/"
             (but-last-char

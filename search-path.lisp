@@ -84,8 +84,8 @@ said element itself being a list of directory pathnames where to look for build.
         #+sbcl
         (run-program/read-output-lines
          `("find" "-H" ,(escape-shell-token (namestring pathname))
-               "(" "(" ,@(loop :for x :in exclude :append `("-name" ,x)) ")" "-prune"
-               "-o" "-name" "build.xcvb" ")" "-type" "f" "-print")))))
+           "(" "(" "-false" ,@(loop :for x :in exclude :append `("-o" "-name" ,x)) ")" "-prune"
+           "-o" "-name" "build.xcvb" ")" "-type" "f" "-print")))))
 
 (defun map-build-files-under (root fn)
   "Call FN for all BUILD files under ROOT"
