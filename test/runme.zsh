@@ -109,12 +109,12 @@ validate_xcvb_version () {
   abort "XCVB version using wrong Lisp"
 }
 
-validate_xcvb_ssp () {
+validate_xcvb_ssr () {
   # preconditions: env, xcvb built, PWD=.../xcvb/
-  # postconditions: xcvb ssp working
-  local out=${BUILD_DIR}/xcvb-ssp.out
+  # postconditions: xcvb ssr working
+  local out=${BUILD_DIR}/xcvb-ssr.out
 
-  xcvb ssp --xcvb-path $XCVB_DIR | tee $out
+  xcvb ssr --xcvb-path $XCVB_DIR | tee $out
 
   grep -q "(:BUILD \"/xcvb\") in \".*/build.xcvb\"" $out ||
   abort "Can't find build for xcvb"
@@ -129,7 +129,7 @@ validate_xcvb_ssp () {
 validate_xcvb () {
   # preconditions: env, xcvb built, PWD=.../xcvb/
   validate_xcvb_version # is built xcvb what we think it is?
-  validate_xcvb_ssp # can it search its search path?
+  validate_xcvb_ssr # can it search its search path?
   validate_a2x # can it migrate a2x-test from xcvb?
   validate_rmx # can it remove the xcvb annotations from a2x-test?
   validate_x2a # can it convert hello back to asdf?
@@ -169,7 +169,7 @@ validate_rmx () {
   mkdir -p $BUILD_DIR/a2x_rmx/
   rsync -a $XCVB_DIR/test/a2x/ $BUILD_DIR/a2x_rmx/
   cd $BUILD_DIR/a2x_rmx
-  XCVB_PATH=$BUILD_DIR/a2x_rmx xcvb ssp
+  XCVB_PATH=$BUILD_DIR/a2x_rmx xcvb ssr
   XCVB_PATH=$BUILD_DIR/a2x_rmx:${XCVB_PATH:-"!"} xcvb rmx --build /xcvb/test/a2x --verbosity 9
   [ ! -f $BUILD_DIR/a2x_rmx/build.xcvb ] ||
   abort "xcvb rmx failed to remove build.xcvb"

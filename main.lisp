@@ -28,62 +28,81 @@
 ;; command is invoked, short-help is a short help string for the user, and
 ;; long-help is a longer help string for the user.
 (defparameter +xcvb-commands+
-  '((("help" "-?" "--help" "-h") program-help ()
+  '((("help" "-?" "--help" "-h")
+     program-help ()
      "Output some help message"
      "With no additional arguments, the 'help' command provides general help on
 using XCVB.  Using 'xcvb help COMMAND' where COMMAND is the name of an XCVB
 command gives specific help on that command.")
-    (("make-makefile" "mkmk" "mm") make-makefile +make-makefile-option-spec+
+    (("make-makefile" "mkmk" "mm")
+     make-makefile +make-makefile-option-spec+
      "Create some Makefile"
      "Create Makefile rules to build a project.")
-    (("asdf-to-xcvb" "a2x") asdf-to-xcvb-command +asdf-to-xcvb-option-spec+
+    (("asdf-to-xcvb" "a2x")
+     asdf-to-xcvb-command +asdf-to-xcvb-option-spec+
      "Convert ASDF system to XCVB"
      "Attempt an automated conversion of an ASDF system to XCVB.
 Optionally load a setup Lisp file before anything else, so the user gets
 a chance to load and/or configure ASDF itself and any extension thereof.")
-    (("remove-xcvb" "rm-x" "rmx" "rx") remove-xcvb-command +remove-xcvb-option-spec+
+    (("remove-xcvb" "rm-x" "rmx" "rx")
+     remove-xcvb-command +remove-xcvb-option-spec+
      "Remove XCVB modules from files in build"
      "Given an XCVB build file, removes the XCVB modules from each of the files listed in the build file.")
-    (("xcvb-to-asdf" "x2a") xcvb-to-asdf-command +xcvb-to-asdf-option-spec+
+    (("xcvb-to-asdf" "x2a")
+     xcvb-to-asdf-command +xcvb-to-asdf-option-spec+
      "Extract an ASDF system from XCVB"
      "Automatically extract an ASDF system from one or many XCVB builds.")
-    (("non-enforcing-makefile" "nemk" "nm") non-enforcing-makefile +non-enforcing-makefile-option-spec+
+    (("non-enforcing-makefile" "nemk" "nm")
+     non-enforcing-makefile +non-enforcing-makefile-option-spec+
      "Create some Makefile for a non-enforcing build"
      "Create some Makefile for a non-enforcing build,
 that will use ASDF or POIU to create one or a series of images each containing
 the previous image, a build and its dependencies.")
-    (("show-source-registry" "source-registry" "ssr") show-source-registry-command +show-source-registry-option-spec+
+    (("show-source-registry" "source-registry" "ssr")
+     show-source-registry-command +source-registry-option-spec+
      "Show builds in the configured source registry"
      "Show builds in the implicitly or explicitly configured source registry.
 For debugging your XCVB configuration.")
-    (("find-module" "fm") find-module +find-module-option-spec+
+    (("find-module" "fm")
+     find-module +find-module-option-spec+
      "Show builds in the specified XCVB path"
      "Show builds in the implicitly or explicitly specified XCVB path.
 For debugging your XCVB configuration.")
-    (("slave-builder") slave-builder +slave-builder-option-spec+
+    (("slave-builder")
+     slave-builder +slave-builder-option-spec+
      "Build some project as a slave to the XCVB master (for internal use)"
      "Build some project as a slave to the XCVB master (for internal use)")
-    (("make-manifest") make-manifest +make-manifest-option-spec+
+    (("make-manifest")
+     make-manifest +make-manifest-option-spec+
      "Create a manifest of files to load (for internal use)"
      "given fullnames and paths, output fullnames, tthsum and paths")
-    (("build") standalone-build-command +standalone-build-option-spec+
+    (("build")
+     standalone-build-command +standalone-build-option-spec+
      "build a project (not implemented yet - will fail)"
      "build the project directly")
-    (("load") load-command ()
+    (("load")
+     load-command ()
      "Load a Lisp file"
      "Load a Lisp file in the context of XCVB itself. For XCVB developers only.")
-    (("eval") eval-command ()
+    (("eval")
+     eval-command ()
      "Evaluate some Lisp form"
      "Evaluate some Lisp form in the context of XCVB itself. For XCVB developers only.")
-    (("repl") repl-command ()
+    (("repl")
+     repl-command ()
      "Start a REPL"
      "The 'repl' command takes no additional arguments.
 Using 'xcvb repl' launches a Lisp REPL.
 For XCVB developers only (notably for use with SLIME).")
-    (("version" "-V" "--version") show-version ()
+    (("version" "-V" "--version")
+     show-version ()
      "Show version"
      "The 'version' command ignores all arguments, and prints out the version number
 for this version of XCVB.")))
+
+(defparameter +source-registry-option-spec+
+  '((("source-registry" #\S) :type string :optional t
+     :documentation "override your source-registry")))
 
 
 ;; Lookup the command spec for the given command name, or return nil if the

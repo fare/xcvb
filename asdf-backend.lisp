@@ -131,19 +131,19 @@ Declare asd system as ASDF-NAME."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XCVB to ASDF ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +xcvb-to-asdf-option-spec+
-  '((("build" #\b) :type string :optional nil :list t :documentation "Specify a build to convert (can be repeated)")
+  `((("build" #\b) :type string :optional nil :list t :documentation "Specify a build to convert (can be repeated)")
     (("name" #\n) :type string :optional t :documentation "name of the new ASDF system")
     (("output-path" #\o) :type string :optional t :documentation "pathname for the new ASDF system")
-    (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
+    ,@+source-registry-option-spec+
     (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
     (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
     (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
     (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")))
 
 (defun xcvb-to-asdf-command (&rest keys &key
-                             build name output-path verbosity xcvb-path
+                             build name output-path verbosity source-registry
                              lisp-implementation lisp-binary-path debugging)
-  (declare (ignore xcvb-path verbosity lisp-implementation lisp-binary-path debugging))
+  (declare (ignore source-registry verbosity lisp-implementation lisp-binary-path debugging))
   (apply 'handle-global-options keys)
   (write-asd-file
    :asdf-name name

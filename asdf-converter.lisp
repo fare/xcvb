@@ -364,20 +364,19 @@ so that the system can now be compiled with XCVB."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ASDF to XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +asdf-to-xcvb-option-spec+
-  '((("system" #\S) :type string :optional nil :list t :documentation "Specify a system to convert (can be repeated)")
+  `((("system" #\a) :type string :optional nil :list t :documentation "Specify an ASDF system to convert (can be repeated)")
     (("base" #\B) :type string :optional t :documentation "Base pathname for the new build")
     (("name" #\n) :type string :optional t :documentation "name of the resulting build")
     (("setup" #\s) :type string :optional t :documentation "Specify the path to a Lisp setup file.")
-    (("system-path" #\p) :type string :optional t :list t :documentation "Register an ASDF system path (can be repeated)")
+    ,@+source-registry-option-spec+
     (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")
     (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
     (("verbosity" #\v) :type integer :optional t :documentation "set verbosity (default: 5)")))
 
 (defun asdf-to-xcvb-command
-    (&key system setup system-path preload verbosity base name debugging)
+    (&key system setup source-registry preload verbosity base name debugging)
   (handle-global-options :verbosity verbosity :debugging debugging)
-  (setf asdf:*central-registry*
-        (append (mapcar #'ensure-pathname-is-directory system-path) asdf:*central-registry*))
+  (asdf:initialize-source-registry source-registry)
   (when setup (load setup))
   (asdf-to-xcvb
    :name name

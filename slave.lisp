@@ -6,10 +6,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; slave builder ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +slave-builder-option-spec+
- '((("build" #\b) :type string :optional nil :documentation "specify a (series of) system(s) to build")
+  `((("build" #\b) :type string :optional nil :documentation "specify a (series of) system(s) to build")
    (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
-   (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
-   (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
+   ,@+source-registry-option-spec+
    (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
    (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
@@ -21,7 +20,7 @@
    ))
 
 (defun slave-builder (&key
-                      build setup xcvb-path
+                      build setup source-registry
                       output-path object-directory
                       lisp-implementation lisp-binary-path
                       disable-cfasl base-image verbosity profiling debugging)
@@ -30,7 +29,7 @@
       (make-makefile
        :master t
        :build build :setup setup
-       :xcvb-path xcvb-path :output-path output-path
+       :source-registry source-registry :output-path output-path
        :object-directory object-directory
        :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
        :disable-cfasl disable-cfasl :base-image base-image

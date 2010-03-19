@@ -98,28 +98,28 @@ in a fast way that doesn't enforce dependencies."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; non-enforcing makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +non-enforcing-makefile-option-spec+
- '((("build" #\b) :type string :optional nil :list t :documentation "specify a (series of) system(s) to build")
-   (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
-   (("name" #\n) :type string :optional t :initial-value "xcvb-tmp" :documentation "ASDF name for the target")
-   (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
-   (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
-   (("output-path" #\o) :type string :initial-value "xcvb-ne.mk" :documentation "specify output path")
-   (("object-directory" #\O) :type string :initial-value "obj-ne" :documentation "specify object directory")
-   (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
-   (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
-   (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
-   (("parallel" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")
-   (("debugging" #\Z) :type boolean :optional t :initial-value nil :documentation "debug")
-;  (("force-cfasl" #\C) :type boolean :optional t :initial-value nil :documentation "force use of CFASL")
-;  (("profiling" #\P) :type boolean :optional t :documentation "profiling")
-   ))
+  `((("build" #\b) :type string :optional nil :list t :documentation "specify a (series of) system(s) to build")
+    (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
+    (("name" #\n) :type string :optional t :initial-value "xcvb-tmp" :documentation "ASDF name for the target")
+    (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
+    ,@+source-registry-option-spec+
+    (("output-path" #\o) :type string :initial-value "xcvb-ne.mk" :documentation "specify output path")
+    (("object-directory" #\O) :type string :initial-value "obj-ne" :documentation "specify object directory")
+    (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
+    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
+    (("parallel" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")
+    (("debugging" #\Z) :type boolean :optional t :initial-value nil :documentation "debug")
+;;  (("force-cfasl" #\C) :type boolean :optional t :initial-value nil :documentation "force use of CFASL")
+;'  (("profiling" #\P) :type boolean :optional t :documentation "profiling")
+    ))
 
 (defun non-enforcing-makefile (&rest keys &key
-                               build base-image setup xcvb-path name
+                               build base-image setup source-registry name
                                output-path object-directory
                                lisp-implementation lisp-binary-path
                                verbosity parallel debugging #|force-cfasl profiling|#)
-  (declare (ignore xcvb-path setup verbosity
+  (declare (ignore source-registry setup verbosity
                    lisp-implementation lisp-binary-path
                    object-directory base-image debugging))
   ;;(with-maybe-profiling (profiling)

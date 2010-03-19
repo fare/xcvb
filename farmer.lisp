@@ -407,9 +407,9 @@ waiting at this state of the world.")
       (farm-out-world-tree traversal))))
 
 (defparameter +standalone-build-option-spec+
-  '((("build" #\b) :type string :optional nil :documentation "specify what system to build")
+  `((("build" #\b) :type string :optional nil :documentation "specify what system to build")
     (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
-    (("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")
+    ,@+source-registry-option-spec+
     (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
     (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
     (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
@@ -423,10 +423,10 @@ waiting at this state of the world.")
 
 (defun standalone-build-command
     (&rest keys &key
-     xcvb-path setup verbosity output-path
+     source-registry setup verbosity output-path
      build lisp-implementation lisp-binary-path
      disable-cfasl master object-directory base-image debugging profiling)
-  (declare (ignore xcvb-path setup verbosity output-path
+  (declare (ignore source-registry setup verbosity output-path
                    lisp-implementation lisp-binary-path
                    disable-cfasl master object-directory base-image debugging))
   (with-maybe-profiling (profiling)

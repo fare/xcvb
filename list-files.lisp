@@ -38,15 +38,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Remove XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +remove-xcvb-option-spec+
-  '((("build" #\b) :type string :optional nil
+  `((("build" #\b) :type string :optional nil
      :documentation "Specify XCVB build to remove modules from")
-    (("xcvb-path" #\x) :type string :optional t
-     :documentation "override your XCVB_PATH")
+    ,@+source-registry-option-spec+
     (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
     (("verbosity" #\v) :type integer :optional t :initial-value 5 :documentation "set verbosity (default: 5)")))
 
-(defun remove-xcvb-command (&rest keys &key xcvb-path verbosity build debugging)
-  (declare (ignore xcvb-path verbosity debugging))
+(defun remove-xcvb-command (&rest keys &key source-registry verbosity build debugging)
+  (declare (ignore source-registry verbosity debugging))
   (apply 'handle-global-options keys)
   (remove-xcvb-from-build build))
 

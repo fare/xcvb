@@ -9,7 +9,7 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(let ((min "1.648"))
+(let ((min "1.655"))
   (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) min))
     (error "XCVB requires ASDF ~D or later, you only have ~D"
            min (asdf:asdf-version))))
@@ -50,11 +50,12 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "utilities" :depends-on ("macros"))
      (:file "logging" :depends-on ("specials"))
      (:file "lisp-invocation" :depends-on ("specials"))
+     (:file "main" :depends-on ("specials"))
      (:file "string-escape" :depends-on ("utilities"))
      (:file "virtual-pathnames" :depends-on ("specials" "utilities")) ;;; FIX THIS FILE AND BELOW
      (:file "grain-interface" :depends-on ("utilities" "conditions"))
      (:file "registry" :depends-on ("grain-interface" "specials"))
-     (:file "search-path" :depends-on ("registry"))
+     (:file "search-path" :depends-on ("registry" "main"))
      (:file "computations" :depends-on ("grain-interface" "registry" "specials"))
      (:file "manifest" :depends-on ("macros" "virtual-pathnames"))
      (:file "extract-target-properties" :depends-on ("string-escape" "lisp-invocation"))
@@ -69,15 +70,14 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "makefile-backend" :depends-on ("profiling" "static-traversal" "driver-commands"
 					    "computations"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
-     (:file "list-files" :depends-on ("simplifying-traversal"))
-     (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging"))
-     (:file "ne-makefile-backend" :depends-on ("specials" "makefile-backend"
+     (:file "list-files" :depends-on ("simplifying-traversal" "main"))
+     (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging" "main"))
+     (:file "ne-makefile-backend" :depends-on ("main" "makefile-backend"
                                                "asdf-backend" "simplifying-traversal"))
-     (:file "asdf-converter" :depends-on ("specials" "grain-interface"))
-     (:file "slave" :depends-on ("pkgdcl"))
-     (:file "farmer" :depends-on ("profiling" "specials"
+     (:file "asdf-converter" :depends-on ("main" "grain-interface"))
+     (:file "slave" :depends-on ("main"))
+     (:file "farmer" :depends-on ("profiling" "main"
                                   "grain-interface" "dependencies-interpreter"))
-     (:file "main" :depends-on ("static-traversal" "search-path" "computations"))
      (:file "cffi-grovel-support" :depends-on
             ("makefile-backend" "static-traversal" "computations" "driver-commands"))
      (:file "version" :depends-on ("specials"))))

@@ -90,9 +90,8 @@ said element itself being a list of directory pathnames where to look for build.
 (defun map-build-files-under (root fn)
   "Call FN for all BUILD files under ROOT"
   (let* ((builds (find-build-files-under root))
-         #+(or) ;; uncomment it for depth first traversal
-         (builds (sort builds #'<
-                       :key #'(lambda (p) (length (pathname-directory p))))))
+         ;; depth first traversal
+         (builds (sort builds #'< :key (compose #'length #'pathname-directory))))
     (map () fn builds)))
 
 (defun search-source-registry ()
@@ -200,18 +199,15 @@ for each of its registered names."
                         fullname (mapcar 'namestring (brc-pathnames entry))))))))
     (map () #'princ (sort (mapcar #'entry-string (hash-table->alist *builds*)) #'string<))))
 
-(defparameter +show-source-registry-option-spec+
-  '((("xcvb-path" #\x) :type string :optional t :documentation "override your XCVB_PATH")))
-
-(defun show-source-registry-command (&key xcvb-path)
-  (handle-global-options :xcvb-path xcvb-path)
+(defun show-source-registry-command (&key source-registry)
+  (handle-global-options :source-registry source-registry)
   (show-source-registry))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Find Module ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun find-module (&key xcvb-path name short)
+(defun find-module (&key source-registry name short)
   "find modules of given full name"
-  (handle-global-options :xcvb-path xcvb-path)
+  (handle-global-options :source-registry source-registry)
   (let ((all-good t))
     (dolist (fullname name)
       (let ((grain (resolve-absolute-module-name fullname)))
@@ -229,4 +225,4 @@ for each of its registered names."
   (append
    '((("name" #\n) :type string :optional nil :list t :documentation "name to search for")
      (("short" #\s) :type boolean :optional t :documentation "short output"))
-   +show-source-registry-option-spec+))
+   +source-registry-option-spec+))
