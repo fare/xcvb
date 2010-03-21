@@ -9,11 +9,21 @@
   "Either NIL (for uninitialized), or a list of one element,
 said element itself being a list of directory pathnames where to look for build.xcvb files")
 
+(defparameter *source-registry-searched-p* nil
+  "Has the source registry been searched yet?")
+
+(defparameter *builds*
+  (make-hash-table :test 'equal)
+  "A registry of known builds, indexed by canonical name.
+Initially populated with all build.xcvb files from the search path.")
+
+
 (defun compute-source-registry (&optional parameter)
   (let ((*default-pathname-defaults* *xcvb-lisp-directory*))
     (asdf::flatten-source-registry parameter)))
 
 (defun initialize-source-registry (&optional parameter)
+  (clrhash *builds*)
   (let ((source-registry (compute-source-registry parameter)))
     (setf *source-registry* (list source-registry))
     *source-registry*))
@@ -23,9 +33,6 @@ said element itself being a list of directory pathnames where to look for build.
     (error "You should have already initialized the source registry by now!")))
 
 ;;; Now for actually searching the source registry!
-
-(defparameter *source-registry-searched-p* nil
-  "Has the source registry been searched yet?")
 
 (defun verify-path-element (element)
   (let* ((absolute-path (ensure-absolute-pathname element)))
@@ -96,7 +103,7 @@ said element itself being a list of directory pathnames where to look for build.
 
 (defun search-source-registry ()
   (finalize-source-registry)
-  (loop :for root :in (remove-duplicates (car *source-registry*) :test 'equal) :do
+  (dolist (root (car *source-registry*))
     (map-build-files-under root #'(lambda (x) (register-build-file x root)))
     (register-build-nicknames-under root)))
 
@@ -105,11 +112,6 @@ said element itself being a list of directory pathnames where to look for build.
     (search-source-registry)))
 
 ;;;; Registering a build
-
-(defparameter *builds*
-  (make-hash-table :test 'equal)
-  "A registry of known builds, indexed by canonical name.
-Initially populated with all build.xcvb files from the search path.")
 
 (defun supersedes-asdf-name (x)
   `(:supersedes-asdf ,(coerce-asdf-system-name x)))

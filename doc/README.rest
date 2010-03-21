@@ -33,7 +33,7 @@ enforced locally-declared dependencies.
       3.3  Optimization Settings
     4  Combining Multiple Projects
       4.1  Module Full Names
-      4.2  Search Path
+      4.2  Source Registry
       4.3  Module Name Resolution
       4.4  Dumping Images
     5  Additional Features
@@ -174,14 +174,14 @@ and to build and run the target software that you will build with XCVB:
 If you prefer to collect XCVB's dependencies manually into your system,
 you will need the following Lisp software libraries to get XCVB running:
 
-  * cl-launch 2.30 or later:
+  * cl-launch 2.901 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
         - getting it, if you're an XCVB project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
-  * ASDF 1.367 or later:
+  * ASDF 1.655 or later, aka ASDF 2:
 	- homepage: http://cliki.net/asdf
 	- getting it:
 		``git clone http://common-lisp.net/project/asdf/asdf.git``
@@ -209,12 +209,22 @@ you will need the following Lisp software libraries to get XCVB running:
         - getting it, if you're a QITAB project member::
         	``git clone ssh://USER@common-lisp.net/project/qitab/git/command-line-arguments.git``
 
-  * POIU:
+  * POIU for fast non-enforcing build:
 	- homepage: http://common-lisp.net/project/qitab/
 	- getting it:
 		``git clone http://common-lisp.net/project/qitab/git/poiu.git``
         - getting it, if you're a QITAB project member::
 		``git clone ssh://USER@common-lisp.net/project/qitab/git/poiu.git``
+
+  * ironclad, for cryptography:
+	- homepage: http://www.method-combination.net/lisp/ironclad/
+	- getting it:
+		``git clone git://github.com/froydnj/ironclad.git``
+
+  * binascii for printing cryptographic digests:
+	- homepage: http://www.cliki.net/binascii
+	- getting it:
+		``git clone git://github.com/froydnj/binascii.git``
 
 Additionally, our XCVB master mode
 (see below `Interactive update of a running image with XCVB master`_)
@@ -230,7 +240,7 @@ If you are using Debian or Ubuntu, you may install it with::
 Note that for each of these dependencies,
 you'll have to properly setup your ASDF configuration
 so that the dependency is found by ASDF (if you use ASDF);
-and you'll have to properly set up your XCVB_PATH and avoid conflicts
+and you'll have to properly set up your source-registry and avoid conflicts
 (see below) if you use the bootstrapping using XCVB itself.
 
 Moreover, cl-launch requires special installation of both its executable
@@ -342,20 +352,19 @@ and just follow the instructions in the ``INSTALL`` file.
 
 The hard way to build XCVB is to install all the dependencies as listed above,
 then create and edit your own ``configure.mk`` from ``doc/configure.mk.example``.
-You'll notably need to configure those dependencies to work with ASDF:
-typically, you'll create somewhere a ``systems/`` directory,
-in which you'll create a symlink to each of the ``.asd`` files in your dependencies,
-and in your ``configure.mk`` tell ``cl-launch`` to use said directory
-with an appropriate ``--path`` option.
+You'll notably need to configure those dependencies to work with ASDF.
+Typically, you'll download all the code under ``~/.local/share/common-lisp/source/``
+or another place configured in your ASDF source-registry.
+Alternatively, you can provide an appropriate ``--source-registry`` option to ``cl-launch``.
 You can now to bootstrap XCVB using ASDF with ``make xcvb-using-asdf``.
 If successful, you may finally complete the bootstrap of XCVB using XCVB itself,
-by exporting the proper ``XCVB_PATH`` and then invoking ``make xcvb``.
+by exporting the proper ``CL_SOURCE_REGISTRY`` and then invoking ``make xcvb``.
 
 Assuming you installed ``xcvb`` into some directory in your ``$PATH``,
 you can test that XCVB built correctly by using the following query commands::
 
 	xcvb version
-	xcvb show-search-path
+	xcvb show-source-registry
 
 
 Starting a new XCVB project
@@ -427,7 +436,7 @@ Where ``/foo/bar`` is the fullname of your target
 If you do not specify a build name, XCVB will attempt to use the build
 in the current working directory.
 
-Note that you need to properly setup your `Search Path`_ with ``XCVB_PATH``,
+Note that you need to properly setup your `Source Registry`_ with ``XCVB_PATH``,
 or specify it with option ``--xcvb-path``.
 Also, XCVB will assume that the specified implementation,
 ``sbcl`` or otherwise, is in your ``PATH``, though you may override with
@@ -787,43 +796,18 @@ of using all lowercase names, and leaving ``_`` reserved to XCVB internals.
 Finally, XCVB assumes that Lisp files have type ``lisp`` as far as pathnames are considered.
 
 
-Search Path
------------
+Source Registry
+---------------
 
 To map names to files on the current machine,
-XCVB relies on the user having properly configured its search path.
-
-The search path is stored in the Lisp variable ``xcvb:*search-path*``
-that has a (hopefully) sensible default and
-can otherwise be configured through
-environment variables, configuration files, or
-(in the near future) command-line arguments.
-
-  1- When XCVB starts, it initializes ``xcvb:*search-path*`` to its default,
-  by evaluating function ``xcvb::default-search-path`` which evaluates
-  and returns the following::
-
-    (list
-      *default-pathname-defaults*
-      (subpathname (user-homedir-pathname) "lisp/")
-      #p"/usr/local/share/common-lisp/source/"
-      #p"/usr/share/common-lisp/source/"))
-
-  2- If environment variable ``XCVB_PATH`` is set,
-  it is read as a "``:``"-delimited list of path strings,
-  wherein an entry "``!``" means "splice the previous value".
-
-  3- (In the future) If a command-line argument is specified with ``--path``
-  then it is interpreted with the same behavior as above.
-
-  4- Your Lisp configuration or command file may arbitrarily modify
-  special variable ``xcvb:*search-path*``
-  by prepending and/or appending more pathname designators.
+XCVB relies on the user having properly configured
+the Common Lisp source registry.
+This registry is described in details in the ASDF 2 manual.
 
 Before XCVB actually tries to process any module,
-it will finalize its search path by eliminating all invalid paths
-from *search-path* and eagerly collecting a list of all the top-level
-``build.xcvb`` files under the specified filesystem hierarchies.
+it will finalize its source-registry by eliminating all invalid paths
+from the source-registry, and eagerly collecting a list of all the top-level
+``build.xcvb`` files in the specified filesystem directories and hierarchies.
 For this reason, you will want to include as narrow directory hierarchies
 as you can in the search path. ``/opt/share/common-lisp/source/``
 is probably good, whereas ``/`` or ``/usr`` may result in minutes or hours
@@ -838,7 +822,8 @@ said name will be marked as a conflict and
 will be unavailable for use during the build.
 To avoid gratuitous conflicts,
 subdirectories named ``_darcs`` or ``.svn``
-are conspicuously not searched.
+are conspicuously not searched
+(see exclusions in the source-registry configuration).
 
 Importantly, an installed version of XCVB itself
 (at least its ``build.xcvb`` and ``driver.lisp`` in the same directory)
@@ -854,17 +839,14 @@ you shouldn't trust these defaults until you have verified them.
 
 You can query your current search path with the command::
 
-	xcvb search-search-path
+	xcvb show-source-registry
 
-Also available is the short-hand ``xcvb ssp``.
+Also available is the short-hand ``xcvb ssr``.
 
 *Note to people migrating from ASDF*:
-this more or less corresponds
-to the ``asdf:*central-registry*`` special variable.
-However, whereas ASDF relies on lazy dereference of symlinks
-and doesn't descend into subdirectories,
-XCVB eagerly scans subdirectories and registers available builds.
-XCVB works with or without symlinks.
+we are reusing the exact same code
+that ASDF 2 uses to process its source-registry.
+That code supersedes the old ``asdf:*central-registry*`` from ASDF 1.
 
 .. _ASDF: http://www.cliki.net/
 
@@ -1161,7 +1143,7 @@ In simple cases, your personal ``setup.lisp`` may be as simple as the following:
 
 In slightly harder cases, you may call ``cl-launch`` to the rescue::
 
-	cl-launch --lisp clisp --path /path/to/my/asdf/systems -B print_lisp_setup > setup.lisp
+	cl-launch --lisp clisp --source-registry /path/to/my/asdf/systems -B print_lisp_setup > setup.lisp
 
 XCVB's own ``Makefile`` includes a target to build a ``setup.lisp``
 using the same principle, but additionally leveraging the pre-existing
@@ -1174,31 +1156,16 @@ may contain the usual ASDF hackery, including such snippets as::
 	#+xcvb (module (:build-depends-on ()))
 	(in-package :cl-user)
         (eval-when (:compile-toplevel :load-toplevel :execute)
-          (defun get-env-var (x)
-            #+sbcl (sb-ext:posix-getenv x)
-            #+clozure (ccl:getenv x))
           (defparameter *l* (make-pathname :name nil :type nil :defaults *load-pathname*)))
-        (eval-when (:compile-toplevel :load-toplevel :execute)
-          (unless (and (find-package :asdf) (find-symbol "SYSTEM" :asdf))
-            (block asdf-load
-              (handler-bind
-                  ((error #'(lambda (c)
-                              (declare (ignore c))
-                              (load (merge-pathnames "libs/asdf/asdf.lisp" *l*))
-                              (return-from asdf-load nil))))
-                (require :asdf)))))
-        (eval-when (:compile-toplevel :load-toplevel :execute)
-          (let* ((asds (directory (merge-pathnames #P"**/*.asd" *l*)))
-                 (asd-dirs (remove-duplicates (mapcar #'pathname-directory asds) :test #'equal)))
-             (dolist (subdir asd-dirs)
-               (unless (search '("_darcs" "pristine") subdir :test #'equal)
-                 (pushnew (namestring (make-pathname :directory subdir)) asdf:*central-registry*
-                          :test #'equal))))
-          (let ((use-poiu (get-env-var "USE_POIU")))
-            (when (and use-poiu (not (equal use-poiu "")))
-              (pushnew :parallel-build *features*))
-              (unless (find-symbol "PARALLEL-LOAD-OP" :asdf)
-                (asdf:oos 'asdf:load-op :poiu))))
+        (ignore-errors (require :asdf))
+        (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) "1.655"))
+           (load (merge-pathnames "libs/asdf/asdf.lisp" *l*)))
+        (asdf:initialize-source-registry
+         `(:source-registry (:tree *l*) :ignore-inherited-configuration))
+        (let ((use-poiu (asdf-utilities:getenv "USE_POIU")))
+          (when (and use-poiu (not (equal use-poiu "")))
+            (pushnew :parallel-build *features*))
+            (asdf:load-system :poiu))))
 
 
 ASDF systems depending on XCVB builds

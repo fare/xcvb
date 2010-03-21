@@ -316,10 +316,10 @@ with_release_build_dir () {
 validate_release_dir () {
   compute_release_dir_variables
   check_release_dir
-  with_release_build_dir validate_bootstrapped_xcvb
+  #with_release_build_dir validate_bootstrapped_xcvb
   with_release_build_dir validate_asdf_xcvb
-  with_release_build_dir validate_mk_xcvb
-  with_release_build_dir validate_nemk_xcvb
+  #with_release_build_dir validate_mk_xcvb
+  #with_release_build_dir validate_nemk_xcvb
 }
 
 validate_release_dir_all_lisps () {

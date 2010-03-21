@@ -89,11 +89,12 @@ CL_LAUNCH_FLAGS += --lisp '${LISP} sbcl clisp ccl'
 ##
 ##
 ## If you need to specify one or several paths where .asd files reside
-## that are needed by XCVB, use one or several --path flags
-## DEFAULT: nothing (assume your /etc/sbclrc or ~/.sbclrc or equivalent does it)
-CL_LAUNCH_FLAGS += --path ${LISP_SYSTEMS}
-#CL_LAUNCH_FLAGS += --path /usr/share/common-lisp/systems/
-#CL_LAUNCH_FLAGS += --path /home/USER/.local/share/common-lisp/systems/
+## that are needed by XCVB, use the --source-registry flag
+## DEFAULT: nothing (we assume your source registry is properly configured
+## by e.g. your ~/.config/common-lisp/source-registry.conf.d/
+## see the ASDF manual regarding the source-registry.
+CL_LAUNCH_FLAGS += --source-registry .::
+#CL_LAUNCH_FLAGS += --source-registry ${HOME}/cl:
 ##
 ##
 ## If you want to make sure that cl-launch uses installed include files

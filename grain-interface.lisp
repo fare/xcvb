@@ -80,11 +80,16 @@
    (pathname
     :initarg :pathname
     :accessor grain-pathname
-    :documentation "The truepath to the file that the module was declared in"))
+    :documentation "The truepath to the file that the module was declared in")
+   (default-file-extension
+    :reader default-file-extension
+    :allocation :class
+    :documentation "Default file extension for grains in that class"))
   (:documentation "File grain"))
 
 (defclass image-grain (file-grain)
-  ((world :accessor image-world :initarg :world))
+  ((world :accessor image-world :initarg :world)
+   (default-file-extension :initform "image"))
   (:documentation "Dumped Image"))
 
 (defclass documented-grain (grain)
@@ -165,8 +170,8 @@ into an image that will be used for all future compile/load operations")
     :documentation "extension forms to the build specification"))
   (:documentation "Lisp source or build file"))
 
-(defclass lisp-file-grain (lisp-module-grain)
-  ()
+(defclass lisp-file-grain (lisp-module-grain source-grain)
+  ((default-file-extension :initform "lisp"))
   (:documentation "Lisp file grain"))
 
 (defclass build-module-grain (lisp-module-grain build-registry-entry)
@@ -203,13 +208,15 @@ into an image that will be used for all future compile/load operations")
 (defclass fasl-grain (file-grain)
   ((load-dependencies
     :initarg :load-dependencies
-    :reader load-dependencies))
+    :reader load-dependencies)
+   (default-file-extension :initform "fasl"))
   (:documentation "Lisp FASL file grain"))
 
 (defclass cfasl-grain (file-grain)
   ((load-dependencies
     :initarg :load-dependencies
-    :reader load-dependencies))
+    :reader load-dependencies)
+   (default-file-extension :initform "cfasl"))
   (:documentation "Lisp CFASL file grain"))
 
 (defclass asdf-grain (buildable-grain named-grain)

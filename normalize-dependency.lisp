@@ -34,11 +34,10 @@ a reference to the system was superseded by a build.xcvb file.")
 (define-simple-dispatcher normalize-dependency #'normalize-dependency-atom)
 
 (defun normalize-dependency-atom (grain name)
-  (let ((g (module-grain-from name grain))
-        (n (fullname g)))
+  (let ((g (resolve-module-name name grain)))
     (etypecase g
-      (build-module-grain `(:build ,n))
-      (lisp-module-grain `(:fasl ,n)))))
+      (build-module-grain `(:build ,(fullname g)))
+      (lisp-file-grain `(:fasl ,(fullname g))))))
 
 (define-normalize-dependency :when (grain expression &rest dependencies)
   ;; TODO: parse and make sure that expression is well-formed, which
@@ -62,7 +61,7 @@ a reference to the system was superseded by a build.xcvb file.")
 
 (defun normalize-dependency-build* (type grain name)
   (let ((g (lisp-module-grain-from name grain)))
-    (check-type g build-module-grain)
+    (check-type g lisp-module-grain)
     `(,type ,(fullname g))))
 
 (define-normalize-dependency :build (grain name)
@@ -204,7 +203,7 @@ in the normalized dependency mini-language"
            (make-grain
             class
             :fullname name
-            :pathname (dependency-pathname env name)
+            :vpn `(:obj ,fullname ,(default-file-extension class))
             :load-dependencies deps)))
     (cons (m 'fasl-grain `(:fasl ,fullname) (append build-dependencies load-dependencies))
           (if *use-cfasls*

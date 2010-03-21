@@ -9,7 +9,7 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(let ((min "1.655"))
+(let ((min "1.658"))
   (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) min))
     (error "XCVB requires ASDF ~D or later, you only have ~D"
            min (asdf:asdf-version))))

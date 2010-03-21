@@ -7,7 +7,7 @@
   (unless (module-form-p form)
     (error "Invalid or missing module declaration~@[ in ~S~]" path))
   (destructuring-bind ((&rest keys) &rest extension-forms) (cdr form)
-    (apply #'make-instance (if build-p 'build-module-grain 'lisp-module-grain)
+    (apply #'make-instance (if build-p 'build-module-grain 'lisp-file-grain)
            :pathname path :extension-forms extension-forms
            :computation nil
            keys)))
@@ -33,7 +33,7 @@
     (setf (grain-finalized-p grain) t))
   (values))
 
-(defmethod finalize-grain :after ((grain lisp-module-grain))
+(defmethod finalize-grain ((grain lisp-module-grain))
   (handle-extension-forms grain)
   (macrolet ((normalize (deps)
                `(normalize-dependencies grain ,deps ,(keywordify deps))))
@@ -105,8 +105,7 @@
 (defgeneric run-generator (env generator))
 ;;(defmethod run-generator (env (fun function)) (funcall fun env))
 (defmethod run-generator (env (generator lisp-generator))
-  (let* ((dependencies (append (build-dependencies grain)
-                               (generator-dependencies generator)))
+  (let* ((dependencies (generator-dependencies generator))
          (targets (generator-targets generator))
          (grain (first targets)))
     (unless targets
@@ -322,3 +321,5 @@ Modeled after the asdf function coerce-name"
 (defun fullname-pathname (fullname)
   (grain-pathname (registered-grain fullname)))
 
+(defmethod default-file-extension ((class symbol))
+  (default-file-extension (make-instance class)))

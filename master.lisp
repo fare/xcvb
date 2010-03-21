@@ -333,9 +333,9 @@ with associated pathnames and tthsums.")
           (append
            (list xcvb-binary "slave-builder")
            (string-options
-            build setup lisp-implementation verbosity)
+            build setup lisp-implementation verbosity source-registry)
            (pathname-options
-            source-registry output-path object-directory lisp-binary-path)
+            output-path object-directory lisp-binary-path)
            (boolean-options
             disable-cfasl base-image profiling)))
          (slave-output
