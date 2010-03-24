@@ -54,7 +54,8 @@
 covering the builds specified by BUILD-NAMES.
 Declare asd system as ASDF-NAME."
   (assert (consp build-names))
-  (let* ((builds (mapcar #'registered-build build-names))
+  (let* ((builds (mapcar (lambda (n) (registered-build n :ensure-build t))
+                         build-names))
          (first-build (first builds))
          (asdf-name
           (coerce-asdf-system-name

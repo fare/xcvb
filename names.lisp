@@ -9,7 +9,7 @@
 (defvar +lisp-path+
   (make-pathname :type "lisp"))
 
-(defun probe-file-grain (path &key build-p)
+(defun probe-file-grain (path &key build-p parent)
   (let* ((path (ensure-absolute-pathname path))
          (string (namestring path)))
     (multiple-value-bind (cached found)

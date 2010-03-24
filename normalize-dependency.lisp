@@ -199,6 +199,7 @@ in the normalized dependency mini-language"
 
 (defun fasl-grains-for-name (env fullname
                              load-dependencies cload-dependencies build-dependencies)
+  (declare (ignore env))
   (flet ((m (class name deps)
            (make-grain
             class

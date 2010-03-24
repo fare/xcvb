@@ -121,8 +121,8 @@
   (let* ((target (if fullname
                    (resolve-absolute-module-name fullname)
                    (let* ((build-file (probe-file "build.xcvb"))
-                          (build-module-grain (and build-file
-                                            (make-grain-from-file build-file :build-p t)))
+                          (build-module-grain
+                           (and build-file (make-grain-from-file build-file :build-p t)))
                           (fullname (and build-module-grain (fullname build-module-grain)))
                           (registered-build (and fullname (registered-grain fullname))))
                      ;; Question: should we make the below error cases warnings,

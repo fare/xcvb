@@ -139,6 +139,8 @@
   "Takes a PATH to a lisp file, and returns the corresponding grain."
   (let ((grain (grain-from-file-declaration path :build-p build-p)))
     (compute-fullname grain)
+    (unless (slot-boundp grain 'vpn)
+      (setf (slot-value grain 'vpn) (default-vpn-for grain)))
     grain))
 
 (defun %grain-from-relative-name (name build)
@@ -192,7 +194,7 @@
          (starting-build-name (build-starting-dependencies-p dependencies))
          (starting-build
           (when starting-build-name
-            (registered-build starting-build-name)))
+            (registered-build starting-build-name :ensure-build t)))
          (starting-build-image-name
           (when starting-build
             (build-image-name starting-build))))
@@ -323,3 +325,34 @@ Modeled after the asdf function coerce-name"
 
 (defmethod default-file-extension ((class symbol))
   (default-file-extension (make-instance class)))
+
+
+(defgeneric default-vpn-for (x))
+(defmethod default-vpn-for ((x build-module-grain))
+  (list :src (fullname x) "/build.xcvb"))
+(defmethod default-vpn-for ((x lisp-file-grain))
+  (let* ((build (grain-parent x))
+         (bname (fullname build))
+         (bpath (grain-pathname build))
+         (fullname (fullname x))
+         (pathname (grain-pathname x))
+         (suffix (progn
+                   (assert (string-prefix-p (strcat bname "/") fullname))
+                   (subseq fullname (1+ (length bname))))))
+    (assert (equal pathname (subpathname bpath (strcat suffix ".lisp"))))
+    (list :src bname "/" suffix "." "lisp")))
+(defmethod default-vpn-for-object (x type)
+  (let* ((build (grain-parent x))
+         (bname (fullname build))
+         (fullname (fullname x))
+         (suffix (progn
+                   (assert (string-prefix-p (strcat bname "/") fullname))
+                   (subseq fullname (1+ (length bname))))))
+    (list :obj bname suffix "." type)))
+(defmethod default-vpn-for ((x fasl-grain))
+  (default-vpn-for-object x "fasl"))
+(defmethod default-vpn-for ((x cfasl-grain))
+  (default-vpn-for-object x "cfasl"))
+(defmethod default-vpn-for ((x image-grain))
+  (default-vpn-for-object x "image"))
+

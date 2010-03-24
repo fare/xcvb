@@ -54,7 +54,7 @@
   (graph-for-build-named env name))
 
 (defmethod graph-for-build-named (env name)
-  (graph-for-build-module-grain env (registered-build name)))
+  (graph-for-build-module-grain env (registered-build name :ensure-build t)))
 
 (defmethod graph-for-build-module-grain :before (env (grain build-module-grain))
   (declare (ignore env))
@@ -81,17 +81,17 @@
      (graph-for-image-grain env name nil nil))
     ((string-prefix-p "/_pre/" name)
      (let* ((build-name (subseq name 5))
-            (build (registered-build build-name)))
-       (check-type build build-module-grain)
+            (build (registered-build build-name :ensure-build t)))
        (finalize-grain build)
        (let* ((dependencies (build-dependencies build))
               (starting-build-name (build-starting-dependencies-p dependencies))
               (starting-build-image-name
                (when starting-build-name
-                 (build-post-image-name (registered-build starting-build-name)))))
+                 (build-post-image-name
+                  (registered-build starting-build-name :ensure-build t)))))
          (graph-for-image-grain env name (or starting-build-image-name "/_") dependencies))))
     (t
-     (let* ((build (registered-build name)))
+     (let* ((build (registered-build name :ensure-build t)))
        (graph-for-image-grain
         env name (build-pre-image-name build) (load-dependencies build))))))
 

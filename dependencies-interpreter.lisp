@@ -68,14 +68,14 @@
       (funcall fun grain))))
 
 (define-build-command-for :build (env name)
-  (let ((build (registered-build name)))
+  (let ((build (registered-build name :ensure-build t)))
     (finalize-grain build)
     (with-dependency-loading (env build)
       (build-commands-for-build-dependencies env build)
       (build-commands-for-load-dependencies env build))))
 
 (define-build-command-for :compile-build (env name)
-  (let ((build (registered-build name)))
+  (let ((build (registered-build name :ensure-build t)))
     (finalize-grain build)
     (with-dependency-loading (env build)
       (build-commands-for-build-dependencies env build)
