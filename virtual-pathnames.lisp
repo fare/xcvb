@@ -8,28 +8,49 @@
 (defclass xcvb-interface (eq:<hashable>) ())
 
 (defclass virtual-pathname ()
-  ((hash :reader vpn-hash :initarg hash)
-   (root :initarg :root :reader vpn-root)
-   (subpath :initarg :path :reader vpn-subpath)
-   (resolved-namestring :accessor vpn-resolved-namestring)))
+  ((hash :initarg :hash :reader vp-hash)
+   (root :initarg :root :reader vp-root)
+   (subpath :initarg :subpath :reader vp-subpath)
+   (resolved-namestring :accessor vp-resolved-namestring)))
 
-(defmethod eq:hash ((i xcvb-interface) (vpn virtual-pathname))
-  (vpn-hash vpn))
-(defmethod eq:== ((i xcvb-interface) (vpn1 virtual-pathname) (vpn2 virtual-pathname))
-  (and (equal (vpn-root vpn1) (vpn-root vpn2))
-       (equal (vpn-subpath vpn1) (vpn-subpath vpn2))))
+(defmethod eq:hash ((i xcvb-interface) (vp virtual-pathname))
+  (vp-hash vp))
+(defmethod eq:== ((i xcvb-interface) (vp1 virtual-pathname) (vp2 virtual-pathname))
+  (and (equal (vp-root vp1) (vp-root vp2))
+       (equal (vp-subpath vp1) (vp-subpath vp2))))
 
-(defun make-vpn (x)
-  (destructuring-bind (root &rest subpath) x
-    (let ((hash (sxhash x)))
-      (make-instance 'virtual-pathname
-        :hash hash :root root :subpath subpath))))
+(defun make-vp (root &rest subpath)
+  (let ((hash (sxhash (cons root subpath))))
+    (make-instance 'virtual-pathname
+                   :hash hash :root root :subpath subpath)))
 
 (defmethod print-object ((x virtual-pathname) stream)
   (if *print-readably*
-      (format stream "#.~S" `(make-vpn '(,(vpn-root x) ,@(vpn-subpath x))))
-      (format stream "#<VPN: ~S>" `(,(vpn-root x) ,@(vpn-subpath x)))))
+      (format stream "#.~S" `(make-vp '(,(vp-root x) ,@(vp-subpath x))))
+      (format stream "#<VP: ~S>" `(,(vp-root x) ,@(vp-subpath x)))))
 
+(defun grain-namestring (env grain)
+  (vp-namestring env (grain-vp grain)))
+(defun fullname-namestring (env fullname)
+  (grain-namestring env (registered-grain fullname)))
+
+(defun vp-pathname (env vp)
+  (pathname (vp-namestring env vp)))
+
+(defun vp-namestring (env vp)
+  (declare (ignorable env))
+  (if (slot-boundp vp 'resolved-namestring)
+      (vp-resolved-namestring vp)
+      (with-slots (root subpath) vp
+        (ecase root
+          (:src
+           (let* ((bname (first subpath))
+                  (sub (rest subpath))
+                  (build (registered-build bname :ensure-build t)))
+             (apply 'strcat
+                    (but-last-char (namestring (grain-pathname build))) sub)))
+          (:obj
+           (apply 'strcat *object-directory* subpath))))))
 
 #|
 ;;;;; Define a little-language for virtual pathnames.
@@ -108,40 +129,40 @@ mapping actual pathnames back to virtual pathnames.")
 #|
 ;;;;; Define a little-language for virtual pathnames.
 
-(defun normalize-vpn (env vpn)
-  (normalize-vpn-dispatcher env vpn))
+(defun normalize-vp (env vp)
+  (normalize-vp-dispatcher env vp))
 
-(define-simple-dispatcher normalize-vpn #'normalize-vpn-atom :generic)
+(define-simple-dispatcher normalize-vp #'normalize-vp-atom :generic)
 
-(defmethod normalize-vpn-atom (env vpn)
+(defmethod normalize-vp-atom (env vp)
   (declare (ignore env))
-  (error "Invalid virtual pathname ~S" vpn))
+  (error "Invalid virtual pathname ~S" vp))
 
-(define-normalize-vpn :obj (env &rest names)
+(define-normalize-vp :obj (env &rest names)
   (declare (ignore env))
   ;;(portable-pathname-from-string ns :allow-absolute nil)
   `(:obj ,@names))
 
-(define-normalize-vpn :path (env name)
+(define-normalize-vp :path (env name)
   (declare (ignore env))
   name)
 
-(define-normalize-vpn :manifest (env &rest names)
-  (normalize-vpn env `(:obj ,@names "__manifest.lisp")))
+(define-normalize-vp :manifest (env &rest names)
+  (normalize-vp env `(:obj ,@names "__manifest.lisp")))
 
 
 ;;;;; Define a little-language for virtual pathnames.
 
-(defun normalize-vpn (env vpn)
-  (normalize-vpn-dispatcher env vpn))
+(defun normalize-vp (env vp)
+  (normalize-vp-dispatcher env vp))
 
-(define-simple-dispatcher normalize-vpn #'normalize-vpn-atom :generic)
+(define-simple-dispatcher normalize-vp #'normalize-vp-atom :generic)
 
-(defmethod normalize-vpn-atom (env vpn)
+(defmethod normalize-vp-atom (env vp)
   (declare (ignore env))
   (error "Invalid virtual pathname ~S" x))
 
-(define-vpn-namestring :obj (env &rest ns)
+(define-vp-namestring :obj (env &rest ns)
   (declare (ignore env))
   `(:obj ,@ns))
 
@@ -168,48 +189,48 @@ mapping actual pathnames back to virtual pathnames.")
   (setf (gethash p *virtual-pathnames*) vp))
 |#
 
-(define-vpn-namestring :src (env buildname rel)
+(define-vp-namestring :src (env buildname rel)
   (declare (ignore env))
   (registered-build buildname)
   (portable-pathname-from-string rel :allow-absolute nil)
   `(:src ,buildname ,rel))
 
-(define-vpn-namestring :root (env ns)
+(define-vp-namestring :root (env ns)
   (declare (ignore env))
   (portable-namestring-absolute-p ns)
   `(:root ,ns))
 
 ;; Make sure that a pathname is only seen in one way,
-;; as far as normalized vpns go.
-(defparameter *ns-to-vpn-cache* (make-hash-table :test 'equal))
+;; as far as normalized vps go.
+(defparameter *ns-to-vp-cache* (make-hash-table :test 'equal))
 
-(defun vpn-pathname (env vpn)
-  (ensure-absolute-pathname (vpn-namestring env vpn)))
+(defun vp-pathname (env vp)
+  (ensure-absolute-pathname (vp-namestring env vp)))
 
-(defun vpn-namestring (env vpn)
-  (let ((ns (vpn-namestring-dispatcher env vpn))
-	(cached (gethash pn *ns-to-vpn-cache*)))
+(defun vp-namestring (env vp)
+  (let ((ns (vp-namestring-dispatcher env vp))
+	(cached (gethash pn *ns-to-vp-cache*)))
     (if cached
-        (unless (equal cached vpn)
-          (error "Pathname ~S is referred as both ~S and ~S" ns cached vpn))
-        (setf (gethash ns *ns-to-vpn-cache*) vpn))
+        (unless (equal cached vp)
+          (error "Pathname ~S is referred as both ~S and ~S" ns cached vp))
+        (setf (gethash ns *ns-to-vp-cache*) vp))
     ns))
 
-(define-simple-dispatcher vpn-namestring #'vpn-namestring-atom :generic)
+(define-simple-dispatcher vp-namestring #'vp-namestring-atom :generic)
 
-(defun vpn-namestring-atom (env x)
+(defun vp-namestring-atom (env x)
   (declare (ignore env))
   (error "Invalid virtual pathname ~S" x))
 
-(define-vpn-namestring :obj (env ns)
+(define-vp-namestring :obj (env ns)
   (declare (ignore env))
   (strcat *object-directory* "/" ns))
 
-(define-vpn-namestring :src (env buildname rel)
+(define-vp-namestring :src (env buildname rel)
   (declare (ignore env))
   (strcat (build-namestring (registered-build build)) rel))
 
-(define-vpn-namestring :root (env ns)
+(define-vp-namestring :root (env ns)
   (declare (ignore env))
   ns)
 
@@ -222,20 +243,20 @@ mapping actual pathnames back to virtual pathnames.")
 (define-simple-dispatcher dependency-namestring #'dependency-namestring-for-atom)
 
 (defun dependency-pathname (env fullname)
-  (vpn-pathname (dependency-vpn env fullname)))
+  (vp-pathname (dependency-vp env fullname)))
 
 (defun dependency-namestring (env fullname)
-  (vpn-namestring (dependency-vpn env fullname)))
+  (vp-namestring (dependency-vp env fullname)))
 
-(defun dependency-vpn (env fullname)
-  (dependency-vpn-dispatcher env fullname))
+(defun dependency-vp (env fullname)
+  (dependency-vp-dispatcher env fullname))
 
-(defun dependency-vpn-for-atom (env name)
+(defun dependency-vp-for-atom (env name)
   (declare (ignore env))
   (let ((module (resolve-absolute-module-name name)))
-    (grain-vpn module)))
+    (grain-vp module)))
 
-(define-dependency-vpn :lisp (env name)
+(define-dependency-vp :lisp (env name)
   (dependency-namestring-for-atom env name))
 
 |#

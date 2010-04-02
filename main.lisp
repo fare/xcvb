@@ -206,11 +206,9 @@ for this version of XCVB.")))
     (initialize-source-registry source-registry)
     (search-source-registry)
     (when object-directory
-      (setf *object-directory* ;; strip last "/"
-            (but-last-char
-             (namestring
-              (ensure-pathname-is-directory
-               object-directory)))))
+      (setf *object-directory* object-directory))
+    (setf *object-directory-pathname* (ensure-pathname-is-directory *object-directory*))
+    (setf *object-directory* (but-last-char (namestring *object-directory-pathname*)))
     (log-format 8 "~&object-directory: given ~S using ~S " object-directory *object-directory*)
     (when lisp-implementation
       (let ((type (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))

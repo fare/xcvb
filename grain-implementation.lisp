@@ -6,7 +6,8 @@
   "Takes a module declaration FORM and returns a grain object for that module."
   (unless (module-form-p form)
     (error "Invalid or missing module declaration~@[ in ~S~]" path))
-  (destructuring-bind ((&rest keys) &rest extension-forms) (cdr form)
+  (destructuring-bind ((&rest keys &key &allow-other-keys) &rest extension-forms)
+      (cdr form)
     (apply #'make-instance (if build-p 'build-module-grain 'lisp-file-grain)
            :pathname path :extension-forms extension-forms
            :computation nil
@@ -24,6 +25,17 @@
        (eq (car form) 'xcvb:module)
        (listp (cdr form))
        (listp (cadr form))))
+
+(defmethod shared-initialize :after
+    ((grain lisp-module-grain) slot-names &rest initargs &key &allow-other-keys)
+  (declare (ignore slot-names initargs))
+  (compute-fullname grain)
+  (validate-fullname (slot-value grain 'fullname)))
+
+(defmethod grain-vp :before ((grain file-grain))
+  (unless (slot-boundp grain 'vp)
+    (setf (slot-value grain 'vp) (default-vp-for grain))))
+
 
 ;;; Lisp Grains
 
@@ -137,11 +149,7 @@
 
 (defun make-grain-from-file (path &key build-p)
   "Takes a PATH to a lisp file, and returns the corresponding grain."
-  (let ((grain (grain-from-file-declaration path :build-p build-p)))
-    (compute-fullname grain)
-    (unless (slot-boundp grain 'vpn)
-      (setf (slot-value grain 'vpn) (default-vpn-for grain)))
-    grain))
+  (grain-from-file-declaration path :build-p build-p))
 
 (defun %grain-from-relative-name (name build)
   (probe-file-grain
@@ -323,14 +331,20 @@ Modeled after the asdf function coerce-name"
 (defun fullname-pathname (fullname)
   (grain-pathname (registered-grain fullname)))
 
-(defmethod default-file-extension ((class symbol))
-  (default-file-extension (make-instance class)))
+(defmethod default-file-extension ((x (eql 'lisp-file-grain)))
+  "lisp")
+(defmethod default-file-extension ((x (eql 'fasl-grain)))
+  "fasl")
+(defmethod default-file-extension ((x (eql 'cfasl-grain)))
+  "cfasl")
+(defmethod default-file-extension ((x (eql 'image-grain)))
+  "image")
 
 
-(defgeneric default-vpn-for (x))
-(defmethod default-vpn-for ((x build-module-grain))
-  (list :src (fullname x) "/build.xcvb"))
-(defmethod default-vpn-for ((x lisp-file-grain))
+(defgeneric default-vp-for (x))
+(defmethod default-vp-for ((x build-module-grain))
+  (make-vp :src (fullname x) "/build.xcvb"))
+(defmethod default-vp-for ((x lisp-file-grain))
   (let* ((build (grain-parent x))
          (bname (fullname build))
          (bpath (grain-pathname build))
@@ -340,19 +354,17 @@ Modeled after the asdf function coerce-name"
                    (assert (string-prefix-p (strcat bname "/") fullname))
                    (subseq fullname (1+ (length bname))))))
     (assert (equal pathname (subpathname bpath (strcat suffix ".lisp"))))
-    (list :src bname "/" suffix "." "lisp")))
-(defmethod default-vpn-for-object (x type)
-  (let* ((build (grain-parent x))
-         (bname (fullname build))
-         (fullname (fullname x))
-         (suffix (progn
-                   (assert (string-prefix-p (strcat bname "/") fullname))
-                   (subseq fullname (1+ (length bname))))))
-    (list :obj bname suffix "." type)))
-(defmethod default-vpn-for ((x fasl-grain))
-  (default-vpn-for-object x "fasl"))
-(defmethod default-vpn-for ((x cfasl-grain))
-  (default-vpn-for-object x "cfasl"))
-(defmethod default-vpn-for ((x image-grain))
-  (default-vpn-for-object x "image"))
+    (make-vp :src bname "/" suffix "." "lisp")))
 
+(defun vp-for-type-name (type name)
+  (make-vp :obj name  "." (string-downcase type)))
+(defun default-vp-for-type (type grain)
+  (destructuring-bind (i n) (fullname grain)
+    (assert (eq i type))
+    (vp-for-type-name type n)))
+(defmethod default-vp-for ((x image-grain))
+  (default-vp-for-type :image x))
+(defmethod default-vp-for ((x fasl-grain))
+  (default-vp-for-type :fasl x))
+(defmethod default-vp-for ((x cfasl-grain))
+  (default-vp-for-type :cfasl x))

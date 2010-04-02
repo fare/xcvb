@@ -99,3 +99,6 @@ nickname, or SEXP representing a computed entity.")
 
 (defvar *arguments* nil
   "Arguments passed to the main function")
+
+(defvar *object-directory-pathname* nil
+  "Path to the object directory")

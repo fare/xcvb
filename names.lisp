@@ -24,11 +24,6 @@
 	    (setf (gethash string *pathname-grain-cache*) module)
 	    module)))))
 
-(defmethod fullname ((module lisp-module-grain))
-  (unless (slot-boundp module 'fullname)
-    (compute-fullname module))
-  (slot-value module 'fullname))
-
 (defmethod specified-fullname ((module lisp-module-grain))
   nil)
 
@@ -53,9 +48,6 @@
   "This function *removes* any #\/ from the beginning of the module's fullname."
   (subseq name (position-if-not (lambda (x) (eql x #\/)) name) (length name)))
 |#
-
-(defmethod compute-fullname :after ((grain grain))
-  (validate-fullname (slot-value grain 'fullname)))
 
 (defun valid-fullname-p (name)
   (ignore-errors (equal name (portable-pathname-output (portable-pathname-from-string name)))))

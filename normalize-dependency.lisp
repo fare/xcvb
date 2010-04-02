@@ -200,16 +200,15 @@ in the normalized dependency mini-language"
 (defun fasl-grains-for-name (env fullname
                              load-dependencies cload-dependencies build-dependencies)
   (declare (ignore env))
-  (flet ((m (class name deps)
+  (flet ((m (class kw name deps)
            (make-grain
             class
-            :fullname name
-            :vpn `(:obj ,fullname ,(default-file-extension class))
+            :fullname `(,kw ,name)
+            :vp (make-vp :obj name "." (default-file-extension class))
             :load-dependencies deps)))
-    (cons (m 'fasl-grain `(:fasl ,fullname) (append build-dependencies load-dependencies))
+    (cons (m 'fasl-grain :fasl fullname (append build-dependencies load-dependencies))
           (if *use-cfasls*
-              (list (m 'cfasl-grain
-                       `(:cfasl ,fullname)
+              (list (m 'cfasl-grain :cfasl fullname
                        (append build-dependencies cload-dependencies)))
               nil))))
 

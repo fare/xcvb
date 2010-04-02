@@ -135,11 +135,11 @@
                                          (truename "build.xcvb")))
                        (error "Implicitly specified build.xcvb ~
                                  in current directory is in conflict~%~
-                                 with entries in your XCVB_PATH. Check with xcvb ssp"))
+                                 with entries in your XCVB_PATH. Check with xcvb ssr"))
                      registered-build)))
          (build (if target (build-module-grain-for target)
                     (error "User requested build ~S but it can't be found.~%~
-			    You may check available builds with xcvb ssp.~%" fullname)))
+			    You may check available builds with xcvb ssr.~%" fullname)))
          (name (fullname target))
          (dep (etypecase target
                 (build-module-grain `(:build ,name))

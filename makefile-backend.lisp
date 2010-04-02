@@ -191,7 +191,7 @@ will create the desired content. An atomic rename() will have to be performed af
 (define-Makefile-commands-for-computation :make-manifest (env manifest &rest commands)
   (list (shell-tokens-to-Makefile
          (cmdize 'xcvb 'make-manifest
-                 :output (dependency-namestring env manifest)
+                 :output (vp-namestring env (apply 'vp-for-type-name manifest))
                  :spec (let ((manifest-spec (commands-to-manifest-spec env commands)))
                          (with-safe-io-syntax ()
                            (write-to-string manifest-spec :case :downcase)))))))
@@ -230,13 +230,13 @@ will create the desired content. An atomic rename() will have to be performed af
     (when (image-grain-p output))
     (let ((asdf-grains (remove-if-not #'asdf-grain-p inputs))))
     (when asdf-grains)
-    (let* ((image-pathname (dependency-namestring env (fullname output)))
-           (pathname-text (escape-shell-token-for-Makefile image-pathname))))
+    (let* ((image-namestring (grain-namestring env output))
+           (pathname-text (escape-shell-token-for-Makefile image-namestring))))
     (with-output-to-string (s)
       (format s " $(shell [ -f ~A ] && " pathname-text)
       (shell-tokens-to-Makefile
        (lisp-invocation-arglist
-        :image-path image-pathname
+        :image-path image-namestring
         :eval (format nil "(xcvb-driver::asdf-systems-up-to-date~{ ~S~})"
                       (mapcar #'asdf-grain-system-name asdf-grains)))
        s)

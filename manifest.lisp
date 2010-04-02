@@ -79,8 +79,8 @@ Until then, let's rely on the external utility tthsum.
   (let* ((fullname (unwrap-load-file-command command))
          (source-fullname (fullname-source fullname)))
     `(:command ,command
-      ,@(when fullname `(:pathname ,(dependency-namestring env fullname)))
-      ,@(when source-fullname `(:source-pathname ,(dependency-namestring env source-fullname))))))
+      ,@(when fullname `(:pathname ,(fullname-namestring env fullname)))
+      ,@(when source-fullname `(:source-pathname ,(fullname-namestring env source-fullname))))))
 
 (defun commands-to-manifest-spec (env commands)
   (mapcar/ #'command-to-manifest-spec env commands))

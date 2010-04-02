@@ -133,6 +133,8 @@
   (and (list-of-length-p 2 x) (eq (first x) :require)))
 
 
+;;; TODO: have an actual grain for the manifest!
+;;; TODO: have a better language for describing computations!
 (defun manifest-and-build-commands (name image-setup build-commands)
   (if (not *use-master*)
     (values nil build-commands)
