@@ -39,7 +39,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :xcvb-driver :xcvb-master
                  :fare-utils :command-line-arguments
                  :asdf-dependency-grovel :closer-mop
-                 :ironclad :binascii
+                 ;; :ironclad :binascii
                  #|:iolib|#)
     :components
     ((:file "pkgdcl")

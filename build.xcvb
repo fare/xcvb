@@ -24,8 +24,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
                      (:build "/closer-mop")
                      (:build "/command-line-arguments")
                      (:build "/fare-utils")
-                     (:asdf :ironclad) ;; unported magic adsf:perform methods...
-                     (:asdf :binascii)
+                     ;;(:asdf :ironclad) ;; unported magic adsf:perform methods...
+                     ;;(:asdf :binascii)
                      "/xcvb/driver"
                      "/xcvb/master"
                      (:when (:featurep :sbcl)
