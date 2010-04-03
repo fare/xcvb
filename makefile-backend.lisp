@@ -190,7 +190,7 @@ will create the desired content. An atomic rename() will have to be performed af
 (define-Makefile-commands-for-computation :make-manifest (env manifest &rest commands)
   (list (shell-tokens-to-Makefile
          (cmdize 'xcvb 'make-manifest
-                 :output (pseudo-fullname-namestring env manifest)
+                 :output (pseudo-fullname-enough-namestring env manifest)
                  :spec (let ((manifest-spec (commands-to-manifest-spec env commands)))
                          (with-safe-io-syntax ()
                            (write-to-string manifest-spec :case :downcase)))))))

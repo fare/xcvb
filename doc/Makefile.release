@@ -108,7 +108,6 @@ prepare-release:
 		-B install_path && \
 	for l in sbcl clisp ccl ; do \
 	    xcvb make-makefile \
-		--source-registry=${CL_SOURCE_REGISTRY} \
 		--build /xcvb \
 		--setup /xcvb/no-asdf \
 		--lisp-implementation $$l \

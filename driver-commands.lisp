@@ -13,7 +13,7 @@
   (text-for-xcvb-driver-command-dispatcher env clause))
 
 (define-text-for-xcvb-driver-command :load-file (env dep)
-  (format nil "(:load-file ~S)" (fullname-namestring env dep)))
+  (format nil "(:load-file ~S)" (fullname-enough-namestring env dep)))
 
 (define-text-for-xcvb-driver-command :require (env name)
   (declare (ignore env))
@@ -29,11 +29,11 @@
 
 (define-text-for-xcvb-driver-command :initialize-manifest (env manifest)
   (format nil "(:initialize-manifest ~S)"
-          (pseudo-fullname-namestring env manifest)))
+          (pseudo-fullname-enough-namestring env manifest)))
 
 (define-text-for-xcvb-driver-command :load-manifest (env manifest)
   (format nil "(:load-manifest ~S)"
-          (pseudo-fullname-namestring env manifest)))
+          (pseudo-fullname-enough-namestring env manifest)))
 
 
 (defun text-for-xcvb-driver-helper (env dependencies format &rest args)
@@ -49,24 +49,24 @@
     (text-for-xcvb-driver-helper
      env dependencies
      ":compile-lisp (~S ~S~@[ :cfasl ~S~])"
-     (fullname-namestring env name)
-     (tempname-target (fullname-namestring env `(:fasl ,name)))
-     (when *use-cfasls* (tempname-target (fullname-namestring env `(:cfasl ,name)))))))
+     (fullname-enough-namestring env name)
+     (tempname-target (fullname-enough-namestring env `(:fasl ,name)))
+     (when *use-cfasls* (tempname-target (fullname-enough-namestring env `(:cfasl ,name)))))))
 
 (define-text-for-xcvb-driver-command :create-image (env spec &rest dependencies)
   (destructuring-bind (&key image standalone package) spec
     (text-for-xcvb-driver-helper
      env dependencies
      ":create-image (~S~@[~* :standalone t~]~@[ :package ~S~])"
-     (tempname-target (fullname-namestring env `(:image ,image)))
+     (tempname-target (fullname-enough-namestring env `(:image ,image)))
      standalone package)))
 
 (defun lisp-invocation-for (env keys eval)
   (destructuring-bind (&key image load) keys
     (shell-tokens-to-Makefile
      (lisp-invocation-arglist
-      :image-path (if image (fullname-namestring env image) *lisp-image-pathname*)
-      :load (mapcar/ #'fullname-namestring env load)
+      :image-path (if image (fullname-enough-namestring env image) *lisp-image-pathname*)
+      :load (mapcar/ #'fullname-enough-namestring env load)
       :eval eval))))
 
 (defun compile-file-directly-shell-token (env name &optional cfasl)
@@ -80,10 +80,10 @@
                          ~@[:emit-cfasl (merge-pathnames ~S) ~]~
                          :verbose nil :print nil)) ~
                     (if (or (not output) warningp failurep) 1 0))"
-           (fullname-namestring env name)
-           (tempname-target (fullname-namestring env `(:fasl ,name)))
+           (fullname-enough-namestring env name)
+           (tempname-target (fullname-enough-namestring env `(:fasl ,name)))
            (when cfasl
-             (tempname-target (fullname-namestring env `(:cfasl ,name)))))))
+             (tempname-target (fullname-enough-namestring env `(:cfasl ,name)))))))
 
 (defun xcvb-driver-commands-to-shell-token (env commands)
   (with-output-to-string (s)
@@ -95,7 +95,7 @@
 (defgeneric grain-pathname-text (env grain))
 
 (defmethod grain-pathname-text (env (grain file-grain))
-  (let ((pathname (vp-namestring env (grain-vp grain))))
+  (let ((pathname (enough-namestring (vp-namestring env (grain-vp grain)))))
     (values (escape-shell-token-for-Makefile pathname) pathname)))
 
 (defmethod grain-pathname-text (env (grain asdf-grain))

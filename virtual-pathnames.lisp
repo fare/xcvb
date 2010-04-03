@@ -35,8 +35,12 @@
   (grain-namestring env (or (registered-grain fullname)
                             (resolve-absolute-module-name fullname)
                             (error "Can't resolve ~S" fullname))))
+(defun fullname-enough-namestring (env fullname)
+  (enough-namestring (fullname-namestring env fullname)))
 (defun pseudo-fullname-namestring (env pseudo-fullname) ;; FIXME!
   (vp-namestring env (apply 'vp-for-type-name pseudo-fullname)))
+(defun pseudo-fullname-enough-namestring (env pseudo-fullname) ;; FIXME!
+  (enough-namestring (pseudo-fullname-namestring env pseudo-fullname)))
 
 (defun vp-pathname (env vp)
   (pathname (vp-namestring env vp)))
