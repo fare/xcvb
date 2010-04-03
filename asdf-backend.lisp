@@ -117,7 +117,7 @@ Declare asd system as ASDF-NAME."
                         :for build = (and lisp (build-module-grain-for lisp))
                         :for includedp = (and build (build-in-target-p build))
                         :for depends-on = (loop :for dep :in deps
-                                            :when (eq (type-of dep) 'lisp-module-grain)
+                                            :when (typep dep 'lisp-file-grain)
                                             :collect (aname dep))
                         :for name = (and lisp (aname lisp))
                         :for pathname = (and lisp (asdf-dependency-grovel::strip-extension
