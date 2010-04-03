@@ -178,7 +178,8 @@ show-current-revision:
 
 TMP ?= /tmp
 
-GIT_DEPENDENCIES := asdf asdf-dependency-grovel cl-launch command-line-arguments fare-utils poiu
+GIT_DEPENDENCIES := asdf asdf-dependency-grovel cl-launch \
+	command-line-arguments fare-utils poiu ironclad binascii
 DARCS_DEPENDENCIES := closer-mop
 DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
 
@@ -231,7 +232,7 @@ fake-release-directory:
 	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} && \
 	rsync -av ${RELEASE_EXCLUDE} ./ ${RELEASE_DIR}/xcvb/ && \
 	for i in ${DEPENDENCIES} ; do \
-	  rsync -avC ${RELEASE_EXCLUDE} ../$$i ${RELEASE_DIR}/dependencies/ ; \
+	  rsync -av ${RELEASE_EXCLUDE} ../$$i ${RELEASE_DIR}/dependencies/ ; \
 	done ; \
 	${MAKE} -C ${RELEASE_DIR} -f ${XCVB_DIR}/doc/Makefile.release \
 		prepare-release

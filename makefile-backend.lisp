@@ -3,7 +3,8 @@
   (:author ("Francois-Rene Rideau" "Stas Boukarev")
    :maintainer "Francois-Rene Rideau"
    ;; :run-depends-on ("string-escape")
-   :depends-on ("profiling" "static-traversal" "computations" "driver-commands" "main")))
+   :depends-on ("profiling" "static-traversal" "computations"
+                "virtual-pathnames" "driver-commands" "main")))
 
 (in-package :xcvb)
 

@@ -67,7 +67,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "static-traversal" :depends-on ("grain-interface" "dependencies-interpreter"))
      (:file "driver-commands" :depends-on ("specials" "utilities" "grain-interface"))
      (:file "makefile-backend" :depends-on ("profiling" "static-traversal" "driver-commands"
-					    "computations" "main"))
+					    "computations" "main" "virtual-pathnames"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
      (:file "list-files" :depends-on ("simplifying-traversal" "main"))
      (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging" "main"))

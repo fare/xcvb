@@ -21,7 +21,7 @@ doenv () {
 
 #### Initializing variables ####
 reset_variables () {
-  unset RELEASE_DIR asdf_path CL_LAUNCH_ASDF_PATH CL_SOURCE_REGISTRY XCVB_DIR
+  unset RELEASE_DIR CL_SOURCE_REGISTRY XCVB_DIR PARALLELIZE
 }
 initialize_variables () {
   : ${TMP:=/tmp}
@@ -35,6 +35,8 @@ finalize_variables () {
   INSTALL_SOURCE="$BUILD_DIR/common-lisp/source"
   INSTALL_SYSTEMS="$BUILD_DIR/common-lisp/systems"
 
+  ncpus="$(cat /proc/cpuinfo|grep '^processor' | wc -l)"
+
   ENV=(INSTALL_BIN=$INSTALL_BIN
        INSTALL_IMAGE=$INSTALL_IMAGE
        INSTALL_LISP=$INSTALL_LISP
@@ -42,31 +44,29 @@ finalize_variables () {
        INSTALL_SYSTEMS=$INSTALL_SYSTEMS
        CL_SOURCE_REGISTRY=$CL_SOURCE_REGISTRY
        XCVB_OBJECT_DIRECTORY=$obj
-       LISP=$LISP)
-
+       LISP=$LISP
+       PARALLELIZE=-l$((${ncpus:-1}+1))
+  )
   export PATH=$INSTALL_BIN:$PATH
-  export CL_SOURCE_REGISTRY
   export LISP_FASL_CACHE="$BUILD_DIR/_cache"
-  export LISP
+  export LISP CL_SOURCE_REGISTRY
   TEST_CL_LAUNCH_FLAGS=(
     --lisp "$LISP"
-    #${(s: :)asdf_path+"--path ${(j: --path :)asdf_path}"} ## fails when path contains spaces!
+    --source-registry "${CL_SOURCE_REGISTRY}"
   )
-  for i in $asdf_path ; do TEST_CL_LAUNCH_FLAGS=(${TEST_CL_LAUNCH_FLAGS} --path $i) ; done
 }
 compute_release_dir_variables () {
   initialize_variables
   BUILD_DIR="$RELEASE_DIR/build"
   XCVB_DIR="$RELEASE_DIR/xcvb"
-  asdf_path=($XCVB_DIR "$RELEASE_DIR"/dependencies/*)
-  CL_SOURCE_REGISTRY="${BUILD_DIR}//:${RELEASE_DIR}//"
+  CL_SOURCE_REGISTRY="${BUILD_DIR}//:${XCVB_DIR}:${RELEASE_DIR}//"
   finalize_variables
   ENV=($ENV CL_LAUNCH_FLAGS="$TEST_CL_LAUNCH_FLAGS")
 }
 compute_xcvb_dir_variables () {
   initialize_variables
-  #[ -n "$CL_SOURCE_REGISTRY" ] || abort "You need to define a CL_SOURCE_REGISTRY to test xcvb"
   BUILD_DIR="$XCVB_DIR/build"
+  CL_SOURCE_REGISTRY="${BUILD_DIR}//:${PWD}:${CL_SOURCE_REGISTRY}"
   finalize_variables
 }
 
@@ -114,7 +114,7 @@ validate_xcvb_ssr () {
   # postconditions: xcvb ssr working
   local out=${BUILD_DIR}/xcvb-ssr.out
 
-  xcvb ssr --source-registry $XCVB_DIR// | tee $out
+  xcvb ssr --source-registry ${XCVB_DIR}// | tee $out
 
   grep -q "(:BUILD \"/xcvb\") in \".*/build.xcvb\"" $out ||
   abort "Can't find build for xcvb"
@@ -169,10 +169,8 @@ validate_rmx () {
   mkdir -p $BUILD_DIR/a2x_rmx/
   rsync -a $XCVB_DIR/test/a2x/ $BUILD_DIR/a2x_rmx/
   cd $BUILD_DIR/a2x_rmx
-  CL_SOURCE_REGISTRY=$BUILD_DIR/a2x_rmx//:$CL_SOURCE_REGISTRY \
-	xcvb ssr
-  CL_SOURCE_REGISTRY=$BUILD_DIR/a2x_rmx//:$CL_SOURCE_REGISTRY \
-	xcvb rmx --build /xcvb/test/a2x --verbosity 9
+  xcvb ssr --source-registry "$BUILD_DIR/a2x_rmx//:"
+  xcvb rmx --build /xcvb/test/a2x --verbosity 9 --source-registry "$BUILD_DIR/a2x_rmx//:"
   [ ! -f $BUILD_DIR/a2x_rmx/build.xcvb ] ||
   abort "xcvb rmx failed to remove build.xcvb"
   grep '(module' $BUILD_DIR/a2x_rmx/*.lisp &&
@@ -195,7 +193,7 @@ validate_a2x () {
 validate_master () {
   which xcvb
   xcvb version
-  xcvb fm -n xcvb/master -s
+  xcvb find-module --name xcvb/master --short
 #  cl-launch -l $LISP -f $(xcvb fm -n xcvb/master -s) \
 #	-i "(xcvb-master:bnl \"xcvb/hello\" :setup \"xcvb/no-asdf\" \
 #		:output-path \"$BUILD_DIR/\" :object-directory \"$obj\" :verbosity 9)" \
@@ -211,7 +209,7 @@ validate_master () {
 
 validate_slave () {
   xcvb slave-builder --build /xcvb/hello \
-	--lisp-implementation $LISP --object-directory $obj --output-path $BUILD_DIR/ |
+	--lisp-implementation "$LISP" --object-directory "$obj" --output-path "$BUILD_DIR/" |
   fgrep 'Your desires are my orders' ||
   abort "Failed to drive a slave $LISP to build hello"
 }
@@ -318,10 +316,10 @@ with_release_build_dir () {
 validate_release_dir () {
   compute_release_dir_variables
   check_release_dir
-  #with_release_build_dir validate_bootstrapped_xcvb
+  with_release_build_dir validate_bootstrapped_xcvb
   with_release_build_dir validate_asdf_xcvb
-  #with_release_build_dir validate_mk_xcvb
-  #with_release_build_dir validate_nemk_xcvb
+  with_release_build_dir validate_mk_xcvb
+  with_release_build_dir validate_nemk_xcvb
 }
 
 validate_release_dir_all_lisps () {

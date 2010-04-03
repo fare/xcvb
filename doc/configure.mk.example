@@ -93,8 +93,8 @@ CL_LAUNCH_FLAGS += --lisp '${LISP} sbcl clisp ccl'
 ## DEFAULT: nothing (we assume your source registry is properly configured
 ## by e.g. your ~/.config/common-lisp/source-registry.conf.d/
 ## see the ASDF manual regarding the source-registry.
-CL_LAUNCH_FLAGS += --source-registry .::
-#CL_LAUNCH_FLAGS += --source-registry ${HOME}/cl:
+#CL_LAUNCH_FLAGS += --source-registry .::
+#CL_LAUNCH_FLAGS += --source-registry ${HOME}/cl//:
 ##
 ##
 ## If you want to make sure that cl-launch uses installed include files
