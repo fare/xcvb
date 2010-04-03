@@ -71,7 +71,7 @@ If you have the python-docutils installed, you can compile it to html with::
 Assuming you are in the directory where you extracted the release tarball,
 you can check that XCVB is working with::
 
-	X=$PWD ; export XCVB_PATH=$X ; cd $X/xcvb ; make xcvb
+	X=$PWD ; export CL_SOURCE_REGISTRY=${X}// ; cd $X/xcvb ; make xcvb
 
 To hack XCVB, get familiar with it, look at the documentation in
 ``INTERNALS.rest`` and ``TODO.rest``. A good starting project would be to build

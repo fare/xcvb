@@ -1,5 +1,5 @@
 ;;; Handle the Search Path for XCVB modules.
-#+xcvb (module (:depends-on ("macros" "specials" "registry")))
+#+xcvb (module (:depends-on ("main" "registry")))
 (in-package :xcvb)
 
 ;;; The Source Registry itself.
@@ -40,8 +40,7 @@ Initially populated with all build.xcvb files from the search path.")
       ((ignore-errors (truename absolute-path))
        absolute-path)
       (t
-       (format *error-output* "~&Discarding invalid path element ~S~%"
-               element)
+       (log-format 7 "~&Discarding invalid path element ~S~%" element)
        nil))))
 
 (defun finalize-source-registry ()

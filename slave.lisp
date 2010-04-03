@@ -1,5 +1,4 @@
-#+xcvb
-(module (:depends-on ("pkgdcl")))
+#+xcvb (module (:depends-on ("main")))
 
 (in-package :xcvb)
 
@@ -9,6 +8,7 @@
   `((("build" #\b) :type string :optional nil :documentation "specify a (series of) system(s) to build")
    (("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
    ,@+source-registry-option-spec+
+   (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
    (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
    (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
@@ -16,8 +16,7 @@
    (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
    (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
-   (("profiling" #\P) :type boolean :optional t :documentation "profiling")
-   ))
+   (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
 
 (defun slave-builder (&key
                       build setup source-registry

@@ -17,7 +17,7 @@ endif
 export RELEASE_DIR := $(shell pwd)
 export XCVB_DIR := ${RELEASE_DIR}/xcvb
 export XCVB_OBJECT_DIRECTORY ?= ${RELEASE_DIR}/build/obj
-export XCVB_PATH:=${XCVB_DIR}:${RELEASE_DIR}/dependencies:${LISP_SOURCE}
+export CL_SOURCE_REGISTRY:=${XCVB_DIR}//:${RELEASE_DIR}/dependencies//:${LISP_SOURCE}//
 export PATH:=${INSTALL_BIN}:${PATH}
 
 OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
@@ -108,7 +108,7 @@ prepare-release:
 		-B install_path && \
 	for l in sbcl clisp ccl ; do \
 	    xcvb make-makefile \
-		--xcvb-path=${XCVB_PATH} \
+		--source-registry=${CL_SOURCE_REGISTRY} \
 		--build /xcvb \
 		--setup /xcvb/no-asdf \
 		--lisp-implementation $$l \

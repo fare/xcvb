@@ -1,5 +1,4 @@
-#+xcvb (module (:depends-on
-		("specials" "grain-interface" "dependencies-interpreter")))
+#+xcvb (module (:depends-on ("grain-interface" "dependencies-interpreter")))
 
 (in-package :xcvb)
 

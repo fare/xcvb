@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("names" "specials")))
+#+xcvb (module (:depends-on ("names" "computations")))
 
 (in-package :xcvb)
 
@@ -127,7 +127,8 @@
                           (registered-build (and fullname (registered-grain fullname))))
                      ;; Question: should we make the below error cases warnings,
                      ;; and override conflicts with the current build?
-                     ;; NB: User can put . in front of his XCVB_PATH if that's what he wants.
+                     ;; NB: User can put . in front of his CL_SOURCE_REGISTRY
+                     ;; if that's what he wants.
                      (unless build-file
                        (error "No build specified, and no build.xcvb in the current directory"))
                      (unless (and (build-module-grain-p registered-build)
@@ -135,7 +136,7 @@
                                          (truename "build.xcvb")))
                        (error "Implicitly specified build.xcvb ~
                                  in current directory is in conflict~%~
-                                 with entries in your XCVB_PATH. Check with xcvb ssr"))
+                                 with entries in your source registry. Check with xcvb ssr"))
                      registered-build)))
          (build (if target (build-module-grain-for target)
                     (error "User requested build ~S but it can't be found.~%~

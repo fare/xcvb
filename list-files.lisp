@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("dependencies-interpreter")))
+#+xcvb (module (:depends-on ("dependencies-interpreter" "main")))
 
 (in-package :xcvb)
 
@@ -53,7 +53,7 @@
 ;; strips XCVB modules from them.
 (defun remove-xcvb-from-build (fullname)
   (multiple-value-bind (target-dependency build) (handle-target fullname)
-    (log-format 7 "Removing XCVB from build ~A~%" build)
+    (log-format 7 "Removing XCVB from build ~A~% (path ~S)" build (grain-pathname build))
     (flet ((source-lisp-grain-p (grain)
              (log-format 7 "Inspecting grain ~A~%" grain)
              (when (and (typep grain 'lisp-module-grain)

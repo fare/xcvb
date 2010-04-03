@@ -20,12 +20,12 @@ XCVB_ROOT := $(shell readlink -f ..)
 #May also work: XCVB_ROOT := $(shell xcvb ssp | grep '^ (:BUILD "/xcvb") ' | cut -d'"' -f4)
 include ${XCVB_ROOT}/configure.mk
 
-# Autodetect the XCVB_PATH for the example.
+# Autodetect the CL_SOURCE_REGISTRY for the example.
 # IN YOUR PROJECT,
 # this might be set as part of the user configuration,
 # or left wholly to the default user and/or system settings.
-export XCVB_PATH := ${XCVB_ROOT}/test/hello:${XCVB_PATH}
-$(shell ( export XCVB_PATH=${XCVB_PATH} ) >&2)
+export CL_SOURCE_REGISTRY := ${XCVB_ROOT}/test/hello//:${CL_SOURCE_REGISTRY}
+$(shell ( echo export CL_SOURCE_REGISTRY=${CL_SOURCE_REGISTRY} ) >&2)
 
 # This is where XCVB is actually invoked.
 # IN YOUR PROJECT,

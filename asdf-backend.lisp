@@ -1,7 +1,7 @@
 #+xcvb
 (module
- (:compile-depends-on ("simplifying-traversal")
-  :load-depends-on ("simplifying-traversal" "logging")))
+ (:compile-depends-on ("simplifying-traversal" "main")
+  :load-depends-on ("simplifying-traversal" "logging" "main")))
 
 (in-package :xcvb)
 

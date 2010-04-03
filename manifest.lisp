@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("macros")))
+#+xcvb (module (:depends-on ("macros" "virtual-pathnames")))
 
 (in-package :xcvb)
 

@@ -21,7 +21,7 @@ doenv () {
 
 #### Initializing variables ####
 reset_variables () {
-  unset RELEASE_DIR asdf_path CL_LAUNCH_ASDF_PATH XCVB_PATH XCVB_DIR
+  unset RELEASE_DIR asdf_path CL_LAUNCH_ASDF_PATH CL_SOURCE_REGISTRY XCVB_DIR
 }
 initialize_variables () {
   : ${TMP:=/tmp}
@@ -40,12 +40,12 @@ finalize_variables () {
        INSTALL_LISP=$INSTALL_LISP
        INSTALL_SOURCE=$INSTALL_SOURCE
        INSTALL_SYSTEMS=$INSTALL_SYSTEMS
-       XCVB_PATH=$XCVB_PATH
+       CL_SOURCE_REGISTRY=$CL_SOURCE_REGISTRY
        XCVB_OBJECT_DIRECTORY=$obj
        LISP=$LISP)
 
   export PATH=$INSTALL_BIN:$PATH
-  export XCVB_PATH
+  export CL_SOURCE_REGISTRY
   export LISP_FASL_CACHE="$BUILD_DIR/_cache"
   export LISP
   TEST_CL_LAUNCH_FLAGS=(
@@ -59,13 +59,13 @@ compute_release_dir_variables () {
   BUILD_DIR="$RELEASE_DIR/build"
   XCVB_DIR="$RELEASE_DIR/xcvb"
   asdf_path=($XCVB_DIR "$RELEASE_DIR"/dependencies/*)
-  XCVB_PATH="${BUILD_DIR}:${RELEASE_DIR}"
+  CL_SOURCE_REGISTRY="${BUILD_DIR}//:${RELEASE_DIR}//"
   finalize_variables
   ENV=($ENV CL_LAUNCH_FLAGS="$TEST_CL_LAUNCH_FLAGS")
 }
 compute_xcvb_dir_variables () {
   initialize_variables
-  [ -n "$XCVB_PATH" ] || abort "You need to define an XCVB_PATH to test xcvb"
+  #[ -n "$CL_SOURCE_REGISTRY" ] || abort "You need to define a CL_SOURCE_REGISTRY to test xcvb"
   BUILD_DIR="$XCVB_DIR/build"
   finalize_variables
 }
@@ -114,7 +114,7 @@ validate_xcvb_ssr () {
   # postconditions: xcvb ssr working
   local out=${BUILD_DIR}/xcvb-ssr.out
 
-  xcvb ssr --xcvb-path $XCVB_DIR | tee $out
+  xcvb ssr --source-registry $XCVB_DIR// | tee $out
 
   grep -q "(:BUILD \"/xcvb\") in \".*/build.xcvb\"" $out ||
   abort "Can't find build for xcvb"
@@ -169,8 +169,10 @@ validate_rmx () {
   mkdir -p $BUILD_DIR/a2x_rmx/
   rsync -a $XCVB_DIR/test/a2x/ $BUILD_DIR/a2x_rmx/
   cd $BUILD_DIR/a2x_rmx
-  XCVB_PATH=$BUILD_DIR/a2x_rmx xcvb ssr
-  XCVB_PATH=$BUILD_DIR/a2x_rmx:${XCVB_PATH:-"!"} xcvb rmx --build /xcvb/test/a2x --verbosity 9
+  CL_SOURCE_REGISTRY=$BUILD_DIR/a2x_rmx//:$CL_SOURCE_REGISTRY \
+	xcvb ssr
+  CL_SOURCE_REGISTRY=$BUILD_DIR/a2x_rmx//:$CL_SOURCE_REGISTRY \
+	xcvb rmx --build /xcvb/test/a2x --verbosity 9
   [ ! -f $BUILD_DIR/a2x_rmx/build.xcvb ] ||
   abort "xcvb rmx failed to remove build.xcvb"
   grep '(module' $BUILD_DIR/a2x_rmx/*.lisp &&
@@ -196,11 +198,11 @@ validate_master () {
   xcvb fm -n xcvb/master -s
 #  cl-launch -l $LISP -f $(xcvb fm -n xcvb/master -s) \
 #	-i "(xcvb-master:bnl \"xcvb/hello\" :setup \"xcvb/no-asdf\" \
-#		:output-path\"$BUILD_DIR/\" :object-directory\"$obj\" :verbosity 9)" \
+#		:output-path \"$BUILD_DIR/\" :object-directory \"$obj\" :verbosity 9)" \
 #        -i "(let ((*print-base* 30)) (xcvb-hello::hello :name 716822547 :traditional t))" \
 #	> $BUILD_DIR/out
   xcvb eval "'(#.(xcvb-master:bnl \"xcvb/hello\" :setup \"xcvb/no-asdf\" \
-		:output-path \"$BUILD_DIR/\" :object-directory\"$obj\" :verbosity 9) \
+		:output-path \"$BUILD_DIR/\" :object-directory \"$obj\" :verbosity 9) \
 	       #.(let ((*print-base* 30)) (xcvb-hello::hello :name 716822547 :traditional t)))" \
 	> $BUILD_DIR/out
   fgrep 'hello, tester' < $BUILD_DIR/out ||

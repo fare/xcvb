@@ -1,5 +1,5 @@
 ;;;;; Syntax and Semantics of Lisp grains, including build.xcvb files
-#+xcvb (module (:depends-on ("registry" "specials" "extract-target-properties")))
+#+xcvb (module (:depends-on ("registry" "extract-target-properties")))
 (in-package :xcvb)
 
 (defun parse-module-declaration (form &key path build-p)
@@ -331,6 +331,7 @@ Modeled after the asdf function coerce-name"
 (defun fullname-pathname (fullname)
   (grain-pathname (registered-grain fullname)))
 
+(defgeneric default-file-extension (x))
 (defmethod default-file-extension ((x (eql 'lisp-file-grain)))
   "lisp")
 (defmethod default-file-extension ((x (eql 'fasl-grain)))

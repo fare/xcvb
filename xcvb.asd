@@ -9,7 +9,7 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(let ((min "1.658"))
+(let ((min "1.662"))
   (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) min))
     (error "XCVB requires ASDF ~D or later, you only have ~D"
            min (asdf:asdf-version))))
@@ -56,19 +56,18 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "grain-interface" :depends-on ("utilities" "conditions"))
      (:file "registry" :depends-on ("grain-interface" "specials"))
      (:file "search-path" :depends-on ("registry" "main"))
-     (:file "computations" :depends-on ("grain-interface" "registry" "specials"))
+     (:file "computations" :depends-on ("grain-interface" "registry"))
      (:file "manifest" :depends-on ("macros" "virtual-pathnames"))
      (:file "extract-target-properties" :depends-on ("string-escape" "lisp-invocation"))
      (:file "grain-implementation" :depends-on ("registry" "extract-target-properties"))
-     (:file "names" :depends-on ("registry" "grain-interface" "specials"))
-     (:file "normalize-dependency" :depends-on ("names" "specials" "grain-interface"))
-     (:file "traversal" :depends-on ("names" "specials" "computations"))
+     (:file "names" :depends-on ("registry" "grain-interface"))
+     (:file "normalize-dependency" :depends-on ("names" "grain-interface"))
+     (:file "traversal" :depends-on ("names" "computations"))
      (:file "dependencies-interpreter" :depends-on ("normalize-dependency" "traversal"))
-     (:file "static-traversal" :depends-on
-            ("specials" "grain-interface" "dependencies-interpreter" "logging"))
+     (:file "static-traversal" :depends-on ("grain-interface" "dependencies-interpreter"))
      (:file "driver-commands" :depends-on ("specials" "utilities" "grain-interface"))
      (:file "makefile-backend" :depends-on ("profiling" "static-traversal" "driver-commands"
-					    "computations"))
+					    "computations" "main"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
      (:file "list-files" :depends-on ("simplifying-traversal" "main"))
      (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging" "main"))

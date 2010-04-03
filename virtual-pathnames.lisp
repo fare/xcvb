@@ -32,12 +32,17 @@
 (defun grain-namestring (env grain)
   (vp-namestring env (grain-vp grain)))
 (defun fullname-namestring (env fullname)
-  (grain-namestring env (registered-grain fullname)))
+  (grain-namestring env (or (registered-grain fullname)
+                            (resolve-absolute-module-name fullname)
+                            (error "Can't resolve ~S" fullname))))
+(defun pseudo-fullname-namestring (env pseudo-fullname) ;; FIXME!
+  (vp-namestring env (apply 'vp-for-type-name pseudo-fullname)))
 
 (defun vp-pathname (env vp)
   (pathname (vp-namestring env vp)))
 
-(defun vp-namestring (env vp)
+(defgeneric vp-namestring (env vp))
+(defmethod vp-namestring (env vp)
   (declare (ignorable env))
   (if (slot-boundp vp 'resolved-namestring)
       (vp-resolved-namestring vp)
@@ -48,7 +53,8 @@
                   (sub (rest subpath))
                   (build (registered-build bname :ensure-build t)))
              (apply 'strcat
-                    (but-last-char (namestring (grain-pathname build))) sub)))
+                    (but-last-char
+                     (namestring (pathname-directory-pathname (grain-pathname build)))) sub)))
           (:obj
            (apply 'strcat *object-directory* subpath))))))
 

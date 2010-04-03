@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("names" "specials" "computations")))
+#+xcvb (module (:depends-on ("names" "grain-interface")))
 
 (in-package :xcvb)
 

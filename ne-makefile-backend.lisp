@@ -1,6 +1,6 @@
 #+xcvb
 (module
-  (:depends-on ("makefile-backend" "asdf-backend" "simplifying-traversal")))
+  (:depends-on ("makefile-backend" "asdf-backend" "simplifying-traversal" "main")))
 
 (in-package :xcvb)
 
@@ -24,8 +24,9 @@
          (_g (graph-for-build-module-grain env build))
          (inputs (loop :for computation :in (reverse *computations*)
                    :collect (first (computation-inputs computation))))
-         (asdfile (object-namestring env (strcat "/" asdf-name ".asd")))
-         (_w (do-write-asd-file :output-path asdfile :build build-name :asdf-name asdf-name))
+         (asd-vp (make-vp :obj "/" asdf-name "." "asd"))
+         (_w (do-write-asd-file :output-path (vp-namestring env asd-vp)
+                                :build build-name :asdf-name asdf-name))
          (image-name `(:image ,(strcat "/" asdf-name)))
          (image (make-grain 'image-grain :fullname image-name))
          (previous-spec (if previous

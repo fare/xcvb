@@ -436,8 +436,8 @@ Where ``/foo/bar`` is the fullname of your target
 If you do not specify a build name, XCVB will attempt to use the build
 in the current working directory.
 
-Note that you need to properly setup your `Source Registry`_ with ``XCVB_PATH``,
-or specify it with option ``--xcvb-path``.
+Note that you need to properly setup your `Source Registry`_ with ``CL_SOURCE_REGISTRY``,
+or specify it with option ``--source-registry``.
 Also, XCVB will assume that the specified implementation,
 ``sbcl`` or otherwise, is in your ``PATH``, though you may override with
 ``--lisp-binary-path``.
@@ -1207,7 +1207,7 @@ instead of ``(:build "foo")`` or ``"foo"`` or ``"/foo"``,
 and/or plainly comment them out if said dependencies are loaded as part of your ``setup.lisp``.
 If you specify ``(:asdf "foo")``,
 you may want to take any ``build.xcvb`` that ``:supersedes-asdf ("foo")``
-out of your ``XCVB_PATH``, and/or create a conflict for it,
+out of your ``CL_SOURCE_REGISTRY``, and/or create a conflict for it,
 and/or comment out said ``:supersedes-asdf`` declaration.
 
 Contact the authors of XCVB if any help is required.

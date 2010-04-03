@@ -228,7 +228,7 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
- * In a2x, don't bork on static-file's
+ * port ironclad, binascii, cffi, iolib...
 
  * Have an option to load from the command-line all the (compile and load) dependencies
    of some builds or modules X1..Xn with all the dependencies of X1..Xn loaded,
@@ -242,9 +242,6 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
    split debug information away from the FASL, so as to get both more determinism in the output
    and more resilience of the output to trivial source code modifications.
    See discussion on sbcl-devel mailing-list.
-
- * Propose a patch to ASDF that merges ``XCVB_PATH`` and some hypothetical ``ASDF_PATH``
-   into a ``COMMON_LISP_PATH`` to find Lisp dependencies?
 
  * Modify the Makefile backend to individualize the directory dependencies:
    each target should only depend on the directory where the target itself lives,

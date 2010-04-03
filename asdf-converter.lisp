@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("specials" "grain-interface")))
+#+xcvb (module (:depends-on ("grain-interface" "main")))
 
 (in-package :xcvb)
 
@@ -108,7 +108,8 @@ until something else is found, then return that header as a string"
            (format out "~a" (read-comment-header in))
            ;; Write out xcvb module to tmppath file.
            (let* ((first-form-position (file-position in))
-                  (first-form (read in nil)))
+                  (first-form (let ((*read-eval* nil))
+                                (ignore-errors (read in nil)))))
              (if (not (module-form-p first-form))
                  (file-position in first-form-position)
                  (when module
@@ -328,7 +329,8 @@ so that the system can now be compiled with XCVB."
                      :verbose ,verbose))))
     (log-format 6 "Starting the dependency grovelling~%")
     (let ((asdf-dependency-grovel::*system-base-dir*
-           (asdf:apply-output-translations base-pathname)))
+           (asdf:apply-output-translations base-pathname))
+          (*features* (cons :grovel-dependencies *features*)))
       (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system))
     (log-format 6 "Adding dependency information to files~%")
     (let* ((original-asdf-deps
@@ -356,10 +358,11 @@ so that the system can now be compiled with XCVB."
       (add-module-to-file build-module-grain)
       (log-format 6 "Adding module to each component~%")
       (dolist (component (asdf:module-components asdf-system))
-        (log-format 6 "Adding module to component ~S~%" component)
-        (add-module-to-file (get-module-for-component
-                             component build-module-grain
-                             name-component-map original-traverse-order-map))))))
+        (when (typep component 'asdf:cl-source-file)
+          (log-format 6 "Adding module to component ~S~%" component)
+          (add-module-to-file (get-module-for-component
+                               component build-module-grain
+                               name-component-map original-traverse-order-map)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ASDF to XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

@@ -29,11 +29,12 @@
 
 (define-text-for-xcvb-driver-command :initialize-manifest (env manifest)
   (format nil "(:initialize-manifest ~S)"
-          (vp-namestring env (apply 'vp-for-type-name manifest))))
+          (pseudo-fullname-namestring env manifest)))
 
 (define-text-for-xcvb-driver-command :load-manifest (env manifest)
   (format nil "(:load-manifest ~S)"
-          (vp-namestring env (apply 'vp-for-type-name manifest))))
+          (pseudo-fullname-namestring env manifest)))
+
 
 (defun text-for-xcvb-driver-helper (env dependencies format &rest args)
   (with-output-to-string (stream)

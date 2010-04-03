@@ -3,7 +3,7 @@
   (:author ("Francois-Rene Rideau" "Stas Boukarev")
    :maintainer "Francois-Rene Rideau"
    ;; :run-depends-on ("string-escape")
-   :depends-on ("profiling" "static-traversal" "computations" "driver-commands")))
+   :depends-on ("profiling" "static-traversal" "computations" "driver-commands" "main")))
 
 (in-package :xcvb)
 
@@ -110,12 +110,10 @@ xcvb-ensure-object-directories:
       (push dir *makefile-target-directories*)))
   (values))
 
-(defmethod object-namestring ((env makefile-traversal) name &optional merge)
-  (let* ((pathname (portable-pathname-from-string name))
-         (merged (if merge (merge-pathnames merge pathname) pathname))
-         (namestring (enough-namestring
-                      (strcat *object-directory* (portable-namestring merged)))))
-    (ensure-makefile-will-make-pathname env namestring)
+(defmethod vp-namestring :around ((env makefile-traversal) vp)
+  (let ((namestring (call-next-method)))
+    (when (eq (vp-root vp) :obj)
+      (ensure-makefile-will-make-pathname env namestring))
     namestring))
 
 ;; Renaming of targets ensures reasonable atomicity
@@ -191,7 +189,7 @@ will create the desired content. An atomic rename() will have to be performed af
 (define-Makefile-commands-for-computation :make-manifest (env manifest &rest commands)
   (list (shell-tokens-to-Makefile
          (cmdize 'xcvb 'make-manifest
-                 :output (vp-namestring env (apply 'vp-for-type-name manifest))
+                 :output (pseudo-fullname-namestring env manifest)
                  :spec (let ((manifest-spec (commands-to-manifest-spec env commands)))
                          (with-safe-io-syntax ()
                            (write-to-string manifest-spec :case :downcase)))))))
@@ -231,7 +229,8 @@ will create the desired content. An atomic rename() will have to be performed af
     (let ((asdf-grains (remove-if-not #'asdf-grain-p inputs))))
     (when asdf-grains)
     (let* ((image-namestring (grain-namestring env output))
-           (pathname-text (escape-shell-token-for-Makefile image-namestring))))
+           (pathname-text (escape-shell-token-for-Makefile
+                           (enough-namestring image-namestring)))))
     (with-output-to-string (s)
       (format s " $(shell [ -f ~A ] && " pathname-text)
       (shell-tokens-to-Makefile

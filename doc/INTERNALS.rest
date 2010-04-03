@@ -573,8 +573,9 @@ inherited from a build.xcvb up the filesystem tree.
 search-path.lisp
 ----------------
 
-Handles the search path where XCVB goes looking for available builds.
-Shell variable ``XCVB_PATH`` or Lisp variable ``xcvb:*search-path*``.
+Handles the search path where XCVB goes looking for available builds,
+reusing the infrastructure from ASDF 2.
+See the asdf manual about shell variable ``CL_SOURCE_REGISTRY``.
 
 
 normalize-dependency.lisp

@@ -24,7 +24,10 @@ deterministic separate compilation and enforced locally-declared dependencies."
                      (:build "/closer-mop")
                      (:build "/command-line-arguments")
                      (:build "/fare-utils")
-                     (:fasl "/xcvb/master")
+                     (:asdf :ironclad) ;; unported magic adsf:perform methods...
+                     (:asdf :binascii)
+                     "/xcvb/driver"
+                     "/xcvb/master"
                      (:when (:featurep :sbcl)
                        ;; Used by XCVB
                        (:require :sb-posix)
@@ -34,8 +37,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                        (:require :sb-cltl2)
                        (:require :sb-introspect)
                        (:require :sb-bsd-sockets)))
-  :depends-on ("driver"
-               "conditions"
+  :depends-on ("conditions"
                "manifest"
                "grain-implementation"
                "virtual-pathnames"
