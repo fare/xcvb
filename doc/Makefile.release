@@ -64,7 +64,7 @@ install-using-asdf: install-source
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
 
 checkout:
-	clone () { git clone $$1 || echo "Already got $$(basename $$1) ; } \
+	clone () { git clone $$1 || echo "Already got $$(basename $$1)" ; } ; \
 	clone http://common-lisp.net/project/xcvb/git/xcvb.git && \
 	mkdir -p dependencies && cd dependencies && \
 	clone http://common-lisp.net/project/asdf/asdf.git && \
