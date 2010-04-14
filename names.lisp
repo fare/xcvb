@@ -130,13 +130,15 @@ of decreasing fullname length"
                       (return nil))
     :for suffix = nil then (subseq name (1+ p))
     :for build = (when prefix (registered-build prefix)) :do
-    (typecase build
+    (etypecase build
+      (null
+       nil)
       (build-module-grain
        (funcall build-handler build suffix))
-      (build-registry-conflict
-       (error "Trying to use conflicted build name ~S while resolving ~A ~S"
+      (invalid-build-registry-entry
+       (error "Trying to use invalid build name ~S while resolving ~A ~S"
               prefix description suffix))))
-  nil)
+  (values))
 
 (defun resolve-build-relative-name (name &optional (description "build-relative name"))
   "Resolve absolute NAME into a build and relative name"

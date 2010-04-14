@@ -13,6 +13,10 @@
 (defgeneric finalize-grain (grain))
 (defgeneric object-namestring (env fullname &optional merge))
 
+(defgeneric run-generator (env generator))
+
+(defgeneric brc-pathnames (brc))
+
 ;;; Define grains.
 
 ;; Unit of build: a file, a process, etc.
@@ -234,6 +238,32 @@ into an image that will be used for all future compile/load operations")
    (targets :initarg :targets :reader generator-targets)
    (dependencies :initarg :dependencies :reader generator-dependencies)
    (computation :accessor generator-computation)))
+
+;;; For build registry
+
+(defclass build-registry-entry ()
+  ((root
+    :initarg :root :accessor bre-root
+    :documentation "root path under which the entry was found")))
+
+(defclass invalid-build-registry-entry (build-registry-entry simple-print-object-mixin)
+  ())
+
+(defclass build-registry-conflict (invalid-build-registry-entry)
+  ((fullname
+    :initarg :fullname :reader fullname)
+   (pathnames
+    :initarg :pathnames :reader brc-pathnames
+    :documentation "pathnames of conflicting build files with the same name")))
+
+(defclass invalid-build-file (invalid-build-registry-entry)
+  ((fullname
+    :initarg :fullname :reader fullname)
+   (pathname
+    :initarg :pathname :reader grain-pathname
+    :documentation "pathname of build file with conflicting ancestor")
+   (reason
+    :initarg :reason :reader invalid-build-reason)))
 
 ;;; Module forms
 

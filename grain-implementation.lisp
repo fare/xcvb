@@ -122,7 +122,6 @@
       (setf (registered-grain (fullname target)) target)
       (setf (grain-generator target) generator))))
 
-(defgeneric run-generator (env generator))
 ;;(defmethod run-generator (env (fun function)) (funcall fun env))
 (defmethod run-generator (env (generator lisp-generator))
   (let* ((dependencies (generator-dependencies generator))

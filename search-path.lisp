@@ -24,32 +24,6 @@ Initially populated with all build.xcvb files from the search path.")
 
 ;;; Special magic for build entries in the registry
 
-(defclass build-registry-entry ()
-  ((root
-    :initarg :root :accessor bre-root
-    :documentation "root path under which the entry was found")))
-
-(defgeneric brc-pathnames (brc))
-
-(defclass invalid-build-registry-entry (build-registry-entry simple-print-object-mixin)
-  ())
-
-(defclass build-registry-conflict (invalid-build-registry-entry)
-  ((fullname
-    :initarg :fullname :reader fullname)
-   (pathnames
-    :initarg :pathnames :reader brc-pathnames
-    :documentation "pathnames of conflicting build files with the same name")))
-
-(defclass invalid-build-file (invalid-build-registry-entry)
-  ((fullname
-    :initarg :fullname :reader fullname)
-   (pathname
-    :initarg :pathname :reader grain-pathname
-    :documentation "pathname of build file with conflicting ancestor")
-   (reason
-    :initarg :reason :reader invalid-build-reason)))
-
 (defmethod brc-pathnames ((build build-module-grain))
   (list (grain-pathname build)))
 (defmethod brc-pathnames ((build invalid-build-file))
@@ -159,18 +133,17 @@ Initially populated with all build.xcvb files from the search path.")
                     :thereis (find x (pathname-directory file) :test #'equal))
           :collect file)
         #+sbcl
-        (mapcar
-         #'truename
-         (run-program/read-output-lines
-          `("find" "-H" ,(escape-shell-token (namestring pathname))
-            "(" "(" "-false" ,@(loop :for x :in exclude :append `("-o" "-name" ,x)) ")" "-prune"
-            "-o" "-name" "build.xcvb" ")" "-type" "f" "-print"))))))
+        (run-program/read-output-lines
+         `("find" "-H" ,(escape-shell-token (namestring pathname))
+           "(" "(" "-false" ,@(loop :for x :in exclude :append `("-o" "-name" ,x)) ")" "-prune"
+           "-o" "-name" "build.xcvb" ")" "-type" "f" "-print")))))
 
 (defun map-build-files-under (root fn)
   "Call FN for all BUILD files under ROOT"
   (let* ((builds (find-build-files-under root))
          ;; depth first traversal
-         (builds (sort builds #'< :key (compose #'length #'pathname-directory))))
+         (builds (sort (mapcar #'truename builds) #'<
+                       :key (compose #'length #'pathname-directory))))
     (map () fn builds)))
 
 (defun search-source-registry ()
