@@ -11,7 +11,7 @@
 (defvar *target-builds* (make-hashset :test 'equal)
   "A list of asdf system we supersede")
 
-(defmethod issue-dependency ((env asdf-traversal) (grain lisp-module-grain))
+(defmethod issue-dependency ((env asdf-traversal) (grain lisp-file-grain))
   (let* ((build (build-module-grain-for grain)))
     (if (build-in-target-p build)
         (call-next-method)
@@ -23,6 +23,9 @@
            nil) ;; special case: ASDF is assumed to be there already
           (t
            (error "depending on build ~A but it has no ASDF equivalent" (fullname build))))))
+  (values))
+
+(defmethod issue-dependency ((env asdf-traversal) (grain build-module-grain))
   (values))
 
 (defun build-in-target-p (build)
@@ -114,7 +117,8 @@ Declare asd system as ASDF-NAME."
          :components ,(loop :for computation :in (reverse *computations*)
                         :for lisp = (first (computation-inputs computation))
                         :for deps = (rest (computation-inputs computation))
-                        :for build = (and lisp (build-module-grain-for lisp))
+                        :for build = (and (typep lisp 'lisp-file-grain)
+                                          (build-module-grain-for lisp))
                         :for includedp = (and build (build-in-target-p build))
                         :for depends-on = (loop :for dep :in deps
                                             :when (typep dep 'lisp-file-grain)
@@ -125,8 +129,9 @@ Declare asd system as ASDF-NAME."
                                                    "lisp"))
                         :when includedp :collect
                         `(:file ,name
-                                ,@(unless (and (equal name pathname) (not (find #\/ name)))
-                                          `(:pathname ,pathname))
+                                ,@(unless (and (equal name pathname)
+                                               #-asdf2 (not (find #\/ name)))
+                                   `(:pathname ,pathname))
                                 ,@(when depends-on `(:depends-on ,depends-on))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XCVB to ASDF ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

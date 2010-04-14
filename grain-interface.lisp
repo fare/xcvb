@@ -54,11 +54,13 @@
     ;; no :initarg, so that :fullname can mean specified-fullname in builds...
     :accessor fullname)))
 
-(defclass world-grain (buildable-grain named-grain)
+(defclass explicitly-named-grain (named-grain)
+  ((fullname :initarg :fullname)))
+
+(defclass world-grain (buildable-grain explicitly-named-grain)
   ;; the fullname a plist of the form
   ;; (:world :setup ,setup :commands-r ,commands-r)
-  ((fullname :initarg :fullname)
-   (hash
+  ((hash
     :documentation "precomputed hash of the fullname"
     :reader world-hash :initarg :hash)
    (issued-build-commands
@@ -68,9 +70,8 @@
     :documentation "hashset of grains included in this world"
     :reader included-dependencies :initarg :included-dependencies)))
 
-(defclass phony-grain (buildable-grain named-grain)
-  ((fullname
-    :initarg :fullname))
+(defclass phony-grain (buildable-grain explicitly-named-grain)
+  ()
   (:documentation "virtual grain used for side-effects"))
 
 (defclass file-grain (persistent-grain buildable-grain named-grain)
@@ -201,21 +202,19 @@ into an image that will be used for all future compile/load operations")
     :documentation "Should we build a Lisp image with that build loaded?"))
   (:documentation "build.xcvb file grain"))
 
-(defclass fasl-grain (file-grain)
+(defclass fasl-grain (file-grain explicitly-named-grain)
   ((load-dependencies
     :initarg :load-dependencies
-    :reader load-dependencies)
-   (fullname :initarg :fullname))
+    :reader load-dependencies))
   (:documentation "Lisp FASL file grain"))
 
-(defclass cfasl-grain (file-grain)
+(defclass cfasl-grain (file-grain explicitly-named-grain)
   ((load-dependencies
     :initarg :load-dependencies
-    :reader load-dependencies)
-   (fullname :initarg :fullname))
+    :reader load-dependencies))
   (:documentation "Lisp CFASL file grain"))
 
-(defclass asdf-grain (buildable-grain named-grain)
+(defclass asdf-grain (buildable-grain explicitly-named-grain)
   ((name
     :initarg :name
     :reader asdf-grain-system-name)
@@ -224,11 +223,17 @@ into an image that will be used for all future compile/load operations")
     :reader asdf-grain-implementation))
   (:documentation "Loaded ASDF system"))
 
-(defclass require-grain (buildable-grain named-grain)
+(defclass require-grain (buildable-grain explicitly-named-grain)
   ((name
     :initarg :name
     :reader require-grain-name))
   (:documentation "Required feature"))
+
+(defclass lisp-generator ()
+  ((build :initarg :build :reader generator-build)
+   (targets :initarg :targets :reader generator-targets)
+   (dependencies :initarg :dependencies :reader generator-dependencies)
+   (computation :accessor generator-computation)))
 
 ;;; Module forms
 

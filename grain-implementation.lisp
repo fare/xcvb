@@ -89,12 +89,6 @@
   (error "handle-extension-form-atom: Extension form ~a is invalid.  Only currently support :generate extension form."
 	 extension-form))
 
-(defclass lisp-generator ()
-  ((build :initarg :build :reader generator-build)
-   (targets :initarg :targets :reader generator-targets)
-   (dependencies :initarg :dependencies :reader generator-dependencies)
-   (computation :accessor generator-computation)))
-
 (defmethod print-object ((g lisp-generator) stream)
   (with-output (stream)
     (print-unreadable-object (g stream :type t)
@@ -164,14 +158,6 @@
 (defun make-grain-from-file (path &key build-p)
   "Takes a PATH to a lisp file, and returns the corresponding grain."
   (grain-from-file-declaration path :build-p build-p))
-
-(defun %grain-from-relative-name (name build)
-  (probe-file-grain
-   (make-pathname
-    :type "lisp"
-    :defaults (merge-pathnames
-               (portable-pathname-from-string name :allow-absolute nil)
-               (grain-pathname build)))))
 
 (defun build-module-grain-for (grain)
   (etypecase grain
@@ -288,6 +274,9 @@
 
 (defun build-module-grain-p (x)
   (typep x 'build-module-grain))
+
+(defun lisp-file-grain-p (x)
+  (typep x 'lisp-file-grain))
 
 (defun asdf-grain-p (x)
   (typep x 'asdf-grain))

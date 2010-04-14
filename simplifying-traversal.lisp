@@ -30,7 +30,7 @@ and the non-enforcing Makefile backend.
 (define-graph-for :fasl ((env simplifying-traversal) name)
   (check-type name string)
   (let ((grain (resolve-absolute-module-name name)))
-    (check-type grain lisp-module-grain)
+    (check-type grain lisp-file-grain)
     (finalize-grain grain)
     (issue-dependency env grain)
     (let* ((dependencies
@@ -49,7 +49,7 @@ and the non-enforcing Makefile backend.
       (make-computation
        ()
        :outputs (list fasl)
-       :inputs (traversed-dependencies env)
+       :inputs (remove-if-not #'lisp-file-grain-p (traversed-dependencies env))
        :command nil)
       fasl)))
 
@@ -79,3 +79,21 @@ and the non-enforcing Makefile backend.
 (define-build-command-for :require ((env simplifying-traversal) name)
   (pushnew name *require-dependencies* :test 'equal)
   (values))
+
+(defmethod run-generator ((env simplifying-traversal) (generator lisp-generator))
+  (let* ((dependencies (generator-dependencies generator))
+         (targets (generator-targets generator)))
+    (unless targets
+      (error "no targets"))
+    (unless dependencies
+      (error "run-generator: Need dependencies to generate files ~S.~%"
+             (mapcar #'fullname targets)))
+    (dolist (target targets)
+      (slot-makunbound target 'computation))
+    (build-command-for* env dependencies)
+    (setf (generator-computation generator)
+          (make-computation
+           ()
+           :outputs targets
+           :inputs (traversed-dependencies env)
+           :command nil))))
