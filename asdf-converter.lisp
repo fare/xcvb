@@ -125,7 +125,7 @@ until something else is found, then return that header as a string"
            (do ((line (read-line in nil) (read-line in nil)))
                ((null line))
              (write-line line out))))
-       (log-format 9 "Moving temporary file ~A to permanent file ~A~%" tmppath filename)
+       (log-format 9 "Moving temporary file ~A to permanent file ~A" tmppath filename)
        #+clisp ;; But for a bug in CLISP 2.48, we should use :if-exists :overwrite and be atomic
        (posix:copy-file tmppath filename :method :rename)
        #-clisp
@@ -240,7 +240,7 @@ until something else is found, then return that header as a string"
                    (forward-dep-p* (dep)
                      (and (forward-dep-p dep)
                           (progn
-                            (log-format 7 "Removing forward dependency from ~A to ~A~%"
+                            (log-format 7 "Removing forward dependency from ~A to ~A"
                                         (component-truename asdf-component)
                                         (component-truename dep))
                             t))))
@@ -303,18 +303,18 @@ and writing a corresponding build.xcvb file,
 so that the system can now be compiled with XCVB."
   (unless base-pathname
     (setf base-pathname (guess-base-pathname-for-systems systems)))
-  (log-format 6 "Preloading systems~%")
+  (log-format 6 "Preloading systems")
   (xcvb-driver:with-controlled-compiler-conditions ()
     (dolist (sys systems-to-preload)
       (asdf:operate 'asdf:load-op sys)))
   (setf systems (mapcar 'asdf::coerce-name systems)
         system (if system (asdf::coerce-name system) (car systems)))
   (log-format 6 "Remove any system possibly used by XCVB itself ~%~
-		 so that asdf-to-xcvb may work on them.~%")
+		 so that asdf-to-xcvb may work on them.")
   (dolist (sys systems) (remhash sys asdf::*defined-systems*))
-  (log-format 6 "Extract the original traverse order from ASDF before any transformation.~%")
+  (log-format 6 "Extract the original traverse order from ASDF before any transformation.")
   (let ((original-traverse-order-map (systems-traverse-order-map systems)))
-    (log-format 6 "Clear the system cache *again* because we'll re-define thing transformed.~%")
+    (log-format 6 "Clear the system cache *again* because we'll re-define thing transformed.")
     (dolist (sys systems) (remhash sys asdf::*defined-systems*))
     (asdf:initialize-output-translations "/:")
     (eval
@@ -327,12 +327,12 @@ so that the system can now be compiled with XCVB."
                      :merge-systems ,systems
                      :base-pathname ,base-pathname
                      :verbose ,verbose))))
-    (log-format 6 "Starting the dependency grovelling~%")
+    (log-format 6 "Starting the dependency grovelling")
     (let ((asdf-dependency-grovel::*system-base-dir*
            (asdf:apply-output-translations base-pathname))
           (*features* (cons :grovel-dependencies *features*)))
       (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system))
-    (log-format 6 "Adding dependency information to files~%")
+    (log-format 6 "Adding dependency information to files")
     (let* ((original-asdf-deps
             (mapcar 'asdf::coerce-name
                     (get-dependencies-from-components (mapcar 'asdf:find-system systems))))
@@ -341,7 +341,7 @@ so that the system can now be compiled with XCVB."
              components-path))
            (asdf-system
             (progn
-              (log-format 6 "Creating a system with simplified dependencies ~%")
+              (log-format 6 "Creating a system with simplified dependencies")
               (remhash system asdf::*defined-systems*)
               (eval
                `(asdf:defsystem ,system
@@ -354,12 +354,12 @@ so that the system can now be compiled with XCVB."
                          asdf-system systems original-asdf-deps
                          original-traverse-order-map :name name))
            (name-component-map (name-component-map asdf-system))) ; Precompute to ensure O(n) behavior
-      (log-format 6 "Adding module to build.xcvb~%")
+      (log-format 6 "Adding module to build.xcvb")
       (add-module-to-file build-module-grain)
-      (log-format 6 "Adding module to each component~%")
+      (log-format 6 "Adding module to each component")
       (dolist (component (asdf:module-components asdf-system))
         (when (typep component 'asdf:cl-source-file)
-          (log-format 6 "Adding module to component ~S~%" component)
+          (log-format 6 "Adding module to component ~S" component)
           (add-module-to-file (get-module-for-component
                                component build-module-grain
                                name-component-map original-traverse-order-map)))))))

@@ -202,14 +202,14 @@ for this version of XCVB.")))
       (xcvb-driver:debugging))
     (when verbosity
       (setf *xcvb-verbosity* verbosity))
-    (log-format 9 "~&xcvb options: ~S~%" keys)
+    (log-format 9 "xcvb options: ~S" keys)
     (initialize-source-registry source-registry)
     (search-source-registry)
     (when object-directory
       (setf *object-directory* object-directory))
     (setf *object-directory-pathname* (ensure-pathname-is-directory *object-directory*))
     (setf *object-directory* (but-last-char (namestring *object-directory-pathname*)))
-    (log-format 8 "~&object-directory: given ~S using ~S " object-directory *object-directory*)
+    (log-format 8 "object-directory: given ~S using ~S" object-directory *object-directory*)
     (when lisp-implementation
       (let ((type (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
         (unless (and type (get-lisp-implementation type))
@@ -236,7 +236,7 @@ for this version of XCVB.")))
 (defun main ()
   (with-coded-exit ()
     (flet ((quit (&optional (code 0))
-             (log-format 9 "~&quitting with code ~A~%" code)
+             (log-format 9 "quitting with code ~A" code)
              (quit code)))
       (restart-case
           ;; revert-to-repl is in a nested restart-case so that the other two

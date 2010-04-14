@@ -58,10 +58,12 @@
   name)
 
 (defmethod compute-fullname ((grain build-module-grain))
-  (if (specified-fullname grain)
-    (setf (fullname grain) (canonicalize-fullname (specified-fullname grain))
-          (grain-parent grain) nil)
-    (compute-inherited-fullname grain :build-p t))
+  (unless (slot-boundp grain 'fullname)
+    (if (specified-fullname grain)
+        (setf (fullname grain)
+              (canonicalize-fullname (specified-fullname grain))
+              (grain-parent grain) nil)
+        (compute-inherited-fullname grain :build-p t)))
   (values))
 
 (defmethod compute-fullname ((grain lisp-module-grain))
@@ -77,15 +79,20 @@
                (error "grain ~A is lacking an explicit or implicit fullname"
                       (grain-pathname grain)))
              (maybe-inherit-from (rdir subnames)
-               (let ((ancestor (probe-file-grain
+               (let ((ancestor (probe-file
                                 (make-pathname :host host :device device
                                                :name "build" :type "xcvb"
-                                               :directory (reverse rdir))
-                                :build-p t)))
+                                               :directory (reverse rdir)))))
                  (if ancestor
-                     (let ((relname (join-strings subnames :separator "/")))
-                       (setf (grain-parent grain) ancestor
-                             (fullname grain) (strcat (fullname ancestor) "/" relname)))
+                     (let ((ancestor-fullname (fullname-from-truename ancestor)))
+                       (if (null ancestor-fullname)
+                           (error "grain ~A has unregistered ancestor at ~A"
+                                  (grain-pathname grain) ancestor)
+                           (let ((ancestor-build (registered-build ancestor-fullname)))
+                             (setf (grain-parent grain) ancestor-build)
+                             (setf (fullname grain)
+                                   (join-strings (cons ancestor-fullname subnames)
+                                                 :separator "/")))))
                      (recurse rdir subnames))))
              (recurse (rdir subnames)
                (let ((dir (car rdir)))
@@ -100,14 +107,15 @@
   "Resolve module NAME in the context of build into an appropriate grain, if any"
   (if (portable-pathname-absolute-p name)
     (resolve-absolute-module-name name)
-    (loop :for b = (build-module-grain-for grain) :then (grain-parent b)
-          :for g = (and b (resolve-absolute-module-name (strcat (fullname b) "/" name)))
-          :while b
-          :when (typep g 'grain) :do (return g)
-          :finally (return (resolve-absolute-module-name (canonicalize-fullname name))))))
+    (loop
+      :for b = (build-module-grain-for grain) :then (grain-parent b)
+      :for g = (and b (resolve-absolute-module-name (strcat (fullname b) "/" name)))
+      :while b
+      :when (typep g 'grain) :do (return g)
+      :finally (return (resolve-absolute-module-name (canonicalize-fullname name))))))
 
 (defun module-subpathname (path name)
-  (subpathname path  (strcat name ".lisp")))
+  (subpathname path (strcat name ".lisp")))
 
 (defun walk-build-ancestry (name description build-handler)
   "Call BUILD-HANDLER on each build the fullname of which is a prefix of NAME,
@@ -130,30 +138,31 @@ of decreasing fullname length"
               prefix description suffix))))
   nil)
 
-(defun resolve-absolute-module-name (name)
-  "Resolve absolute NAME into an appropriate grain, if any"
-  (let ((name (canonicalize-fullname name)))
-    (or (registered-grain name)
-        (registered-build name)
-        (walk-build-ancestry
-         name "module name"
-         (lambda (build suffix)
-           (let ((grain (resolve-module-name-at suffix build)))
-             (when (typep grain 'grain)
-               (return-from resolve-absolute-module-name grain))))))))
-
-(defun resolve-module-name-at (name build)
-  (check-type build build-module-grain)
-  (if name
-      (probe-file-grain (module-subpathname (grain-pathname build) name))
-      build))
-
-(defun resolve-build-relative-name (name)
+(defun resolve-build-relative-name (name &optional (description "build-relative name"))
   "Resolve absolute NAME into a build and relative name"
-  (walk-build-ancestry
-   name "build-relative filename"
-   (lambda (build suffix)
-     (return-from resolve-build-relative-name (values build suffix)))))
+  (block nil
+    (walk-build-ancestry
+     name description
+     (lambda (build suffix)
+       (return (values build suffix))))))
+
+(defun resolve-absolute-module-name (name &key error-p)
+  "Resolve absolute NAME into an appropriate grain, if any"
+  (multiple-value-bind (build suffix)
+      (resolve-build-relative-name (canonicalize-fullname name) "module name")
+    (let ((grain (resolve-module-name-at suffix build)))
+      (if (typep grain 'grain)
+          grain
+          (when error-p
+            (error "No grain ~S under build ~A" suffix (fullname build)))))))
+
+(defun resolve-module-name-at (suffix build)
+  (check-type build build-module-grain)
+  (if (null suffix)
+      build
+      (or (registered-grain (strcat (fullname build) "/" suffix))
+          (probe-file-grain
+           (module-subpathname (grain-pathname build) suffix)))))
 
 (defun ensure-name-within-build (build name)
   (let* ((build-name (fullname build))

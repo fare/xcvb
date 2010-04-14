@@ -38,7 +38,7 @@
                   "-C" (namestring makefile-dir)
                   "-f" (namestring makefile-path)))
            (*standard-output* *error-output*))
-      (log-format 6 "~&Building with ~S~%" make-command)
+      (log-format 6 "Building with ~S" make-command)
       (run-program/process-output-stream
        make-command
        (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))

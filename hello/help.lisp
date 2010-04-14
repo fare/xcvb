@@ -13,5 +13,10 @@
   (display-help :stream *error-output* :code 2))
 
 (defun display-version ()
-  (format t "hello version ~A~%" +version+)
-  (exit 0))
+  (cond
+    (*version*
+     (format t "XCVB hello version ~A~%" *version*)
+     (exit 0))
+    (t
+     (format *error-output* "XCVB hello version not defined!~%")
+     (exit 2))))

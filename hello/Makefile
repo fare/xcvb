@@ -24,7 +24,7 @@ include ${XCVB_ROOT}/configure.mk
 # IN YOUR PROJECT,
 # this might be set as part of the user configuration,
 # or left wholly to the default user and/or system settings.
-export CL_SOURCE_REGISTRY := ${XCVB_ROOT}/test/hello//:${CL_SOURCE_REGISTRY}
+export CL_SOURCE_REGISTRY := ${XCVB_ROOT}//:${CL_SOURCE_REGISTRY}
 $(shell ( echo export CL_SOURCE_REGISTRY=${CL_SOURCE_REGISTRY} ) >&2)
 
 # This is where XCVB is actually invoked.

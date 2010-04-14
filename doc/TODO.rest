@@ -228,6 +228,9 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
+ * Devise a way to refactor internals so that it becomes easier to extend xcvb.
+   Maybe use sheeple?
+
  * port ironclad, binascii, cffi, iolib...
 
  * Have an option to load from the command-line all the (compile and load) dependencies

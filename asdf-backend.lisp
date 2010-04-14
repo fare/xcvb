@@ -76,10 +76,10 @@ Declare asd system as ASDF-NAME."
          (*asdf-system-dependencies* nil)
          (*require-dependencies* nil)
          (*use-cfasls* nil))
-    (log-format 6 "T=~A building dependency graph~%" (get-universal-time))
+    (log-format 6 "T=~A building dependency graph" (get-universal-time))
     (dolist (b builds)
       (graph-for-build-module-grain (make-instance 'asdf-traversal) b))
-    (log-format 6 "T=~A creating asd file ~A~%" (get-universal-time) output-path)
+    (log-format 6 "T=~A creating asd file ~A" (get-universal-time) output-path)
     (do-write-asd-file
       :output-path output-path
       :asdf-name asdf-name

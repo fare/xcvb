@@ -51,13 +51,14 @@
 
 (defclass named-grain (grain)
   ((fullname
-    :initarg :fullname
+    ;; no :initarg, so that :fullname can mean specified-fullname in builds...
     :accessor fullname)))
 
 (defclass world-grain (buildable-grain named-grain)
   ;; the fullname a plist of the form
   ;; (:world :setup ,setup :commands-r ,commands-r)
-  ((hash
+  ((fullname :initarg :fullname)
+   (hash
     :documentation "precomputed hash of the fullname"
     :reader world-hash :initarg :hash)
    (issued-build-commands
@@ -84,7 +85,8 @@
   (:documentation "File grain"))
 
 (defclass image-grain (file-grain)
-  ((world :accessor image-world :initarg :world))
+  ((fullname :initarg :fullname)
+   (world :accessor image-world :initarg :world))
   (:documentation "Dumped Image"))
 
 (defclass documented-grain (grain)
@@ -121,8 +123,7 @@
    (in
     :initarg :in
     :accessor source-grain-in)
-   (fullname :initarg :fullname)
-   )
+   (fullname :initarg :fullname))
   (:documentation "Data file (source) grain."))
 
 (defclass documented-file-grain (file-grain documented-grain)
@@ -203,13 +204,15 @@ into an image that will be used for all future compile/load operations")
 (defclass fasl-grain (file-grain)
   ((load-dependencies
     :initarg :load-dependencies
-    :reader load-dependencies))
+    :reader load-dependencies)
+   (fullname :initarg :fullname))
   (:documentation "Lisp FASL file grain"))
 
 (defclass cfasl-grain (file-grain)
   ((load-dependencies
     :initarg :load-dependencies
-    :reader load-dependencies))
+    :reader load-dependencies)
+   (fullname :initarg :fullname))
   (:documentation "Lisp CFASL file grain"))
 
 (defclass asdf-grain (buildable-grain named-grain)

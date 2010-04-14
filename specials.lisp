@@ -69,7 +69,7 @@ Autodetected from the target Lisp system.")
 Negatives are stored as NIL. Positives as grains.")
 
 (defvar *print-concisely* '(build-module-grain lisp-module-grain fasl-grain cfasl-grain
-                            image-grain world-grain active-world)
+                            image-grain world-grain active-world lisp-file-grain lisp-generator)
   "For debugging purpose, controls the verbosity of print-object on grains")
 
 (defvar *use-master* t

@@ -62,7 +62,7 @@
 (defmethod ensure-grain-generated (env (grain buildable-grain))
   (let ((generator (grain-generator grain)))
     (when generator
-      (funcall generator env))))
+      (run-generator env generator))))
 
 (defun do-graph-for (env spec)
   (call-with-grain-registration
@@ -122,22 +122,20 @@
                    (resolve-absolute-module-name fullname)
                    (let* ((build-file (probe-file "build.xcvb"))
                           (build-module-grain
-                           (and build-file (make-grain-from-file build-file :build-p t)))
-                          (fullname (and build-module-grain (fullname build-module-grain)))
-                          (registered-build (and fullname (registered-grain fullname))))
+                           (and build-file (pathname-build build-file))))
                      ;; Question: should we make the below error cases warnings,
                      ;; and override conflicts with the current build?
                      ;; NB: User can put . in front of his CL_SOURCE_REGISTRY
                      ;; if that's what he wants.
-                     (unless build-file
-                       (error "No build specified, and no build.xcvb in the current directory"))
-                     (unless (and (build-module-grain-p registered-build)
-                                  (equal (truename (grain-pathname registered-build))
-                                         (truename "build.xcvb")))
-                       (error "Implicitly specified build.xcvb ~
-                                 in current directory is in conflict~%~
-                                 with entries in your source registry. Check with xcvb ssr"))
-                     registered-build)))
+                     (etypecase build-module-grain
+                       (build-module-grain
+                        build-module-grain)
+                       (null
+                        (error "No build specified, and no build.xcvb in the current directory"))
+                       (invalid-build-registry-entry
+                        (error "Implicitly specified build.xcvb in current directory ~
+                                but it is invalid:~%~A~&"
+                                (invalid-build-reason build-module-grain)))))))
          (build (if target (build-module-grain-for target)
                     (error "User requested build ~S but it can't be found.~%~
 			    You may check available builds with xcvb ssr.~%" fullname)))

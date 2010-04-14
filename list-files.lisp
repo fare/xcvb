@@ -55,18 +55,18 @@
   (multiple-value-bind (target-dependency build) (handle-target fullname)
     (log-format 7 "Removing XCVB from build ~A~% (path ~S)" build (grain-pathname build))
     (flet ((source-lisp-grain-p (grain)
-             (log-format 7 "Inspecting grain ~A~%" grain)
+             (log-format 7 "Inspecting grain ~A" grain)
              (when (and (typep grain 'lisp-module-grain)
                         (slot-boundp grain 'computation)
                         (null (grain-computation grain)))
-               (log-format 8 "This grain is in build ~A~%" (build-module-grain-for grain))
-               (log-format 9 "EQ: ~A EQUAL NAMES: ~A~%"
+               (log-format 8 "This grain is in build ~A" (build-module-grain-for grain))
+               (log-format 9 "EQ: ~A EQUAL NAMES: ~A"
                            ;; for some reason, the builds are different objects(!). HOW???
                            (eq build (build-module-grain-for grain))
                            (equal (fullname build) (fullname (build-module-grain-for grain))))
                (equal (fullname build) (fullname (build-module-grain-for grain))))))
       (dolist (grain (remove-if-not #'source-lisp-grain-p (list-files target-dependency)))
-        (log-format 5 "Removing module declaration from ~A~%" (grain-pathname grain))
+        (log-format 5 "Removing module declaration from ~A" (grain-pathname grain))
         (remove-module-from-file (grain-pathname grain))))
-    (log-format 5 "Deleting build file for ~A~%" (grain-pathname build))
+    (log-format 5 "Deleting build file for ~A" (grain-pathname build))
     (delete-file (grain-pathname build))))

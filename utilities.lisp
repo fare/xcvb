@@ -9,18 +9,19 @@
   (mapcar (lambda (x) (funcall function env x)) arguments))
 
 ;;; CLOS magic (depends on closer-mop) (from philip-jose)
-(defun collect-slots (object &optional (slot-list t))
+(defun collect-slots (object &key (slots t))
   (loop :with class = (class-of object)
-        :with slots = (if (eq slot-list t) (compute-slots class) slot-list)
+        :with slots = (if (eq slots t) (compute-slots class) slots)
         :for slot :in slots
         :for name = (slot-definition-name slot)
         :for iarg = (or (first (slot-definition-initargs slot)) name)
-        :nconc (when (slot-boundp object name) `(,iarg ,(slot-value object name)))))
+        :nconc (when (slot-boundp object name)
+                 `(,iarg ,(slot-value object name)))))
 
 (defun simple-print-object (object stream &key identity (slots t))
   (with-output (stream)
     (print-unreadable-object (object stream :type t :identity identity)
-      (write (collect-slots object slots) :stream stream))))
+      (write (collect-slots object :slots slots) :stream stream))))
 
 (defgeneric slots-to-print (object)
   (:method ((object t))

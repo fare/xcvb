@@ -30,7 +30,9 @@
     ((grain lisp-module-grain) slot-names &rest initargs &key &allow-other-keys)
   (declare (ignore slot-names initargs))
   (compute-fullname grain)
-  (validate-fullname (slot-value grain 'fullname)))
+  (let ((fullname (slot-value grain 'fullname)))
+    (validate-fullname fullname))
+  (values))
 
 (defmethod grain-vp :before ((grain file-grain))
   (unless (slot-boundp grain 'vp)
@@ -41,6 +43,7 @@
 
 (defmethod finalize-grain :around (grain)
   (unless (grain-finalized-p grain) ;; only do it once per grain
+    (setf (grain-finalized-p grain) :in-progress)
     (call-next-method)
     (setf (grain-finalized-p grain) t))
   (values))
@@ -86,11 +89,21 @@
   (error "handle-extension-form-atom: Extension form ~a is invalid.  Only currently support :generate extension form."
 	 extension-form))
 
-(defclass lisp-generator (simple-print-object-mixin)
+(defclass lisp-generator ()
   ((build :initarg :build :reader generator-build)
    (targets :initarg :targets :reader generator-targets)
    (dependencies :initarg :dependencies :reader generator-dependencies)
    (computation :accessor generator-computation)))
+
+(defmethod print-object ((g lisp-generator) stream)
+  (with-output (stream)
+    (print-unreadable-object (g stream :type t)
+      (format stream ":build ~A :targets ~A :dependencies ~A ~@[:computation ~S~]"
+              (fullname (generator-build g))
+              (mapcar #'fullname (generator-targets g))
+              (generator-dependencies g)
+              (when (slot-boundp g 'computation)
+                (generator-computation g))))))
 
 (define-handle-extension-form :generate (build generate &key depends-on)
   (unless generate
@@ -112,6 +125,7 @@
 	    :targets targets
 	    :dependencies (normalize-dependencies build depends-on :depends-on))))
     (loop :for target :in targets :do
+      (setf (registered-grain (fullname target)) target)
       (setf (grain-generator target) generator))))
 
 (defgeneric run-generator (env generator))
@@ -302,7 +316,8 @@ Modeled after the asdf function coerce-name"
 (defmethod print-object ((x grain) stream)
   (if (member (type-of x) *print-concisely*)
     (print-unreadable-object (x stream :type t :identity nil)
-      (format stream "~S" (slot-value x 'fullname)))
+      (when (slot-boundp x 'fullname)
+        (format stream "~S" (slot-value x 'fullname))))
     (call-next-method)))
 
 (defmethod included-dependencies ((image image-grain))

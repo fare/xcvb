@@ -26,3 +26,4 @@ todf
 patches
 commit.txt
 hello/xcvb-hello.asd
+hello/version.lisp

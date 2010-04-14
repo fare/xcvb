@@ -2,7 +2,7 @@
 
 (in-package :xcvb-hello)
 
-(defparameter +version+ "1")
+(defvar *version* nil)
 
 (defparameter +hello-option-spec+
   '((("traditional" #\t) :type boolean :optional t

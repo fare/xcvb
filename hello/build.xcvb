@@ -1,7 +1,11 @@
+;-*- Lisp -*-
 #+xcvb
 (module
  (:fullname "/xcvb/hello"
   :supersedes-asdf ("xcvb-hello")
   :build-depends-on ("/xcvb/hello/lib")
-  :depends-on ("main" "help")
-  :build-image t))
+  :depends-on ("main" "help" "version")
+  :build-image t)
+ (:generate
+  ((:lisp "version" :depends-on ("specials")))
+  :depends-on ((:lisp "generate-version"))))
