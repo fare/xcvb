@@ -2,12 +2,12 @@
 
 (in-package :xcvb-hello)
 
-(defparameter *version-path*
-  (asdf:system-relative-pathname :xcvb-hello "version.lisp"))
 (defparameter *xcvb-version-path*
-  (merge-pathnames
-   (make-pathname :directory '(:relative :back) :defaults *version-path*)
-   *version-path*))
+  (asdf:system-relative-pathname :xcvb "version.lisp"))
+(defparameter *version-path*
+  (asdf-utilities:merge-pathnames*
+   (make-pathname :directory '(:relative "hello"))
+   *xcvb-version-path*))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (find-package :xcvb)

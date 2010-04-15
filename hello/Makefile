@@ -32,18 +32,13 @@ $(shell ( echo export CL_SOURCE_REGISTRY=${CL_SOURCE_REGISTRY} ) >&2)
 # you should replace the /xcvb/hello with the fullname of your project.
 #
 # NOTE: if your project has ASDF dependencies not (yet) converted to XCVB,
-# you may have to setup ASDF's central-registry and maybe even load ASDF,
-# in a setup file, that you specify on the xcvb command with option
-# --setup /fullname/of/setup
-# See the ASDF build for more information on making such a setup file.
+# you may have to setup ASDF's source-registry. Please use ASDF 2,
+# and see its documentation about the source-registry.
+#	http://common-lisp.net/project/asdf/
 #
-# Here, we use xcvb/no-asdf as a setup, because hello depends on cl-launch,
-# which depends on a recent XCVB-ready ASDF, which may conflict with any ASDF
-# provided by your implementation.
 xcvb.mk: force
 	xcvb make-makefile \
 	     --build /xcvb/hello \
-	     --setup xcvb/no-asdf \
 	     --lisp-implementation ${LISP} \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello
 
@@ -74,16 +69,26 @@ hello: hello-using-mk
 # #+xcvb (module (:build-depends-on ()))
 # then somehow load ASDF, configure its *central-registry*,
 # and otherwise setup optimization proclamations.
+# Note that the configuration of the central registry is redundant with ASDF 2.
+#
+# If your source registry is properly configured and your implementation comes with ASDF 2,
+# all you need is
+# --setup /xcvb/require-asdf
+#
+# If your source registry is properly configured and contains ASDF 2, you may use
+# --setup /asdf/asdf
 #
 # This example shows how you can leverage XCVB-style configuration of cl-launch
 # into a setup.lisp that replicates this configuration.
-# You can then specify the setup file with --setup /xcvb/hello/setup
+# You can then specify the setup file with
+# --setup /xcvb/hello/setup
 # (changing the fullname to whatever fits your project)
 #
 setup.lisp:
 	( ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_launcher ; \
 	  ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -i "(let ((*package* (find-package :cl-launch))) (format t \"~S~%\" \`(setf asdf:*central-registry*',asdf:*central-registry*)))" \
 	) > $@
+
 
 # This builds hello directly with ASDF, using cl-launch, using a generated xcvb-hello.asd
 hello-using-asdf: xcvb-hello.asd
@@ -105,7 +110,7 @@ hello-using-nemk:  ${XCVB_OBJECT_DIRECTORY}/hello_ne/xcvb-tmp.image
 ${XCVB_OBJECT_DIRECTORY}/hello_ne/xcvb-tmp.image: xcvb-ne.mk
 	${MAKE} -f xcvb-ne.mk
 
-xcvb-ne.mk: setup.lisp force
+xcvb-ne.mk: force setup.lisp
 	xcvb non-enforcing-makefile \
 	     --setup /xcvb/hello/setup \
 	     --build /xcvb/hello \

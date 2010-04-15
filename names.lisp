@@ -67,7 +67,7 @@
   (values))
 
 (defmethod compute-fullname ((grain lisp-module-grain))
-  (compute-inherited-fullname grain :build-p nil))
+  `(:lisp ,(compute-inherited-fullname grain :build-p nil)))
 
 (defun compute-inherited-fullname (grain &key build-p)
   (check-type grain lisp-module-grain)

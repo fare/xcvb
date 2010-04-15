@@ -174,14 +174,14 @@ and to build and run the target software that you will build with XCVB:
 If you prefer to collect XCVB's dependencies manually into your system,
 you will need the following Lisp software libraries to get XCVB running:
 
-  * cl-launch 2.901 or later:
+  * cl-launch 2.903 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
 		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
         - getting it, if you're an XCVB project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
-  * ASDF 1.655 or later, aka ASDF 2:
+  * ASDF 1.678 or later, aka ASDF 2:
 	- homepage: http://cliki.net/asdf
 	- getting it:
 		``git clone http://common-lisp.net/project/asdf/asdf.git``
@@ -232,7 +232,7 @@ currently requires
 the utility ``tthsum`` to be installed
 so as to compute identifying cryptographic hashes of your files.
 If you cannot install this utility, be sure to disable XCVB master support
-when you use our Makefile backend, using option ``--no-master``.
+when you use our ``Makefile`` backend, using option ``--no-master``.
 If you are using Debian or Ubuntu, you may install it with::
 
 	sudo apt-get install tthsum
@@ -281,8 +281,9 @@ Documentation
 	so as to be able to create the ``xcvb`` executable.
 
 ``Makefile.release``
-	the Makefile for XCVB itself is an example for how to integrate XCVB in your Makefile.
-        Note that the setup.lisp complexity is only required if you're using ASDF.
+	the ``Makefile`` for XCVB itself is an example
+        for how to integrate XCVB in your ``Makefile``.
+        Note that the ``setup.lisp`` complexity is only required if you're using ASDF 1.
 
 ``INSTALL.release``
 	instructions for installing XCVB from the expansion of a release tarball.
@@ -454,7 +455,7 @@ For a correct build, it is recommended that you should run
 the ``xcvb make-makefile`` command before every time you build,
 in case any dependency has changed due to some modification.
 XCVB should be fast and this shouldn't be a problem.
-If making the Makefile takes more than a few seconds,
+If making the ``Makefile`` takes more than a few seconds,
 there's probably a performance bug and you should contact us.
 
 After obtaining your ``xcvb.mk``, you may invoke ``make(1)``
@@ -468,8 +469,8 @@ Where ``obj`` is the object directory
 and ``foo/bar.image`` would be the name of the image for your project
 (assuming its build has fullname ``/foo/bar`` and declares ``:build-image t``.)
 Note that you don't *have* to specify ``obj/foo/bar.image``
-as XCVB will make it the first (and hence default) target in its generated Makefile.
-However, when writing a Makefile, it might still be good practice
+as XCVB will make it the first (and hence default) target in its generated ``Makefile``.
+However, when writing a ``Makefile``, it might still be good practice
 to specify it explicitly, as a safety check that XCVB is doing what you think you're doing.
 
 From the image, you can create an executable with such a command as::
@@ -517,7 +518,7 @@ if your setup is non-trivial, or
 if there will be a large number of files being compiled from the initial setup
 (because their respective builds do not otherwise specify or inherit a pre-image).
 There are cases however, for instance in a small project with a trivial setup,
-where you will prefer to eschew the automating dumping of this initial base image
+where you will prefer to eschew the automated dumping of this initial base image
 (especially on implementations where dumping is much slower than loading FASLs,
 such as CCL).
 In these cases, you pass to ``xcvb make-makefile`` the option
@@ -532,6 +533,7 @@ Another setup that XCVB uses is the ``/xcvb/no-asdf`` module,
 that cancels any previous copy of ASDF in the Lisp image,
 so that you may replace it with a more recent,
 new and incompatible version of ASDF.
+(This is made redundant by ASDF 2, that can now properly upgrade itself.)
 
 
 Interactive update of a running image with XCVB master
@@ -555,12 +557,12 @@ including a TTH_ checksum of each file (currently using the external utility ``t
 so the master can skip the files of which the very same version has already been loaded.
 The slave will do all the cryptographic hashing on its side,
 so you don't have to include crypto libraries in your image --
-or anything beside the simple and short xcvb-master.
+or anything beside the simple and short ``xcvb-master``.
 
 .. _TTH: http://en.wikipedia.org/wiki/Hash_tree#Tiger_tree_hash
 
 By default XCVB will include the master and provide initial configuration of it
-in any build you make with the Makefile backend,
+in any build you make with the ``Makefile`` backend,
 unless you explicitly specify ``--no-master``
 (which really is only useful for bootstrapping XCVB itself).
 Even then, you can explicitly include it in your software by
@@ -848,7 +850,7 @@ we are reusing the exact same code
 that ASDF 2 uses to process its source-registry.
 That code supersedes the old ``asdf:*central-registry*`` from ASDF 1.
 
-.. _ASDF: http://www.cliki.net/
+.. _ASDF: http://www.cliki.net/asdf
 
 
 Module Name Resolution
@@ -1390,7 +1392,7 @@ if you don't want to have to redo them manually.
 Fast non-enforcing builds using POIU
 ------------------------------------
 
-After our initial experiments with the Makefile backend of XCVB,
+After our initial experiments with the ``Makefile`` backend of XCVB,
 it appeared that enforcing dependencies in such a naive way
 can lead to build times that is an order of magnitude slower
 than a serial build time with ASDF, even a quad-core machine.
@@ -1402,7 +1404,7 @@ in parallel with ASDF or POIU::
 	xcvb nm --build stage1 --build stage2 --build foo --parallel
         make -f xcvb-ne.mk
 
-This will create a non-enforcing Makefile (default name ``xcvb-ne.mk``)
+This will create a non-enforcing ``Makefile`` (default name ``xcvb-ne.mk``)
 that plainly creates a series of images for each of the builds,
 culminating with the last one, where for each stage
 the dependencies are compiled with ASDF,
@@ -1484,9 +1486,10 @@ but might not make sense for other hackers.
 
 There should probably instead be a per-user default defined
 in the user configuration, and otherwise defaulting to something under
-``~/.cache/common-lisp/`` just like with ``cl-launch``.
+``~/.cache/common-lisp/`` or ``${XDG_CACHE_HOME}/common-lisp/``
+just like with ``cl-launch`` or ASDF 2.
 
-In the future, Exploded File Dependencies and tthsum-based change detection
+In the future, Exploded File Dependencies and ``tthsum``-based change detection
 will enable a content- and intent- addressed cache in which
 clashes cannot happen by construction
 (or rather, you win a free publication at a crypto conference if you hit one).
@@ -1505,7 +1508,7 @@ specified in the code, that affect the compilation environment
 for the compiler.
 If your Lisp implementation is a cross-compiler,
 the CFASL will contain code for the host processor,
-while the FASL would contain code for the target processor.
+while the FASL contains code for the target processor.
 
 In many simple cases, and barring cross-compilation,
 compile-time side-effects are a subset of load-time side-effects,

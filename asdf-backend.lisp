@@ -106,6 +106,10 @@ Declare asd system as ASDF-NAME."
   (kintern "~:@(~A~)" name))
 
 (defun make-asdf-form (asdf-name build)
+  ;; we can assume computations is topologically sorted.
+  ;; TODO: ASDF is stupid, so we should try to optimize dependencies be removing extra ones:
+  ;; for each dependency of current node, starting with the most recent one,
+  ;; add the dependency and remove all those that it includes.
   (let ((prefix (strcat build "/")))
     (flet ((aname (x)
              (let ((n (fullname x)))
@@ -114,20 +118,25 @@ Declare asd system as ASDF-NAME."
                  n))))
       `(asdf:defsystem ,(keywordify-asdf-name asdf-name)
          :depends-on ,(mapcar 'keywordify-asdf-name (reverse *asdf-system-dependencies*))
-         :components ,(loop :for computation :in (reverse *computations*)
+         :components ,(loop :with visited = (make-hash-table :test 'equal)
+                        :for computation :in (reverse *computations*)
                         :for lisp = (first (computation-inputs computation))
                         :for deps = (rest (computation-inputs computation))
                         :for build = (and (typep lisp 'lisp-file-grain)
                                           (build-module-grain-for lisp))
                         :for includedp = (and build (build-in-target-p build))
-                        :for depends-on = (loop :for dep :in deps
-                                            :when (typep dep 'lisp-file-grain)
-                                            :collect (aname dep))
+                        :for depends-on = (remove-duplicates
+                                           (loop :for dep :in deps
+                                             :when (typep dep 'lisp-file-grain)
+                                             :collect (aname dep))
+                                           :test #'equal)
                         :for name = (and lisp (aname lisp))
                         :for pathname = (and lisp (asdf-dependency-grovel::strip-extension
                                                    (enough-namestring (grain-pathname lisp))
                                                    "lisp"))
-                        :when includedp :collect
+                        :for already-visited = (gethash name visited)
+                        :do (setf (gethash name visited) t)
+                        :when (and includedp (not already-visited)) :collect
                         `(:file ,name
                                 ,@(unless (and (equal name pathname)
                                                #-asdf2 (not (find #\/ name)))

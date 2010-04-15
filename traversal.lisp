@@ -61,7 +61,8 @@
 
 (defmethod ensure-grain-generated (env (grain buildable-grain))
   (let ((generator (grain-generator grain)))
-    (when (and generator (not (slot-boundp grain 'computation)))
+    (when (and generator (not (and (slot-boundp grain 'computation)
+                                   (grain-computation grain))))
       (run-generator env generator))))
 
 (defun do-graph-for (env spec)

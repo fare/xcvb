@@ -23,8 +23,12 @@
 (defun register-computed-grain (fullname function &optional args)
   (let* ((grain (apply function args))
          (gname (fullname grain)))
-    ;;TODO: fix this!
-    (unless (equal fullname gname)
+    ;; This happens because graph-for's main method is called with (:lisp ...)
+    ;; and gets a grain with a different fullname. Hum. This is a sign
+    ;; that we're conflating several kinds of grains in our architecture.
+    (unless (or (equal fullname gname)
+                (equal fullname `(:lisp ,gname))
+                (equal fullname `(:build ,gname)))
       (log-format 7 "Registered grain for name ~S has fullname ~S" fullname gname))
     (setf (registered-grain fullname) grain)
     grain))

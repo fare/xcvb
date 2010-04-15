@@ -33,35 +33,38 @@ concepts underlying XCVB.
       2.2   pkgdcl.lisp
       2.3   conditions.lisp
       2.4   specials.lisp
-      2.5   profiling.lisp
-      2.6   macros.lisp
+      2.5   macros.lisp
+      2.6   profiling.lisp
       2.7   utilities.lisp
-      2.8   manifest.lisp
-      2.9   logging.lisp
-      2.10  grain-interface.lisp
-      2.11  portablish-pathnames.lisp
-      2.12  registry.lisp
-      2.13  computations.lisp
-      2.14  lisp-invocation.lisp
-      2.15  string-escape.lisp
-      2.16  extract-target-properties.lisp
-      2.17  grain-implementation.lisp
-      2.18  names.lisp
-      2.19  search-path.lisp
-      2.20  normalize-dependency.lisp
-      2.21  traversal.lisp
-      2.22  dependencies-interpreter.lisp
-      2.23  static-traversal.lisp
-      2.24  makefile-backend.lisp
-      2.25  simplifying-traversal.lisp
-      2.26  asdf-backend.lisp
-      2.27  ne-makefile-backend.lisp
-      2.28  asdf-converter.lisp
-      2.29  slave.lisp
-      2.30  farmer.lisp
-      2.31  main.lisp
-      2.32  version.lisp
-      2.33  master.lisp
+      2.8   logging.lisp
+      2.9   lisp-invocation.lisp
+      2.10  main.lisp
+      2.11  string-escape.lisp
+      2.12  virtual-pathnames.lisp
+      2.13  grain-interface.lisp
+      2.14  registry.lisp
+      2.15  search-path.lisp
+      2.16  computations.lisp
+      2.17  manifest.lisp
+      2.18  extract-target-properties.lisp
+      2.19  grain-implementation.lisp
+      2.20  names.lisp
+      2.21  normalize-dependency.lisp
+      2.22  traversal.lisp
+      2.23  dependencies-interpreter.lisp
+      2.24  static-traversal.lisp
+      2.25  driver-commands.lisp
+      2.26  makefile-backend.lisp
+      2.27  simplifying-traversal.lisp
+      2.28  list-files.lisp
+      2.29  asdf-backend.lisp
+      2.30  ne-makefile-backend.lisp
+      2.31  asdf-converter.lisp
+      2.32  slave.lisp
+      2.33  farmer.lisp
+      2.34  cffi-grovel-support.lisp
+      2.35  version.lisp
+      2.36  master.lisp
     3  Good places to extend XCVB
       3.1  Add more tests
       3.2  Extending the driver
@@ -426,19 +429,17 @@ A collection of global variables,
 many of which can be used to customize the behavior of the user-visible parts XCVB.
 
 
-profiling.lisp
---------------
-
-Simple abstraction layer for profiling XCVB when running under a supported implementation
-(i.e. SBCL).
-
-
 macros.lisp
 -----------
 
 A collection of general-purpose macros.
 
-TODO: Most of them should be moved to a library that XCVB would depend upon.
+
+profiling.lisp
+--------------
+
+Simple abstraction layer for profiling XCVB when running under a supported implementation
+(i.e. SBCL).
 
 
 utilities.lisp
@@ -449,15 +450,6 @@ A collection of utility functions.
 TODO: Most utilities should be moved to a library that XCVB would depend upon, e.g. alexandria.
 
 
-manifest.lisp
--------------
-
-Manage (cryptographic) digests of files.
-Notably used by the master and slave to determine what files (not) to (re)load.
-TODO: In the future, may be used by the farmer to detect when to (re)compile.
-TODO: In the future, use Ironclad instead of tthsum?
-
-
 logging.lisp
 ------------
 
@@ -465,23 +457,27 @@ A trivial facility for logging messages directed to the user,
 depending on a varying degree of verbosity.
 
 
-grain-interface.lisp
+lisp-invocation.lisp
 --------------------
 
-Definition of the main datastructures of XCVB and helper functions.
+Handles the invocation of the target lisp system,
+abstracting away the differences between implementations.
 
-Grains are nodes in the planning graph representing
-files, phonies or transient states,
-and as far as the Makefile backend goes, correspond to Makefile targets.
 
-For other backends, grains may be a more general state,
-including things like "a running image where such libraries are loaded".
-They are named "grains" after reading
-'BUILD: A tool for maintaining consistency in modular systems'
-by Richard Elliot Robbins, 1985.
-ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
+main.lisp
+---------
 
-See `High-level description`_.
+The main entry file,
+with XCVB's command-line interface.
+
+Handles common options, shared option definitions, simple commands, etc.
+
+
+string-escape.lisp
+------------------
+
+Handles escaping strings, for use in shell invocations and/or
+``Makefile`` commands.
 
 
 virtual-pathnames.lisp
@@ -517,11 +513,38 @@ WORKFLOW:
   + In the backend, VPNs are resolved as object file locations are found.
 
 
+grain-interface.lisp
+--------------------
+
+Definition of the main datastructures of XCVB and helper functions.
+
+Grains are nodes in the planning graph representing
+files, phonies or transient states,
+and as far as the Makefile backend goes, correspond to Makefile targets.
+
+For other backends, grains may be a more general state,
+including things like "a running image where such libraries are loaded".
+They are named "grains" after reading
+'BUILD: A tool for maintaining consistency in modular systems'
+by Richard Elliot Robbins, 1985.
+ftp://publications.ai.mit.edu/ai-publications/pdf/AITR-874.pdf
+
+See `High-level description`_.
+
+
 registry.lisp
 -------------
 
 Handles the mapping from fullname to grain,
 and conflicts when multiple builds claim the same name.
+
+
+search-path.lisp
+----------------
+
+Handles the search path where XCVB goes looking for available builds,
+reusing the infrastructure from ASDF 2.
+See the asdf manual about shell variable ``CL_SOURCE_REGISTRY``.
 
 
 computations.lisp
@@ -533,18 +556,13 @@ and create some other grains as output.
 In the Makefile backend, they correspond to the Makefile rules.
 
 
-lisp-invocation.lisp
---------------------
+manifest.lisp
+-------------
 
-Handles the invocation of the target lisp system,
-abstracting away the differences between implementations.
-
-
-string-escape.lisp
-------------------
-
-Handles escaping strings, for use in shell invocations and/or
-``Makefile`` commands.
+Manage (cryptographic) digests of files.
+Notably used by the master and slave to determine what files (not) to (re)load.
+TODO: In the future, may be used by the farmer to detect when to (re)compile.
+TODO: In the future, use Ironclad instead of tthsum?
 
 
 extract-target-properties.lisp
@@ -568,14 +586,6 @@ names.lisp
 Handles the mapping from file to fullname and fullname to file.
 This includes recursing in the case that the fullname is
 inherited from a build.xcvb up the filesystem tree.
-
-
-search-path.lisp
-----------------
-
-Handles the search path where XCVB goes looking for available builds,
-reusing the infrastructure from ASDF 2.
-See the asdf manual about shell variable ``CL_SOURCE_REGISTRY``.
 
 
 normalize-dependency.lisp
@@ -699,13 +709,6 @@ farmer.lisp
 -----------
 
 Code towards a future standalone backend.
-
-
-main.lisp
----------
-
-The main entry file,
-with XCVB's command-line interface.
 
 
 cffi-grovel-support.lisp

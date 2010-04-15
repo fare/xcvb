@@ -95,5 +95,5 @@ and the non-enforcing Makefile backend.
           (make-computation
            ()
            :outputs targets
-           :inputs (traversed-dependencies env)
+           :inputs (reverse (traversed-dependencies env))
            :command nil))))

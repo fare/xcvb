@@ -156,6 +156,7 @@ until something else is found, then return that header as a string"
 	  (destructuring-bind ((compile-op &rest deps)) component-depends-on
 	    (declare (ignore compile-op))
 	    (dolist (d deps)
+              ;; need to use enough-namestring wrt the build.xcvb directory!
               (pushnew d dependencies :test #'equal))))))
     (nreverse dependencies)))
 
@@ -169,18 +170,21 @@ until something else is found, then return that header as a string"
   (flet ((maybe-slot-value (object slot)
            (if (slot-boundp object slot)
              (slot-value object slot))))
-    (let ((fullname (or name (maybe-slot-value asdf-system 'asdf::name)))
-          (author (maybe-slot-value asdf-system 'asdf::author))
-          (maintainer (maybe-slot-value asdf-system 'asdf::maintainer))
-          (version (maybe-slot-value asdf-system 'asdf::version))
-          (description (maybe-slot-value asdf-system 'asdf::description))
-          (long-description (maybe-slot-value asdf-system
-                                              'asdf::long-description))
-          (licence (maybe-slot-value asdf-system 'asdf::licence))
-          (file-deps (mapcar
-                      #'asdf-dependency-grovel::normalized-component-name
-                      (dependency-sort (asdf:module-components asdf-system)
-                                       original-traverse-order-map))))
+    (let* ((fullname (or name (maybe-slot-value asdf-system 'asdf::name)))
+           ;;(canonical-fullname (canonicalize-fullname fullname))
+           (directory (pathname-directory-pathname (component-truename asdf-system)))
+           (*default-pathname-defaults* directory)
+           (author (maybe-slot-value asdf-system 'asdf::author))
+           (maintainer (maybe-slot-value asdf-system 'asdf::maintainer))
+           (version (maybe-slot-value asdf-system 'asdf::version))
+           (description (maybe-slot-value asdf-system 'asdf::description))
+           (long-description (maybe-slot-value asdf-system
+                                               'asdf::long-description))
+           (licence (maybe-slot-value asdf-system 'asdf::licence))
+           (file-deps (mapcar
+                       #'asdf-dependency-grovel::normalized-component-name
+                       (dependency-sort (asdf:module-components asdf-system)
+                                        original-traverse-order-map))))
       (make-instance 'build-module-grain
         :fullname fullname
         :author author
@@ -201,7 +205,7 @@ until something else is found, then return that header as a string"
 	:pathname (make-pathname
                    :name "build"
                    :type "xcvb"
-                   :defaults (component-truename asdf-system))))))
+                   :defaults directory)))))
 
 (defgeneric component-truename (x))
 
@@ -350,9 +354,10 @@ so that the system can now be compiled with XCVB."
                   ,(mapcan (lambda (x) (getf (cdr x) :components)) system-components)))
               (asdf:find-system system)))
            (*default-pathname-defaults* base-pathname)
-           (build-module-grain (get-build-module-grain-for-asdf-system
-                         asdf-system systems original-asdf-deps
-                         original-traverse-order-map :name name))
+           (build-module-grain
+            (get-build-module-grain-for-asdf-system
+             asdf-system systems original-asdf-deps
+             original-traverse-order-map :name name))
            (name-component-map (name-component-map asdf-system))) ; Precompute to ensure O(n) behavior
       (log-format 6 "Adding module to build.xcvb")
       (add-module-to-file build-module-grain)

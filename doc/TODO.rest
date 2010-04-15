@@ -116,10 +116,10 @@ Here is the top of our TODO list at ITA:
 
    + Actually merge with trunk.
 
+ * Complete ``with-xcvb-compilation-unit``. See `Compilation Units [V2]`_.
+
  * Figure out the shortest path from here to providing incremental testing
    for unit-tests and regression scripts. See `Tests [V2]`_.
-
- * Complete ``with-xcvb-compilation-unit``. See `Compilation Units [V2]`_.
 
 
 Enhancing Build Speed [V1]
@@ -1059,6 +1059,9 @@ Support common ASDF Extensions [V1]
 Support ``cffi-grovel``.
 
 Support ``:static-file``.
+
+Support wrapping a file in a function as with ``ironclad``,
+and or have before, after and around methods or advice.
 
 
 Internals [V4]

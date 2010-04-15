@@ -50,7 +50,7 @@
   (setf *features* (delete-if
                     (lambda (x) (member x '(:asdf :clc-os-debian :common-lisp-controller)))
                     *features*))
-  #+sbcl (pushnew :sbcl-hooks-require *features*)
+  ;;#+sbcl (pushnew :sbcl-hooks-require *features*) ;; not useful for ASDF 2.
   (format t "*features* = ~S~%" *features*)
   (finish-output)
   (values))
