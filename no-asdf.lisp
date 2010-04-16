@@ -1,6 +1,12 @@
 #+xcvb (module (:build-depends-on nil))
 (in-package :cl-user)
 
+;; This module is intended to be used as the --setup argument to XCVB,
+;; in cases that you want to get rid of an old ASDF implementation.
+;; These days, you might want to instead upgrade your ASDF, as
+;; ASDF 2 can correctly upgrade from a previous installation of ASDF.
+;; Thus this file is available for reference mostly.
+
 ;; I created this no-asdf file because some implementations (including
 ;; any implementation distributed on debian that uses debian's antique
 ;; cl-asdf 1.111-1 as of 2009-09-09, such as clisp 2.48, etc.) come with
@@ -27,7 +33,8 @@
         #+sbcl (mpf 'sb-ext:*module-provider-functions*))
     (when package
       (format t "~&Removing previous installation of ASDF ~A~%"
-              (or (symbol-value (find-symbol "*ASDF-REVISION*" :asdf)) "(revision unspecified)"))
+              (or (symbol-value (find-symbol (string '#:*asdf-version*) :asdf))
+                  "(revision unspecified)"))
       #+sbcl (set mpf (delete-if (lambda (x)
                                    (when (and (symbolp x) (eq package (symbol-package x)))
                                      (format t "~&Deleting ~S from ~S" x mpf)

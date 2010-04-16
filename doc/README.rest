@@ -1568,3 +1568,21 @@ used at ITA. With this experience, we confidently believe the following:
    but as usual is more work and not very high on my priority list,
    since I'm after what seems to me to be lower-hanging fruits:
    fork-based compilation, (exploded) dependency caching, etc.
+
+
+Why is XCVB so much more bigger and more complex than ASDF?
+-----------------------------------------------------------
+
+It isn't really.
+You should be comparing ASDF to XCVB-Master, not to XCVB.
+XCVB-Master is ten times smaller than ASDF.
+It is all you need to load in your Lisp image, and
+it provides all you need to do incremental development.
+
+The rest of XCVB does much more than ASDF, and should not be compared to ASDF,
+but to a hypothetical set of ASDF extensions that would do as much.
+XCVB includes conditional dependencies, conversion between XCVB and ASDF,
+a Makefile backend, cross-compilation, eager error checking, warning control,
+an extensive command-line interface (also at the Lisp REPL),
+plus plenty of new features that are still in the works.
+Yet, XCVB (not counting library dependencies) is only twice the size of ASDF.

@@ -46,6 +46,8 @@ xcvb.mk: force
 # make PARALLELIZE= or make PARALLELIZE=-j8 or make PARALLELIZE=-l4
 # The XCVB_DEBUGGING trick allows the user to debug the build when and only when it fails.
 PARALLELIZE ?= -j
+PARALLEL := $(if $(findstring -,${PARALLELIZE}),--parallel)
+
 ${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello.image: xcvb.mk
 	${MAKE} -f xcvb.mk ${PARALLELIZE} || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk
 
@@ -115,8 +117,11 @@ xcvb-ne.mk: force setup.lisp
 	     --setup /xcvb/hello/setup \
 	     --build /xcvb/hello \
 	     --lisp-implementation ${LISP} \
-	     --parallel \
+	     ${PARALLEL} \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello_ne
+#	     --lisp-binary-path $${$(shell echo ${LISP}|tr '[a-z]' '[A-Z]')}
+
+
 
 ssr: show-source-registry
 show-source-registry:

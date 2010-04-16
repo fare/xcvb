@@ -13,7 +13,6 @@
   (:documentation "Build the dependency graph for given dependency, return the node for it"))
 (defgeneric graph-for-atom (env atom))
 (defgeneric graph-for-build-module-grain (env grain))
-(defgeneric graph-for-fasls (env name))
 (defgeneric graph-for-lisp (env name))
 (defgeneric graph-for-fasls (env name))
 (defgeneric graph-for-fasl (env name))

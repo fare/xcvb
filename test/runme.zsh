@@ -158,6 +158,7 @@ validate_mk_backend () {
 }
 
 validate_nemk_backend () {
+  if [ $LISP = clisp ] ; then ENV=($ENV PARALLELIZE=no) ; fi
   validate_hello_build make hello-using-nemk $ENV
 }
 

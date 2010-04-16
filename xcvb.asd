@@ -9,7 +9,9 @@
 ;;;                                                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(let ((min "1.662"))
+(in-package :asdf)
+(load-system :asdf)
+(let ((min "1.703")
   (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) min))
     (error "XCVB requires ASDF ~D or later, you only have ~D"
            min (asdf:asdf-version))))
@@ -17,10 +19,10 @@
 #+sbcl
 (progn
   ;;; Actually used by XCVB
+  (require :sb-grovel)
   (require :sb-posix)
   (require :sb-sprof)
   ;;; Used by SLIME
-  (require :sb-grovel)
   (require :sb-cltl2)
   (require :sb-introspect)
   (require :sb-bsd-sockets))

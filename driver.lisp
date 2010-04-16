@@ -67,7 +67,7 @@
           compiler::*lsp-ext* ""))
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
-  #+ecl (require 'cmp))
+  #+ecl (require :cmp))
 
 
 ;; Variables that define the current system
