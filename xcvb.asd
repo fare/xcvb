@@ -11,7 +11,7 @@
 
 (in-package :asdf)
 (load-system :asdf)
-(let ((min "1.703")
+(let ((min "1.703"))
   (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) min))
     (error "XCVB requires ASDF ~D or later, you only have ~D"
            min (asdf:asdf-version))))
