@@ -8,4 +8,5 @@
   :build-image t)
  (:generate
   ((:lisp "version" :depends-on ("specials")))
-  :depends-on ((:lisp "generate-version"))))
+  :depends-on ((:source "version.lisp" :in "xcvb")
+               (:lisp "generate-version"))))

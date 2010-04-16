@@ -115,10 +115,16 @@ xcvb-ne.mk: force setup.lisp
 	     --setup /xcvb/hello/setup \
 	     --build /xcvb/hello \
 	     --lisp-implementation ${LISP} \
+	     --parallel \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello_ne
 
+ssr: show-source-registry
+show-source-registry:
+	xcvb show-source-registry
 
 # Declare some targets as phony.
-.PHONY: force all default hello hello-using-mk hello-using-nemk hello-using-asdf
+.PHONY: force all default \
+	hello hello-using-mk hello-using-nemk hello-using-asdf \
+	ssr show-source-registry
 
 # The end.

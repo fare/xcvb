@@ -372,3 +372,9 @@ Modeled after the asdf function coerce-name"
   (default-vp-for-type :fasl x))
 (defmethod default-vp-for ((x cfasl-grain))
   (default-vp-for-type :cfasl x))
+
+(defmethod default-vp-for ((x source-grain))
+  (destructuring-bind (s sub &key in) (fullname x)
+    (assert (eq s :source))
+    (assert (equal in (fullname (registered-build in :ensure-build t))))
+    (make-vp :src in "/" sub)))
