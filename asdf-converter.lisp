@@ -249,9 +249,10 @@ until something else is found, then return that header as a string"
                                         (component-truename dep))
                             t))))
             (remove-if #'forward-dep-p*
-                       (mapcar (lambda (x) (gethash x name-component-map)) component-dependencies))))
+                       (mapcar (lambda (x) (gethash x name-component-map))
+                               component-dependencies))))
          (dependencies
-          (mapcar #'asdf:component-name
+          (mapcar #'asdf-dependency-grovel::normalized-component-name
                   (dependency-sort backward-deps original-traverse-order-map)))
          (compile-dependencies
           (if *use-cfasls*

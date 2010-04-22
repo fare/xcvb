@@ -102,3 +102,10 @@ nickname, or SEXP representing a computed entity.")
 
 (defvar *object-directory-pathname* nil
   "Path to the object directory")
+
+#|
+(defvar *ordered-grains* (make-array '(0) :adjustable t :fill-pointer 0)
+  "Array mapping numbers to grains, so we can associate them and
+have compact FMIM set representations. Each grain should conversely have a number
+mapping back to this array...")
+|#

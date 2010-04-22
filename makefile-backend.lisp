@@ -14,6 +14,7 @@
 (defclass static-makefile-traversal (static-traversal makefile-traversal)
   ())
 
+(defvar *makefile-target-directories-to-mkdir* ())
 (defvar *makefile-target-directories* ())
 (defvar *makefile-phonies* ())
 
@@ -34,7 +35,8 @@
            (makefile-dir (pathname-directory-pathname makefile-path))
            (*default-pathname-defaults* makefile-dir)
            (*print-pretty* nil); otherwise SBCL will slow us down a lot.
-           (*makefile-target-directories* nil)
+           (*makefile-target-directories* (make-hash-table :test 'equal))
+           (*makefile-target-directories-to-mkdir* nil)
            (*makefile-phonies* nil)
            (env (make-instance 'static-makefile-traversal)))
       (log-format 9 "output-path: ~S" output-path)
@@ -65,7 +67,7 @@
   (let ((directories
          (join-strings
           (mapcar #'escape-string-for-Makefile
-                  *makefile-target-directories*)
+                  *makefile-target-directories-to-mkdir*)
           :separator " ")))
     (format stream "~
 ### This file was automatically created by XCVB ~A with the arguments~%~
@@ -96,19 +98,21 @@ xcvb-ensure-object-directories:
 	mkdir -p ~A
 
 .PHONY: force xcvb-ensure-object-directories~{ ~A~}~2%"
-          (shell-tokens-to-Makefile *makefile-target-directories*)
+          (shell-tokens-to-Makefile *makefile-target-directories-to-mkdir*)
           *makefile-phonies*))
 
 (defun ensure-makefile-will-make-pathname (env namestring)
   (declare (ignore env))
   (let* ((p (position #\/ namestring :from-end t :end nil))
          (dir (subseq namestring 0 p)))
-    (unless (find-if (lambda (d) (portable-namestring-prefix<= dir d))
-                     *makefile-target-directories*)
-      (setf *makefile-target-directories*
-            (remove-if (lambda (d) (portable-namestring-prefix<= d dir))
-                       *makefile-target-directories*))
-      (push dir *makefile-target-directories*)))
+    (unless (gethash dir *makefile-target-directories*)
+      (setf (gethash dir *makefile-target-directories*) t)
+      (unless (find-if (lambda (d) (portable-namestring-prefix<= dir d))
+                       *makefile-target-directories-to-mkdir*)
+        (setf *makefile-target-directories-to-mkdir*
+              (cons dir
+                    (remove-if (lambda (d) (portable-namestring-prefix<= d dir))
+                               *makefile-target-directories-to-mkdir*))))))
   (values))
 
 (defmethod vp-namestring :around ((env makefile-traversal) vp)
