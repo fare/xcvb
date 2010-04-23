@@ -6,7 +6,9 @@
   (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3))))
 
 (cl:defpackage :xcvb
-  (:use :closer-common-lisp :xcvb-driver :command-line-arguments :xcvb-master :fare-utils)
+  (:use :closer-common-lisp
+        :xcvb-driver :command-line-arguments :xcvb-master
+        :fare-utils :interface :pure)
 
   (:import-from :asdf
    ;;#:*default-exclusions*

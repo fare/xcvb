@@ -310,8 +310,8 @@ Modeled after the asdf function coerce-name"
 
 (defmethod included-dependencies ((image image-grain))
   (included-dependencies (image-world image)))
-(defmethod (setf included-dependencies) (hashset (image image-grain))
-  (setf (included-dependencies (image-world image)) hashset))
+(defmethod (setf included-dependencies) (grain-set (image image-grain))
+  (setf (included-dependencies (image-world image)) grain-set))
 (defmethod image-setup ((image image-grain))
   (image-setup (image-world image)))
 (defmethod build-commands-r ((image image-grain))

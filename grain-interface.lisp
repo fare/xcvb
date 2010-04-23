@@ -21,7 +21,8 @@
 
 ;; Unit of build: a file, a process, etc.
 (defclass grain (simple-print-object-mixin)
-  ((finalizedp :accessor grain-finalized-p :initform nil :initarg :finalizedp))
+  ((finalizedp :accessor grain-finalized-p :initform nil :initarg :finalizedp)
+   (ordinal :type fixnum :accessor grain-ordinal))
   (:documentation "Unit of abstract state intent"))
 
 (defclass buildable-grain (grain)

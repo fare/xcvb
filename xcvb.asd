@@ -56,6 +56,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "string-escape" :depends-on ("utilities"))
      (:file "virtual-pathnames" :depends-on ("specials" "utilities")) ;;; FIX THIS FILE AND BELOW
      (:file "grain-interface" :depends-on ("utilities" "conditions"))
+     (:file "grain-sets" :depends-on ("grain-interface"))
      (:file "registry" :depends-on ("grain-interface" "specials"))
      (:file "search-path" :depends-on ("registry" "main"))
      (:file "computations" :depends-on ("grain-interface" "registry"))
@@ -66,7 +67,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "normalize-dependency" :depends-on ("names" "grain-interface"))
      (:file "traversal" :depends-on ("names" "computations"))
      (:file "dependencies-interpreter" :depends-on ("normalize-dependency" "traversal"))
-     (:file "static-traversal" :depends-on ("grain-interface" "dependencies-interpreter"))
+     (:file "static-traversal" :depends-on ("grain-sets" "dependencies-interpreter"))
      (:file "driver-commands" :depends-on ("specials" "utilities" "grain-interface"))
      (:file "makefile-backend" :depends-on ("profiling" "static-traversal" "driver-commands"
 					    "computations" "main" "virtual-pathnames"))
