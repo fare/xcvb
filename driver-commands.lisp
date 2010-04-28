@@ -50,8 +50,9 @@
      env dependencies
      ":compile-lisp (~S ~S~@[ :cfasl ~S~])"
      (fullname-enough-namestring env name)
-     (tempname-target (fullname-enough-namestring env `(:fasl ,name)))
-     (when *use-cfasls* (tempname-target (fullname-enough-namestring env `(:cfasl ,name)))))))
+     (tempname-target (fullname-enough-namestring env `(:fasl ,(second name))))
+     (when *use-cfasls*
+       (tempname-target (fullname-enough-namestring env `(:cfasl ,(second name))))))))
 
 (define-text-for-xcvb-driver-command :create-image (env spec &rest dependencies)
   (destructuring-bind (&key image standalone package) spec
@@ -81,9 +82,9 @@
                          :verbose nil :print nil)) ~
                     (if (or (not output) warningp failurep) 1 0))"
            (fullname-enough-namestring env name)
-           (tempname-target (fullname-enough-namestring env `(:fasl ,name)))
+           (tempname-target (fullname-enough-namestring env `(:fasl ,(second name))))
            (when cfasl
-             (tempname-target (fullname-enough-namestring env `(:cfasl ,name)))))))
+             (tempname-target (fullname-enough-namestring env `(:cfasl ,(second name))))))))
 
 (defun xcvb-driver-commands-to-shell-token (env commands)
   (with-output-to-string (s)

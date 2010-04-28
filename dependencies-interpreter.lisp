@@ -30,7 +30,7 @@
 
 (define-build-command-for :lisp (env name)
   (simple-build-command-for
-   env `(:load-file ,name) name))
+   env `(:load-file ,name) `(:lisp ,name)))
 (define-build-command-for :fasl (env name)
   (simple-build-command-for
    env `(:load-file (:fasl ,name)) `(:fasl ,name)))

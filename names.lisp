@@ -40,7 +40,7 @@
     (setf name (subseq name 0 (1- (length name)))))
   (unless (eql #\/ (first-char name))
     (setf name (strcat "/" name)))
-  (validate-fullname name)
+  (ensure-valid-fullname name)
   name)
 
 #|
@@ -52,24 +52,39 @@
 (defun valid-fullname-p (name)
   (ignore-errors (equal name (portable-pathname-output (portable-pathname-from-string name)))))
 
-(defun validate-fullname (name)
-  (unless (valid-fullname-p name)
-    (error "Invalid grain fullname ~A" name))
+(defun ensure-valid-fullname (name &optional type)
+  (unless (or (and (null type) (valid-fullname-p name))
+              (and (consp name) (eq type (car name))
+                   (consp (cdr name)) (valid-fullname-p (cadr name))
+                   (null (cddr name))))
+    (error "Invalid ~@[~(~A~) ~]grain fullname ~A" type name))
   name)
+
+(defgeneric validate-fullname (grain))
+
+(defmethod validate-fullname ((grain lisp-module-grain))
+  (ensure-valid-fullname (fullname grain) :lisp))
+(defmethod validate-fullname ((grain fasl-grain))
+  (ensure-valid-fullname (fullname grain) :fasl))
+(defmethod validate-fullname ((grain cfasl-grain))
+  (ensure-valid-fullname (fullname grain) :cfasl))
+(defmethod validate-fullname ((grain build-module-grain))
+  (ensure-valid-fullname (fullname grain)))
 
 (defmethod compute-fullname ((grain build-module-grain))
   (unless (slot-boundp grain 'fullname)
     (if (specified-fullname grain)
-        (setf (fullname grain)
-              (canonicalize-fullname (specified-fullname grain))
+        (setf (fullname grain) (canonicalize-fullname (specified-fullname grain))
               (grain-parent grain) nil)
-        (compute-inherited-fullname grain :build-p t)))
+        (setf (fullname grain) (inherited-fullname grain :build-p t))))
   (values))
 
 (defmethod compute-fullname ((grain lisp-module-grain))
-  `(:lisp ,(compute-inherited-fullname grain :build-p nil)))
+  (unless (slot-boundp grain 'fullname)
+    (setf (fullname grain)
+          `(:lisp ,(inherited-fullname grain :build-p nil)))))
 
-(defun compute-inherited-fullname (grain &key build-p)
+(defun inherited-fullname (grain &key build-p)
   (check-type grain lisp-module-grain)
   (let* ((pathname (ensure-absolute-pathname (grain-pathname grain)))
          (host (pathname-host pathname))
@@ -90,9 +105,8 @@
                                   (grain-pathname grain) ancestor)
                            (let ((ancestor-build (registered-build ancestor-fullname)))
                              (setf (grain-parent grain) ancestor-build)
-                             (setf (fullname grain)
-                                   (join-strings (cons ancestor-fullname subnames)
-                                                 :separator "/")))))
+                             (join-strings (cons ancestor-fullname subnames)
+                                           :separator "/"))))
                      (recurse rdir subnames))))
              (recurse (rdir subnames)
                (let ((dir (car rdir)))
@@ -162,9 +176,11 @@ of decreasing fullname length"
   (check-type build build-module-grain)
   (if (null suffix)
       build
-      (or (registered-grain (strcat (fullname build) "/" suffix))
-          (probe-file-grain
-           (module-subpathname (grain-pathname build) suffix)))))
+      (let ((fullname (strcat (fullname build) "/" suffix)))
+        (or (registered-grain fullname)
+            (registered-grain `(:lisp ,fullname))
+            (probe-file-grain
+             (module-subpathname (grain-pathname build) suffix))))))
 
 (defun ensure-name-within-build (build name)
   (let* ((build-name (fullname build))

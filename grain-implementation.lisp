@@ -2,22 +2,28 @@
 #+xcvb (module (:depends-on ("registry" "extract-target-properties")))
 (in-package :xcvb)
 
-(defun parse-module-declaration (form &key path build-p)
+(declaim (optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
+
+(defun parse-module-declaration (form &key keys build-p)
   "Takes a module declaration FORM and returns a grain object for that module."
   (unless (module-form-p form)
-    (error "Invalid or missing module declaration~@[ in ~S~]" path))
-  (destructuring-bind ((&rest keys &key &allow-other-keys) &rest extension-forms)
+    (error "Invalid or missing module declaration~@[ in ~S~]" (getf keys :pathname)))
+  (destructuring-bind ((&rest form-keys &key &allow-other-keys) &rest extension-forms)
       (cdr form)
+    (loop :for (key nil) :on form-keys :by #'cddr
+      :when (getf keys key) :do
+      (error "While parsing module form ~S, invalid key ~S provided"
+             form key))
     (apply #'make-instance (if build-p 'build-module-grain 'lisp-file-grain)
-           :pathname path :extension-forms extension-forms
+           :extension-forms extension-forms
            :computation nil
-           keys)))
+           (append keys form-keys))))
 
 (defun grain-from-file-declaration (path &key build-p)
   (parse-module-declaration
    (let ((*features* (list :xcvb)))
      (read-first-file-form path :package :xcvb-user))
-   :path path :build-p build-p))
+   :keys `(:pathname ,path) :build-p build-p))
 
 (defun module-form-p (form)
   "Returns whether or not the given form is a valid xcvb:module form"
@@ -30,8 +36,19 @@
     ((grain lisp-module-grain) slot-names &rest initargs &key &allow-other-keys)
   (declare (ignore slot-names initargs))
   (compute-fullname grain)
-  (let ((fullname (slot-value grain 'fullname)))
-    (validate-fullname fullname))
+  (validate-fullname grain)
+  (values))
+
+(defmethod shared-initialize :after
+    ((grain fasl-grain) slot-names &rest initargs &key &allow-other-keys)
+  (declare (ignore slot-names initargs))
+  (validate-fullname grain)
+  (values))
+
+(defmethod shared-initialize :after
+    ((grain cfasl-grain) slot-names &rest initargs &key &allow-other-keys)
+  (declare (ignore slot-names initargs))
+  (validate-fullname grain)
   (values))
 
 (defmethod grain-vp :before ((grain file-grain))
@@ -109,9 +126,11 @@
 		    (destructuring-bind (type name &rest keys &key &allow-other-keys) target
 		      (unless (eq type :lisp)
 			(error "Only know how to generate lisp modules."))
-		      (parse-module-declaration `(module ,keys)
-						:path (module-subpathname
-						       (grain-pathname build) name))))
+		      (parse-module-declaration
+                       `(module ,keys)
+                       :keys `(:fullname (:lisp ,(strcat (fullname build) "/" name))
+                               :parent ,build
+                               :vp ,(make-vp :obj (fullname build) "/" name "." "lisp")))))
 		  generate))
 	 (generator
 	  (make-instance 'lisp-generator
@@ -350,11 +369,11 @@ Modeled after the asdf function coerce-name"
   (let* ((build (grain-parent x))
          (bname (fullname build))
          (bpath (grain-pathname build))
-         (fullname (fullname x))
+         (lname (second (fullname x)))
          (pathname (grain-pathname x))
          (suffix (progn
-                   (assert (string-prefix-p (strcat bname "/") fullname))
-                   (subseq fullname (1+ (length bname))))))
+                   (assert (string-prefix-p (strcat bname "/") lname))
+                   (subseq lname (1+ (length bname))))))
     (assert (equal pathname (subpathname bpath (strcat suffix ".lisp"))))
     (make-vp :src bname "/" suffix "." "lisp")))
 

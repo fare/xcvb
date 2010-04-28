@@ -139,6 +139,8 @@
 (defclass lisp-module-grain (documented-file-grain)
   ((parent
     :accessor grain-parent
+    :initarg :parent
+    :type build-module-grain
     :documentation "parent build.xcvb file for this grain")
    (compile-depends-on
     :initform nil

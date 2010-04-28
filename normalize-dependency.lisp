@@ -17,7 +17,7 @@ a reference to the system was superseded by a build.xcvb file.")
     lisp-module-grain))
 
 (defun lisp-fullname-from (name grain)
-  (fullname (lisp-module-grain-from name grain)))
+  (second (fullname (lisp-module-grain-from name grain))))
 
 (defun unrecognized-dependency (dep)
   (error "unrecognized dependency ~S" dep))
@@ -37,7 +37,7 @@ a reference to the system was superseded by a build.xcvb file.")
   (let ((g (resolve-module-name name grain)))
     (etypecase g
       (build-module-grain `(:build ,(fullname g)))
-      (lisp-file-grain `(:fasl ,(fullname g))))))
+      (lisp-file-grain `(:fasl ,(second (fullname g)))))))
 
 (define-normalize-dependency :when (grain expression &rest dependencies)
   ;; TODO: parse and make sure that expression is well-formed, which
@@ -203,8 +203,8 @@ in the normalized dependency mini-language"
   (flet ((m (class kw name deps)
            (make-grain
             class
-            :fullname `(,kw ,name)
-            :vp (make-vp :obj name "." (default-file-extension class))
+            :fullname `(,kw ,(second name))
+            :vp (make-vp :obj (second name) "." (default-file-extension class))
             :load-dependencies deps)))
     (cons (m 'fasl-grain :fasl fullname (append build-dependencies load-dependencies))
           (if *use-cfasls*

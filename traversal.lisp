@@ -2,6 +2,8 @@
 
 (in-package :xcvb)
 
+(declaim (optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
+
 (defgeneric next-traversal (env spec))
 (defgeneric dependency-already-included-p (env grain))
 (defgeneric issue-dependency (env grain))
@@ -143,5 +145,5 @@
          (name (fullname target))
          (dep (etypecase target
                 (build-module-grain `(:build ,name))
-                (lisp-module-grain `(:fasl ,name)))))
+                (lisp-module-grain `(:fasl ,(second name))))))
     (values dep build)))

@@ -117,7 +117,7 @@ until something else is found, then return that header as a string"
                          (grain-extension-forms
                           (parse-module-declaration
                            first-form
-                           :path filename
+                           :keys `(:pathname ,filename)
                            :build-p (build-module-grain-p module))))))
              (when module (format out "~a~%~%" (module-string module))))
            (skip-whitespace in)

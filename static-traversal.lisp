@@ -2,6 +2,8 @@
 
 (in-package :xcvb)
 
+(declaim (optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
+
 (defclass enforcing-traversal (xcvb-traversal)
   ())
 
@@ -214,7 +216,7 @@
   (assert (equal '(:fasl "/xcvb/driver") (car *lisp-setup-dependencies*)))
   (reverse ; put back in order
    (cdr ; skip the current dependency itself
-    (member `(:fasl ,fullname) ; what is up to the current dependency
+    (member `(:fasl ,(second fullname)) ; what is up to the current dependency
             (reverse *lisp-setup-dependencies*)
             :test #'equal))))
 
@@ -225,8 +227,8 @@
   (check-type fullname string)
   (let* ((lisp (graph-for env fullname))
          (fullname (fullname lisp)) ;; canonicalize the fullname
-         (driverp (equal fullname "/xcvb/driver"))
-         (specialp (member `(:fasl ,fullname) *lisp-setup-dependencies* :test #'equal)))
+         (driverp (equal fullname '(:lisp "/xcvb/driver")))
+         (specialp (member `(:fasl ,(second fullname)) *lisp-setup-dependencies* :test #'equal)))
     (check-type lisp lisp-module-grain)
     (finalize-grain lisp)
     (let ((build-dependencies (if specialp
