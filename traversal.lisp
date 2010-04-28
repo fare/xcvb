@@ -62,7 +62,8 @@
   (let ((generator (grain-generator grain)))
     (when (and generator (not (and (slot-boundp grain 'computation)
                                    (grain-computation grain))))
-      (run-generator env generator))))
+      (run-generator (next-traversal env (fullname grain)) generator))))
+
 
 (defun do-graph-for (env spec)
   (call-with-grain-registration

@@ -122,7 +122,6 @@
       (setf (registered-grain (fullname target)) target)
       (setf (grain-generator target) generator))))
 
-;;(defmethod run-generator (env (fun function)) (funcall fun env))
 (defmethod run-generator (env (generator lisp-generator))
   (let* ((dependencies (generator-dependencies generator))
          (targets (generator-targets generator))
@@ -147,7 +146,6 @@
              ,@(traversed-build-commands env))))))
 
 ;;(define-handle-extension-form :in-package (grain files &key package) ...)
-
 
 (defun handle-extension-forms (grain)
   (let ((extension-forms (grain-extension-forms grain)))
