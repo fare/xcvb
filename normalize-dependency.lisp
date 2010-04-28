@@ -166,7 +166,7 @@ a reference to the system was superseded by a build.xcvb file.")
                    (err))
                  (funcall k head name type))))))
       (string
-         (funcall k :lisp dep 'lisp-module-grain))
+         (funcall k :lisp dep 'lisp-file-grain))
       (t
          (err)))))
 

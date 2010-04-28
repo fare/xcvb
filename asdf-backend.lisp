@@ -78,17 +78,18 @@ Declare asd system as ASDF-NAME."
          (*target-builds* (make-hashset :test 'equal :list (mapcar #'fullname builds)))
          (*asdf-system-dependencies* nil)
          (*require-dependencies* nil)
-         (*use-cfasls* nil))
+         (*use-cfasls* nil)
+         (env (make-instance 'asdf-traversal)))
     (log-format 6 "T=~A building dependency graph" (get-universal-time))
     (dolist (b builds)
-      (graph-for-build-module-grain (make-instance 'asdf-traversal) b))
+      (graph-for-build-module-grain env b))
     (log-format 6 "T=~A creating asd file ~A" (get-universal-time) output-path)
-    (do-write-asd-file
+    (do-write-asd-file env
       :output-path output-path
       :asdf-name asdf-name
       :build (fullname first-build))))
 
-(defun do-write-asd-file (&key output-path build asdf-name)
+(defun do-write-asd-file (env &key output-path build asdf-name)
   (let* ((output-path (merge-pathnames output-path))
          (_ (ensure-directories-exist output-path))
          (*default-pathname-defaults* (pathname-directory-pathname output-path)))
@@ -96,7 +97,7 @@ Declare asd system as ASDF-NAME."
     (with-open-file (out output-path :direction :output :if-exists :supersede)
       (write-asd-prelude out)
       (with-safe-io-syntax (:package :asdf)
-        (let* ((form (make-asdf-form asdf-name build))
+        (let* ((form (make-asdf-form env asdf-name build))
                (*print-case* :downcase))
           (format out "~@[~{(require ~S)~%~}~%~]" (reverse *require-dependencies*))
           (write form :stream out :pretty t :miser-width 79)
@@ -105,14 +106,15 @@ Declare asd system as ASDF-NAME."
 (defun keywordify-asdf-name (name)
   (kintern "~:@(~A~)" name))
 
-(defun make-asdf-form (asdf-name build)
+(defun make-asdf-form (env asdf-name build)
   ;; we can assume computations is topologically sorted.
   ;; TODO: ASDF is stupid, so we should try to optimize dependencies be removing extra ones:
   ;; for each dependency of current node, starting with the most recent one,
   ;; add the dependency and remove all those that it includes.
   (let ((prefix (strcat build "/")))
     (flet ((aname (x)
-             (let ((n (fullname x)))
+             (let* ((f (fullname x))
+                    (n (progn (assert (eq :lisp (first f))) (second f))))
                (if (string-prefix-p prefix n)
                  (subseq n (length prefix))
                  n))))
@@ -132,7 +134,7 @@ Declare asd system as ASDF-NAME."
                                            :test #'equal)
                         :for name = (and lisp (aname lisp))
                         :for pathname = (and lisp (asdf-dependency-grovel::strip-extension
-                                                   (enough-namestring (grain-pathname lisp))
+                                                   (enough-namestring (grain-namestring env lisp))
                                                    "lisp"))
                         :for already-visited = (gethash name visited)
                         :do (setf (gethash name visited) t)

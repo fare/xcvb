@@ -79,7 +79,7 @@
         (setf (fullname grain) (inherited-fullname grain :build-p t))))
   (values))
 
-(defmethod compute-fullname ((grain lisp-module-grain))
+(defmethod compute-fullname ((grain lisp-file-grain))
   (unless (slot-boundp grain 'fullname)
     (setf (fullname grain)
           `(:lisp ,(inherited-fullname grain :build-p nil)))))

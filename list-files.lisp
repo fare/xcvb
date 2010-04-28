@@ -47,6 +47,7 @@
 (defun remove-xcvb-command (&rest keys &key source-registry verbosity build debugging)
   (declare (ignore source-registry verbosity debugging))
   (apply 'handle-global-options keys)
+  (setf *use-cfasls* nil)
   (remove-xcvb-from-build build))
 
 ;; Using the build.xcvb as a starting point, finds files and
@@ -56,7 +57,7 @@
     (log-format 7 "Removing XCVB from build ~A~% (path ~S)" build (grain-pathname build))
     (flet ((source-lisp-grain-p (grain)
              (log-format 7 "Inspecting grain ~A" grain)
-             (when (and (typep grain 'lisp-module-grain)
+             (when (and (typep grain 'lisp-file-grain)
                         (slot-boundp grain 'computation)
                         (null (grain-computation grain)))
                (log-format 8 "This grain is in build ~A" (build-module-grain-for grain))

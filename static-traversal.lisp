@@ -44,7 +44,7 @@
 
 (define-graph-for :lisp ((env static-traversal) name)
   (let* ((grain (resolve-absolute-module-name name)))
-    (unless (typep grain 'lisp-module-grain)
+    (unless (typep grain 'lisp-file-grain)
       (error "Couldn't resolve ~S to a lisp module" name))
     grain))
 

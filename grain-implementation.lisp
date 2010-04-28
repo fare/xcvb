@@ -130,7 +130,8 @@
                        `(module ,keys)
                        :keys `(:fullname (:lisp ,(strcat (fullname build) "/" name))
                                :parent ,build
-                               :vp ,(make-vp :obj (fullname build) "/" name "." "lisp")))))
+                               ;;; TODO: use :obj rather than :src, after mapping file is defined
+                               :vp ,(make-vp :src (fullname build) "/" name "." "lisp")))))
 		  generate))
 	 (generator
 	  (make-instance 'lisp-generator

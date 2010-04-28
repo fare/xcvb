@@ -15,7 +15,7 @@
   ())
 
 (defvar *makefile-target-directories-to-mkdir* ())
-(defvar *makefile-target-directories* ())
+(defvar *makefile-target-directories* (make-hash-table :test 'equal))
 (defvar *makefile-phonies* ())
 
 (defun computations-to-Makefile (env)

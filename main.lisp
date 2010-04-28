@@ -229,7 +229,7 @@ for this version of XCVB.")))
       (let ((module (resolve-absolute-module-name setup)))
         (unless module
           (error "Cannot find setup module ~A" setup))
-        (append1f *lisp-setup-dependencies* `(:lisp ,(fullname module))))))
+        (append1f *lisp-setup-dependencies* (fullname module)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

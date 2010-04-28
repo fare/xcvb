@@ -33,7 +33,8 @@
    #:do-find-symbol #:call #:eval-string
    #:run #:do-run #:run-commands #:run-command
    #:asdf-symbol #:asdf-call
-   #:resume #-ecl #:dump-image))
+   #:resume #-ecl #:dump-image
+   #:register-file-mapping #:register-file-mappings #:file-mapping))
 
 (in-package :xcvb-driver)
 
@@ -504,4 +505,21 @@ This is designed to abstract away the implementation specific quit forms."
     (do-create-image image dependencies
                      :standalone standalone :package package)))
 
+(defvar *file-mappings* (make-hash-table :test 'equal)
+  "Mappings from xcvb fullname to pathname")
+
+(defun register-file-mapping (&key name path #|logical|#)
+  ;; should we add a logical pathname translation?
+  (setf (gethash name *file-mappings*) path)
+  (values))
+
+(defun register-file-mappings (mappings)
+  (dolist (m mappings)
+    (apply 'register-file-mapping m)))
+
+(defun file-mapping (name)
+  (gethash name *file-mappings*))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (pushnew :xcvb-driver *features*))
 ;;;(format t "~&XCVB driver loaded~%")

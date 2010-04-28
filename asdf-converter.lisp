@@ -269,14 +269,14 @@ until something else is found, then return that header as a string"
                        (grain-pathname build-module-grain))
                       "lisp")
                      :allow-absolute nil)))
-         (lisp-module-grain
-          (make-instance 'lisp-module-grain
+         (lisp-grain
+          (make-instance 'lisp-file-grain
                          :pathname filepath
                          :computation nil
                          :compile-depends-on compile-dependencies
                          :load-depends-on dependencies)))
-    (setf (fullname lisp-module-grain) fullname)
-    lisp-module-grain))
+    (setf (fullname lisp-grain) fullname)
+    lisp-grain))
 
 (defvar *components-path* #p"simplified-system-components.lisp-expr")
 

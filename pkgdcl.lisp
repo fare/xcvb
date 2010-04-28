@@ -2,10 +2,12 @@
 (module
  (:description "package for XCVB"))
 
+(in-package :cl)
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3))))
 
-(cl:defpackage :xcvb
+(defpackage :xcvb
   (:use :closer-common-lisp
         :xcvb-driver :command-line-arguments :xcvb-master
         :fare-utils :interface :pure)
@@ -31,5 +33,5 @@
      ;; Easy REPL access to the command-line interface
      #:cmd))
 
-(cl:defpackage :xcvb-user
+(defpackage :xcvb-user
   (:use :common-lisp :xcvb-driver :xcvb))

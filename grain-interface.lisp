@@ -139,8 +139,7 @@
 (defclass lisp-module-grain (documented-file-grain)
   ((parent
     :accessor grain-parent
-    :initarg :parent
-    :type build-module-grain
+    :type (or null build-registry-entry)
     :documentation "parent build.xcvb file for this grain")
    (compile-depends-on
     :initform nil
@@ -175,7 +174,9 @@ into an image that will be used for all future compile/load operations")
   (:documentation "Lisp source or build file"))
 
 (defclass lisp-file-grain (lisp-module-grain source-grain)
-  ()
+  ((parent
+    :initarg :parent
+    :type build-module-grain))
   (:documentation "Lisp file grain"))
 
 (defclass build-module-grain (lisp-module-grain build-registry-entry)
