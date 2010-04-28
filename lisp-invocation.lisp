@@ -122,7 +122,9 @@
       (get-lisp-implementation implementation-type)
     (append
      (when (or (null image-path) (not image-executable-p))
-       (list (or (ensure-path-executable lisp-path) name)))
+       (list (or (ensure-path-executable lisp-path)
+                 (getenv (string-upcase name))
+                 name)))
      (when (and image-path (not image-executable-p))
        (list image-flag))
      (when image-path
