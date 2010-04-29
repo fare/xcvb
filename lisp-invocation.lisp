@@ -107,6 +107,9 @@
     (strcat "./" x)
     x))
 
+(defun lisp-environment-variable-name (name)
+  (format nil "X~:@(~A~)" name))
+
 (defun lisp-invocation-arglist
     (&key (implementation-type *lisp-implementation-type*)
 	  (lisp-path *lisp-executable-pathname*)
@@ -123,7 +126,7 @@
     (append
      (when (or (null image-path) (not image-executable-p))
        (list (or (ensure-path-executable lisp-path)
-                 (getenv (string-upcase name))
+                 (getenv (lisp-environment-variable-name name))
                  name)))
      (when (and image-path (not image-executable-p))
        (list image-flag))

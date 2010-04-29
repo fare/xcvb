@@ -54,6 +54,7 @@ finalize_variables () {
     --lisp "$LISP"
     --source-registry "${CL_SOURCE_REGISTRY}"
   )
+  env # debug
 }
 compute_release_dir_variables () {
   initialize_variables
@@ -135,7 +136,12 @@ validate_xcvb () {
   validate_x2a # can it convert hello back to asdf?
   #validate_sa_backend # can it build hello with the standalone backend?
   validate_mk_backend # can it build hello with the Makefile backend?
-  validate_nemk_backend # can it build hello with the non-enforcing Makefile backend?
+  case "$LISP" in
+    (sbcl|ccl)
+      validate_nemk_backend ;; # can it build hello with the non-enforcing Makefile backend?
+    (*)
+      echo "Skipping nemk for $LISP for now." ;;
+  esac
   validate_master # does xcvb-master work?
 }
 

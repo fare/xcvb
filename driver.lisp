@@ -34,7 +34,8 @@
    #:run #:do-run #:run-commands #:run-command
    #:asdf-symbol #:asdf-call
    #:resume #-ecl #:dump-image
-   #:register-file-mapping #:register-file-mappings #:file-mapping))
+   #:register-pathname-mapping #:register-pathname-mappings #:load-pathname-mappings
+   #:pathname-mapping))
 
 (in-package :xcvb-driver)
 
@@ -449,8 +450,7 @@ This is designed to abstract away the implementation specific quit forms."
      (list
       :norc t
       :script nil
-      :init-function #'resume
-      )))
+      :init-function #'resume)))
   #+sbcl
   (progn
     ;;(sb-pcl::precompile-random-code-segments) ;--- it is ugly slow at compile-time (!) when the initial core is a big CLOS program. If you want it, do it yourself.
@@ -505,20 +505,27 @@ This is designed to abstract away the implementation specific quit forms."
     (do-create-image image dependencies
                      :standalone standalone :package package)))
 
-(defvar *file-mappings* (make-hash-table :test 'equal)
+(defvar *pathname-mappings* (make-hash-table :test 'equal)
   "Mappings from xcvb fullname to pathname")
 
-(defun register-file-mapping (&key name path #|logical|#)
+(defun register-pathname-mapping (&key name path #|logical|#)
   ;; should we add a logical pathname translation?
-  (setf (gethash name *file-mappings*) path)
+  (setf (gethash name *pathname-mappings*) (truename path))
   (values))
-
-(defun register-file-mappings (mappings)
-  (dolist (m mappings)
-    (apply 'register-file-mapping m)))
-
-(defun file-mapping (name)
-  (gethash name *file-mappings*))
+(defun register-pathname-mappings (mappings &key (defaults *load-truename*))
+  (let ((*default-pathname-defaults*
+         (or (and defaults (truename (pathname-directory-pathname defaults)))
+             *default-pathname-defaults*)))
+    (dolist (m mappings)
+      (apply 'register-pathname-mapping m))))
+(defun pathname-mapping (name)
+  (gethash name *pathname-mappings*))
+(defun pathname-directory-pathname (pn)
+  (make-pathname :name nil :type nil :version nil :defaults pn))
+(defun load-pathname-mappings (file)
+  (let ((tn (truename file)))
+    (with-open-file (s tn :direction :input :if-does-not-exist :error)
+      (register-pathname-mappings (read s) :defaults tn))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (pushnew :xcvb-driver *features*))

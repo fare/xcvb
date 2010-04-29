@@ -73,7 +73,7 @@
 ### This file was automatically created by XCVB ~A with the arguments~%~
 ### ~{~A~^ ~}~%~
 ### It may have been specialized to the target implementation ~A~%~
-### with the following features:~%~
+### from ~A with the following features:~%~
 ###   ~S~%~%~
 ### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.
 
@@ -81,7 +81,8 @@ XCVB_EOD :=
 ifneq ($(wildcard ~A),~A)
   XCVB_EOD := xcvb-ensure-object-directories
 endif~2%"
-            *xcvb-version* *arguments* *lisp-implementation-type* *features*
+            *xcvb-version* *arguments* *lisp-implementation-type*
+            (first (lisp-invocation-arglist)) *features*
             directories directories)
     (flet ((export-directory (x)
              (format stream "~%~A ?= ~A~%export ~A~%~%"

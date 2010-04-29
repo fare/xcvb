@@ -3,12 +3,12 @@
 (in-package :xcvb-hello)
 
 (defparameter *xcvb-version-path*
-  (or #+xcvb-driver (xcvb-driver:file-mapping "/xcvb/version")
+  (or #+xcvb-driver (xcvb-driver:pathname-mapping "/xcvb/version")
       #+asdf2 (asdf:system-relative-pathname :xcvb "version.lisp")))
 
 (defparameter *hello-version-path*
-  (or #+xcvb-driver (xcvb-driver:file-mapping "/xcvb/hello/version")
-      #+asdf2 (asdf:system-relative-pathname :xcvb-hello "version.lisp")))
+  (or #+xcvb-driver (xcvb-driver:pathname-mapping "/xcvb/hello/version")
+      #+asdf2 (asdf:system-relative-pathname :xcvb "hello/version.lisp")))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (find-package :xcvb)

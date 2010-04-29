@@ -74,13 +74,13 @@
   (quit-form
    :code
    (format nil "(multiple-value-bind (output warningp failurep) ~
-                  (let ((*default-pathname-defaults* ~
-                         (truename *default-pathname-defaults*))) ~
-                        (compile-file ~S ~
-                         :output-file (merge-pathnames ~S) ~
-                         ~@[:emit-cfasl (merge-pathnames ~S) ~]~
-                         :verbose nil :print nil)) ~
-                    (if (or (not output) warningp failurep) 1 0))"
+                    (let ((*default-pathname-defaults* ~
+                           (truename *default-pathname-defaults*))) ~
+                      (compile-file ~S ~
+                       :output-file (merge-pathnames ~S) ~
+                       ~@[:emit-cfasl (merge-pathnames ~S) ~]~
+                       :verbose nil :print nil)) ~
+                  (if (or (not output) warningp failurep) 1 0))"
            (fullname-enough-namestring env name)
            (tempname-target (fullname-enough-namestring env `(:fasl ,(second name))))
            (when cfasl
