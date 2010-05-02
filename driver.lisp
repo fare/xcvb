@@ -30,7 +30,7 @@
    #:uninteresting-condition-p #:fatal-condition-p
    #:with-controlled-compiler-conditions #:with-controlled-loader-conditions
    #:with-xcvb-compilation-unit
-   #:do-find-symbol #:call #:eval-string
+   #:do-find-symbol #:call #:eval-string #:load-string #:load-stream
    #:run #:do-run #:run-commands #:run-command
    #:asdf-symbol #:asdf-call
    #:resume #-ecl #:dump-image
@@ -94,6 +94,7 @@
      sb-ext:implicit-generic-function-warning
      sb-kernel:lexical-environment-too-complex
      "Couldn't grovel for ~A (unknown to the C compiler).")
+   ;;#+ccl '(ccl:compiler-warning)
    '("No generic function ~S present when encountering macroexpansion of defmethod. Assuming it will be an instance of standard-generic-function.") ;; from closer2mop
    )
   "Conditions that may be skipped. type symbols, predicates or strings")
@@ -333,6 +334,19 @@ This is designed to abstract away the implementation specific quit forms."
 (defun cl-require (x)
   (with-profiling `(:require ,x)
     (require x)))
+
+(defun load-stream (&optional (s #-clisp *standard-input*
+				 #+clisp *terminal-io*))
+  ;; GCL 2.6 can't load from a string-input-stream
+  ;; ClozureCL 1.2 cannot load from either *standard-input* or *terminal-io*
+  ;; Allegro 5, I don't remember but it must have been broken when I tested.
+  #+(or gcl-pre2.7 clozure allegro)
+  (do ((eof '#:eof) (x t (read s nil eof))) ((eq x eof)) (eval x))
+  #-(or gcl-pre2.7 clozure allegro)
+  (load s :verbose *verbose* :print *verbose*))
+(defun load-string (string)
+  (with-input-from-string (s string) (load-stream s)))
+
 
 ;;; ASDF support
 (defun asdf-symbol (x)
