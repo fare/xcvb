@@ -335,15 +335,14 @@ This is designed to abstract away the implementation specific quit forms."
   (with-profiling `(:require ,x)
     (require x)))
 
-(defun load-stream (&optional (s #-clisp *standard-input*
-				 #+clisp *terminal-io*))
+(defun load-stream (&optional (s *standard-input*))
   ;; GCL 2.6 can't load from a string-input-stream
   ;; ClozureCL 1.2 cannot load from either *standard-input* or *terminal-io*
   ;; Allegro 5, I don't remember but it must have been broken when I tested.
   #+(or gcl-pre2.7 clozure allegro)
   (do ((eof '#:eof) (x t (read s nil eof))) ((eq x eof)) (eval x))
   #-(or gcl-pre2.7 clozure allegro)
-  (load s :verbose *verbose* :print *verbose*))
+  (load s))
 (defun load-string (string)
   (with-input-from-string (s string) (load-stream s)))
 

@@ -137,7 +137,7 @@ validate_xcvb () {
   #validate_sa_backend # can it build hello with the standalone backend?
   validate_mk_backend # can it build hello with the Makefile backend?
   case "$LISP" in
-    (sbcl|ccl)
+    (sbcl|ccl|clisp)
       validate_nemk_backend ;; # can it build hello with the non-enforcing Makefile backend?
     (*)
       echo "Skipping nemk for $LISP for now." ;;
