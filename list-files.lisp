@@ -41,8 +41,7 @@
   `((("build" #\b) :type string :optional nil
      :documentation "Specify XCVB build to remove modules from")
     ,@+source-registry-option-spec+
-    (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
-    (("verbosity" #\v) :type integer :optional t :initial-value 5 :documentation "set verbosity (default: 5)")))
+    ,@+verbosity-option-spec+))
 
 (defun remove-xcvb-command (&rest keys &key source-registry verbosity build debugging)
   (declare (ignore source-registry verbosity debugging))

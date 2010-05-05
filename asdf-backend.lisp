@@ -152,10 +152,8 @@ Declare asd system as ASDF-NAME."
     (("name" #\n) :type string :optional t :documentation "name of the new ASDF system")
     (("output-path" #\o) :type string :optional t :documentation "pathname for the new ASDF system")
     ,@+source-registry-option-spec+
-    (("lisp-implementation" #\i) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
-    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
-    (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
-    (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")))
+    ,@+lisp-implementation-option-spec+
+    ,@+verbosity-option-spec+))
 
 (defun xcvb-to-asdf-command (&rest keys &key
                              build name output-path verbosity source-registry

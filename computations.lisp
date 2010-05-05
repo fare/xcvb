@@ -53,9 +53,9 @@
 (defmethod print-object ((x computation) stream)
   (print-unreadable-object (x stream :type t :identity nil)
     (with-slots (inputs outputs command) x
-    (format stream ":inputs ~S :outputs ~S :command ~S"
-            (mapcar #'fullname inputs)
+    (format stream ":outputs ~S :inputs ~S :command ~S"
             (mapcar #'fullname outputs)
+            (mapcar #'fullname inputs)
             command))))
 
 (defun computation-target (computation)

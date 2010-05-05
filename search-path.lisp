@@ -303,7 +303,6 @@ for each of its registered names."
     (exit (if all-good 0 1))))
 
 (defparameter +find-module-option-spec+
-  (append
-   '((("name" #\n) :type string :optional nil :list t :documentation "name to search for")
-     (("short" #\s) :type boolean :optional t :documentation "short output"))
-   +source-registry-option-spec+))
+  `((("name" #\n) :type string :optional nil :list t :documentation "name to search for")
+    (("short" #\s) :type boolean :optional t :documentation "short output")
+    ,@+source-registry-option-spec+))

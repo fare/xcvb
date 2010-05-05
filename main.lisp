@@ -104,6 +104,23 @@ for this version of XCVB.")))
   '((("source-registry" #\S) :type string :optional t
      :documentation "override your source-registry")))
 
+(defparameter +lisp-implementation-option-spec+
+  '((("lisp-implementation" #\l) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
+    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")))
+
+(defparameter +cfasl-option-spec+
+  '((("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")))
+
+(defparameter +verbosity-option-spec+
+  '((("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
+    (("debugging" #\Z) :type boolean :optional t :initial-value nil :documentation "debug")))
+
+(defparameter +setup-option-spec+
+  '((("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")))
+
+(defparameter +profiling-option-spec+
+  '((("profiling" #\P) :type boolean :optional t :documentation "profiling")))
+
 
 ;; Lookup the command spec for the given command name, or return nil if the
 ;; given command name is invalid.
@@ -132,7 +149,7 @@ for this version of XCVB.")))
           (errexit 2 "Too many arguments -- try 'xcvb help'."))
         (cond
           (command-spec
-            (format t "~1{Command: ~A~%Aliases:~{ ~A~^ ~}~%~%~3*~A~}"
+            (format t "~1{Command: ~A~%Aliases:~{ ~A~^ ~}~%~%~3*~A~&~}"
                     (cons command command-spec))
             (when command-options
               (command-line-arguments:show-option-help command-options :sort-names t)))

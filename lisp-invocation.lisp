@@ -50,6 +50,21 @@
   :quit-format "(sb-ext:quit :unix-status ~A)"
   :dump-format "(sb-ext:save-lisp-and-die ~S :executable t)")
 
+(define-lisp-implementation :ecl () ;; demand 10.4.2 or later.
+  :fullname "ECL"
+  :name "ecl"
+  :feature :ecl
+  :flags ("-norc")
+  :eval-flag "-eval" ; -e
+  :load-flag "-load"
+  :image-flag nil
+  :image-executable-p t
+  :arguments-end "--"
+  :argument-control t ;; must be fixed now, but double-checking needed.
+  :disable-debugger ()
+  :quit-format "(si:quit ~A)"
+  :dump-format "(error \"Cannot dump with ECL. Link instead.\")")
+
 (define-lisp-implementation :clisp ()
   :fullname "GNU CLISP"
   :name "clisp"
@@ -66,7 +81,7 @@
   :quit-format "(ext:quit ~A)"
   :dump-format "(ext:saveinitmem ~S :quiet t :executable t)")
 
-(define-lisp-implementation :ccl () ;; demand 1.2 or later.
+(define-lisp-implementation :ccl () ;; demand 1.4 or later.
   :fullname "Clozure CL"
   ;; formerly OpenMCL, forked from MCL, formerly Macintosh Common Lisp, nee Coral Common Lisp
   ;; Random note: (finish-output) is essential for ccl, that won't do it by default,

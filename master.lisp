@@ -67,7 +67,7 @@
 
 ;;; These variables are shared with XCVB itself.
 (defvar *lisp-implementation-type*
-  (or #+sbcl :sbcl #+clisp :clisp #+clozure :ccl #+cmu :cmucl
+  (or #+sbcl :sbcl #+clisp :clisp #+clozure :ccl #+cmu :cmucl #+ecl :ecl
       (error "Your Lisp implementation is not supported by XCVB master (yet)."))
   "Type of Lisp implementation for the target system. A keyword.
   Default: same as XCVB itself.")
@@ -204,37 +204,37 @@ with associated pathnames and tthsums.")
 ;;; Simple variant of run-program with no input, and capturing output
 (defun run-program/process-output-stream (command output-processor
                                           &key ignore-error-status)
-  #+clisp (declare (ignore ignore-error-status))
+  #+(or clisp ecl) (declare (ignore ignore-error-status))
   #-(or sbcl cmu scl clozure clisp)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
   (let* ((process
           (#+sbcl sb-ext:run-program
-           #+(or cmu scl clisp) ext:run-program
+           #+(or clisp cmu ecl scl) ext:run-program
            #+clozure ccl:run-program
            (car command) #+clisp :arguments (cdr command)
            :input nil :output :stream
-           #+(or sbcl cmu scl clozure) :error #+(or sbcl cmu scl clozure) t
+           #+(or clozure cmu ecl sbcl scl) :error #+(or clozure cmu ecl sbcl scl) t
            :wait nil
            #+sbcl :search #+sbcl t))
          (stream (#+sbcl sb-ext:process-output
                   #+(or cmu scl) ext:process-output
                   #+clozure ccl::external-process-output
-                  #+clisp identity
+                  #+(or clisp ecl) identity
                   process)))
     (unwind-protect
          (multiple-value-prog1
              (funcall output-processor stream)
-           #-clisp
+           #-(or clisp ecl)
            (#+sbcl sb-ext:process-wait
-                   #+(or cmu scl) ext:process-wait
-                   #+clozure ccl::external-process-wait
-                   process)
-           #-clisp
+            #+(or cmu scl) ext:process-wait
+            #+clozure ccl::external-process-wait
+            process)
+           #-(or clisp ecl)
            (let ((return-code
                   (#+sbcl sb-ext:process-exit-code
-                          #+(or cmu scl) ext:process-exit
-                          #+clozure (lambda (p) (nth-value 1 (ccl:external-process-status p)))
-                          process)))
+                   #+(or cmu scl) ext:process-exit
+                   #+clozure (lambda (p) (nth-value 1 (ccl:external-process-status p)))
+                   process)))
              (unless (or ignore-error-status (zerop return-code))
                (cerror "ignore error code~*~*"
                        "Process ~S exited with error code ~D"

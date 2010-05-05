@@ -504,15 +504,47 @@ This is designed to abstract away the implementation specific quit forms."
       (run-commands dependencies))
     (apply #'dump-image image flags)))
 
+(defun read-first-form (pn)
+  (with-open-file (s pn :direction :input :if-does-not-exist :error)
+    (read s)))
+
 #+ecl ;; wholly untested and probably buggy.
-(defun do-create-image (image dependencies &key standalone)
-  (let ((*goal* `(create-image ,image))
-        (epilogue-code
-          `(progn
-            ,(if standalone '(resume) '(si::top-level)))))
-    (c::builder :program (parse-namestring image)
-		:lisp-files (mapcar #'second dependencies)
-		:epilogue-code epilogue-code)))
+(defun do-create-image (image dependencies &key standalone package)
+  (let ((*goal* `(create-image ,image)))
+    (with-controlled-compiler-conditions ()
+      (run-commands dependencies))
+    (multiple-value-bind (lisp-files manifest)
+        (case (caar dependencies)
+           ((:initialize-manifest :load-manifest)
+            (assert (null (cdr dependencies)))
+            (let ((manifest (read-first-form (cadar dependencies))))
+              (values
+               (loop :for l :in (read-first-form (cadar dependencies)) :collect
+                 (destructuring-bind (&key command pathname
+                                           tthsum source-pathname source-tthsum) l
+                   (declare (ignore tthsum source-pathname source-tthsum))
+                   (assert (eq (car command) :load-file))
+                   pathname))
+               manifest)))
+           (:load-file
+            (loop :for l :in dependencies :collect
+              (destructuring-bind (load-file pathname) l
+                (assert (eq load-file :load-file))
+                pathname)))
+           (t
+            (assert (null dependencies))))
+      (let ((epilogue-code
+             `(progn
+                ,(when manifest
+                   `(let ((msym (do-find-symbol :*manifest* :xcvb-master)))
+                      (setf (symbol-value msym)
+                            (append `',manifest (symbol-value msym)))))
+                ,(when package
+                   `(setf *package* (find-package ,package)))
+                ,(if standalone '(resume) '(si::top-level)))))
+        (c::builder :program (parse-namestring image)
+                    :lisp-files lisp-files
+                    :epilogue-code epilogue-code)))))
 (defun create-image (spec &rest dependencies)
   (destructuring-bind (image &key standalone package) spec
     (do-create-image image dependencies
@@ -537,8 +569,9 @@ This is designed to abstract away the implementation specific quit forms."
   (make-pathname :name nil :type nil :version nil :defaults pn))
 (defun load-pathname-mappings (file)
   (let ((tn (truename file)))
-    (with-open-file (s tn :direction :input :if-does-not-exist :error)
-      (register-pathname-mappings (read s) :defaults tn))))
+    (register-pathname-mappings (read-first-from tn) :defaults tn)))
+
+#+ecl (trace load-file run-commands do-create-image)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (pushnew :xcvb-driver *features*))
