@@ -18,7 +18,7 @@
 (define-simple-dispatcher build-command-for #'build-command-for-atom :generic)
 
 (defun build-command-for (env spec)
-  (build-command-for-dispatcher env spec))
+  (build-command-for-dispatcher env (tweak-dependency env spec)))
 
 (defun build-command-for* (env specs)
   (dolist (spec specs)

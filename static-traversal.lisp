@@ -12,6 +12,14 @@
     :initform (make-hashset :test 'equal)
     :accessor included-dependencies
     :documentation "dependencies included in the current world, as a set")
+   (dependency-tweaker
+    :initform 'loadable-dependency ; 'identity, 'linkable-dependency, etc.
+    :accessor dependency-tweaker
+    :documentation "function that tweaks dependencies")
+   (linking-traversal-p
+    :initform nil
+    :accessor linking-traversal-p
+    :documentation "is this traversal for linking")
    (issued-build-commands
     :initform (make-hashset :test 'equal)
     :accessor issued-build-commands
@@ -20,6 +28,24 @@
     :initform nil
     :accessor traversed-build-commands-r
     :documentation "load commands issued so far to build the current world, in reverse order")))
+
+(defmethod print-object ((x static-traversal) stream)
+  (print-unreadable-object (x stream :type t :identity nil)
+    (format stream ":target ~S :depth ~A :setup ~S :build-commands ~S :dependencies ~S :tweaker ~A :linking ~A"
+            (first (traversed-grain-names-r x))
+            (length (traversed-grain-names-r x))
+            (if (slot-boundp x 'image-setup) (image-setup x) :no-image-setup)
+            (reverse (traversed-build-commands-r x))
+            (reverse (traversed-dependencies-r x))
+            (dependency-tweaker x) (linking-traversal-p x))))
+
+(defgeneric tweak-dependency (env dep))
+
+(defmethod tweak-dependency ((env static-traversal) dep)
+  (funcall (dependency-tweaker env) dep))
+
+(defun tweak-dependencies (env deps)
+  (mapcar/ #'tweak-dependency env deps))
 
 (defmethod dependency-already-included-p ((env static-traversal) grain)
   (or (gethash grain (included-dependencies env))
@@ -39,6 +65,10 @@
 (defun include-image-dependencies (env image)
   (when image
     (check-type image image-grain)
+    (when (linking-traversal-p env)
+      (assert (null (traversed-build-commands-r env)))
+      (setf (traversed-build-commands-r env)
+            (all-build-commands-r env image)))
     (setf (included-dependencies env)
           (make-hashset :test 'equal :set (included-dependencies image)))))
 
@@ -113,10 +143,16 @@
       ;; base image/core
       ;; if one is not found (or even if it is?),
       ;; use lisp-implementation-version and *features* as a proxy.
+      (when (linking-traversal-p env)
+        (assert (null (traversed-build-commands-r env)))
+        (setf (traversed-build-commands-r env)
+              (loop
+                :for dep :in (reverse *lisp-setup-dependencies*)
+                :collect `(:load-file ,dep))))
       (setf (image-setup env)
             `(:load ,(loop
                        :for dep :in *lisp-setup-dependencies*
-                       :for grain = (graph-for env dep)
+                       :for grain = (graph-for env (loadable-dependency dep))
                        :do (issue-dependency env grain)
                        :collect (fullname grain))))
       nil)))
@@ -146,7 +182,8 @@
         (when initial-loads
           `((:make-manifest
              (:manifest ,initial-name)
-             ,@(mapcar #'make-load-file-command initial-loads))))
+             ,@(mapcar 'make-load-file-command
+                       (mapcar 'linkable-dependency initial-loads)))))
         (when build-commands
           `((:make-manifest
              (:manifest ,name)
@@ -157,14 +194,15 @@
         (when build-commands
           `((:load-manifest (:manifest ,name)))))))))
 
-;;; TODO: handle ECL's linkage model... maybe memorize the manifest for each image?
 (defmethod graph-for-image-grain ((env static-traversal) name pre-image-name dependencies)
+  (setf (dependency-tweaker env) #'linkable-dependency
+        (linking-traversal-p env) (and (target-ecl-p) t))
   (let ((pre-image (issue-image-named env pre-image-name)))
     (build-command-for* env dependencies)
     (let* ((traversed (traversed-dependencies env))
+           (image-setup (image-setup env))
            (build-commands-r (traversed-build-commands-r env))
            (build-commands (reverse build-commands-r))
-           (image-setup (image-setup env))
            (manifest-and-build-commands
             (multiple-value-list
              (manifest-and-build-commands name image-setup build-commands)))
@@ -172,7 +210,7 @@
            (build-commands-spec (second manifest-and-build-commands))
            (world (make-instance
                    'world-grain
-                   :fullname `(make-world-name image-setup build-commands-r)
+                   :fullname (make-world-name image-setup build-commands-r)
                    :issued-build-commands
                    (make-hashset :test 'equal :list build-commands-r)
                    :included-dependencies
@@ -216,11 +254,13 @@
 
 (defun setup-dependencies-before-fasl (fullname)
   (assert (equal '(:fasl "/xcvb/driver") (car *lisp-setup-dependencies*)))
-  (reverse ; put back in order
-   (cdr ; skip the current dependency itself
-    (member `(:fasl ,(second fullname)) ; what is up to the current dependency
-            (reverse *lisp-setup-dependencies*)
-            :test #'equal))))
+  (mapcar
+   'loadable-dependency
+   (reverse ; put back in order
+    (cdr ; skip the current dependency itself
+     (member `(:fasl ,(second fullname)) ; what is up to the current dependency
+             (reverse *lisp-setup-dependencies*)
+             :test #'equal)))))
 
 (defmethod make-computation ((env static-traversal) &rest keys &key &allow-other-keys)
   (apply #'make-computation () keys))
@@ -256,10 +296,7 @@
          (if driverp
            `(:compile-file-directly ,fullname :cfasl ,(second outputs))
            `(:xcvb-driver-command
-             ,(if specialp '(:load ((:fasl "/xcvb/driver")))
-		(image-setup env))
+             ,(if specialp `(:load (,(loadable-dependency '(:fasl "/xcvb/driver"))))
+                  (image-setup env))
              (:compile-lisp (,fullname) ,@(traversed-build-commands env)))))
         outputs))))
-
-(defun target-links-p () ;; take env as parameter?
-  (eq *lisp-implementation-type* :ecl))

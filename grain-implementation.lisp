@@ -332,12 +332,27 @@ Modeled after the asdf function coerce-name"
   (setf (included-dependencies (image-world image)) grain-set))
 (defmethod image-setup ((image image-grain))
   (image-setup (image-world image)))
-(defmethod build-commands-r ((image image-grain))
-  (build-commands-r (image-world image)))
 (defmethod image-setup ((world world-grain))
   (getf (cdr (fullname world)) :setup))
 (defmethod build-commands-r ((world world-grain))
   (getf (cdr (fullname world)) :commands-r))
+
+(defgeneric all-build-commands-r (env grain))
+(defmethod all-build-commands-r (env (image image-grain))
+  (all-build-commands-r env (image-world image)))
+(defmethod all-build-commands-r (env (world world-grain))
+  (destructuring-bind (&key image load) (image-setup world)
+    (remove-duplicates
+     (append
+      (build-commands-r world)
+      (when load
+        (loop :for l :in (reverse load)
+          :for dep = (tweak-dependency env l)
+          ;;:do (grain-for env dep)
+          :collect `(:load-file ,dep)))
+      (when image
+        (all-build-commands-r env (registered-grain image))))
+     :test 'equal)))
 
 (defun canonicalize-image-setup (setup)
   (destructuring-bind (&key image load) setup

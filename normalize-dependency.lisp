@@ -139,7 +139,7 @@ a reference to the system was superseded by a build.xcvb file.")
     (:asdf . asdf-grain)
     (:require . t)
     (:build . t)
-    (:compiled-build . t)
+    (:compile-build . t)
     (:source . t)
     (:object . t)
     (:file . t))
@@ -189,10 +189,43 @@ in the normalized dependency mini-language"
     (ecase h
       (:fasl (list (compile-time-fasl-type) x))
       (:build `(:compile-build ,x))
-      ((:lisp :cfasl :asdf :require :compile-build) dep)
+      ((:lisp :cfasl :asdf :require :compile-build :source) dep)
       (:when `(:when ,(second dep) ,@(mapcar #'compiled-dependency (cddr dep))))
       (:cond `(:cond ,@(mapcar (lambda (x) (cons (car x) (mapcar #'compiled-dependency (cdr x))))
                               (cdr dep)))))))
+
+(defun loadable-dependency (dep)
+  "Go from a compile-time dependency to the corresponding run-time loadable dependency
+in the normalized dependency mini-language"
+  (if (target-ecl-p)
+      (compiled-dependency dep)
+      dep))
+
+(defun loadable-dependencies (deps)
+  (mapcar 'loadable-dependency deps))
+
+(defun linkable-dependency (dep)
+  "Go from a compile-time dependency to the corresponding run-time loadable dependency
+in the normalized dependency mini-language"
+  (if (target-ecl-p)
+      (linkable-dependency* dep)
+      dep))
+
+(defun linkable-dependencies (deps)
+  (mapcar 'linkable-dependency deps))
+
+(defun linkable-dependency* (dep)
+  "Go from a compile-time dependency to the corresponding link-time linkable dependency
+in the normalized dependency mini-language"
+  (with-dependency (:head h :name x) dep
+    (ecase h
+      ((:cfasl :lisp) `(:fasl ,x))
+      (:compile-build `(:build ,x))
+      ((:fasl :asdf :require :build) dep)
+      (:when `(:when ,(second dep) ,@(mapcar #'linkable-dependency* (cddr dep))))
+      (:cond `(:cond ,@(mapcar (lambda (x) (cons (car x) (mapcar #'linkable-dependency* (cdr x))))
+                               (cdr dep)))))))
+
 
 (defun compile-time-fasl-type ()
   (if *use-cfasls* :cfasl :fasl))

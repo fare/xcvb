@@ -517,8 +517,8 @@ This is designed to abstract away the implementation specific quit forms."
 #+ecl ;; wholly untested and probably buggy.
 (defun do-create-image (image dependencies &key standalone package)
   (let ((*goal* `(create-image ,image)))
-    (with-controlled-compiler-conditions ()
-      (run-commands dependencies))
+    ;;(with-controlled-compiler-conditions ()
+    ;;  (run-commands dependencies))
     (multiple-value-bind (lisp-files manifest)
         (case (caar dependencies)
            ((:initialize-manifest :load-manifest)

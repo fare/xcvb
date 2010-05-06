@@ -176,3 +176,6 @@ Can optionally be given a unix status CODE to exit with"
   (format nil (slot-value (get-lisp-implementation implementation-type) 'dump-format)
 	  filepath))
 
+;; ECL is very special, with its link model.
+(defun target-ecl-p ()
+  (eq *lisp-implementation-type* :ecl))
