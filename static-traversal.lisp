@@ -214,10 +214,6 @@
   (assert *use-cfasls*)
   (second (graph-for-fasls env lisp-name)))
 
-(define-graph-for :lisp-object ((env enforcing-traversal) lisp-name)
-  (assert (target-links-p))
-  (second (graph-for-fasls env lisp-name)))
-
 (defun setup-dependencies-before-fasl (fullname)
   (assert (equal '(:fasl "/xcvb/driver") (car *lisp-setup-dependencies*)))
   (reverse ; put back in order
@@ -258,8 +254,7 @@
          :inputs (traversed-dependencies env)
          :command
          (if driverp
-           `(:compile-file-directly ,fullname
-                                    ,(if (target-links-p) :lisp-object :cfasl) ,(second outputs))
+           `(:compile-file-directly ,fullname :cfasl ,(second outputs))
            `(:xcvb-driver-command
              ,(if specialp '(:load ((:fasl "/xcvb/driver")))
 		(image-setup env))

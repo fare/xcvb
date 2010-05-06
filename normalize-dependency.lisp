@@ -58,8 +58,6 @@ a reference to the system was superseded by a build.xcvb file.")
   (normalize-dependency-lisp* :fasl grain name))
 (define-normalize-dependency :cfasl (grain name)
   (normalize-dependency-lisp* :cfasl grain name))
-(define-normalize-dependency :lisp-object (grain name)
-  (normalize-dependency-lisp* :lisp-object grain name))
 
 (defun normalize-dependency-build* (type grain name)
   (let ((g (lisp-module-grain-from name grain)))
@@ -138,7 +136,6 @@ a reference to the system was superseded by a build.xcvb file.")
   '((:lisp . lisp-module-grain)
     (:fasl . fasl-grain)
     (:cfasl . cfasl-grain)
-    (:lisp-object . lisp-object-grain)
     (:asdf . asdf-grain)
     (:require . t)
     (:build . t)
@@ -192,7 +189,7 @@ in the normalized dependency mini-language"
     (ecase h
       (:fasl (list (compile-time-fasl-type) x))
       (:build `(:compile-build ,x))
-      ((:lisp :cfasl :lisp-object :asdf :require :compile-build) dep)
+      ((:lisp :cfasl :asdf :require :compile-build) dep)
       (:when `(:when ,(second dep) ,@(mapcar #'compiled-dependency (cddr dep))))
       (:cond `(:cond ,@(mapcar (lambda (x) (cons (car x) (mapcar #'compiled-dependency (cdr x))))
                               (cdr dep)))))))
@@ -202,20 +199,16 @@ in the normalized dependency mini-language"
 
 (defun fasl-grains-for-name (env fullname
                              load-dependencies cload-dependencies build-dependencies)
-  (declare (ignore env))
-  (flet ((m (class kw name deps)
+  (flet ((m (class kw name deps &aux (fullname `(,kw ,(second name))))
            (make-grain
             class
-            :fullname `(,kw ,(second name))
-            :vp (make-vp :obj (second name) "." (default-file-extension class))
+            :fullname fullname
+            :vp (default-vp-for-fullname env fullname)
             :load-dependencies deps)))
     (cons (m 'fasl-grain :fasl fullname (append build-dependencies load-dependencies))
           (cond
             (*use-cfasls*
              (list (m 'cfasl-grain :cfasl fullname
-                      (append build-dependencies cload-dependencies))))
-            ((target-links-p)
-             (list (m 'lisp-object-grain :lisp-object fullname
                       (append build-dependencies cload-dependencies))))
             (t
              nil)))))
@@ -228,7 +221,7 @@ in the normalized dependency mini-language"
 
 (defun grain-source (grain)
   (typecase grain
-    ((or fasl-grain cfasl-grain lisp-object-grain)
+    ((or fasl-grain cfasl-grain)
      (registered-grain `(:lisp (second (fullname grain)))))
     (t
      nil)))

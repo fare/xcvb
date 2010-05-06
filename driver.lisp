@@ -416,8 +416,7 @@ This is designed to abstract away the implementation specific quit forms."
           #-sbcl (make-random-state *initial-random-state*)))
     (funcall thunk)))
 
-(defun do-compile-lisp (dependencies source fasl &key cfasl object)
-  #-ecl (declare (ignore object))
+(defun do-compile-lisp (dependencies source fasl &key cfasl)
   (let ((*goal* `(:compile-lisp ,source))
         (*default-pathname-defaults* (truename *default-pathname-defaults*)))
     (multiple-value-bind (output-truename warnings-p failure-p)
@@ -428,15 +427,15 @@ This is designed to abstract away the implementation specific quit forms."
               (with-determinism `(:compiling ,source)
                 (multiple-value-prog1
                     (apply #'compile-file source
-                           :output-file (merge-pathnames #-ecl fasl #+ecl (or object fasl))
-                           #+ecl :system-p #+ecl (when object t)
+                           :output-file (merge-pathnames fasl)
                            (when cfasl
-                             `(:emit-cfasl ,(merge-pathnames cfasl))))
+                             #+ecl `(:system-p t)
+                             #+sbcl `(:emit-cfasl ,(merge-pathnames cfasl))))
                   #+ecl
-                  (when object
+                  (when cfasl
                     (call :c :build-fasl
-                          (merge-pathnames fasl)
-                          :lisp-files (list (merge-pathnames object)))))))))
+                          (merge-pathnames cfasl)
+                          :lisp-files (list (merge-pathnames fasl)))))))))
       (declare (ignore output-truename))
       (when failure-p
         (die "Compilation Failed for ~A" source))
@@ -444,8 +443,8 @@ This is designed to abstract away the implementation specific quit forms."
         (die "Compilation Warned for ~A" source))))
   (values))
 (defun compile-lisp (spec &rest dependencies)
-  (destructuring-bind (source fasl &key cfasl object) spec
-    (do-compile-lisp dependencies source fasl :cfasl cfasl :object object)))
+  (destructuring-bind (source fasl &key cfasl) spec
+    (do-compile-lisp dependencies source fasl :cfasl cfasl)))
 
 
 ;;; Dumping and resuming an image

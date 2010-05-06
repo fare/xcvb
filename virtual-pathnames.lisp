@@ -38,7 +38,7 @@
 (defun fullname-enough-namestring (env fullname)
   (enough-namestring (fullname-namestring env fullname)))
 (defun pseudo-fullname-namestring (env pseudo-fullname) ;; FIXME!
-  (vp-namestring env (apply 'vp-for-type-name pseudo-fullname)))
+  (vp-namestring env (default-vp-for-fullname env pseudo-fullname)))
 (defun pseudo-fullname-enough-namestring (env pseudo-fullname) ;; FIXME!
   (enough-namestring (pseudo-fullname-namestring env pseudo-fullname)))
 
@@ -61,6 +61,7 @@
                      (namestring (pathname-directory-pathname (grain-pathname build)))) sub)))
           (:obj
            (apply 'strcat *object-directory* subpath))))))
+
 
 ;;;;; Should we register pathnames to make sure there is no aliasing? meh...
 #|

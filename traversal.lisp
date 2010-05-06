@@ -19,7 +19,6 @@
 (defgeneric graph-for-fasls (env name))
 (defgeneric graph-for-fasl (env name))
 (defgeneric graph-for-cfasl (env name))
-(defgeneric graph-for-lisp-object (env name))
 (defgeneric graph-for-build (env name))
 (defgeneric graph-for-compile-build (env name))
 (defgeneric graph-for-build-named (env name))

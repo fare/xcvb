@@ -6,7 +6,6 @@
 (defgeneric build-command-for-lisp (env name))
 (defgeneric build-command-for-fasl (env name))
 (defgeneric build-command-for-cfasl (env name))
-(defgeneric build-command-for-lisp-object (env name))
 (defgeneric build-command-for-asdf (env name))
 (defgeneric build-command-for-require (env name))
 (defgeneric build-command-for-source (env name &key in))
@@ -38,9 +37,6 @@
 (define-build-command-for :cfasl (env name)
   (simple-build-command-for
    env `(:load-file (:cfasl ,name)) `(:cfasl ,name)))
-(define-build-command-for :lisp-object (env name)
-  (simple-build-command-for
-   env `(:load-file (:lisp-object ,name)) `(:lisp-object ,name)))
 (define-build-command-for :asdf (env name)
   (simple-build-command-for env `(:load-asdf ,name) `(:asdf ,name)))
 (define-build-command-for :require (env name)

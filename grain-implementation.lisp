@@ -51,12 +51,6 @@
   (validate-fullname grain)
   (values))
 
-(defmethod shared-initialize :after
-    ((grain lisp-object-grain) slot-names &rest initargs &key &allow-other-keys)
-  (declare (ignore slot-names initargs))
-  (validate-fullname grain)
-  (values))
-
 (defmethod grain-vp :before ((grain file-grain))
   (unless (slot-boundp grain 'vp)
     (setf (slot-value grain 'vp) (default-vp-for grain))))
@@ -291,8 +285,6 @@
   nil)
 (defmethod build-dependencies ((grain cfasl-grain))
   nil)
-(defmethod build-dependencies ((grain lisp-object-grain))
-  nil)
 
 (defun lisp-module-grain-p (x)
   (typep x 'lisp-module-grain))
@@ -360,22 +352,10 @@ Modeled after the asdf function coerce-name"
 (defun fullname-pathname (fullname)
   (grain-pathname (registered-grain fullname)))
 
-(defgeneric default-file-extension (x))
-(defmethod default-file-extension ((x (eql 'lisp-file-grain)))
-  "lisp")
-(defmethod default-file-extension ((x (eql 'fasl-grain)))
-  "fasl")
-(defmethod default-file-extension ((x (eql 'cfasl-grain)))
-  "cfasl")
-(defmethod default-file-extension ((x (eql 'image-grain)))
-  "image")
-(defmethod default-file-extension ((x (eql 'lisp-object-grain)))
-  "o")
-
-
 (defgeneric default-vp-for (x))
-(defmethod default-vp-for ((x build-module-grain))
-  (make-vp :src (fullname x) "/build.xcvb"))
+(defmethod default-vp-for (grain)
+  (default-vp-for-fullname nil (fullname grain)))
+
 (defmethod default-vp-for ((x lisp-file-grain))
   (let* ((build (grain-parent x))
          (bname (fullname build))
@@ -388,25 +368,40 @@ Modeled after the asdf function coerce-name"
     (assert (equal pathname (subpathname bpath (strcat suffix ".lisp"))))
     (make-vp :src bname "/" suffix "." "lisp")))
 
-(defun vp-for-type-name (type name)
-  (make-vp :obj name  "." (string-downcase type)))
-(defun default-vp-for-type (type grain)
-  (destructuring-bind (i n) (fullname grain)
-    (assert (eq i type))
-    (vp-for-type-name type n)))
-(defmethod default-vp-for ((x image-grain))
-  (default-vp-for-type :image x))
-(defmethod default-vp-for ((x fasl-grain))
-  (default-vp-for-type :fasl x))
-(defmethod default-vp-for ((x cfasl-grain))
-  (default-vp-for-type :cfasl x))
-(defmethod default-vp-for ((x lisp-object-grain))
-  (destructuring-bind (i n) (fullname x)
-    (assert (eq i :lisp-object))
-    (vp-for-type-name :o n)))
+(define-simple-dispatcher default-vp-for-fullname #'default-vp-for-fullname-atom)
 
-(defmethod default-vp-for ((x source-grain))
-  (destructuring-bind (s sub &key in) (fullname x)
-    (assert (eq s :source))
-    (assert (equal in (fullname (registered-build in :ensure-build t))))
-    (make-vp :src in "/" sub)))
+(defun default-vp-for-fullname (env name)
+  (default-vp-for-fullname-dispatcher env name))
+
+(defun default-vp-for-fullname-atom (env name)
+  (declare (ignore env))
+  (assert (registered-build name))
+  (make-vp :src name "/build.xcvb"))
+
+(defun vp-for-name-extension (name extension &optional (zone :obj))
+  (make-vp zone name  "." extension))
+
+(define-default-vp-for-fullname :image (env name)
+  (declare (ignore env))
+  (vp-for-name-extension name "image"))
+(define-default-vp-for-fullname :manifest (env name)
+  (declare (ignore env))
+  (vp-for-name-extension name "manifest"))
+(define-default-vp-for-fullname :fasl (env name)
+  (declare (ignore env))
+  (vp-for-name-extension
+   name
+   (case *lisp-implementation-type*
+     (:ecl "o")
+     (t "fasl"))))
+(define-default-vp-for-fullname :cfasl (env name)
+  (declare (ignore env))
+  (vp-for-name-extension
+   name
+   (case *lisp-implementation-type*
+     (:ecl "fas")
+     (t "cfasl"))))
+(define-default-vp-for-fullname :source (env sub &key in)
+  (declare (ignore env))
+  (assert (equal in (fullname (registered-build in :ensure-build t))))
+  (make-vp :src in "/" sub))

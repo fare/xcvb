@@ -236,7 +236,8 @@ for this version of XCVB.")))
       (setf *lisp-executable-pathname* lisp-binary-path))
     (read-target-properties) ;; Gets information from target Lisp.
     (setf *use-cfasls* ;; Must be done after read-target-properties
-          (and *use-cfasls* (not disable-cfasl)))
+          (or (and *use-cfasls* (not disable-cfasl))
+              (eq *lisp-implementation-type* :ecl)))
     (setf *use-base-image* base-image)
     (setf *use-master* master)
     (when master
