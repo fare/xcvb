@@ -157,6 +157,7 @@
         (when build-commands
           `((:load-manifest (:manifest ,name)))))))))
 
+;;; TODO: handle ECL's linkage model... maybe memorize the manifest for each image?
 (defmethod graph-for-image-grain ((env static-traversal) name pre-image-name dependencies)
   (let ((pre-image (issue-image-named env pre-image-name)))
     (build-command-for* env dependencies)
@@ -210,6 +211,11 @@
   (first (graph-for-fasls env lisp-name)))
 
 (define-graph-for :cfasl ((env enforcing-traversal) lisp-name)
+  (assert *use-cfasls*)
+  (second (graph-for-fasls env lisp-name)))
+
+(define-graph-for :lisp-object ((env enforcing-traversal) lisp-name)
+  (assert (target-links-p))
   (second (graph-for-fasls env lisp-name)))
 
 (defun setup-dependencies-before-fasl (fullname)
@@ -252,9 +258,13 @@
          :inputs (traversed-dependencies env)
          :command
          (if driverp
-           `(:compile-file-directly ,fullname ,(second outputs))
+           `(:compile-file-directly ,fullname
+                                    ,(if (target-links-p) :lisp-object :cfasl) ,(second outputs))
            `(:xcvb-driver-command
              ,(if specialp '(:load ((:fasl "/xcvb/driver")))
 		(image-setup env))
              (:compile-lisp (,fullname) ,@(traversed-build-commands env)))))
         outputs))))
+
+(defun target-links-p () ;; take env as parameter?
+  (eq *lisp-implementation-type* :ecl))

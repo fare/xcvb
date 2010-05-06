@@ -258,14 +258,17 @@ with associated pathnames and tthsums.")
          'read-many keys))
 
 ;;; Maintaining memory of which grains have been loaded in the current image.
-(defun process-manifest-entry (&key command tthsum pathname &allow-other-keys)
+(defun process-manifest-entry (&rest entry &key command tthsum pathname &allow-other-keys)
   ;; also source source-tthsum source-pathname
   (unless (and tthsum
-               (equal tthsum (cdr (assoc command *manifest* :test #'equal)))
+               (equal tthsum
+                      (getf (find command *manifest* :test #'equal
+                                  :key (lambda (x) (getf x :command)))
+                            :tthsum))
                (progn
                  (when (>= *xcvb-verbosity* 8)
                    (format *error-output* "~&Skipping XCVB command ~S ~@[from already loaded file ~S (tthsum: ~A)~]~%"
-              command pathname tthsum))
+                           command pathname tthsum))
                  t))
     (when (>= *xcvb-verbosity* 7)
       (format *error-output* "~&Executing XCVB command ~S ~@[from ~S (tthsum: ~A)~]~%"
@@ -278,7 +281,7 @@ with associated pathnames and tthsums.")
       (t
        ;; the driver better be loaded by the time any command is issued
        (funcall (find-symbol (string '#:run-command) :xcvb-driver) command)))
-    (push (cons command tthsum) *manifest*)))
+    (push entry *manifest*)))
 
 (defun process-manifest (manifest)
   (dolist (entry manifest)
@@ -288,7 +291,7 @@ with associated pathnames and tthsums.")
 (defun initialize-manifest (pathname)
   "XCVB driver extension to initialize the manifest for an image"
   (assert (not *manifest*))
-  (setf *manifest* (read-first-file-form pathname)))
+  (setf *manifest* (reverse (read-first-file-form pathname))))
 (defun load-manifest (pathname)
   "XCVB driver extension to load a list of files from a manifest"
   (process-manifest (read-first-file-form pathname)))

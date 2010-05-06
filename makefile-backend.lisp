@@ -173,10 +173,10 @@ will create the desired content. An atomic rename() will have to be performed af
   (list
    (lisp-invocation-for env keys (xcvb-driver-commands-to-shell-token env commands))))
 
-(define-Makefile-commands-for-computation :compile-file-directly (env fullname &optional cfasl)
+(define-Makefile-commands-for-computation :compile-file-directly (env fullname &key cfasl lisp-object)
   (list
    (lisp-invocation-for env ()
-    (compile-file-directly-shell-token env fullname cfasl))))
+    (compile-file-directly-shell-token env fullname :cfasl cfasl :lisp-object lisp-object))))
 
 (define-Makefile-commands-for-computation :progn (env &rest commands)
   (loop :for command :in commands

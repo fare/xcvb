@@ -58,6 +58,8 @@ a reference to the system was superseded by a build.xcvb file.")
   (normalize-dependency-lisp* :fasl grain name))
 (define-normalize-dependency :cfasl (grain name)
   (normalize-dependency-lisp* :cfasl grain name))
+(define-normalize-dependency :lisp-object (grain name)
+  (normalize-dependency-lisp* :lisp-object grain name))
 
 (defun normalize-dependency-build* (type grain name)
   (let ((g (lisp-module-grain-from name grain)))
@@ -136,6 +138,7 @@ a reference to the system was superseded by a build.xcvb file.")
   '((:lisp . lisp-module-grain)
     (:fasl . fasl-grain)
     (:cfasl . cfasl-grain)
+    (:lisp-object . lisp-object-grain)
     (:asdf . asdf-grain)
     (:require . t)
     (:build . t)
@@ -189,7 +192,7 @@ in the normalized dependency mini-language"
     (ecase h
       (:fasl (list (compile-time-fasl-type) x))
       (:build `(:compile-build ,x))
-      ((:lisp :cfasl :asdf :require :compile-build) dep)
+      ((:lisp :cfasl :lisp-object :asdf :require :compile-build) dep)
       (:when `(:when ,(second dep) ,@(mapcar #'compiled-dependency (cddr dep))))
       (:cond `(:cond ,@(mapcar (lambda (x) (cons (car x) (mapcar #'compiled-dependency (cdr x))))
                               (cdr dep)))))))
@@ -207,10 +210,15 @@ in the normalized dependency mini-language"
             :vp (make-vp :obj (second name) "." (default-file-extension class))
             :load-dependencies deps)))
     (cons (m 'fasl-grain :fasl fullname (append build-dependencies load-dependencies))
-          (if *use-cfasls*
-              (list (m 'cfasl-grain :cfasl fullname
-                       (append build-dependencies cload-dependencies)))
-              nil))))
+          (cond
+            (*use-cfasls*
+             (list (m 'cfasl-grain :cfasl fullname
+                      (append build-dependencies cload-dependencies))))
+            ((target-links-p)
+             (list (m 'lisp-object-grain :lisp-object fullname
+                      (append build-dependencies cload-dependencies))))
+            (t
+             nil)))))
 
 (defun cfasl-for-fasl (fasl-grain)
   (check-type fasl-grain fasl-grain)
@@ -220,8 +228,8 @@ in the normalized dependency mini-language"
 
 (defun grain-source (grain)
   (typecase grain
-    ((or fasl-grain cfasl-grain)
-     (registered-grain (second (fullname grain))))
+    ((or fasl-grain cfasl-grain lisp-object-grain)
+     (registered-grain `(:lisp (second (fullname grain)))))
     (t
      nil)))
 

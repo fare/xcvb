@@ -222,6 +222,13 @@ into an image that will be used for all future compile/load operations")
     :reader load-dependencies))
   (:documentation "Lisp CFASL file grain"))
 
+(defclass lisp-object-grain (file-grain explicitly-named-grain)
+  ;; notably used by ECL
+  ((load-dependencies
+    :initarg :load-dependencies
+    :reader load-dependencies))
+  (:documentation "Linkable compiled Lisp object file grain"))
+
 (defclass asdf-grain (buildable-grain explicitly-named-grain)
   ((name
     :initarg :name

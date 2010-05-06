@@ -45,14 +45,16 @@
     (format stream ")")))
 
 (define-text-for-xcvb-driver-command :compile-lisp (env name-options &rest dependencies)
-  (destructuring-bind (name &key) name-options
+  (destructuring-bind (name &key &aux (basename (second name))) name-options
     (text-for-xcvb-driver-helper
      env dependencies
-     ":compile-lisp (~S ~S~@[ :cfasl ~S~])"
+     ":compile-lisp (~S ~S~@[ :cfasl ~S~]~@[ :object ~S~])"
      (fullname-enough-namestring env name)
-     (tempname-target (fullname-enough-namestring env `(:fasl ,(second name))))
+     (tempname-target (fullname-enough-namestring env `(:fasl ,basename)))
      (when *use-cfasls*
-       (tempname-target (fullname-enough-namestring env `(:cfasl ,(second name))))))))
+       (tempname-target (fullname-enough-namestring env `(:cfasl ,basename))))
+     (when (target-links-p)
+       (tempname-target (fullname-enough-namestring env `(:lisp-object ,basename)))))))
 
 (define-text-for-xcvb-driver-command :create-image (env spec &rest dependencies)
   (destructuring-bind (&key image standalone package) spec
@@ -70,21 +72,25 @@
       :load (mapcar/ #'fullname-enough-namestring env load)
       :eval eval))))
 
-(defun compile-file-directly-shell-token (env name &optional cfasl)
+(defun compile-file-directly-shell-token (env name &key cfasl lisp-object)
   (quit-form
    :code
    (format nil "(multiple-value-bind (output warningp failurep) ~
                     (let ((*default-pathname-defaults* ~
                            (truename *default-pathname-defaults*))) ~
-                      (compile-file ~S ~
-                       :output-file (merge-pathnames ~S) ~
+                      (compile-file ~S :verbose nil :print nil ~
                        ~@[:emit-cfasl (merge-pathnames ~S) ~]~
-                       :verbose nil :print nil)) ~
+                       ~:[:output-file (merge-pathnames ~S)~;~
+                       :system-p t ~:*:output-file (merge-pathnames ~S))~
+                       (c::build-fasl ~
+                         (merge-pathnames ~S) :lisp-files (list ~2:*(merge-pathnames ~S))~]))~
                   (if (or (not output) warningp failurep) 1 0))"
            (fullname-enough-namestring env name)
-           (tempname-target (fullname-enough-namestring env `(:fasl ,(second name))))
            (when cfasl
-             (tempname-target (fullname-enough-namestring env `(:cfasl ,(second name))))))))
+             (tempname-target (fullname-enough-namestring env `(:cfasl ,(second name)))))
+           (when lisp-object
+             (tempname-target (fullname-enough-namestring env `(:lisp-object ,(second name)))))
+           (tempname-target (fullname-enough-namestring env `(:fasl ,(second name)))))))
 
 (defun xcvb-driver-commands-to-shell-token (env commands)
   (with-output-to-string (s)

@@ -51,6 +51,12 @@
   (validate-fullname grain)
   (values))
 
+(defmethod shared-initialize :after
+    ((grain lisp-object-grain) slot-names &rest initargs &key &allow-other-keys)
+  (declare (ignore slot-names initargs))
+  (validate-fullname grain)
+  (values))
+
 (defmethod grain-vp :before ((grain file-grain))
   (unless (slot-boundp grain 'vp)
     (setf (slot-value grain 'vp) (default-vp-for grain))))
@@ -285,6 +291,8 @@
   nil)
 (defmethod build-dependencies ((grain cfasl-grain))
   nil)
+(defmethod build-dependencies ((grain lisp-object-grain))
+  nil)
 
 (defun lisp-module-grain-p (x)
   (typep x 'lisp-module-grain))
@@ -361,6 +369,8 @@ Modeled after the asdf function coerce-name"
   "cfasl")
 (defmethod default-file-extension ((x (eql 'image-grain)))
   "image")
+(defmethod default-file-extension ((x (eql 'lisp-object-grain)))
+  "o")
 
 
 (defgeneric default-vp-for (x))
@@ -390,6 +400,10 @@ Modeled after the asdf function coerce-name"
   (default-vp-for-type :fasl x))
 (defmethod default-vp-for ((x cfasl-grain))
   (default-vp-for-type :cfasl x))
+(defmethod default-vp-for ((x lisp-object-grain))
+  (destructuring-bind (i n) (fullname x)
+    (assert (eq i :lisp-object))
+    (vp-for-type-name :o n)))
 
 (defmethod default-vp-for ((x source-grain))
   (destructuring-bind (s sub &key in) (fullname x)
