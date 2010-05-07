@@ -103,3 +103,5 @@ nickname, or SEXP representing a computed entity.")
 (defvar *object-directory-pathname* nil
   "Path to the object directory")
 
+(defparameter *module-classes*
+  '((module . lisp-file-grain)))

@@ -73,6 +73,7 @@ It can already replace ASDF for the better in many cases,
 but is not yet a universal replacement for it.
 
 Currently only SBCL, CCL and CLISP are supported.
+There is also some ECL support.
 
 The current version (in git master branch or the release tarball)
 can handle builds of very large and complex systems,

@@ -10,10 +10,10 @@ Until then, let's rely on the external utility tthsum.
 
 (defun tthsum-for-files (files)
   (when files
-    (dolist (file files)
-      (unless (probe-file file)
-        (error "File ~A does not exist" file)))
-    (let* ((namestrings (mapcar #'namestring files))
+    (let* ((truefiles 
+            (loop :for file :in files :collect
+              (or (probe-file file) (error "File ~A does not exist" file))))
+           (namestrings (mapcar #'namestring truefiles))
            (lines (run-program/read-output-lines (cons "tthsum" namestrings))))
       (unless lines
         (error "Couldn't extract TTH digest for given files. Is the tthsum utility installed?"))
@@ -56,9 +56,9 @@ Until then, let's rely on the external utility tthsum.
       (destructuring-bind (&key command pathname source-pathname) spec
         `(:command
           ,command
-          ,@(when pathname `(:pathname ,(namestring pathname) :tthsum ,tthsum))
+          ,@(when pathname `(:pathname ,(namestring (truename pathname)) :tthsum ,tthsum))
           ,@(when source-pathname
-              `(:source-pathname ,(namestring source-pathname) :source-tthsum ,source-tthsum)))))))
+              `(:source-pathname ,(namestring (truename source-pathname)) :source-tthsum ,source-tthsum)))))))
 
 (defun create-manifest (output-path grains)
   (with-user-output-file (o output-path)

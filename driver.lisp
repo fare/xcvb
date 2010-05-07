@@ -577,6 +577,18 @@ This is designed to abstract away the implementation specific quit forms."
   (let ((tn (truename file)))
     (register-pathname-mappings (read-first-from tn) :defaults tn)))
 
+(defun process-cffi-grovel-file (input c exe output &key cc-flags)
+  (flet ((f (x) (namestring (merge-pathnames x))))
+    (let* ((input (f input))
+           (c (f c))
+           (exe (f exe))
+           (output (f output))
+           (*default-pathname-defaults* (pathname-directory-pathname exe)))
+      (progv (list (do-find-symbol :*cc-flags* :cffi-grovel)) (list cc-flags)
+        (call :cffi-grovel :generate-c-file input c)
+        (call :cffi-grovel :cc-compile-and-link c exe)
+        (call :cffi-grovel :invoke exe output)))))
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (pushnew :xcvb-driver *features*))
 ;;;(format t "~&XCVB driver loaded~%")

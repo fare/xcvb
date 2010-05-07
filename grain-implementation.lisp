@@ -6,18 +6,23 @@
 
 (defun parse-module-declaration (form &key keys build-p)
   "Takes a module declaration FORM and returns a grain object for that module."
-  (unless (module-form-p form)
-    (error "Invalid or missing module declaration~@[ in ~S~]" (getf keys :pathname)))
-  (destructuring-bind ((&rest form-keys &key &allow-other-keys) &rest extension-forms)
-      (cdr form)
-    (loop :for (key nil) :on form-keys :by #'cddr
-      :when (getf keys key) :do
-      (error "While parsing module form ~S, invalid key ~S provided"
-             form key))
-    (apply #'make-instance (if build-p 'build-module-grain 'lisp-file-grain)
+  (let ((class (module-form-p form)))
+    (unless class
+      (error "Invalid or missing module declaration~@[ in ~S~]" (getf keys :pathname)))
+    (when build-p
+      (unless (eq class 'lisp-file-grain)
+        (error "Invalid build module declaration~@[ in ~S~]" (getf keys :pathname)))
+      (setf class 'build-module-grain))
+    (destructuring-bind ((&rest form-keys &key &allow-other-keys) &rest extension-forms)
+        (cdr form)
+      (loop :for (key nil) :on form-keys :by #'cddr
+        :when (getf keys key) :do
+        (error "While parsing module form ~S, invalid key ~S provided"
+               form key))
+      (apply #'make-instance class
            :extension-forms extension-forms
            :computation nil
-           (append keys form-keys))))
+           (append keys form-keys)))))
 
 (defun grain-from-file-declaration (path &key build-p)
   (parse-module-declaration
@@ -28,9 +33,9 @@
 (defun module-form-p (form)
   "Returns whether or not the given form is a valid xcvb:module form"
   (and (consp form)
-       (eq (car form) 'xcvb:module)
        (listp (cdr form))
-       (listp (cadr form))))
+       (listp (cadr form))
+       (cdr (assoc (car form) *module-classes*))))
 
 (defmethod shared-initialize :after
     ((grain lisp-module-grain) slot-names &rest initargs &key &allow-other-keys)

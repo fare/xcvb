@@ -185,14 +185,20 @@ a reference to the system was superseded by a build.xcvb file.")
 (defun compiled-dependency (dep)
   "Go from a load-time dependency to the corresponding compile-time dependency,
 in the normalized dependency mini-language"
-  (with-dependency (:head h :name x) dep
-    (ecase h
-      (:fasl (list (compile-time-fasl-type) x))
-      (:build `(:compile-build ,x))
-      ((:lisp :cfasl :asdf :require :compile-build :source) dep)
-      (:when `(:when ,(second dep) ,@(mapcar #'compiled-dependency (cddr dep))))
-      (:cond `(:cond ,@(mapcar (lambda (x) (cons (car x) (mapcar #'compiled-dependency (cdr x))))
-                              (cdr dep)))))))
+  (compiled-dependency-dispatcher dep))
+(define-simple-dispatcher compiled-dependency #'unrecognized-dependency :environment nil)
+(define-compiled-dependency :fasl (x)
+  (list (compile-time-fasl-type) x))
+(define-compiled-dependency :build (x)
+  `(:compile-build ,x))
+(macrolet ((d (k) `(define-compiled-dependency ,k (&rest r) (cons ,k r)))
+           (self-compiled-dependency (&rest r) `(progn ,@(loop :for k :in r :collect `(d ,k)))))
+  (self-compiled-dependency :lisp :cfasl :asdf :require :compile-build :source))
+(define-compiled-dependency :when (c &rest deps)
+  `(:when ,c ,@(mapcar #'compiled-dependency deps)))
+(define-compiled-dependency :cond (&rest clauses)
+  `(:cond ,@(loop :for (c . deps) :in clauses
+              :collect (cons c (mapcar #'compiled-dependency deps)))))
 
 (defun loadable-dependency (dep)
   "Go from a compile-time dependency to the corresponding run-time loadable dependency
@@ -215,16 +221,20 @@ in the normalized dependency mini-language"
   (mapcar 'linkable-dependency deps))
 
 (defun linkable-dependency* (dep)
-  "Go from a compile-time dependency to the corresponding link-time linkable dependency
+  "Go from a load-time dependency to the corresponding compile-time dependency,
 in the normalized dependency mini-language"
-  (with-dependency (:head h :name x) dep
-    (ecase h
-      ((:cfasl :lisp) `(:fasl ,x))
-      (:compile-build `(:build ,x))
-      ((:fasl :asdf :require :build) dep)
-      (:when `(:when ,(second dep) ,@(mapcar #'linkable-dependency* (cddr dep))))
-      (:cond `(:cond ,@(mapcar (lambda (x) (cons (car x) (mapcar #'linkable-dependency* (cdr x))))
-                               (cdr dep)))))))
+  (linkable-dependency-dispatcher dep))
+(define-simple-dispatcher linkable-dependency #'unrecognized-dependency :environment nil)
+(define-linkable-dependency :cfasl (x) `(:fasl ,x))
+(define-linkable-dependency :compile-build (x) `(:build ,x))
+(macrolet ((d (k) `(define-linkable-dependency ,k (&rest r) (cons ,k r)))
+           (self-linkable-dependency (&rest r) `(progn ,@(loop :for k :in r :collect `(d ,k)))))
+  (self-linkable-dependency :fasl :asdf :require :build))
+(define-linkable-dependency :when (c &rest deps)
+  `(:when ,c ,@(mapcar #'linkable-dependency* deps)))
+(define-linkable-dependency :cond (&rest clauses)
+  `(:cond ,@(loop :for (c . deps) :in clauses
+              :collect (cons c (mapcar #'linkable-dependency* deps)))))
 
 
 (defun compile-time-fasl-type ()

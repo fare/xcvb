@@ -17,7 +17,7 @@
     (setf (gethash name *target-builds*) t))
   (call-next-method))
 
-(defun make-nem-stage (env asdf-name build-name build &key previous parallel)
+(defun make-nem-stage (env asdf-name build &key previous parallel)
   (let* ((*computations* nil)
          (*asdf-system-dependencies* nil)
          (*require-dependencies* nil)
@@ -28,7 +28,7 @@
                    :collect i))
          (asd-vp (make-vp :obj "/" asdf-name "." "asd"))
          (_w (do-write-asd-file env :output-path (vp-namestring env asd-vp)
-                                :build build-name :asdf-name asdf-name))
+                                :asdf-name asdf-name))
          (image-name `(:image ,(strcat "/" asdf-name)))
          (image (make-grain 'image-grain :fullname image-name))
          (previous-spec (if previous
@@ -89,7 +89,7 @@ in a fast way that doesn't enforce dependencies."
             :for build :in builds
             :for previous-asdf = nil :then asdf-name
             :for asdf-name :in asdf-names
-            :collect (make-nem-stage env asdf-name build-name build
+            :collect (make-nem-stage env asdf-name build
                                      :previous previous-asdf
                                      :parallel parallel))))
       (with-open-file (out makefile-path

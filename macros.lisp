@@ -26,13 +26,16 @@
            (function (or (gethash head function-hash)
                          (error "undefined function in ~S" expression))))
       (apply function environment arguments))
-    (funcall atom-processor environment expression)))
+    (if atom-processor
+        (funcall atom-processor environment expression)
+        (error "invalid atom ~S" expression))))
 
-(defmacro define-simple-dispatcher (name atom-interpreter &optional gf)
+(defmacro define-simple-dispatcher (name atom-interpreter &key generic (environment t))
   (let ((hash-name (fintern t "*~A-FUNCTIONS*" name))
         (registrar-name (fintern t "REGISTER-~A" name))
         (definer-name (fintern t "DEFINE-~A" name))
-        (dispatcher-name (fintern t "~A-DISPATCHER" name)))
+        (dispatcher-name (fintern t "~A-DISPATCHER" name))
+        (env (gensym "ENVIRONMENT")))
     `(progn
        (defvar ,hash-name (make-hash-table :test 'eql))
        (defun ,registrar-name (symbol function)
@@ -40,11 +43,14 @@
        (defmacro ,definer-name (symbol formals &body body)
          (let ((fname (fintern t "~A-~A" ',name symbol)))
            `(progn
-              (,(if ',gf 'defmethod 'defun)
-                ,(fintern t "~A-~A" ',name symbol) ,formals ,@body)
+              (,',(if generic 'defmethod 'defun)
+                ,(fintern t "~A-~A" ',name symbol)
+                (,@',(unless environment `(,env)) ,@formals)
+                ,@',(unless environment `((declare (ignore ,env))))
+                ,@body)
               (,',registrar-name ',symbol ',fname))))
-       (defun ,dispatcher-name (environment expression)
+       (defun ,dispatcher-name (,@(when environment `(,env)) expression)
          (simple-dispatcher
           ,atom-interpreter
           ,hash-name
-          environment expression)))))
+          ,(if environment env nil) expression)))))

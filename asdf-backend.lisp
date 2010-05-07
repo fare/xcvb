@@ -86,10 +86,9 @@ Declare asd system as ASDF-NAME."
     (log-format 6 "T=~A creating asd file ~A" (get-universal-time) output-path)
     (do-write-asd-file env
       :output-path output-path
-      :asdf-name asdf-name
-      :build (fullname first-build))))
+      :asdf-name asdf-name)))
 
-(defun do-write-asd-file (env &key output-path build asdf-name)
+(defun do-write-asd-file (env &key output-path asdf-name)
   (let* ((output-path (merge-pathnames output-path))
          (_ (ensure-directories-exist output-path))
          (*default-pathname-defaults* (pathname-directory-pathname output-path)))
@@ -97,7 +96,7 @@ Declare asd system as ASDF-NAME."
     (with-open-file (out output-path :direction :output :if-exists :supersede)
       (write-asd-prelude out)
       (with-safe-io-syntax (:package :asdf)
-        (let* ((form (make-asdf-form env asdf-name build))
+        (let* ((form (make-asdf-form env asdf-name))
                (*print-case* :downcase))
           (format out "~@[~{(require ~S)~%~}~%~]" (reverse *require-dependencies*))
           (write form :stream out :pretty t :miser-width 79)
@@ -106,44 +105,40 @@ Declare asd system as ASDF-NAME."
 (defun keywordify-asdf-name (name)
   (kintern "~:@(~A~)" name))
 
-(defun make-asdf-form (env asdf-name build)
+(defgeneric asdf-spec (env grain))
+(defmethod asdf-spec (env (grain lisp-file-grain))
+  `(:file ,(asdf-dependency-grovel::strip-extension
+            (enough-namestring (grain-namestring env grain))
+            "lisp")))
+(defmethod asdf-spec (env (grain source-grain))
+  `(:static-file ,(enough-namestring (grain-namestring env grain))))
+
+(defun make-asdf-form (env asdf-name)
   ;; we can assume computations is topologically sorted.
   ;; TODO: ASDF is stupid, so we should try to optimize dependencies be removing extra ones:
   ;; for each dependency of current node, starting with the most recent one,
   ;; add the dependency and remove all those that it includes.
-  (let ((prefix (strcat build "/")))
-    (flet ((aname (x)
-             (let* ((f (fullname x))
-                    (n (progn (assert (eq :lisp (first f))) (second f))))
-               (if (string-prefix-p prefix n)
-                 (subseq n (length prefix))
-                 n))))
-      `(asdf:defsystem ,(keywordify-asdf-name asdf-name)
-         :depends-on ,(mapcar 'keywordify-asdf-name (reverse *asdf-system-dependencies*))
-         :components ,(loop :with visited = (make-hash-table :test 'equal)
-                        :for computation :in (reverse *computations*)
-                        :for lisp = (first (computation-inputs computation))
-                        :for deps = (rest (computation-inputs computation))
-                        :for build = (and (typep lisp 'lisp-file-grain)
-                                          (build-module-grain-for lisp))
-                        :for includedp = (and build (build-in-target-p build))
-                        :for depends-on = (remove-duplicates
-                                           (loop :for dep :in deps
-                                             :when (typep dep 'lisp-file-grain)
-                                             :collect (aname dep))
-                                           :test #'equal)
-                        :for name = (and lisp (aname lisp))
-                        :for pathname = (and lisp (asdf-dependency-grovel::strip-extension
-                                                   (enough-namestring (grain-namestring env lisp))
-                                                   "lisp"))
-                        :for already-visited = (gethash name visited)
-                        :do (setf (gethash name visited) t)
-                        :when (and includedp (not already-visited)) :collect
-                        `(:file ,name
-                                ,@(unless (and (equal name pathname)
-                                               #-asdf2 (not (find #\/ name)))
-                                   `(:pathname ,pathname))
-                                ,@(when depends-on `(:depends-on ,depends-on))))))))
+  ;; NOTE: we assume *default-pathname-defaults* is set to the destination directory
+  ;; for the asdf file.
+  `(asdf:defsystem ,(keywordify-asdf-name asdf-name)
+     :depends-on ,(mapcar 'keywordify-asdf-name (reverse *asdf-system-dependencies*))
+     :components ,(loop :with visited = (make-hash-table :test 'equal)
+                    :for computation :in (reverse *computations*)
+                    :for lisp = (first (computation-inputs computation))
+                    :for deps = (rest (computation-inputs computation))
+                    :for spec = (and lisp (asdf-spec env lisp))
+                    :for build = (and spec (build-module-grain-for lisp))
+                    :for includedp = (and build (build-in-target-p build))
+                    :for depends-on = (remove-duplicates
+                                       (loop :for dep :in deps
+                                         :for dspec = (asdf-spec env dep)
+                                         :when dspec
+                                         :collect (second dspec))
+                                       :test #'equal)
+                    :for already-visited = (gethash spec visited)
+                    :do (setf (gethash spec visited) t)
+                    :when (and includedp (not already-visited)) :collect
+                    `(,@spec ,@(when depends-on `(:depends-on ,depends-on))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XCVB to ASDF ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

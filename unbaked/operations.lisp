@@ -14,6 +14,12 @@
   :filename "%.lisp"
   :documentation "LISP file grain")
 
+
+; load a grain into an image
+; load a grain's compilation data into an image
+
+
+
 (def grain fasl-grain (file-grain)
   :filename "%.fasl"
   :documentation "Lisp FASL file grain")
@@ -164,3 +170,4 @@ So...
 
 
 |#
+

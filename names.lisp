@@ -123,10 +123,12 @@
     (resolve-absolute-module-name name)
     (loop
       :for b = (build-module-grain-for grain) :then (grain-parent b)
-      :for g = (and b (resolve-absolute-module-name (strcat (fullname b) "/" name)))
+      :for g = (and b (resolve-absolute-module-name
+                       (strcat (fullname b) "/" name)))
       :while b
       :when (typep g 'grain) :do (return g)
-      :finally (return (resolve-absolute-module-name (canonicalize-fullname name))))))
+      :finally (return (resolve-absolute-module-name
+                        (canonicalize-fullname name))))))
 
 (defun module-subpathname (path name)
   (subpathname path (strcat name ".lisp")))

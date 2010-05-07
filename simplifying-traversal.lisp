@@ -23,6 +23,10 @@ and the non-enforcing Makefile backend.
 (define-build-command-for :lisp ((env simplifying-traversal) name)
   (build-command-for-fasl env name))
 
+(defmethod tweak-dependency ((env simplifying-traversal) dep)
+  (declare (ignorable env))
+  dep)
+
 (defmethod graph-for-build-module-grain ((env simplifying-traversal) grain)
   (build-command-for* env (build-dependencies grain))
   (build-command-for* env (compile-dependencies grain))

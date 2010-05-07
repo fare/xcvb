@@ -15,7 +15,7 @@
 (defgeneric build-command-for-when (env expression &rest dependencies))
 (defgeneric build-command-for-cond (env &rest cond-expressions))
 
-(define-simple-dispatcher build-command-for #'build-command-for-atom :generic)
+(define-simple-dispatcher build-command-for #'build-command-for-atom :generic t)
 
 (defun build-command-for (env spec)
   (build-command-for-dispatcher env (tweak-dependency env spec)))

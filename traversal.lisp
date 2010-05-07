@@ -69,7 +69,6 @@
                                    (grain-computation grain))))
       (run-generator (next-traversal env (fullname grain)) generator))))
 
-
 (defun do-graph-for (env spec)
   (call-with-grain-registration
    spec
@@ -106,7 +105,7 @@
 (defmacro with-dependency-loading ((env grain) &body body)
   `(call-with-dependency-loading ,env ,grain (lambda () ,@body)))
 
-(define-simple-dispatcher graph-for #'graph-for-atom :generic)
+(define-simple-dispatcher graph-for #'graph-for-atom :generic t)
 
 (defmethod traversed-build-commands ((env xcvb-traversal))
   (reverse (traversed-build-commands-r env)))

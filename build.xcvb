@@ -53,7 +53,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
                "farmer"
                "search-path"
                "main"
-               "version")
+               "version"
+               "cffi-grovel-support")
   :supersedes-asdf ("xcvb")
   :pre-image t
   :build-image t))

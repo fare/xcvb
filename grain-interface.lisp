@@ -152,18 +152,18 @@
    (load-depends-on
     :initform nil
     :initarg :load-depends-on)
-   (compile-dependencies
-    :reader compile-dependencies)
-   (cload-dependencies
-    :reader cload-dependencies)
-   (load-dependencies
-    :reader load-dependencies)
    (build-depends-on
     :initarg :build-depends-on
     :documentation "A list of dependencies that apply to all files in the
 system specified by this build.xcvb file.
 These dependencies will be loaded first thing
 into an image that will be used for all future compile/load operations")
+   (compile-dependencies
+    :reader compile-dependencies)
+   (cload-dependencies
+    :reader cload-dependencies)
+   (load-dependencies
+    :reader load-dependencies)
    (build-dependencies
     :reader build-dependencies
     :documentation "A normalized version of the above")
