@@ -127,10 +127,23 @@
 (defun setup-environment ()
   (debugging (setenvp "XCVB_DEBUGGING"))
   (setf *profiling* (setenvp "XCVB_PROFILING")))
+(defvar *previous-optimization-settings* nil)
+(defun get-optimization-settings ()
+  #+clozure
+  `((speed . ,ccl::*nx-speed*)
+    (space . ,ccl::*nx-space*)
+    (safety . ,ccl::*nx-safety*)
+    (debug . ,ccl::*nx-debug*)
+    (compilation-speed . ,ccl::*nx-cspeed*))
+  #+sbcl sb-c::*policy*
+  #-(or clozure sbcl) nil)
 (defun proclaim-optimization-settings ()
   (proclaim *optimization-settings*)
   (when *debugging*
-    #+sbcl (format *error-output* "~&SB-C::*POLICY* = ~S~%" sb-c::*policy*)))
+    (let ((settings (get-optimization-settings)))
+      (unless (equal *previous-optimization-settings* settings)
+        (setf *previous-optimization-settings* settings)
+        (format *error-output* "~&Optimization settings: ~S~%" settings)))))
 
 ;;; Debugging
 (defun debugging (&optional (debug t))
@@ -588,6 +601,24 @@ This is designed to abstract away the implementation specific quit forms."
         (call :cffi-grovel :generate-c-file input c)
         (call :cffi-grovel :cc-compile-and-link c exe)
         (call :cffi-grovel :invoke exe output)))))
+
+(defun process-cffi-wrapper-file (input c so output &key cc-flags)
+  (flet ((f (x) (namestring (merge-pathnames x))))
+    (let* ((input (f input))
+           (c (f c))
+           (so (f so))
+           (output (f output))
+           (*default-pathname-defaults* (pathname-directory-pathname so)))
+      (progv (list (do-find-symbol :*cc-flags* :cffi-grovel)) (list cc-flags)
+        (with-standard-io-syntax
+          (multiple-value-bind (c-file lisp-forms)
+              (call :cffi-grovel :generate-c-lib-file input c)
+            (call :cffi-grovel :cc-compile-and-link c so :library t)
+        (values (call :cffi-grovel :generate-bindings-file
+                      c so lisp-forms #|output|# c)
+                ;; ugly, but generate-bindings-file already adds .grovel-tmp.lisp
+                ;; to the output name, so we reuse the c name here. Sigh.
+                so)))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (pushnew :xcvb-driver *features*))

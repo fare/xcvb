@@ -29,6 +29,10 @@
   (unless *target-properties*
     (read-target-properties)))
 
+(defun target-feature-p (x)
+  (get-target-properties)
+  (member x *target-system-features*))
+
 (defun read-target-properties ()
   (let ((forms (extract-target-properties)))
     (unless forms
