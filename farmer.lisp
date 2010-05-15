@@ -1,10 +1,7 @@
 #+xcvb
 (module
  (:depends-on
-  ("macros" "specials" "static-traversal" "profiling" "main"
-   (:when (:featurep :sbcl)
-     (:require :sb-grovel)
-     (:require :sb-posix)))))
+  ("macros" "specials" "static-traversal" "profiling" "main")))
 
 #|
 * TODO: debug current scheduler by commenting out tthsum thing,
@@ -31,12 +28,6 @@
 |#
 
 (in-package :xcvb)
-
-(defun mkfifo (pathname mode)
-  #+sbcl (sb-posix:mkfifo pathname mode)
-  #+clozure (ccl::with-filename-cstrs ((p pathname))(#.(read-from-string "#_mkfifo") p mode))
-  #+clisp (LINUX:mkfifo pathname mode) ;;(error "Problem with (LINUX:mkfifo ~S ~S)" pathname mode)
-  #-(or sbcl clozure clisp) (error "mkfifo not implemented for your Lisp"))
 
 (defvar *workers* (make-hash-table :test 'equal)
   "maps intentional state of the world identifiers to descriptors of worker processes
@@ -278,6 +269,9 @@ waiting at this state of the world.")
   (or (wait-for-any-terminated-computation :nohang t) ;; dumb wrong thing for now.
       (poll-sleep)))
 
+(defun *event-base* nil)
+(defun *sigchldfd* nil)
+
 (defparameter +fifo-subpathname+ "_fifo/")
 (defvar +working-directory-subpathname+)
 
@@ -287,7 +281,7 @@ waiting at this state of the world.")
                 (merge-pathnames +working-directory-subpathname+)
                 +fifo-subpathname+)
                (princ-to-string hash))))
-    (mkfifo name #o600)))
+    (isys:mkfifo name #o600)))
 
 (defun work-on-computation (env computation)
   (with-nesting ()
@@ -324,23 +318,39 @@ waiting at this state of the world.")
 (defun cpu-resources-available-p ()
   t)
 
+(defun make-computation-set ()
+  (NIY 'make-computation-set))
+
+(defun evaluate-latencies (computations)
+  (NIY 'evaluate-latencies computations))
+
 (defun farm-out-world-tree (env)
   ;; TODO: parametrize the a- the scheduling b- the action itself (or lack thereof)
+  (setf *event-base* (make-instance 'iomux:event-base))
+  (setf *sigchldfd* (quux-iolib::install-signalfd isys:SIGCHLD isys:SA-NOCLDSTOP))
   (let* ((ready-computations (make-hash-table)) ;; set of computations ready to be issued
          (waiting-computations (make-hash-table)) ;; set of computations waiting for inputs
-         (pending-computations (make-hash-table :test 'equal)) ;; set of pending active computation
-         (expected-latencies (make-hash-table)))
+         (pending-computations (make-hash-table :test 'equal)) ;; pid to pending computation
+         (expected-latencies (make-hash-table))) ;; computation to latency evaluation
     (labels
         ((event-step ()
-           (or
-            (maybe-handle-finished-computations)
-            (maybe-issue-computation)
-            (wait-for-event-with-timeout)))
-         (maybe-handle-finished-computations ()
-           (when-bind (computation) (wait-for-any-terminated-computation :nohang t)
-             (finalize-computation computation)))
-         (finalize-computation (computation)
+           (iomux:event-dispatch *event-base* :one-shot t))
+         (handle-dead-children (fd event exception)
+           (declare (ignore event exception))
+           (when (signalfd-signalled-p fd)
+             (handle-signalling-children fd #'handle-dead-child)
+             (maybe-issue-computation)))
+         (handle-dead-child (pid status)
+           (let ((computation (gethash pid pending-computations)))
+             (assert computation)
+             (finalize-computation
+              computation
+              (and (isys:wifexited status) (zerop (isys:wexitstatus status))))))
+         (finalize-computation (computation successp)
            (remhash computation pending-computations)
+           ;; TODO: terminate the whole thing gracefully, direct user to error log.
+           (unless successp
+             (error "Computation ~A failed" computation))
            (map () #'handle-done-grain (computation-outputs computation)))
          (maybe-issue-computation ()
            (when (and (ready-computation-p)
@@ -381,6 +391,7 @@ waiting at this state of the world.")
       (compute-latency-model *computations* :latencies expected-latencies)
       (loop :for c :in *computations* :do
         (setf (gethash c waiting-computations) (length (computation-inputs c))))
+      (set-io-handler *event-base* *sigchldfd* :read #'handle-dead-children)
       (loop :for grain :being :the :hash-values :of *grains*
         :when (and (null (grain-computation grain))
                    (grain-users grain))
@@ -388,7 +399,6 @@ waiting at this state of the world.")
       (loop
         :while (or (pending-computation-p) (ready-computation-p) (waiting-computation-p))
         :do (event-step)))))
-
 
 (defun standalone-build (fullname)
   #+DEBUG

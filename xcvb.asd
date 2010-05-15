@@ -42,7 +42,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :fare-utils :command-line-arguments
                  :asdf-dependency-grovel :closer-mop
                  ;; :ironclad :binascii
-                 #|:iolib|#)
+                 :quux-iolib
+                 :iolib)
     :components
     ((:file "pkgdcl")
      (:file "conditions" :depends-on ("pkgdcl"))

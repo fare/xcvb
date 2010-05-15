@@ -23,7 +23,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
                      (:build "/asdf-dependency-grovel")
                      (:build "/closer-mop")
                      (:build "/command-line-arguments")
-                     (:build "/fare-utils")
+                     (:build "/fare-utils") ;; utilities and data structures.
+                     (:build "/iolib") ;; I/O event loop
+                     (:build "/quux/iolib") ;; signalfd support (experimental)
                      ;;(:asdf :ironclad) ;; unported magic adsf:perform methods...
                      ;;(:asdf :binascii)
                      "/xcvb/master"

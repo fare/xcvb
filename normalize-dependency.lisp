@@ -36,6 +36,7 @@ a reference to the system was superseded by a build.xcvb file.")
 (defun normalize-dependency-atom (grain name)
   (let ((g (resolve-module-name name grain)))
     (etypecase g
+      (null (error "Failed to resolve name ~A from grain ~A" name (fullname grain)))
       (build-module-grain `(:build ,(fullname g)))
       (lisp-file-grain `(:fasl ,(second (fullname g)))))))
 
