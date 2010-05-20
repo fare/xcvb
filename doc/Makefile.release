@@ -29,10 +29,15 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 
 GIT_DEPENDENCIES := \
 	asdf asdf-dependency-grovel binascii cl-launch \
-	command-line-arguments fare-utils ironclad poiu
+	command-line-arguments fare-utils poiu \
+	alexandria iolib quux-iolib \
+	ironclad binascii
 
-DARCS_DEPENDENCIES := closer-mop
+DARCS_DEPENDENCIES := closer-mop cffi bordeaux-threads \
+	trivial-garbage trivial-features
+
 DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
+
 
 install-cl-launch:
 	mkdir -p ${LISP_SOURCE}/cl-launch ${INSTALL_BIN}
@@ -65,18 +70,36 @@ install-using-asdf: install-source
 
 checkout:
 	clone () { git clone $$1 || echo "Already got $$(basename $$1)" ; } ; \
+	get () { darcs get $$1 || echo "Already got $$(basename $$1)" ; } ; \
 	clone http://common-lisp.net/project/xcvb/git/xcvb.git && \
 	mkdir -p dependencies && cd dependencies && \
-	clone http://common-lisp.net/project/asdf/asdf.git && \
-	clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git && \
+	clone git://common-lisp.net/projects/xcvb/alexandria.git && \
+	clone git://common-lisp.net/project/asdf/asdf.git && \
+	clone git://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git && \
 	clone git://github.com/froydnj/binascii.git && \
-	clone http://common-lisp.net/project/xcvb/git/cl-launch.git && \
-	clone http://common-lisp.net/project/qitab/git/command-line-arguments.git && \
-	clone http://common-lisp.net/~frideau/git/fare-utils.git && \
+	clone git://common-lisp.net/project/xcvb/git/cl-launch.git && \
+	clone git://common-lisp.net/project/qitab/git/command-line-arguments.git && \
+	clone git://common-lisp.net/~frideau/git/fare-utils.git && \
+	clone git://common-lisp.net/project/xcvb/git/iolib.git
 	clone git://github.com/froydnj/ironclad.git && \
-	clone http://common-lisp.net/project/qitab/git/poiu.git && \
-	( if [ -d closer-mop ] ; then echo "Already got closer-mop from darcs" ; else \
-	  darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop ; fi )
+	clone git://common-lisp.net/project/qitab/git/poiu.git && \
+	clone git://common-lisp.net/project/xcvb/git/quux-iolib.git && \
+	get http://common-lisp.net/project/xcvb/darcs/cffi && \
+	get http://common-lisp.net/project/xcvb/darcs/closer-mop && \
+	get http://common-lisp.net/project/xcvb/darcs/trivial-features && \
+	get http://common-lisp.net/project/xcvb/darcs/trivial-garbage
+
+fake-release-directory:
+	[ -d "${RELEASE_DIR}" ] || { echo "RELEASE_DIR not defined" ; exit 42 ;} ; \
+	[ -n "${RELEASE_EXCLUDE}" ] || { echo "RELEASE_EXCLUDE not defined" ; exit 42 ;} ; \
+	mkdir -p ${RELEASE_DIR}/dependencies ${RELEASE_DIR}/xcvb && \
+	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} && \
+	rsync -av ${RELEASE_EXCLUDE} ./ ${RELEASE_DIR}/xcvb/ && \
+	for i in ${DEPENDENCIES} ; do \
+	  rsync -av ${RELEASE_EXCLUDE} ../$$i ${RELEASE_DIR}/dependencies/ ; \
+	done ; \
+		prepare-release
+
 
 gc:
 	echo -n "Packing xcvb..." ; cd xcvb ; git gc ; git repack -Ad

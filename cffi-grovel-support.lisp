@@ -16,6 +16,8 @@
 (define-handle-extension-form :cffi-grovel (build name &rest keys &key
                                             cc-flags depends-on build-depends-on
                                             compile-depends-on cload-depends-on load-depends-on)
+  (declare (ignorable cc-flags depends-on build-depends-on
+                      compile-depends-on cload-depends-on load-depends-on))
   (let* ((bname (fullname build))
          (prefix (strcat bname "/"))
          (suffix (cond
@@ -81,6 +83,7 @@
       (setf (grain-generator target) generator)))))
   (values))
 
+(defgeneric build-command-for-process-cffi-grovel-file (env name &key cc-flags))
 (define-build-command-for :process-cffi-grovel-file (env name &key cc-flags)
   (issue-build-command env
     `(:process-cffi-grovel-file ,name ,@(when cc-flags `(:cc-flags ,cc-flags)))))
@@ -132,7 +135,7 @@
 operating system.  This is used to implement the :DEFAULT option.
 This will need to be extended as we test on more OSes."
   (or (cdr (assoc-if #'target-feature-p *cffi-feature-suffix-map*))
-      (fl-error "Unable to determine the default library suffix on this OS.")))
+      (error "Unable to determine the default library suffix on this OS.")))
 
 
 (defclass cffi-wrapper-specification-grain (lisp-module-grain)
@@ -143,6 +146,8 @@ This will need to be extended as we test on more OSes."
 (define-handle-extension-form :cffi-wrapper (build name &rest keys &key
                                              cc-flags depends-on build-depends-on
                                              compile-depends-on cload-depends-on load-depends-on)
+  (declare (ignorable cc-flags depends-on build-depends-on
+                      compile-depends-on cload-depends-on load-depends-on))
   (let* ((bname (fullname build))
          (prefix (strcat bname "/"))
          (suffix (cond
@@ -209,6 +214,7 @@ This will need to be extended as we test on more OSes."
       (setf (grain-generator target) generator)))))
   (values))
 
+(defgeneric build-command-for-process-cffi-wrapper-file (env name &key cc-flags))
 (define-build-command-for :process-cffi-wrapper-file (env name &key cc-flags)
   (issue-build-command env
     `(:process-cffi-wrapper-file ,name ,@(when cc-flags `(:cc-flags ,cc-flags)))))

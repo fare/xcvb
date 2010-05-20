@@ -184,28 +184,32 @@ until something else is found, then return that header as a string"
            (file-deps (mapcar
                        #'asdf-dependency-grovel::normalized-component-name
                        (dependency-sort (asdf:module-components asdf-system)
-                                        original-traverse-order-map))))
-      (make-instance 'build-module-grain
-        :fullname fullname
-        :author author
-        :maintainer maintainer
-        :version version
-        :description description
-        :long-description long-description
-        :licence licence
-        :build-depends-on (mapcar (lambda (dep) `(:asdf ,dep))
-                                  (set-difference (mapcar #'coerce-asdf-system-name asdf-deps)
-                                                  original-systems :test 'equal))
-        :compile-depends-on (if *use-cfasls*
-                              (mapcar (lambda (dep) (list :compile dep))
-                                      file-deps)
-                              file-deps)
-        :load-depends-on file-deps
-	:supersedes-asdf original-systems
-	:pathname (make-pathname
-                   :name "build"
-                   :type "xcvb"
-                   :defaults directory)))))
+                                        original-traverse-order-map)))
+           (build
+            (make-instance 'build-module-grain
+             :fullname fullname
+             :author author
+             :maintainer maintainer
+             :version version
+             :description description
+             :long-description long-description
+             :licence licence
+             :build-depends-on (mapcar (lambda (dep) `(:asdf ,dep))
+                                       (set-difference (mapcar #'coerce-asdf-system-name asdf-deps)
+                                                       original-systems :test 'equal))
+             :compile-depends-on (if *use-cfasls*
+                                     (mapcar (lambda (dep) (list :compile dep))
+                                             file-deps)
+                                     file-deps)
+             :load-depends-on file-deps
+             :supersedes-asdf original-systems
+             :pathname (make-pathname
+                        :name "build"
+                        :type "xcvb"
+                        :defaults directory))))
+      (setf (gethash build *truename-build-fullnames*) fullname)
+      (register-build-named fullname build t)
+      build)))
 
 (defgeneric component-truename (x))
 

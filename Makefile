@@ -178,12 +178,7 @@ show-current-revision:
 
 TMP ?= /tmp
 
-GIT_DEPENDENCIES := asdf asdf-dependency-grovel cl-launch \
-	command-line-arguments fare-utils poiu ironclad binascii
-DARCS_DEPENDENCIES := closer-mop
-DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
-
-RELEASE_EXCLUDE := \
+export RELEASE_EXCLUDE := \
 	--exclude build --exclude obj --exclude obj-ne \
 	--exclude "*~" --exclude ".\#*" --exclude "xcvb*.mk" \
 # To exclude revision information: --exclude .git --exclude _darcs
@@ -228,14 +223,7 @@ test-and-release-tarball: release-tarball test-release-directory
 		common-lisp.net:/project/xcvb/public_html/releases/
 
 fake-release-directory:
-	mkdir -p ${RELEASE_DIR}/dependencies ${RELEASE_DIR}/xcvb  && \
-	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} && \
-	rsync -av ${RELEASE_EXCLUDE} ./ ${RELEASE_DIR}/xcvb/ && \
-	for i in ${DEPENDENCIES} ; do \
-	  rsync -av ${RELEASE_EXCLUDE} ../$$i ${RELEASE_DIR}/dependencies/ ; \
-	done ; \
-	${MAKE} -C ${RELEASE_DIR} -f ${XCVB_DIR}/doc/Makefile.release \
-		prepare-release
+	${MAKE} -f ${XCVB_DIR}/doc/Makefile.release fake-release-directory
 
 version-bumped-test:
 	@if git diff HEAD -- version.lisp | cmp --quiet - /dev/null ; then \

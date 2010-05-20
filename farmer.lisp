@@ -166,8 +166,7 @@ waiting at this state of the world.")
                           :command `(:active-command ,(fullname previous) ,command))
                          (world-futures previous))
                         (push world *root-worlds*))))
-      :do (DBG :mc command commands-r grain-name grain previous world))
-      ))
+      :do (DBG :mc command commands-r grain-name grain previous world))))
 
 #|
 ((world
@@ -269,8 +268,8 @@ waiting at this state of the world.")
   (or (wait-for-any-terminated-computation :nohang t) ;; dumb wrong thing for now.
       (poll-sleep)))
 
-(defun *event-base* nil)
-(defun *sigchldfd* nil)
+(defvar *event-base* nil)
+(defvar *sigchldfd* nil)
 
 (defparameter +fifo-subpathname+ "_fifo/")
 (defvar +working-directory-subpathname+)
@@ -321,8 +320,9 @@ waiting at this state of the world.")
 (defun make-computation-set ()
   (NIY 'make-computation-set))
 
-(defun evaluate-latencies (computations)
-  (NIY 'evaluate-latencies computations))
+(defun computation-should-exit-p (computation)
+  (NIY 'computation-should-exit-p computation))
+
 
 (defun farm-out-world-tree (env)
   ;; TODO: parametrize the a- the scheduling b- the action itself (or lack thereof)
@@ -345,10 +345,13 @@ waiting at this state of the world.")
              (assert computation)
              (finalize-computation
               computation
-              (and (isys:wifexited status) (zerop (isys:wexitstatus status))))))
+              (and (isys:wifexited status)
+                   (zerop (isys:wexitstatus status))))))
          (finalize-computation (computation successp)
            (remhash computation pending-computations)
            ;; TODO: terminate the whole thing gracefully, direct user to error log.
+           (unless (computation-should-exit-p computation)
+             (error "Computation ~A exited unexpectedly" computation))
            (unless successp
              (error "Computation ~A failed" computation))
            (map () #'handle-done-grain (computation-outputs computation)))
@@ -391,7 +394,7 @@ waiting at this state of the world.")
       (compute-latency-model *computations* :latencies expected-latencies)
       (loop :for c :in *computations* :do
         (setf (gethash c waiting-computations) (length (computation-inputs c))))
-      (set-io-handler *event-base* *sigchldfd* :read #'handle-dead-children)
+      (iomux:set-io-handler *event-base* *sigchldfd* :read #'handle-dead-children)
       (loop :for grain :being :the :hash-values :of *grains*
         :when (and (null (grain-computation grain))
                    (grain-users grain))
@@ -405,8 +408,7 @@ waiting at this state of the world.")
   (trace graph-for build-command-for issue-dependency
          graph-for-fasls graph-for-image-grain make-computation issue-image-named
          simplified-xcvb-driver-command make-world-name
-         call-with-grain-registration register-computed-grain
-         )
+         call-with-grain-registration register-computed-grain)
   (multiple-value-bind (fun build) (handle-target fullname)
     (declare (ignore build))
     ;; TODO: use build for default pathname to object directory?

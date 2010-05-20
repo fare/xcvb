@@ -112,6 +112,9 @@ Declare asd system as ASDF-NAME."
             "lisp")))
 (defmethod asdf-spec (env (grain source-grain))
   `(:static-file ,(enough-namestring (grain-namestring env grain))))
+(defmethod asdf-spec (env (build build-module-grain))
+  ;; should that be an error?
+  nil)
 
 (defun make-asdf-form (env asdf-name)
   ;; we can assume computations is topologically sorted.
