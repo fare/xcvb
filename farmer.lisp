@@ -395,6 +395,7 @@ waiting at this state of the world.")
       (loop :for c :in *computations* :do
         (setf (gethash c waiting-computations) (length (computation-inputs c))))
       (iomux:set-io-handler *event-base* *sigchldfd* :read #'handle-dead-children)
+      (iomux:add-timer *event-base* #'maybe-issue-computation .2)
       (loop :for grain :being :the :hash-values :of *grains*
         :when (and (null (grain-computation grain))
                    (grain-users grain))

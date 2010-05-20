@@ -26,9 +26,9 @@
     ;; This happens because graph-for's main method is called with (:lisp ...)
     ;; and gets a grain with a different fullname. Hum. This is a sign
     ;; that we're conflating several kinds of grains in our architecture.
-    (unless (or (equal fullname gname)
-                (equal fullname `(:lisp ,gname))
-                (equal fullname `(:build ,gname)))
+    (unless (or (equal gname fullname)
+                (equal gname `(:lisp ,fullname))
+                (equal gname `(:build ,fullname)))
       (log-format 7 "Registered grain for name ~S has fullname ~S" fullname gname))
     (setf (registered-grain fullname) grain)
     grain))

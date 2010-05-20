@@ -168,11 +168,14 @@ of decreasing fullname length"
   "Resolve absolute NAME into an appropriate grain, if any"
   (multiple-value-bind (build suffix)
       (resolve-build-relative-name (canonicalize-fullname name) "module name")
-    (let ((grain (resolve-module-name-at suffix build)))
-      (if (typep grain 'grain)
-          grain
-          (when error-p
-            (error "No grain ~S under build ~A" suffix (fullname build)))))))
+    (if build
+        (let ((grain (resolve-module-name-at suffix build)))
+          (if (typep grain 'grain)
+              grain
+              (when error-p
+                (error "No grain ~S under build ~A" suffix (fullname build)))))
+        (when error-p
+          (error "No build for name ~A" name)))))
 
 (defun resolve-module-name-at (suffix build)
   (check-type build build-module-grain)

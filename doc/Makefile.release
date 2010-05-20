@@ -30,10 +30,10 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 GIT_DEPENDENCIES := \
 	asdf asdf-dependency-grovel binascii cl-launch \
 	command-line-arguments fare-utils poiu \
-	alexandria iolib quux-iolib \
+	alexandria cffi iolib quux-iolib \
 	ironclad binascii
 
-DARCS_DEPENDENCIES := closer-mop cffi bordeaux-threads \
+DARCS_DEPENDENCIES := closer-mop bordeaux-threads \
 	trivial-garbage trivial-features
 
 DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
@@ -77,6 +77,7 @@ checkout:
 	clone git://common-lisp.net/project/asdf/asdf.git && \
 	clone git://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git && \
 	clone git://github.com/froydnj/binascii.git && \
+	clone git://common-lisp.net/project/xcvb/git/cffi.git && \
 	clone git://common-lisp.net/project/xcvb/git/cl-launch.git && \
 	clone git://common-lisp.net/project/qitab/git/command-line-arguments.git && \
 	clone git://common-lisp.net/~frideau/git/fare-utils.git && \
@@ -84,7 +85,6 @@ checkout:
 	clone git://github.com/froydnj/ironclad.git && \
 	clone git://common-lisp.net/project/qitab/git/poiu.git && \
 	clone git://common-lisp.net/project/xcvb/git/quux-iolib.git && \
-	get http://common-lisp.net/project/xcvb/darcs/cffi && \
 	get http://common-lisp.net/project/xcvb/darcs/closer-mop && \
 	get http://common-lisp.net/project/xcvb/darcs/trivial-features && \
 	get http://common-lisp.net/project/xcvb/darcs/trivial-garbage
