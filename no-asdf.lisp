@@ -4,7 +4,10 @@
 ;; This module is intended to be used as the --setup argument to XCVB,
 ;; in cases that you want to get rid of an old ASDF implementation.
 ;; These days, you might want to instead upgrade your ASDF, as
-;; ASDF 2 can correctly upgrade from a previous installation of ASDF.
+;; ASDF 2 can correctly upgrade from a previous installation of ASDF;
+;; indeed, I've become the ASDF maintainer and have addressed all the
+;; issues raised below so that ASDF may upgrade itself,
+;; which it previously couldn't.
 ;; Thus this file is available for reference mostly.
 
 ;; I created this no-asdf file because some implementations (including

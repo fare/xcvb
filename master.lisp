@@ -36,7 +36,7 @@
 
    ;;; String utilities - also in fare-utils
    ;#:string-prefix-p
-   ;#:string-postfix-p
+   ;#:string-suffix-p
    ;#:string-enclosed-p
 
    ;;; I/O utilities
@@ -142,16 +142,16 @@ with associated pathnames and tthsums.")
          (ly (length y)))
     (and (<= lx ly) (string= x y :end2 lx))))
 
-(defun string-postfix-p (string postfix)
+(defun string-suffix-p (string suffix)
   (let* ((x (string string))
-         (y (string postfix))
+         (y (string suffix))
          (lx (length x))
          (ly (length y)))
     (and (<= ly lx) (string= x y :start1 (- lx ly)))))
 
-(defun string-enclosed-p (prefix string postfix)
+(defun string-enclosed-p (prefix string suffix)
   (and (string-prefix-p prefix string)
-       (string-postfix-p string postfix)))
+       (string-suffix-p string suffix)))
 
 ;;; I/O utilities
 (defun copy-stream-to-stream (input output &key (element-type 'character))
@@ -319,19 +319,21 @@ with associated pathnames and tthsums.")
   `(append ,@(loop :for var :in vars :collect `(boolean-option ,var))))
 
 ;;; Run a slave, obey its orders.
-(defun build-and-load
-    (build &key
-     (xcvb-binary *xcvb-binary*)
-     (setup *xcvb-setup*)
-     (source-registry *source-registry*)
-     output-path
-     (object-directory *object-directory*)
-     (lisp-implementation *lisp-implementation-type*)
-     (lisp-binary-path *lisp-executable-pathname*)
-     (disable-cfasl *disable-cfasls*)
-     (base-image *use-base-image*)
-     (verbosity *xcvb-verbosity*)
-     profiling)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *bnl-keys*
+    '((xcvb-binary *xcvb-binary*)
+      (setup *xcvb-setup*)
+      (source-registry *source-registry*)
+      (output-path nil)
+      (object-directory *object-directory*)
+      (lisp-implementation *lisp-implementation-type*)
+      (lisp-binary-path *lisp-executable-pathname*)
+      (disable-cfasl *disable-cfasls*)
+      (base-image *use-base-image*)
+      (verbosity *xcvb-verbosity*)
+      (profiling nil))))
+
+(defun build-and-load (build &key . #.*bnl-keys*)
   (let* ((slave-command
           (append
            (list xcvb-binary "slave-builder")
@@ -366,6 +368,7 @@ with associated pathnames and tthsums.")
       (format *error-output* "~&Slave XCVB returned following manifest:~%~S~%" manifest))
     (process-manifest manifest)))
 
-(defun bnl (build &rest keys)
+(defun bnl (build &rest keys &key . #.(mapcar #'car *bnl-keys*))
   "Short hand for build-and-load"
+  (declare (ignore . #.(mapcar #'car *bnl-keys*)))
   (apply 'build-and-load build keys))

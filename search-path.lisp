@@ -5,7 +5,7 @@
 ;;; The Source Registry itself.
 ;;; We directly use the code from ASDF, therefore ensuring 100% compatibility.
 
-(defparameter *source-registry* ()
+(defparameter *flattened-source-registry* ()
   "Either NIL (for uninitialized), or a list of one element,
 said element itself being a list of directory pathnames where to look for build.xcvb files")
 
@@ -70,11 +70,11 @@ Initially populated with all build.xcvb files from the search path.")
 (defun initialize-source-registry (&optional parameter)
   (clrhash *builds*)
   (let ((source-registry (compute-source-registry parameter)))
-    (setf *source-registry* (list source-registry))
-    *source-registry*))
+    (setf *flattened-source-registry* (list source-registry))
+    *flattened-source-registry*))
 
 (defun ensure-source-registry ()
-  (unless *source-registry*
+  (unless *flattened-source-registry*
     (error "You should have already initialized the source registry by now!")))
 
 ;;; Now for actually searching the source registry!
@@ -89,9 +89,9 @@ Initially populated with all build.xcvb files from the search path.")
        nil))))
 
 (defun finalize-source-registry ()
-  (setf *source-registry*
+  (setf *flattened-source-registry*
         (list
-         (loop :for (path . flags) :in (car *source-registry*)
+         (loop :for (path . flags) :in (car *flattened-source-registry*)
            :for v = (verify-path-element path)
            :when v :collect (cons v flags)))))
 
@@ -148,7 +148,7 @@ Initially populated with all build.xcvb files from the search path.")
 
 (defun search-source-registry ()
   (finalize-source-registry)
-  (dolist (root (car *source-registry*))
+  (dolist (root (car *flattened-source-registry*))
     (map-build-files-under root #'(lambda (x) (register-build-file x root)))
     (confirm-builds-under root)))
 
@@ -261,7 +261,7 @@ for each of its registered names."
 
 (defun show-source-registry ()
   "Show registered builds"
-  (format t "~&Registered search paths:~{~% ~S~}~%" (car *source-registry*))
+  (format t "~&Registered search paths:~{~% ~S~}~%" (car *flattened-source-registry*))
   (format t "~%Builds found in the search paths:~%")
   (flet ((entry-string (x)
            (destructuring-bind (fullname . entry) x

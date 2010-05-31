@@ -86,28 +86,28 @@ waiting at this state of the world.")
   ())
 
 (defun simplified-xcvb-driver-command (computation-command)
-  (cond
-    ((and (list-of-length-p 2 computation-command)
-          (eq :progn (first computation-command)))
+  (unless (consp computation-command)
+    (error "Unrecognized computation command ~S" computation-command))
+  (ecase (first computation-command)
+    ((:progn)
+     (assert (list-of-length-p 2 computation-command))
      (simplified-xcvb-driver-command (second computation-command)))
-    ((and (consp computation-command)
-          (eq :xcvb-driver-command (first computation-command)))
-     (values (second computation-command)
-	     (cons :xcvb-driver-command
-		   (simplify-xcvb-driver-commands (cddr computation-command)))))
-    ((and (consp computation-command) (<= 2 (length computation-command) 3)
-	  (eq (car computation-command) :compile-file-directly))
-     (values () computation-command)) ;;; TODO: what need we do in this magic case?
-    (t (error "Unrecognized computation command ~S" computation-command))))
+    ((:xcvb-driver-command)
+     (destructuring-bind (setup &rest commands) (rest computation-command)
+       (values setup
+               (simplified-xcvb-driver-commands commands))))
+    ((:compile-file-directly)
+     (assert (<= 2 (length computation-command) 4))
+     (values () (list computation-command))))) ;;; TODO: what need we do in this magic case?
 
-(defun simplify-xcvb-driver-commands (commands)
+(defun simplified-xcvb-driver-commands (commands)
   (while-collecting (c) (emit-simplified-commands #'c commands)))
 
 (defvar *simple-xcvb-driver-commands*
   '(:load-file :require :load-asdf :register-asdf-directory :debugging))
 
 (defun emit-simplified-commands (collector commands)
-  (flet ((collect (x) (funcall collector x)))
+  (flet ((collect (x) (funcall collector `(:xcvb-driver-command ,x))))
     (dolist (c commands)
       (let ((l (length c))
             (h (first c)))
@@ -150,6 +150,7 @@ waiting at this state of the world.")
       :for grain-name = (unwrap-load-file-command command)
       :for grain = (when grain-name (registered-grain grain-name))
       :for previous = nil :then world
+      :for () = (DBG :mc1 commands-r grain)
       :for world = (intern-world-summary
                     setup commands-r
                     (lambda ()
@@ -323,100 +324,108 @@ waiting at this state of the world.")
 (defun computation-should-exit-p (computation)
   (NIY 'computation-should-exit-p computation))
 
+(defvar *ready-computations* (make-hash-table)) ;; set of computations ready to be issued
+(defvar *waiting-computations* (make-hash-table)) ;; set of computations waiting for inputs
+(defvar *pending-computations* (make-hash-table :test 'equal)) ;; pid to pending computation
+(defvar *expected-latencies* (make-hash-table)) ;; computation to latency evaluation
 
 (defun farm-out-world-tree (env)
   ;; TODO: parametrize the a- the scheduling b- the action itself (or lack thereof)
-  (setf *event-base* (make-instance 'iomux:event-base))
-  (setf *sigchldfd* (quux-iolib::install-signalfd isys:SIGCHLD isys:SA-NOCLDSTOP))
-  (let* ((ready-computations (make-hash-table)) ;; set of computations ready to be issued
-         (waiting-computations (make-hash-table)) ;; set of computations waiting for inputs
-         (pending-computations (make-hash-table :test 'equal)) ;; pid to pending computation
-         (expected-latencies (make-hash-table))) ;; computation to latency evaluation
-    (labels
-        ((event-step ()
-           (iomux:event-dispatch *event-base* :one-shot t))
-         (handle-dead-children (fd event exception)
-           (declare (ignore event exception))
-           (when (signalfd-signalled-p fd)
-             (handle-signalling-children fd #'handle-dead-child)
-             (maybe-issue-computation)))
-         (handle-dead-child (pid status)
-           (let ((computation (gethash pid pending-computations)))
-             (assert computation)
-             (finalize-computation
-              computation
-              (and (isys:wifexited status)
-                   (zerop (isys:wexitstatus status))))))
-         (finalize-computation (computation successp)
-           (remhash computation pending-computations)
-           ;; TODO: terminate the whole thing gracefully, direct user to error log.
-           (unless (computation-should-exit-p computation)
-             (error "Computation ~A exited unexpectedly" computation))
-           (unless successp
-             (error "Computation ~A failed" computation))
-           (map () #'handle-done-grain (computation-outputs computation)))
-         (maybe-issue-computation ()
-           (when (and (ready-computation-p)
-                      (cpu-resources-available-p))
-             (issue-one-computation)))
-         (issue-one-computation ()
-           (when-bind (computation) (pick-one-computation-amongst-the-ready-ones)
-             (issue-computation computation)))
-         (pick-one-computation-amongst-the-ready-ones ()
-           (loop :with best-computation = nil
-             :with max-latency = 0
-             :for computation :being :the :hash-values :of ready-computations
-             :for latency = (gethash computation expected-latencies)
-             :when (> latency max-latency) :do
-               (setf best-computation computation max-latency latency)
-             :finally (return best-computation)))
-         (issue-computation (computation)
-           (work-on-computation env computation)
-           (setf (gethash computation pending-computations) t))
-         (ready-computation-p ()
-           (not (zerop (hash-table-count ready-computations))))
-         (waiting-computation-p ()
-           (not (zerop (hash-table-count waiting-computations))))
-         (pending-computation-p ()
-           (not (zerop (hash-table-count pending-computations))))
-         (notify-users-grain-is-ready (grain)
-           (map () #'notify-one-fewer-dependency (grain-users grain)))
-         (notify-one-fewer-dependency (computation)
-           (when (zerop (decf (gethash computation waiting-computations)))
-             (remhash computation waiting-computations)
-             (mark-computation-ready computation)))
-         (mark-computation-ready (computation)
-           (setf (gethash computation ready-computations) t))
-         (handle-done-grain (grain)
-           (compute-grain-hash grain)
-           (notify-users-grain-is-ready grain)))
-      ;; Compute a static cost model.
-      (compute-latency-model *computations* :latencies expected-latencies)
-      (loop :for c :in *computations* :do
-        (setf (gethash c waiting-computations) (length (computation-inputs c))))
-      (iomux:set-io-handler *event-base* *sigchldfd* :read #'handle-dead-children)
-      (iomux:add-timer *event-base* #'maybe-issue-computation .2)
-      (loop :for grain :being :the :hash-values :of *grains*
-        :when (and (null (grain-computation grain))
-                   (grain-users grain))
-        :do (handle-done-grain grain))
-      (loop
-        :while (or (pending-computation-p) (ready-computation-p) (waiting-computation-p))
-        :do (event-step)))))
+  (labels
+      ((event-step ()
+         (iomux:event-dispatch *event-base* :one-shot t))
+       (handle-dead-children (fd event exception)
+         (declare (ignore event exception))
+         (when (signalfd-signalled-p fd)
+           (handle-signalling-children fd #'handle-dead-child)
+           (maybe-issue-computation)))
+       (handle-dead-child (pid status)
+         (let ((computation (gethash pid pending-computations)))
+           (assert computation)
+           (finalize-computation
+            computation
+            (and (isys:wifexited status)
+                 (zerop (isys:wexitstatus status))))))
+       (finalize-computation (computation successp)
+         (remhash computation pending-computations)
+         ;; TODO: terminate the whole thing gracefully, direct user to error log.
+         (unless (computation-should-exit-p computation)
+           (error "Computation ~A exited unexpectedly" computation))
+         (unless successp
+           (error "Computation ~A failed" computation))
+         (map () #'handle-done-grain (computation-outputs computation)))
+       (maybe-issue-computation ()
+         (when (and (ready-computation-p)
+                    (cpu-resources-available-p))
+           (issue-one-computation)))
+       (issue-one-computation ()
+         (when-bind (computation) (pick-one-computation-amongst-the-ready-ones)
+           (issue-computation computation)))
+       (pick-one-computation-amongst-the-ready-ones ()
+         (loop :with best-computation = nil
+           :with max-latency = 0
+           :for computation :being :the :hash-values :of ready-computations
+           :for latency = (gethash computation expected-latencies)
+           :when (> latency max-latency) :do
+           (setf best-computation computation max-latency latency)
+           :finally (return best-computation)))
+       (issue-computation (computation)
+         (work-on-computation env computation)
+         (setf (gethash computation *pending-computations*) t))
+       (ready-computation-p ()*
+         (not (zerop (hash-table-count *ready-computations*))))
+       (waiting-computation-p ()
+         (not (zerop (hash-table-count *waiting-computations*))))
+       (pending-computation-p ()
+         (not (zerop (hash-table-count *pending-computations*))))
+       (notify-users-grain-is-ready (grain)
+         (map () #'notify-one-fewer-dependency (grain-users grain)))
+       (notify-one-fewer-dependency (computation)
+         (when (zerop (decf (gethash computation *waiting-computations*)))
+           (remhash computation *waiting-computations*)
+           (mark-computation-ready computation)))
+       (mark-computation-ready (computation)
+         (setf (gethash computation *ready-computations*) t))
+       (issue-initial-computations ()
+         (loop :for grain :being :the :hash-values :of *grains*
+           :when (and (null (grain-computation grain))
+                      (grain-users grain))
+           :do (handle-done-grain grain)))
+       (work-in-progress-p ()
+         (or (pending-computation-p) (ready-computation-p) (waiting-computation-p)))
+       (handle-done-grain (grain)
+         (compute-grain-hash grain)
+         (notify-users-grain-is-ready grain)))
+    ;; Compute a static cost model.
+    (setf *ready-computations* (make-hash-table)) ;; set of computations ready to be issued
+    (setf *waiting-computations* (make-hash-table)) ;; set of computations waiting for inputs
+    (setf *pending-computations* (make-hash-table :test 'equal)) ;; pid to pending computation
+    (setf *expected-latencies* (make-hash-table)) ;; computation to latency evaluation
+    (compute-latency-model *computations* :latencies *expected-latencies*)
+    (loop :for c :in *computations* :do
+      (setf (gethash c *waiting-computations*) (length (computation-inputs c))))
+    (NIY 'blah)
+    (setf *event-base* (make-instance 'iomux:event-base))
+    (setf *sigchldfd* (quux-iolib::install-signalfd isys:SIGCHLD isys:SA-NOCLDSTOP))
+    (iomux:set-io-handler *event-base* *sigchldfd* :read #'handle-dead-children)
+    (iomux:add-timer *event-base* #'maybe-issue-computation .2)
+    (issue-initial-computations)
+    (loop :while (work-in-progress-p) :do (event-step))))
 
-(defun standalone-build (fullname)
-  #+DEBUG
-  (trace graph-for build-command-for issue-dependency
+(defun standalone-build (name)
+  ;;#+DEBUG
+  (trace handle-target graph-for build-command-for issue-dependency
          graph-for-fasls graph-for-image-grain make-computation issue-image-named
-         simplified-xcvb-driver-command make-world-name
+         simplified-xcvb-driver-command simplified-xcvb-driver-commands
+         make-world-name
          call-with-grain-registration register-computed-grain)
-  (multiple-value-bind (fun build) (handle-target fullname)
+  (multiple-value-bind (fullname build) (handle-target name)
     (declare (ignore build))
     ;; TODO: use build for default pathname to object directory?
     (let* ((*use-master* nil)
            (*root-worlds* nil)
            (traversal (make-instance 'farmer-traversal)))
-      (funcall fun traversal)
+      (graph-for traversal fullname)
       (farm-out-world-tree traversal))))
 
 (defparameter +standalone-build-option-spec+
