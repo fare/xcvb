@@ -156,6 +156,7 @@ waiting at this state of the world.")
                     (lambda ()
                       (unless previous '(:computation nil)))
                     (lambda (world)
+                      (DBG :w world previous grain)
                       (if previous
                         (push
                          (make-computation
@@ -347,7 +348,7 @@ waiting at this state of the world.")
             (and (isys:wifexited status)
                  (zerop (isys:wexitstatus status))))))
        (finalize-computation (computation successp)
-         (remhash computation pending-computations)
+         (remhash computation *pending-computations*)
          ;; TODO: terminate the whole thing gracefully, direct user to error log.
          (unless (computation-should-exit-p computation)
            (error "Computation ~A exited unexpectedly" computation))
@@ -364,8 +365,8 @@ waiting at this state of the world.")
        (pick-one-computation-amongst-the-ready-ones ()
          (loop :with best-computation = nil
            :with max-latency = 0
-           :for computation :being :the :hash-values :of ready-computations
-           :for latency = (gethash computation expected-latencies)
+           :for computation :being :the :hash-values :of *ready-computations*
+           :for latency = (gethash computation *expected-latencies*)
            :when (> latency max-latency) :do
            (setf best-computation computation max-latency latency)
            :finally (return best-computation)))

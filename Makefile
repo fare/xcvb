@@ -73,10 +73,13 @@ xcvb: xcvb-using-xcvb
 # Below you may use either of these setups, or none at all.
 # --setup /xcvb/no-asdf   ## This will be made obsolete by newer ASDF (>= 1.371).
 # --setup /xcvb/setup     ## Edit your own or create one from cl-launch with make setup.lisp
-xcvb.mk: force
+XCVB_MK=${XCVB_OBJECT_DIRECTORY}/xcvb.mk
+
+${XCVB_MK}: force
 	xcvb make-makefile \
 	     --build /xcvb \
 	     --setup /xcvb/no-asdf \
+	     --output-path $@ \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY} \
 	     --lisp-implementation ${LISP_IMPL} \
 	     --lisp-binary-path ${LISP_BIN}
@@ -84,10 +87,12 @@ xcvb.mk: force
 
 PARALLELIZE := -j
 
-${XCVB_OBJECT_DIRECTORY}/xcvb.image: xcvb.mk
-	${MAKE} -f xcvb.mk ${PARALLELIZE} || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk
+${XCVB_OBJECT_DIRECTORY}/xcvb.image: ${XCVB_MK}
+	${MAKE} -f $< ${PARALLELIZE} || XCVB_DEBUGGING=t ${MAKE} -f $<
 
-xcvb-using-xcvb: ${XCVB_OBJECT_DIRECTORY}/xcvb.image
+xcvb-using-xcvb: ${INSTALL_BIN}/xcvb
+
+${INSTALL_BIN}/xcvb: ${XCVB_OBJECT_DIRECTORY}/xcvb.image
 	${MAKE} xcvb-bootstrapped-install
 
 XCVB_INIT :=	--init "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCVB}/\"))" \
