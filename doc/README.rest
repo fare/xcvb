@@ -131,7 +131,7 @@ If you want instead to download XCVB as part of your pre-existing Lisp developme
 you will have to also download all our `dependencies`_.
 You can checkout our public repository with::
 
-	git clone http://common-lisp.net/project/xcvb/git/xcvb.git
+	git clone git://common-lisp.net/projects/xcvb/xcvb.git
 
 Or if you are a project member, you can obtain write access using::
 
@@ -175,24 +175,24 @@ and to build and run the target software that you will build with XCVB:
 If you prefer to collect XCVB's dependencies manually into your system,
 you will need the following Lisp software libraries to get XCVB running:
 
-  * cl-launch 2.903 or later:
+  * cl-launch 3.000 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
-		``git clone http://common-lisp.net/project/xcvb/git/cl-launch.git``
+		``git clone git://common-lisp.net/projects/xcvb/cl-launch.git``
         - getting it, if you're an XCVB project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
-  * ASDF 1.678 or later, aka ASDF 2:
+  * ASDF 2.000 or later, aka ASDF 2:
 	- homepage: http://cliki.net/asdf
 	- getting it:
-		``git clone http://common-lisp.net/project/asdf/asdf.git``
+		``git clone git://common-lisp.net/projects/asdf/asdf.git``
         - getting it, if you're an ASDF project member:
 		``git clone ssh://USER@common-lisp.net/project/asdf/asdf.git``
 
   * Our fork of ``asdf-dependency-grovel``:
 	- homepage: http://cliki.net/asdf-dependency-grovel
 	- getting it:
-		``git clone http://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
+		``git clone git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git``
         - getting it, if you're an XCVB project member:
 		``git clone ssh://USER@common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
 
@@ -206,14 +206,14 @@ you will need the following Lisp software libraries to get XCVB running:
   * command-line-arguments:
 	- homepage: http://common-lisp.net/project/qitab/
 	- getting it:
-		``git clone http://common-lisp.net/project/qitab/git/command-line-arguments.git``
+		``git clone git://common-lisp.net/projects/qitab/command-line-arguments.git``
         - getting it, if you're a QITAB project member::
         	``git clone ssh://USER@common-lisp.net/project/qitab/git/command-line-arguments.git``
 
   * POIU for fast non-enforcing build:
 	- homepage: http://common-lisp.net/project/qitab/
 	- getting it:
-		``git clone http://common-lisp.net/project/qitab/git/poiu.git``
+		``git clone git://common-lisp.net/projects/qitab/poiu.git``
         - getting it, if you're a QITAB project member::
 		``git clone ssh://USER@common-lisp.net/project/qitab/git/poiu.git``
 

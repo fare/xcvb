@@ -79,7 +79,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                                                "asdf-backend" "simplifying-traversal"))
      (:file "asdf-converter" :depends-on ("main" "grain-interface"))
      (:file "slave" :depends-on ("main"))
-     (:file "farmer" :depends-on ("profiling" "main"
+     (:file "farmer" :depends-on ("profiling" "main" "makefile-backend"
                                   "grain-interface" "dependencies-interpreter"))
      (:file "cffi-grovel-support" :depends-on
             ("makefile-backend" "static-traversal" "computations" "driver-commands"

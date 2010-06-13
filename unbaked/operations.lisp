@@ -171,3 +171,16 @@ So...
 
 |#
 
+
+(defgeneric computation-category (computation))
+(declaim (ftype (function (computation) category) computation-category))
+
+(defgeneric computation-source (computation))
+(declaim (ftype (function (computation) object) computation-source))
+(defgeneric computation-target (computation))
+(declaim (ftype (function (computation) object) computation-target))
+(defgeneric computation-label (computation))
+(declaim (ftype (function (computation) label) computation-label))
+
+
+

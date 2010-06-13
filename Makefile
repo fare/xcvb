@@ -73,7 +73,8 @@ xcvb: xcvb-using-xcvb
 # Below you may use either of these setups, or none at all.
 # --setup /xcvb/no-asdf   ## This will be made obsolete by newer ASDF (>= 1.371).
 # --setup /xcvb/setup     ## Edit your own or create one from cl-launch with make setup.lisp
-XCVB_MK=${XCVB_OBJECT_DIRECTORY}/xcvb.mk
+XCVB_MK := ${XCVB_OBJECT_DIRECTORY}/xcvb.mk
+MK_XCVB := ${MAKE} -C ${XCVB_OBJECT_DIRECTORY} -f xcvb.mk
 
 ${XCVB_MK}: force
 	xcvb make-makefile \
@@ -88,7 +89,7 @@ ${XCVB_MK}: force
 PARALLELIZE := -j
 
 ${XCVB_OBJECT_DIRECTORY}/xcvb.image: ${XCVB_MK}
-	${MAKE} -f $< ${PARALLELIZE} || XCVB_DEBUGGING=t ${MAKE} -f $<
+	${MK_XCVB} ${PARALLELIZE} || XCVB_DEBUGGING=t ${MK_XCVB}
 
 xcvb-using-xcvb: ${INSTALL_BIN}/xcvb
 
