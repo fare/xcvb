@@ -10,7 +10,7 @@
 (defpackage :xcvb
   (:use :closer-common-lisp
         :xcvb-driver :command-line-arguments :xcvb-master
-        :fare-utils :interface :pure :quux-iolib)
+        :fare-utils :interface :pure :quux-iolib :iolib.os)
 
   (:import-from :asdf
    ;;#:*default-exclusions*

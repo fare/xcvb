@@ -126,18 +126,13 @@ until something else is found, then return that header as a string"
                ((null line))
              (write-line line out))))
        (log-format 9 "Moving temporary file ~A to permanent file ~A" tmppath filename)
-       #+clisp ;; But for a bug in CLISP 2.48, we should use :if-exists :overwrite and be atomic
-       (posix:copy-file tmppath filename :method :rename)
-       #-clisp
-       (rename-file tmppath filename
-                    #+clozure :if-exists #+clozure :rename-and-delete)))
+       (rename-file-overwriting-target tmppath filename)))
      (module
       (with-open-file (out filename
                        :direction :output :if-does-not-exist :create :if-exists :error)
         (format out "~a~%" (module-string module))))
      (t
       (error "Cannot remove module declaration from non-existing file ~S" filename))))
-
 
 (defun remove-module-from-file (filename)
   (replace-module-in-file filename nil))

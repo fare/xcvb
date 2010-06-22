@@ -67,8 +67,32 @@ Initially populated with all build.xcvb files from the search path.")
   (let ((*default-pathname-defaults* *xcvb-lisp-directory*))
     (asdf::flatten-source-registry parameter)))
 
-(defun initialize-source-registry (&optional parameter)
+(defparameter *sbcl-contribs*
+  '(:asdf-install
+    :sb-aclrepl
+    :sb-bsd-sockets
+    :sb-cltl2
+    :sb-concurrency
+    :sb-cover
+    :sb-grovel
+    :sb-introspect
+    :sb-md5
+    :sb-posix
+    :sb-queue
+    :sb-rotate-byte
+    :sb-rt
+    :sb-simple-streams)
+  "special systems that are part of SBCL")
+
+(defun initialize-builds ()
   (clrhash *builds*)
+  (when (eq *lisp-implementation-type* :sbcl)
+    (loop :for x :in *sbcl-contribs*
+      :for n = (string-downcase x) :do
+      (setf (registered-build `(:supersedes-asdf ,n)) (make-require-grain :name n)))))
+
+(defun initialize-source-registry (&optional parameter)
+  (initialize-builds)
   (let ((source-registry (compute-source-registry parameter)))
     (setf *flattened-source-registry* (list source-registry))
     *flattened-source-registry*))

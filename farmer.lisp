@@ -1,9 +1,11 @@
 #+xcvb
 (module
  (:depends-on
-  ("macros" "specials" "static-traversal" "profiling" "main" "makefile-backend")))
+  ("macros" "specials" "static-traversal" "profiling" "main" "driver-commands")))
 
 #|
+* TODO: a private per-run toplevel directory for fifos and error logs.
+
 * TODO: debug current scheduler by commenting out tthsum thing,
   having a trivial fake job worker that returns immediately,
   and computes the time. Make that a parameter.
@@ -15,7 +17,7 @@
   if and only if it itself has users.
 
 * TODO: complete a simple local worker backend based on the forker,
-  i.e. communicate with a descendant.
+  i.e. communicate with a descendant through named pipes.
 
 * TODO: complete a simple local worker backend based on forking
   new processes anew for every job? For testing purposes, do like make!
@@ -43,11 +45,18 @@ waiting at this state of the world.")
 (defvar *event-base* nil)
 (defvar *sigchldfd* nil)
 
-(defparameter +fifo-subpathname+ "_fifo/")
-(defvar +working-directory-subpathname+ "")
-(defparameter *fifo-name->computation* (make-hash-table :test 'equal))
+(defvar *working-directory*)
+(defvar *logs-directory*)
+(defvar *fifo-directory*)
 
+(defvar *environment* nil);;TEST only
 
+(defun new-work-directory (base)
+  (loop :for i :from 1
+    :for n = (subpathname base (princ-to-string i)) :do
+    (when (ignore-errors (isys:mkdir n #o600)) (return (values n i)))))
+
+(defvar *worker-id* -1)
 
 (defclass worker ()
   ())
@@ -56,13 +65,19 @@ waiting at this state of the world.")
 (defmethod worker-send (worker (x cons))
   (worker-send worker (readable-string x)))
 
+
 (defclass active-world (world-grain buildable-grain)
   ((futures
     :initform nil
     :accessor world-futures
     :documentation "a list of computations in the future of this world")
+   (pending-futures
+    :accessor world-pending-futures
+    :documentation "a count of active computations in the future of this world")
    (hash :accessor world-hash)
-   (fifo-name :accessor world-fifo-name)
+   (input-fifo :accessor world-input-fifo :initform nil)
+   (output-fifo :accessor world-output-fifo :initform nil)
+   (process :accessor world-process)
    (handler
     :initform nil
     :accessor world-handler
@@ -81,22 +96,29 @@ waiting at this state of the world.")
   (world-summary-hash (world-summary world))) ; use tthsum?
 (defun world-equal (w1 w2)
   (equal (world-summary w1) (world-summary w2)))
-(defun intern-world-summary (setup commands-r key-thunk fun)
+(defun intern-world-summary (setup commands-r
+                             &optional (key-thunk (constantly nil)) (fun (constantly nil)))
+  "Assuming no other world with same summary exists,
+make a world with summary from specified SETUP and COMMANDS-R,
+additional keys resulting from evaluating the KEY-THUNK,
+and extra finalization from calling FUN on the world."
+  ;; TODO: 1- use tthsum
+  ;; 2- have the summary only include the hash of previous world and what changes from it.
   (let ((fullname (make-world-name setup commands-r)))
     (call-with-grain-registration
      fullname
      (lambda ()
        (let* ((summary (make-world-summary setup commands-r))
               (hash (world-summary-hash summary)))
-         #|(loop
+         (loop
            :for w :in (gethash hash *worlds*)
            :when (equal summary (world-summary w))
-           :do (error "new world already hashed??? ~S" w))|#
+           :do (error "new world already hashed??? ~S" w))
          (let ((world (apply #'make-instance 'active-world
                              :fullname fullname
                              :hash hash
                              (funcall key-thunk))))
-           #|(push world (gethash hash *worlds* '()))|#
+           (push world (gethash hash *worlds* '()))
            (funcall fun world)
            world))))))
 
@@ -113,10 +135,7 @@ waiting at this state of the world.")
     ((:xcvb-driver-command)
      (destructuring-bind (setup &rest commands) (rest computation-command)
        (values setup
-               (simplified-xcvb-driver-commands commands))))
-    ((:compile-file-directly)
-     (assert (<= 2 (length computation-command) 4))
-     (values () (list computation-command))))) ;;; TODO: what need we do in this magic case?
+               (simplified-xcvb-driver-commands commands))))))
 
 (defun simplified-xcvb-driver-commands (commands)
   (while-collecting (c) (emit-simplified-commands #'c commands)))
@@ -159,34 +178,36 @@ waiting at this state of the world.")
 
 (defmethod make-computation ((env farmer-traversal)
                              &key inputs outputs command &allow-other-keys)
+  (cond
+    ((or (eq :compile-file-directly (first command))
+        (equal '(:fasl "/xcvb/forker") (fullname (first outputs))))
+     (call-next-method))
+    (t
+     (multiple-value-bind (setup commands)
+         (simplified-xcvb-driver-command command)
+       (make-xcvb-driver-computations env inputs outputs setup commands)))))
+
+(defun make-xcvb-driver-computations (env inputs outputs setup commands)
   (declare (ignore inputs))
-  (multiple-value-bind (setup commands)
-      (simplified-xcvb-driver-command command)
-    (loop
-      :for command = nil :then (if commands (pop commands) (return (grain-computation world)))
-      :for commands-r = nil :then (cons command commands-r)
-      :for grain-name = (unwrap-load-file-command command)
-      :for grain = (when grain-name (registered-grain grain-name))
-      :for previous = nil :then world
-      :for world = (intern-world-summary
-                    setup commands-r
-                    (lambda ()
-                      (unless previous '(:computation nil)))
-                    (lambda (world)
-                      (DBG :w world previous grain)
-                      (if previous
-                        (let ((computation
-                               (make-computation
-                                ()
-                                :inputs (append (list previous)
-                                                (setup-dependencies env (image-setup world))
-                                                (when grain (list grain)))
-                                :outputs (cons world (unless commands outputs))
-                                :command `(:active-command ,(fullname previous) ,command))))
-                          (push computation (world-futures previous))
-                          computation)
-                        (push world *root-worlds*))))
-      :do (DBG :mc command commands-r grain-name grain previous world))))
+  (loop
+    :for command = nil :then (if commands (pop commands) (return (grain-computation world)))
+    :for commands-r = nil :then (cons command commands-r)
+    :for grain-name = (unwrap-load-file-command command)
+    :for grain = (when grain-name (registered-grain grain-name))
+    :for previous = nil :then world
+    :for world = (when commands (intern-world-summary setup commands-r))
+    :for computation = (make-computation
+                        ()
+                        :inputs (append (when previous (list previous))
+                                        (setup-dependencies env setup)
+                                        (when grain (list grain)))
+                        :outputs (if commands (list world) outputs)
+                        :command (if previous
+                                     `(:active-command ,command)
+                                     `(:start-world ,setup))) :do
+    ;;(DBG :mc command commands-r grain-name grain previous world)))
+    (when previous
+      (push computation (world-futures previous)))))
 
 #|
 ((world
@@ -278,77 +299,192 @@ waiting at this state of the world.")
 ;;   using average from known files if new file, and 1 if all unknown.
 ;; 4- allow for a pure simulation, just adding up estimates.
 
-(defmethod world-fifo-name :before (world)
-  (unless (slot-boundp world 'fifo-name)
-    (let* ((hash (world-hash world)))
-      (loop :with dir := (subpathname
-                          (merge-pathnames* +working-directory-subpathname+)
-                          +fifo-subpathname+)
-        :for i :from 0
-        :for name := (format nil "~A/~A~@[-~A~]" dir hash (and (not (zerop i)) i))
-        :for existing := (gethash name *fifo-name->computation*)
-        :while existing
-        :finally
-        (setf (gethash name *fifo-name->computation*) world
-              (world-fifo-name world) name)))))
+(defmethod world-pending-futures :before (world)
+  (unless (slot-boundp world 'pending-futures)
+    (setf (world-pending-futures world) (length (world-futures world)))))
 
-(defun make-named-fifo (name)
-  (isys:mkfifo name #o600))
+(defun make-and-open-fifo (name direction)
+  (isys:mkfifo name #o600)
+  (apply 'make-file-stream name :direction direction :block nil
+         (ecase direction
+           (:input '(:if-exists nil :if-does-not-exist :error))
+           (:output '(:if-exists :overwrite :if-does-not-exist :error)))))
 
 (defun work-on-computation (env computation)
+  (incf *worker-id*)
   (ecase (first (computation-command computation)) ;; should be using object dispatch instead!
+    (:compile-file-directly
+     (work-on-direct-file-compilation env computation))
     (:xcvb-driver-command
      (work-on-xcvb-driver-command env computation))
-    ;; (:shell-command ...)
-    (:compile-file-directly
-     (work-on-direct-file-compilation env computation))))
+    (:start-world
+     (work-on-starting-world env computation))
+    (:active-command
+     (work-on-active-command env computation)))
+  (values))
 
-(defclass process (iolib.os:process)
-  ((should-exit-p :initarg :should-exit-p :accessor process-should-exit-p)))
+(defclass process* (iolib.os:process)
+  ((id :initarg :id :reader worker-id)
+   (logpath :initarg :logpath :reader process-logpath :initform nil)
+   (renamed-targets :initarg :renamed-targets :reader renamed-targets :initform nil)
+   (continuation :initarg :continuation :reader process-continuation)
+   (world :initarg :world :reader process-world :initform nil)
+   (should-exit-p :initform nil
+                  :initarg :should-exit-p
+                  :accessor process-should-exit-p)))
+
+(defun fifopath (id suffix)
+  (subpathname *fifo-directory* (format nil "~A~A" id suffix)))
+
+(defun logpath (id)
+  (subpathname *logs-directory* (princ-to-string id)))
+
+(defun start-process* (command &key continuation should-exit-p id world
+                       (renamed-targets *renamed-targets*))
+  (let ((logpath (logpath id)))
+    (with-open-file (log logpath :direction :output
+                         :if-does-not-exist :create
+                         :if-exists :rename-and-delete)
+      (shell-tokens-to-Makefile command log))
+    (let ((process
+           (iolib.os:create-process
+            (car command) (cdr command)
+            :stdin :null :stdout logpath :stderr :stdout)))
+      (change-class process 'process*
+                    :id id :should-exit-p should-exit-p
+                    :logpath logpath :world world
+                    :continuation continuation)
+      (setf (gethash (process-pid process) *pending-processes*)
+            (process-finalizer process))
+      process)))
+
+(defun process-finalizer (process)
+  (lambda (successp)
+    (with-slots (id logpath continuation world renamed-targets
+                    should-exit-p (pid iolib.os::pid)) process
+      (unless successp
+        (error "process ~D failed.~%See logs in ~A"
+               pid logpath))
+      (unless should-exit-p
+        (error "process ~D exited unexpectedly.~%See logs in ~A"
+               pid logpath))
+      (when world
+        (close (world-input-fifo world))
+        (close (world-output-fifo world)))
+      (loop :for (target tmppath) :in renamed-targets :do
+        (rename-file-overwriting-target tmppath target))
+      (when continuation
+        (funcall continuation)))))
 
 (defun work-on-direct-file-compilation (env computation)
-  (with-nesting ()
-    (destructuring-bind (fullname &key cfasl) (cdr (computation-command computation)))
+  (destructuring-bind (fullname &key cfasl) (cdr (computation-command computation))
     (let* ((*renamed-targets* nil)
            (command (lisp-invocation-for
                      env ()
-                     (compile-file-directly-shell-token env fullname :cfasl cfasl)))
-           (process
-            (iolib.os:create-process
-             (car command) (cdr command)
-             :stdin nil :stdout (NIY :log-file)
-             :stderr (NIY :error-file))))
-      (change-class process 'process :should-exit-p t)
-      (setf (gethash process *pending-processes*)
-            (lambda (successp)
-              (NIY successp computation *renamed-targets*))))))
+                     (compile-file-directly-shell-token env fullname :cfasl cfasl))))
+      (start-process*
+       command
+       :id *worker-id*
+       :should-exit-p t
+       :continuation (lambda () (mark-computation-done computation))))))
 
 (defun work-on-xcvb-driver-command (env computation)
+  (destructuring-bind (token setup &rest commands) (computation-command computation)
+    (assert (eq :xcvb-driver-command token))
+    (let* ((*renamed-targets* nil)
+           (command (lisp-invocation-for
+                     env setup
+                     (xcvb-driver-commands-to-shell-token env commands))))
+      (start-process*
+       command
+       :id *worker-id*
+       :should-exit-p t
+       :continuation (lambda () (mark-computation-done computation))))))
+
+(defun register-read-handler (stream handler)
+  (iomux:set-io-handler
+   *event-base* (iolib.streams:fd-of stream)
+   :read (lambda (fd event exception)
+           (declare (ignore fd event exception))
+           (funcall handler))))
+
+(defun register-write-handler (stream handler)
+  (iomux:set-io-handler
+   *event-base* (iolib.streams:fd-of stream)
+   :read (lambda (fd event exception)
+           (declare (ignore fd event exception))
+           (funcall handler))))
+
+(defun work-on-starting-world (env computation)
+  (destructuring-bind (token setup &rest commands) (computation-command computation)
+    (assert (eq :start-world token))
+    (let* ((*renamed-targets* nil)
+           (id *worker-id*)
+           (outputs (computation-outputs computation))
+           (world (progn (assert (null (cdr outputs)))
+                         (first outputs)))
+           (inpath (fifopath id ".in"))
+           (outpath (fifopath id ".out"))
+           (logpath (logpath id))
+           (infifo (make-and-open-fifo inpath :output))
+           (outfifo (make-and-open-fifo outpath :input))
+           (command (lisp-invocation-for
+                     env setup
+                     `((:do-work ,inpath ,outpath ,logpath
+                                 (:remote-work ,id ,@commands)
+                                 :read-eval-loop))))
+           (process
+            (start-process*
+             command
+             :world world
+             :id id)))
+      (setf (world-process world) process)
+      (setf (world-input-fifo world) infifo)
+      (setf (world-output-fifo world) outfifo)
+      (register-read-handler
+       outfifo
+       (lambda ()
+         (assert (equal `(:done ,id) (safe-read outfifo)))
+         (mark-computation-done computation))))))
+
+
+(defun work-on-active-command (env computation)
   (with-nesting ()
-    (let* ((input-world? (first (computation-inputs computation)))
-           (output-world? (first (computation-outputs computation)))
-           (output-fifo
-            (cond
-              ((typep output-world? 'active-world)
-               (let* ((fifo-name (world-fifo-name output-world?))
-                      (output-fifo (make-named-fifo fifo-name)))
-                 (values output-fifo)))))
-           (continuation
-            (NIY))))
-    (progn
-      (if (typep input-world? 'active-world)
-          (let ((input-fifo (NIY 'world-fifo input-world?)))
-            (NIY 'handle-computation input-fifo (world-handler input-world?)
-                 output-fifo))
-          (NIY 'create-new-process output-fifo))
-      (NIY env computation continuation))))
+    (destructuring-bind (token command) (computation-command computation)
+      (assert (eq token :active-command)))
+    (let* ((id *worker-id*)
+           (world (first (computation-inputs computation)))
+           (command-fifo (world-input-fifo world))
+           (pending-futures (decf (world-pending-futures world)))
+           (inpath (fifopath id ".in"))
+           (outpath (fifopath id ".out"))
+           (logpath (logpath id))
+           (infifo (make-and-open-fifo inpath :output))
+           (outfifo (make-and-open-fifo outpath :input))
+           (work-command `(:remote-work ,command))
+           (output-world (first (computation-outputs computation)))
+           (output-world? (typep output-world 'active-world))
+           (work-and-listen-commands
+            (cons work-command
+                  (when output-world? '(:read-eval-loop))))
+           (command
+            `(,(if (plusp pending-futures) :spawn-worker :do-work)
+              ,inpath ,outpath ,logpath
+              ,@work-and-listen-commands)))
+      (when (zerop pending-futures)
+        (setf (process-should-exit-p (world-process world)) t))
+      (register-write-handler
+       command-fifo
+       (format command-fifo "~S~%" command))
+      (register-read-handler
+       outfifo
+       (lambda ()
+         (assert (equal `(:done ,id) (safe-read outfifo)))
+         (mark-computation-done computation))))))
 
 (defun cpu-resources-available-p ()
   ;; use getloadavg
   t)
-
-(defun computation-should-exit-p (computation)
-  (null (world-futures (NIY 'computation-world computation))))
 
 (defun event-step ()
   (iomux:event-dispatch *event-base* :one-shot t))
@@ -366,14 +502,6 @@ waiting at this state of the world.")
     (remhash pid *pending-processes*)
     (funcall finalizer
              (and (isys:wifexited status) (zerop (isys:wexitstatus status))))))
-
-(defun finalize-process (process successp)
-  ;; TODO: terminate the whole thing gracefully, direct user to error log.
-  (unless (process-should-exit-p process)
-    (error "Process ~A exited unexpectedly" process))
-  (unless successp
-    (error "Process ~A failed" process))
-  (map () #'handle-done-grain (computation-outputs (NIY :computation))))
 
 (defun maybe-issue-computation (env)
   (when (and (ready-computation-p) (cpu-resources-available-p))
@@ -393,8 +521,7 @@ waiting at this state of the world.")
     :finally (return best-computation)))
 
 (defun issue-computation (env computation)
-  (work-on-computation env computation)
-  (setf (gethash computation *pending-processes*) t))
+  (work-on-computation env computation))
 
 (defun ready-computation-p ()
   (not (zerop (hash-table-count *ready-computations*))))
@@ -404,6 +531,14 @@ waiting at this state of the world.")
 
 (defun pending-computation-p ()
   (not (zerop (hash-table-count *pending-processes*))))
+
+(defun mark-computation-done (computation)
+  (dolist (output (computation-outputs computation))
+    (handle-done-grain output)))
+
+(defun handle-done-grain (grain)
+  (compute-grain-hash grain)
+  (notify-users-grain-is-ready grain))
 
 (defun notify-users-grain-is-ready (grain)
   (map () #'notify-one-fewer-dependency (grain-users grain)))
@@ -424,10 +559,6 @@ waiting at this state of the world.")
 
 (defun work-in-progress-p ()
   (or (pending-computation-p) (ready-computation-p) (waiting-computation-p)))
-
-(defun handle-done-grain (grain)
-  (compute-grain-hash grain)
-  (notify-users-grain-is-ready grain))
 
 (defun setup-computation-model ()
   ;; Compute a static cost model.
@@ -457,17 +588,22 @@ waiting at this state of the world.")
 
 (defun standalone-build (name)
   ;;#+DEBUG
-  (trace handle-target graph-for build-command-for issue-dependency
+  #|(trace handle-target graph-for build-command-for issue-dependency
          graph-for-fasls graph-for-image-grain make-computation issue-image-named
          simplified-xcvb-driver-command simplified-xcvb-driver-commands
          make-world-name intern-world-summary
-         call-with-grain-registration register-computed-grain)
+         call-with-grain-registration register-computed-grain)|#
   (multiple-value-bind (fullname build) (handle-target name)
     (declare (ignore build))
     ;; TODO: use build for default pathname to object directory?
     (let* ((*use-master* nil)
            (*root-worlds* nil)
            (traversal (make-instance 'farmer-traversal)))
+      (setf *working-directory* (new-work-directory (subpathname *object-directory* "_work/")))
+      (setf *fifo-directory* (subpathname *working-directory* "_fifo/"))
+      (setf *worker-id* -1)
+      (setf *logs-directory* (subpathname *working-directory* "_logs/"))
+      #|#+DEBUG|# (setf *environment* traversal)
       (graph-for traversal fullname)
       (farm-out-world-tree traversal))))
 
@@ -495,5 +631,6 @@ waiting at this state of the world.")
                    lisp-implementation lisp-binary-path
                    disable-cfasl master object-directory base-image debugging))
   (with-maybe-profiling (profiling)
+    (append1f *lisp-setup-dependencies* '(:fasl "/xcvb/forker"))
     (apply 'handle-global-options keys)
     (standalone-build (canonicalize-fullname build))))

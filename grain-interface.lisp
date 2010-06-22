@@ -238,7 +238,7 @@ into an image that will be used for all future compile/load operations")
     :reader asdf-grain-implementation))
   (:documentation "Loaded ASDF system"))
 
-(defclass require-grain (buildable-grain explicitly-named-grain)
+(defclass require-grain (buildable-grain explicitly-named-grain build-registry-entry)
   ((name
     :initarg :name
     :reader require-grain-name))

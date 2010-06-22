@@ -91,6 +91,12 @@ a reference to the system was superseded by a build.xcvb file.")
            (push nn *asdf-systems-warned*)
            (log-format 5 "Declared dependency on ASDF system :~A~%     was superseded by BUILD ~S" n nn))
          `(:build ,nn)))
+      (require-grain
+       (let ((nn (fullname superseding)))
+         (unless (member nn *asdf-systems-warned* :test 'equal)
+           (push nn *asdf-systems-warned*)
+           (log-format 5 "Declared dependency on ASDF system :~A~%     was superseded by ~S" n nn))
+         nn))
       (invalid-build-registry-entry
        (error "Trying to use ASDF system :~A claimed by invalid build ~S"
               n superseding)))))

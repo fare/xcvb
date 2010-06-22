@@ -157,7 +157,7 @@
          (quit 0))
     (quit 99)))
 
-(defun spawn-fork (in-fork &optional (reaper (constantly nil)))
+(defun in-fork (in-fork &optional (reaper (constantly nil)))
   (finish-outputs)
   (let ((pid (posix-fork)))
     (cond
@@ -173,23 +173,36 @@
     :until (eq form eof)
     :do (eval form)))
 
-(defun spawn-listener (inpath outpath)
+(defun spawn-worker (inpath outpath errpath &rest commands)
   ;; NB: we open the new input/output pipes from the parent,
   ;; and close them right after the fork,
   ;; so that closing of the pipe be a signal to the controller
   ;; that the controlled process is dead.
   ;; Note that the controller process will have to open the pipe
   ;; in non-blocking mode, and to select on it.
-  (with-open-file (o outpath :direction :output
-                     :if-exists :overwrite :if-does-not-exist :create)
-    (with-open-file (i inpath :direction :input :if-does-not-exist :error)
-      (spawn-fork
-       (lambda ()
-         (close *standard-input*)
-         (close *standard-output*)
-         (let ((*standard-input* i)
-               (*standard-output* o)
-               (*standard-error* o))
-           (read-eval-loop))))
-      (close o)
-      (close i))))
+  (in-fork
+   (lambda ()
+     (close *standard-input*)
+     (close *standard-output*)
+     (close *error-output*)
+     (apply 'do-work inpath outpath errpath commands))))
+
+(defun call-with-io (inpath outpath errpath thunk)
+  (with-open-file (*standard-input* inpath
+                                    :direction :input :if-does-not-exist :error)
+    (with-open-file (*standard-output* outpath :direction :output
+                                       :if-exists :overwrite :if-does-not-exist :create)
+      (with-open-file (*error-output* errpath :direction :output
+                                      :if-exists :append :if-does-not-exist :create)
+        (let ((*trace-output* *error-output*))
+          (funcall thunk))))))
+
+(defun do-work (inpath outpath errpath &rest commands)
+  (call-with-io
+   inpath outpath errpath
+   (lambda () (run-commands commands))))
+
+(defun remote-work (id &rest commands)
+  (let ((*standard-output* *error-output*))
+    (run-commands commands))
+  (write-sequence (format nil "(:done ~S)~%" id) *standard-output*))

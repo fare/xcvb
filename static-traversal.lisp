@@ -294,7 +294,7 @@
          :inputs (traversed-dependencies env)
          :command
          (if driverp
-           `(:compile-file-directly ,fullname :cfasl ,(second outputs))
+           `(:compile-file-directly ,fullname :cfasl ,(fullname (second outputs)))
            `(:xcvb-driver-command
              ,(if specialp `(:load (,(loadable-dependency '(:fasl "/xcvb/driver"))))
                   (image-setup env))

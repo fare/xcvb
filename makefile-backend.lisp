@@ -135,24 +135,6 @@ xcvb-ensure-object-directories:
 ;; where we would have to fork and wait for a subprocess to SAVE-LISP-AND-DIE
 ;; which would make the target driver much more complex than desired.
 
-(defvar *renamed-targets* ()
-  "alist of targets really desired, and the temporary names under which the XCVB driver commands
-will create the desired content. An atomic rename() will have to be performed afterwards.")
-
-(defun register-renamed-target (target tempname)
-  (push (cons target tempname) *renamed-targets*))
-
-(defun rename-target (target tempname)
-  (register-renamed-target target tempname)
-  tempname)
-
-(defun tempname-target (target)
-  (let* ((path (pathname target))
-         (tempname (namestring
-                    (make-pathname :name (strcat (pathname-name path) "__temp")
-                                   :defaults path))))
-    (rename-target target tempname)))
-
 (define-simple-dispatcher Makefile-commands-for-computation #'Makefile-commands-for-computation-atom)
 
 (defun Makefile-commands-for-computation-atom (env computation-command)
