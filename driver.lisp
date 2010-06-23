@@ -178,6 +178,7 @@
 
 ;;; Exiting properly or im-
 (defun finish-outputs ()
+  (finish-output *stderr*)
   (finish-output *error-output*)
   (finish-output *standard-output*))
 (defun quit (&optional (code 0) (finish-output t))
@@ -208,6 +209,7 @@ This is designed to abstract away the implementation specific quit forms."
   (format *stderr* "~&")
   (apply #'format *stderr* format arguments)
   (format *stderr* "~&")
+  (finish-outputs)
   (quit 99))
 (defun bork (condition)
   (format *stderr* "~&BORK:~%~A~%" condition)
@@ -588,7 +590,7 @@ This is designed to abstract away the implementation specific quit forms."
   (make-pathname :name nil :type nil :version nil :defaults pn))
 (defun load-pathname-mappings (file)
   (let ((tn (truename file)))
-    (register-pathname-mappings (read-first-from tn) :defaults tn)))
+    (register-pathname-mappings (read-first-form tn) :defaults tn)))
 
 (defun process-cffi-grovel-file (input c exe output &key cc-flags)
   (flet ((f (x) (namestring (merge-pathnames x))))
@@ -603,22 +605,25 @@ This is designed to abstract away the implementation specific quit forms."
         (call :cffi-grovel :invoke exe output)))))
 
 (defun process-cffi-wrapper-file (input c so output &key cc-flags)
+  (declare (ignore output)); see below
   (flet ((f (x) (namestring (merge-pathnames x))))
     (let* ((input (f input))
            (c (f c))
            (so (f so))
-           (output (f output))
+           ;;(output (f output))
            (*default-pathname-defaults* (pathname-directory-pathname so)))
       (progv (list (do-find-symbol :*cc-flags* :cffi-grovel)) (list cc-flags)
         (with-standard-io-syntax
           (multiple-value-bind (c-file lisp-forms)
               (call :cffi-grovel :generate-c-lib-file input c)
+            (declare (ignore c-file))
             (call :cffi-grovel :cc-compile-and-link c so :library t)
-        (values (call :cffi-grovel :generate-bindings-file
-                      c so lisp-forms #|output|# c)
-                ;; ugly, but generate-bindings-file already adds .grovel-tmp.lisp
-                ;; to the output name, so we reuse the c name here. Sigh.
-                so)))))))
+            (values (call :cffi-grovel :generate-bindings-file
+                          c so lisp-forms c)
+                    ;; currently use C instead of OUTPUT, due to output locations.
+                    ;; ugly, but generate-bindings-file already adds .grovel-tmp.lisp
+                    ;; to the output name, so we reuse the c name here. Sigh.
+                    so)))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (pushnew :xcvb-driver *features*))

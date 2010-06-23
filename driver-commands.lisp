@@ -81,12 +81,15 @@ will create the desired content. An atomic rename() will have to be performed af
      standalone package)))
 
 (defun lisp-invocation-for (env keys eval)
+  (shell-tokens-to-Makefile
+   (lisp-invocation-arglist-for env keys eval)))
+
+(defun lisp-invocation-arglist-for (env keys eval)
   (destructuring-bind (&key image load) keys
-    (shell-tokens-to-Makefile
-     (lisp-invocation-arglist
-      :image-path (if image (fullname-enough-namestring env image) *lisp-image-pathname*)
-      :load (mapcar/ #'fullname-enough-namestring env load)
-      :eval eval))))
+    (lisp-invocation-arglist
+     :image-path (if image (fullname-enough-namestring env image) *lisp-image-pathname*)
+     :load (mapcar/ #'fullname-enough-namestring env load)
+     :eval eval)))
 
 (defun compile-file-directly-shell-token (env name &key cfasl)
   (quit-form
@@ -96,16 +99,17 @@ will create the desired content. An atomic rename() will have to be performed af
                            (truename *default-pathname-defaults*))) ~
                       (compile-file ~S :verbose nil :print nil ~
                        :output-file (merge-pathnames ~S) ~
-                       ~[:emit-cfasl (merge-pathnames ~S)~;~
+                       ~[~;:emit-cfasl (merge-pathnames ~S)~;~
                        :system-p t) (c::build-fasl ~
                          (merge-pathnames ~S) :lisp-files (list ~3:*(merge-pathnames ~S))~]))~
                   (if (or (not output) warningp failurep) 1 0))"
            (fullname-enough-namestring env name)
            (tempname-target (fullname-enough-namestring env `(:fasl ,(second name))))
-           (when cfasl
+           (if cfasl
              (ecase *lisp-implementation-type*
-               (:sbcl 0)
-               (:ecl 1)))
+               (:sbcl 1)
+               (:ecl 2))
+             0)
            (when cfasl
              (tempname-target (fullname-enough-namestring env `(:cfasl ,(second name))))))))
 

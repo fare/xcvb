@@ -287,14 +287,15 @@
       (let* ((outputs (fasl-grains-for-name
                        env fullname
                        load-dependencies cload-dependencies
-                       build-dependencies)))
+                       build-dependencies))
+             (cfasl (when (second outputs) (fullname (second outputs)))))
         (make-computation
          env
          :outputs outputs
          :inputs (traversed-dependencies env)
          :command
          (if driverp
-           `(:compile-file-directly ,fullname :cfasl ,(fullname (second outputs)))
+           `(:compile-file-directly ,fullname :cfasl ,cfasl)
            `(:xcvb-driver-command
              ,(if specialp `(:load (,(loadable-dependency '(:fasl "/xcvb/driver"))))
                   (image-setup env))

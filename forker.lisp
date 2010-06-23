@@ -11,6 +11,9 @@
 
 #+sbcl ;;; SBCL specific fork support
 (progn
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require :sb-grovel)
+  (require :sb-posix))
 ;; Simple heuristic: if we have allocated more than the given ratio
 ;; of what is allowed between GCs, then trigger the GC.
 ;; Note: can possibly modify parameters and reset in sb-ext:*after-gc-hooks*
@@ -173,7 +176,7 @@
     :until (eq form eof)
     :do (eval form)))
 
-(defun spawn-worker (inpath outpath errpath &rest commands)
+(defun spawn-worker (id inpath outpath errpath &rest commands)
   ;; NB: we open the new input/output pipes from the parent,
   ;; and close them right after the fork,
   ;; so that closing of the pipe be a signal to the controller
@@ -182,27 +185,30 @@
   ;; in non-blocking mode, and to select on it.
   (in-fork
    (lambda ()
-     (close *standard-input*)
-     (close *standard-output*)
-     (close *error-output*)
-     (apply 'do-work inpath outpath errpath commands))))
+     (work-on-commands id inpath outpath errpath commands nil)))) ;; t
 
-(defun call-with-io (inpath outpath errpath thunk)
-  (with-open-file (*standard-input* inpath
-                                    :direction :input :if-does-not-exist :error)
+(defun work-on-commands (id inpath outpath errpath commands close)
+  (when close (close *error-output*))
+  (with-open-file (*error-output* errpath :direction :output
+                                  :if-exists :append :if-does-not-exist :create)
+    (when close (close *standard-output*))
     (with-open-file (*standard-output* outpath :direction :output
                                        :if-exists :overwrite :if-does-not-exist :create)
-      (with-open-file (*error-output* errpath :direction :output
-                                      :if-exists :append :if-does-not-exist :create)
+      (write-sequence (format nil "(:ready ~S)~%" id) *standard-output*) ; handshake
+      (finish-outputs)
+      (when close (close *standard-input*))
+      (with-open-file (*standard-input* inpath
+                                        :direction :input :if-does-not-exist :error)
         (let ((*trace-output* *error-output*))
-          (funcall thunk))))))
+          (run-commands commands))))))
 
-(defun do-work (inpath outpath errpath &rest commands)
-  (call-with-io
-   inpath outpath errpath
-   (lambda () (run-commands commands))))
+(defun do-work (id inpath outpath errpath &rest commands)
+  (work-on-commands id inpath outpath errpath commands nil))
 
 (defun remote-work (id &rest commands)
   (let ((*standard-output* *error-output*))
+    (format *error-output* "~&Remote work: ~S ~S~%" id commands)
+    (finish-outputs)
     (run-commands commands))
-  (write-sequence (format nil "(:done ~S)~%" id) *standard-output*))
+  (write-sequence (format nil "(:done ~S)~%" id) *standard-output*)
+  (finish-outputs))

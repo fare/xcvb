@@ -96,7 +96,7 @@
   :arguments-end "--"
   :argument-control t ;; must be fixed now, but double-checking needed.
   :disable-debugger ("--batch")
-  :quit-format "(ccl:quit ~A)"
+  :quit-format "(let ((x ~A)) (finish-output *standard-output*) (finish-output *error-output*) (ccl:quit x))"
   :dump-format "(save-application ~S :prepend-kernel t)")
 
 #| ;; Support for CMUCL is missing in other parts of XCVB.

@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("grain-interface" "main")))
+#+xcvb (module (:depends-on ("grain-interface" "main" "search-path")))
 
 (in-package :xcvb)
 

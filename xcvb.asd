@@ -77,7 +77,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging" "main"))
      (:file "ne-makefile-backend" :depends-on ("main" "makefile-backend"
                                                "asdf-backend" "simplifying-traversal"))
-     (:file "asdf-converter" :depends-on ("main" "grain-interface"))
+     (:file "asdf-converter" :depends-on ("main" "grain-interface" "search-path"))
      (:file "slave" :depends-on ("main"))
      (:file "farmer" :depends-on ("profiling" "main" "driver-commands"
                                   "grain-interface" "dependencies-interpreter"))
