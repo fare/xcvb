@@ -178,9 +178,9 @@
 
 ;;; Exiting properly or im-
 (defun finish-outputs ()
-  (finish-output *stderr*)
-  (finish-output *error-output*)
-  (finish-output *standard-output*))
+  (dolist (s (list *stderr* *error-output* *standard-output* *trace-output*))
+    (ignore-errors (finish-output s))))
+
 (defun quit (&optional (code 0) (finish-output t))
   "Quits from the Lisp world, with the given exit status if provided.
 This is designed to abstract away the implementation specific quit forms."

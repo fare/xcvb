@@ -81,7 +81,7 @@ waiting at this state of the world.")
    (hash :accessor world-hash)
    (input-fifo :accessor world-input-fifo :initform nil)
    (output-fifo :accessor world-output-fifo :initform nil)
-   (process :accessor world-process)
+   (process :accessor world-process :initform nil)
    (handler
     :initform nil
     :accessor world-handler
@@ -196,11 +196,14 @@ and extra finalization from calling FUN on the world."
   (loop
     :for command = nil :then (if commands (pop commands) (return computation))
     :for commands-r = nil :then (cons command commands-r)
-    :for grain-name = (unwrap-load-file-command command)
+    :for grain-name = (unwrap-load-file-command (second command))
     :for grain = (when grain-name (registered-grain grain-name))
     :for previous = nil :then world
-    :for world = (when commands (intern-world-summary setup commands-r))
-    :for computation = (if (and world (slot-boundp world 'computation))
+    :for world = (when commands
+                   (intern-world-summary setup commands-r))
+    :for () = (DBG :mxdc commands-r commands grain-name grain previous world)
+    :for old-computation = (and world (slot-boundp world 'computation))
+    :for computation = (if old-computation
                            (grain-computation world)
                            (make-computation
                             ()
@@ -210,10 +213,9 @@ and extra finalization from calling FUN on the world."
                             :outputs (if commands (list world) outputs)
                             :command (if previous
                                          `(:active-command ,@(rest command))
-                                         `(:start-world ,setup)))) :do
-    ;;(DBG :mc command commands-r grain-name grain previous world)))
-    (when previous
-      (push computation (world-futures previous)))))
+                                         `(:start-world ,setup))))
+    :when (and previous (not old-computation)) :do
+    (push computation (world-futures previous))))
 
 #|
 ((world
@@ -327,6 +329,8 @@ and extra finalization from calling FUN on the world."
 (defun work-on-computation (env computation)
   (incf *worker-id*)
   (ecase (first (computation-command computation)) ;; should be using object dispatch instead!
+    ((nil)
+     (mark-computation-done computation))
     (:compile-file-directly
      (work-on-direct-file-compilation env computation))
     (:xcvb-driver-command
@@ -357,17 +361,17 @@ and extra finalization from calling FUN on the world."
                        (renamed-targets *renamed-targets*))
   (with-nesting ()
     (let ((logpath (logpath id)))
-      (ensure-directories-exist logpath))
-    (with-open-file-stream (log logpath :direction :output
-                                :if-does-not-exist :create
-                                :if-exists :rename-and-delete)
-      (shell-tokens-to-Makefile command log)
-      (terpri log))
+      (ensure-directories-exist logpath)
+      (with-open-file-stream (log logpath :direction :output
+                                  :if-does-not-exist :create
+                                  :if-exists :rename-and-delete)
+        (shell-tokens-to-Makefile command log)
+        (terpri log)))
     (let ((process
            (iolib.os:create-process
             (car command) (cdr command)
             :stdin :null
-            :stdout (iolib.streams:fd-of log)
+            :stdout (list logpath :append)
             :stderr :stdout)))
       (change-class process 'process*
                     :id id :should-exit-p should-exit-p
@@ -377,26 +381,37 @@ and extra finalization from calling FUN on the world."
       (setf (gethash (process-pid process) *pending-processes*) process)
       process)))
 
+(defun rename-targets (renamed-targets)
+  (loop :for (target . tmppath) :in renamed-targets :do
+    (rename-file-overwriting-target tmppath target)))
+
+(defun unregister-and-close (x)
+  (when x
+    (DBG :uac x)
+    (ignore-errors (unregister-handler x))
+    (close x)))
+
+(defun close-world (world)
+  (when world
+    (DBG :close-world world)
+    (with-slots (input-fifo output-fifo process) world
+      (unregister-and-close input-fifo)
+      (unregister-and-close output-fifo)
+      (setf input-fifo nil output-fifo nil))))
+
 (defun finalize-process (process successp)
   (setf *process* process) ;DEBUG
   (with-slots (id logpath continuation world renamed-targets
                   should-exit-p (pid iolib.os::pid)) process
+    (DBG :finalize-process successp pid id logpath continuation world renamed-targets should-exit-p)
     (unless successp
       (error "process ~D failed.~%See logs in ~A"
              pid logpath))
     (unless should-exit-p
       (error "process ~D exited unexpectedly.~%See logs in ~A"
              pid logpath))
-    (when world
-      (with-slots (input-fifo output-fifo) world
-        (flet ((frob (x)
-                 (when x
-                   (unregister-handler x)
-                   (close x))))
-          (frob input-fifo)
-          (frob output-fifo))))
-    (loop :for (target . tmppath) :in renamed-targets :do
-      (rename-file-overwriting-target tmppath target))
+    (close-world world)
+    (rename-targets renamed-targets)
     (when continuation
       (funcall continuation))))
 
@@ -456,13 +471,17 @@ and extra finalization from calling FUN on the world."
    ":remote-work ~S~{ ~A~}" id
    (loop :for c :in commands :collect (text-for-xcvb-driver-command env c))))
 
+(defun expect-sexp (sexp stream)
+  (DBG :expect-sexp sexp stream)
+  (assert (equal sexp (safe-read stream))))
+
 (defun register-handshake (id outfifo inpath world continuation)
   (DBG :register-handshake id outfifo inpath world continuation)
   (register-read-handler
    outfifo (lambda () (do-handshake id outfifo inpath world continuation))))
 
 (defun do-handshake (id outfifo inpath world continuation)
-  (assert (equal `(:ready ,id) (safe-read outfifo)))
+  (expect-sexp `(:ready ,id) outfifo)
   (setf (world-input-fifo world) (open-fifo inpath :output :block t))
   (unregister-handler outfifo)
   (DBG :register-continuation id outfifo inpath world continuation)
@@ -498,13 +517,23 @@ and extra finalization from calling FUN on the world."
       (register-handshake
        id outfifo inpath world
        (lambda ()
-         (assert (equal `(:done ,id) (safe-read outfifo)))
+         (expect-sexp `(:done ,id) outfifo)
+         (unregister-handler outfifo)
          (mark-computation-done computation))))))
+
+(defun dummy-world ()
+  (make-instance
+   'active-world
+   :fullname :dummy
+   :issued-build-commands nil
+   :included-dependencies nil
+   :hash nil))
 
 (defun work-on-active-command (env computation)
   (destructuring-bind (token &rest commands) (computation-command computation)
     (assert (eq token :active-command))
     (let* ((id *worker-id*)
+           (*renamed-targets* nil)
            (world (first (computation-inputs computation)))
            (command-fifo (world-input-fifo world))
            (pending-futures (decf (world-pending-futures world)))
@@ -517,28 +546,34 @@ and extra finalization from calling FUN on the world."
            (work-command `(:remote-work ,id ,@commands))
            (output-world (first (computation-outputs computation)))
            (output-world? (typep output-world 'active-world))
+           (output-world (if output-world? output-world (dummy-world)))
            (work-and-listen-commands
             (cons work-command
                   (when output-world? '((:read-eval-loop)))))
            (command
             `(,(if (plusp pending-futures) :spawn-worker :do-work)
               ,id ,inpath ,outpath ,logpath
-              ,@work-and-listen-commands))
-           (text
-            (format nil "(xcvb-driver:run-command '~A)~%"
-                    (text-for-xcvb-driver-command env command))))
-      (when output-world?
-        (setf (world-output-fifo output-world) outfifo))
+              ,@work-and-listen-commands)))
+      (setf (world-output-fifo output-world) outfifo)
       (when (zerop pending-futures)
-        (setf (process-should-exit-p (world-process world)) t))
-      (DBG :woac id text command-fifo world)
-      (write-sequence text command-fifo)
-      (finish-output command-fifo)
+        (when (world-process world)
+          (setf (process-should-exit-p (world-process world)) t)))
+      (let ((text
+             (format nil "(xcvb-driver:run-command '~A)~%"
+                    (text-for-xcvb-driver-command env command))))
+        (DBG :woac id text command-fifo world)
+        (write-sequence text command-fifo)
+        (finish-output command-fifo))
+      (when (zerop pending-futures)
+        (close-world world))
       (register-handshake
-       id outfifo inpath world
-       (lambda ()
-         (assert (equal `(:done ,id) (safe-read outfifo)))
-         (mark-computation-done computation))))))
+       id outfifo inpath output-world
+       (let ((renamed-targets *renamed-targets*))
+         (lambda ()
+           (expect-sexp `(:done ,id) outfifo)
+           (unregister-handler outfifo)
+           (rename-targets renamed-targets)
+           (mark-computation-done computation)))))))
 
 (defun cpu-resources-available-p ()
   ;; use getloadavg
@@ -590,7 +625,7 @@ and extra finalization from calling FUN on the world."
 (defun waiting-computation-p ()
   (not (zerop (hash-table-count *waiting-computations*))))
 
-(defun pending-computation-p ()
+(defun pending-process-p ()
   (not (zerop (hash-table-count *pending-processes*))))
 
 (defun mark-computation-done (computation)
@@ -619,8 +654,18 @@ and extra finalization from calling FUN on the world."
                (null (grain-computation grain)))
     :do (handle-done-grain grain)))
 
+(defvar *break-count* 0)
+(defvar *break-mod* 20)
+(defun break? ()
+  (when (zerop (mod (incf *break-count*) *break-mod*))
+    (break)))
+
 (defun work-in-progress-p ()
-  (or (pending-computation-p) (ready-computation-p) (waiting-computation-p)))
+  (DBG :wipp (hash-table->alist *pending-processes*)
+       (hash-table->alist *ready-computations*)
+       (hash-table->alist *waiting-computations*))
+  ;; (break?)
+  (or (pending-process-p) (ready-computation-p) (waiting-computation-p)))
 
 (defun setup-computation-model ()
   ;; Compute a static cost model.
@@ -644,9 +689,14 @@ and extra finalization from calling FUN on the world."
 (defun run-event-loop ()
   (loop :while (work-in-progress-p) :do (event-step)))
 
+(defun check-computation-model ()
+  ;;(break) ; TODO: better debugging
+  (values))
+
 (defun farm-out-world-tree (env)
   ;; TODO: parametrize the a- the scheduling b- the action itself (or lack thereof)
   (setup-computation-model)
+  (check-computation-model)
   (setup-event-loop env)
   (issue-initial-computations)
   (run-event-loop))
@@ -675,6 +725,7 @@ and extra finalization from calling FUN on the world."
    setup-event-loop
    shell-tokens-to-Makefile
    start-process*
+   unwrap-load-file-command
    work-on-active-command
    work-on-computation
    work-on-direct-file-compilation
