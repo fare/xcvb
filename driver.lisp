@@ -126,7 +126,8 @@
   (not (emptyp (getenv x))))
 (defun setup-environment ()
   (debugging (setenvp "XCVB_DEBUGGING"))
-  (setf *profiling* (setenvp "XCVB_PROFILING")))
+  (setf *profiling* (setenvp "XCVB_PROFILING"))
+  (tweak-implementation))
 (defvar *previous-optimization-settings* nil)
 (defun get-optimization-settings ()
   #+clozure
@@ -175,6 +176,23 @@
     (funcall thunk)))
 (defmacro with-profiling (what &body body)
   `(call-with-maybe-profiling (lambda () ,@body) ,what *goal*))
+
+;;; Tweak implementation
+(defun tweak-implementation ()
+  #+sbcl
+  (progn
+    ;; add ample margin between GC's: 400 MiB
+    (setf (sb-ext:bytes-consed-between-gcs) (* 400 1024 1024))
+    ;; add ample margin for *next* GC: 200 MiB
+    (incf (sb-alien:extern-alien "auto_gc_trigger" sb-alien:long) (* 200 1024 1024))
+    #|(sb-ext:gc :full t)|#)
+  #+ccl
+  (progn
+    (ccl::configure-egc 32768 65536 98304)
+    (ccl::set-lisp-heap-gc-threshold (* 384 1024 1024))
+    (ccl::use-lisp-heap-gc-threshold)
+    #|(ccl:gc)|#)
+  nil)
 
 ;;; Exiting properly or im-
 (defun finish-outputs ()

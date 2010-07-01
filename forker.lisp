@@ -171,28 +171,33 @@
        pid))))
 
 (defun read-eval-loop (&optional (i *standard-input*))
+  (format *error-output* "~&Starting read-eval-loop at ~36R" (get-universal-time))
   (loop :with eof = '#:eof
     :for form = (read i nil eof)
     :until (eq form eof) :do
-    (format *error-output* "~&~S~%" form) (finish-outputs)
-    (format *error-output* "; ~{ ~S~}~%" (multiple-value-list (eval form))) (finish-outputs)
-    :finally (progn (format *error-output* "~&; EOF~%") (finish-outputs))))
+    (format *error-output* "~&At ~36R received form ~S~%" (get-universal-time) form)
+    (finish-outputs)
+    (let ((values (multiple-value-list (eval form))))
+      (format *error-output* "~&; At ~36R it returned~{ ~S~}~%" (get-universal-time) values))
+    (finish-outputs)
+    :finally (progn (format *error-output* "~&; EOF at ~36R~%" (get-universal-time))
+                    (finish-outputs))))
 
-(defun spawn-worker (id inpath outpath errpath &rest commands)
+(defun fork-job (id inpath outpath errpath &rest commands)
   ;; NB: we open the new input/output pipes from the parent,
   ;; and close them right after the fork,
   ;; so that closing of the pipe be a signal to the controller
   ;; that the controlled process is dead.
   ;; Note that the controller process will have to open the pipe
   ;; in non-blocking mode, and to select on it.
-  (format *error-output* "Forked process ~D to run ~S ~S ~S ~S~{ ~S~}~%"
+  (format *error-output* "Forked process ~D to run job ~S ~S ~S ~S~{ ~S~}~%"
           (in-fork
            (lambda ()
-             (work-on-commands id inpath outpath errpath commands nil))) ;; t
+             (work-on-job id inpath outpath errpath commands nil))) ;; t
           id inpath outpath errpath commands)
   (finish-outputs))
 
-(defun work-on-commands (id inpath outpath errpath commands close)
+(defun work-on-job (id inpath outpath errpath commands close)
   (when close (close *error-output*))
   (with-open-file (*error-output* errpath :direction :output
                                   :if-exists :append :if-does-not-exist :create)
@@ -209,15 +214,16 @@
         (let ((*trace-output* *error-output*))
           (run-commands commands))))))
 
-(defun do-work (id inpath outpath errpath &rest commands)
-  (work-on-commands id inpath outpath errpath commands nil)
+(defun execute-job (id inpath outpath errpath &rest commands)
+  (work-on-job id inpath outpath errpath commands nil)
+  (format *error-output* "Terminating process at ~36R" (get-universal-time))
   (quit 0))
 
-(defun remote-work (id &rest commands)
+(defun run-job (id &rest commands)
   (let ((*standard-output* *error-output*))
-    (format t "~&Remote work: ~S~{ ~S~}~%" id commands)
+    (format t "~&Running job ~S at ~36R~{ ~S~}~%" id (get-universal-time) commands)
     (finish-outputs)
     (run-commands commands)
-    (format t "(:done ~S)~%" id))
+    (format t "~&Done with job ~S at ~36R~%" id (get-universal-time)))
   (write-sequence (format nil "(:done ~S)~%" id) *standard-output*)
   (finish-outputs))

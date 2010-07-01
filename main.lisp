@@ -78,7 +78,7 @@ For debugging your XCVB configuration.")
      "given fullnames and paths, output fullnames, tthsum and paths")
     (("build")
      standalone-build-command +standalone-build-option-spec+
-     "build a project (not implemented yet - will fail)"
+     "build a project (not fully implemented yet)"
      "build the project directly")
     (("load")
      load-command ()

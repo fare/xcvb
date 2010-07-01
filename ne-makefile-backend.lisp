@@ -85,7 +85,7 @@ in a fast way that doesn't enforce dependencies."
             (setf *computations* nil)))
          (build-rules
           (loop
-            :for build-name :in build-names
+            ;; :for build-name :in build-names
             :for build :in builds
             :for previous-asdf = nil :then asdf-name
             :for asdf-name :in asdf-names

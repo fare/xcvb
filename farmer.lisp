@@ -4,7 +4,10 @@
   ("macros" "specials" "static-traversal" "profiling" "main" "driver-commands")))
 
 #|
-* TODO: a private per-run toplevel directory for fifos and error logs.
+* TODO: make the build incremental. Use crypto checksums.
+
+* TODO: store dependency metadata using an existing Lisp persistence layer;
+  but which? Elephant?
 
 * TODO: debug current scheduler by commenting out tthsum thing,
   having a trivial fake job worker that returns immediately,
@@ -39,7 +42,7 @@ waiting at this state of the world.")
 (defvar *waiting-computations* (make-hash-table)) ;; set of computations waiting for inputs
 (defvar *pending-processes* (make-hash-table :test 'equal)) ;; pid to pending computation
 (defvar *expected-latencies* (make-hash-table)) ;; computation to latency evaluation
-(defvar *poll-timeout* .2) ;; how often to re-poll in seconds
+(defvar *poll-timeout* #|.2|# 2) ;; how often to re-poll in seconds
 
 (defvar *pipes* (make-hash-table :test 'equal)) ; maps pipe streams to computations
 (defvar *event-base* nil)
@@ -326,8 +329,14 @@ and extra finalization from calling FUN on the world."
   (make-fifo name)
   (open-fifo name :input))
 
+(defparameter *pending-computations* 0)
+
 (defun work-on-computation (env computation)
   (incf *worker-id*)
+  (incf *pending-computations*)
+  (dolist (o (computation-outputs computation))
+    (when (typep o 'file-grain)
+      (ensure-directories-exist (grain-namestring env o))))
   (ecase (first (computation-command computation)) ;; should be using object dispatch instead!
     ((nil)
      (mark-computation-done computation))
@@ -450,25 +459,25 @@ and extra finalization from calling FUN on the world."
            (declare (ignore fd event exception))
            (funcall handler))))
 
-(define-text-for-xcvb-driver-command :do-work (env id in out err &rest commands)
+(define-text-for-xcvb-driver-command :execute-job (env id in out err &rest commands)
   (text-for-xcvb-driver-helper
    env ()
-   ":do-work ~S ~S ~S ~S~{ ~A~}" id in out err
+   ":execute-job ~S ~S ~S ~S~{ ~A~}" id in out err
    (mapcar/ 'text-for-xcvb-driver-command env commands)))
 
-(define-text-for-xcvb-driver-command :spawn-worker (env id in out err &rest commands)
+(define-text-for-xcvb-driver-command :fork-job (env id in out err &rest commands)
   (text-for-xcvb-driver-helper
    env ()
-   ":spawn-worker ~S ~S ~S ~S~{ ~A~}" id in out err
+   ":fork-job ~S ~S ~S ~S~{ ~A~}" id in out err
    (mapcar/ 'text-for-xcvb-driver-command env commands)))
 
 (define-text-for-xcvb-driver-command :read-eval-loop (env)
   (text-for-xcvb-driver-helper env () ":read-eval-loop"))
 
-(define-text-for-xcvb-driver-command :remote-work (env id &rest commands)
+(define-text-for-xcvb-driver-command :run-job (env id &rest commands)
   (text-for-xcvb-driver-helper
    env ()
-   ":remote-work ~S~{ ~A~}" id
+   ":run-job ~S~{ ~A~}" id
    (loop :for c :in commands :collect (text-for-xcvb-driver-command env c))))
 
 (defun expect-sexp (sexp stream)
@@ -504,9 +513,9 @@ and extra finalization from calling FUN on the world."
            (command (lisp-invocation-arglist-for
                      env setup
                      (xcvb-driver-commands-to-shell-token
-                      env `((:do-work ,id ,inpath ,outpath ,logpath
-                                      (:remote-work ,id ,@commands)
-                                      (:read-eval-loop))))))
+                      env `((:execute-job ,id ,inpath ,outpath ,logpath
+                                          (:run-job ,id ,@commands)
+                                          (:read-eval-loop))))))
            (process
             (start-process*
              command
@@ -543,7 +552,7 @@ and extra finalization from calling FUN on the world."
            (outfifo (progn
                       (make-fifo inpath)
                       (make-and-open-input-fifo outpath)))
-           (work-command `(:remote-work ,id ,@commands))
+           (work-command `(:run-job ,id ,@commands))
            (output-world (first (computation-outputs computation)))
            (output-world? (typep output-world 'active-world))
            (output-world (if output-world? output-world (dummy-world)))
@@ -551,7 +560,7 @@ and extra finalization from calling FUN on the world."
             (cons work-command
                   (when output-world? '((:read-eval-loop)))))
            (command
-            `(,(if (plusp pending-futures) :spawn-worker :do-work)
+            `(,(if (plusp pending-futures) :fork-job :execute-job)
               ,id ,inpath ,outpath ,logpath
               ,@work-and-listen-commands)))
       (setf (world-output-fifo output-world) outfifo)
@@ -576,18 +585,26 @@ and extra finalization from calling FUN on the world."
            (mark-computation-done computation)))))))
 
 (defun cpu-resources-available-p ()
-  ;; use getloadavg
-  t)
+  ;; TODO: compare getloadavg(3) output to (isys:nprocessors-onln)
+  (let ((max-processes (ceiling (* 1.25 (isys:nprocessors-onln)))))
+    (assert (<= 1 max-processes))
+    (assert (<= 0 *pending-computations*))
+    (< *pending-computations* max-processes)))
 
 (defun event-step ()
   (iomux:event-dispatch *event-base* :one-shot t))
 
-(defun handle-dead-children (env)
-  (lambda (fd event exception)
-    (declare (ignore event exception))
-    (when (signalfd-signalled-p fd)
-      (handle-signalling-children #'handle-dead-child)
-      (maybe-issue-computation env))))
+(defun handle-dead-children ()
+  (let ((signalledp (signalfd-signalled-p *sigchldfd*)))
+    (multiple-value-bind (more-children-p handled-children-count)
+        (handle-signalling-children #'handle-dead-child)
+      (unless (zerop handled-children-count)
+        (format *error-output* "~&Handled ~D children.~%" handled-children-count)
+        (unless signalledp
+          (format *error-output* "~&Found were children, but a SIGCLD was dropped.~%"))
+        (when more-children-p
+          (format *error-output* "~&More children pending.~%"))
+        (maybe-issue-computation)))))
 
 (defun handle-dead-child (pid status)
   (let ((process (gethash pid *pending-processes*)))
@@ -597,13 +614,13 @@ and extra finalization from calling FUN on the world."
                       (and (not (zerop (isys:wifexited status)))
                            (zerop (isys:wexitstatus status))))))
 
-(defun maybe-issue-computation (env)
+(defun maybe-issue-computation ()
   (when (and (ready-computation-p) (cpu-resources-available-p))
-    (issue-one-computation env)))
+    (issue-one-computation)))
 
-(defun issue-one-computation (env)
+(defun issue-one-computation ()
   (when-bind (computation) (pick-one-computation-amongst-the-ready-ones)
-    (issue-computation env computation)))
+    (issue-computation computation)))
 
 (defun pick-one-computation-amongst-the-ready-ones ()
   (loop :with best-computation = nil
@@ -615,9 +632,9 @@ and extra finalization from calling FUN on the world."
     (setf best-computation computation max-latency latency)
     :finally (return best-computation)))
 
-(defun issue-computation (env computation)
+(defun issue-computation (computation)
   (remhash computation *ready-computations*)
-  (work-on-computation env computation))
+  (work-on-computation *environment* computation))
 
 (defun ready-computation-p ()
   (not (zerop (hash-table-count *ready-computations*))))
@@ -629,6 +646,7 @@ and extra finalization from calling FUN on the world."
   (not (zerop (hash-table-count *pending-processes*))))
 
 (defun mark-computation-done (computation)
+  (decf *pending-computations*)
   (dolist (output (computation-outputs computation))
     (handle-done-grain output)))
 
@@ -655,16 +673,15 @@ and extra finalization from calling FUN on the world."
     :do (handle-done-grain grain)))
 
 (defvar *break-count* 0)
-(defvar *break-mod* 20)
+(defvar *break-mod* 10)
 (defun break? ()
   (when (zerop (mod (incf *break-count*) *break-mod*))
     (break)))
 
 (defun work-in-progress-p ()
-  (DBG :wipp (hash-table->alist *pending-processes*)
-       (hash-table->alist *ready-computations*)
-       (hash-table->alist *waiting-computations*))
-  ;; (break?)
+  (format *error-output* "~&Event loop at ~36R~%" (get-universal-time)) (finish-outputs)
+  (DBG :wipp (hash-table->alist *pending-processes*) (hash-table->alist *ready-computations*) (hash-table->alist *waiting-computations*))
+  ;;(break?) ;; useful for debugging
   (or (pending-process-p) (ready-computation-p) (waiting-computation-p)))
 
 (defun setup-computation-model ()
@@ -680,24 +697,34 @@ and extra finalization from calling FUN on the world."
         (setf (gethash c *ready-computations*) t)
         (setf (gethash c *waiting-computations*) n))))
 
-(defun setup-event-loop (env)
+(defun setup-event-loop ()
+  #+sbcl (sb-ext:gc :full t) ;; work around IOLib/CFFI bug causing heap corruption during GC.
   (setf *event-base* (make-instance 'iomux:event-base))
   (setf *sigchldfd* (install-signalfd isys:SIGCHLD isys:SA-NOCLDSTOP))
-  (iomux:set-io-handler *event-base* *sigchldfd* :read (handle-dead-children env))
-  (iomux:add-timer *event-base* #'(lambda () (maybe-issue-computation env)) *poll-timeout*))
+  (iomux:set-io-handler *event-base* *sigchldfd* :read
+                        #'(lambda (fd event exception)
+                            (declare (ignore fd event exception))
+                            (handle-dead-children)))
+  (iomux:add-timer *event-base* #'maybe-issue-computation *poll-timeout*))
 
 (defun run-event-loop ()
-  (loop :while (work-in-progress-p) :do (event-step)))
+  (loop :while (work-in-progress-p) :do
+    ;; handle-dead-children is only useful if signals dropped
+    ;; - but it does seem to happen in threads spawned by posix_spawn.
+    ;; is it a bug in glibc or in the way we fail to setup posix_spawn's attrp?
+    (handle-dead-children)
+    (event-step)))
 
 (defun check-computation-model ()
   ;;(break) ; TODO: better debugging
   (values))
 
-(defun farm-out-world-tree (env)
+(defun farm-out-world-tree ()
   ;; TODO: parametrize the a- the scheduling b- the action itself (or lack thereof)
   (setup-computation-model)
   (check-computation-model)
-  (setup-event-loop env)
+  (finish-outputs)
+  (setup-event-loop)
   (issue-initial-computations)
   (run-event-loop))
 
@@ -706,8 +733,10 @@ and extra finalization from calling FUN on the world."
   (trace
    do-handshake
    finalize-process
+   handle-dead-children
    handle-dead-child
    handle-done-grain
+   handle-signalling-children
    install-signalfd
    iolib.os:create-process
    iomux:add-timer
@@ -739,13 +768,13 @@ and extra finalization from calling FUN on the world."
     (let* ((*use-master* nil)
            (*root-worlds* nil)
            (traversal (make-instance 'farmer-traversal)))
-      (setf *working-directory* (new-work-directory (strcat *object-directory* "/_work/")))
+      (setf *working-directory* (new-work-directory (strcat *object-directory* "/_")))
       (setf *fifo-directory* (strcat *working-directory* "/fifo/"))
       (setf *worker-id* -1)
-      (setf *logs-directory* (strcat *working-directory* "/logs/"))
-      #|#+DEBUG|# (setf *environment* traversal)
+      (setf *logs-directory* (strcat *working-directory* "/"))
+      (setf *environment* traversal)
       (graph-for traversal fullname)
-      (farm-out-world-tree traversal))))
+      (farm-out-world-tree))))
 
 (defparameter +standalone-build-option-spec+
   `((("build" #\b) :type string :optional nil :documentation "specify what system to build")
@@ -771,6 +800,8 @@ and extra finalization from calling FUN on the world."
                    lisp-implementation lisp-binary-path
                    disable-cfasl master object-directory base-image debugging))
   (with-maybe-profiling (profiling)
+    (xcvb-driver::tweak-implementation) ;; this hides a SBCL / IOLib bug to be chased later.
+    (asdf:load-system :xcvb)
     (apply 'handle-global-options keys)
     (append1f *lisp-setup-dependencies* '(:fasl "/xcvb/forker"))
     (standalone-build (canonicalize-fullname build))))
