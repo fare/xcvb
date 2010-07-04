@@ -41,8 +41,9 @@ waiting at this state of the world.")
 (defvar *ready-computations* (make-hash-table)) ;; set of computations ready to be issued
 (defvar *waiting-computations* (make-hash-table)) ;; set of computations waiting for inputs
 (defvar *pending-processes* (make-hash-table :test 'equal)) ;; pid to pending computation
+(defvar *pending-actions* ()) ;; thunks of pending actions
 (defvar *expected-latencies* (make-hash-table)) ;; computation to latency evaluation
-(defvar *poll-timeout* #|.2|# 2) ;; how often to re-poll in seconds
+(defvar *poll-timeout* .1) ;; how often to re-poll in seconds
 
 (defvar *pipes* (make-hash-table :test 'equal)) ; maps pipe streams to computations
 (defvar *event-base* nil)
@@ -422,7 +423,7 @@ and extra finalization from calling FUN on the world."
     (close-world world)
     (rename-targets renamed-targets)
     (when continuation
-      (funcall continuation))))
+      (push continuation *pending-actions*))))
 
 (defun work-on-direct-file-compilation (env computation)
   (destructuring-bind (fullname &key cfasl) (cdr (computation-command computation))
@@ -597,22 +598,21 @@ and extra finalization from calling FUN on the world."
 (defun handle-dead-children ()
   (let ((signalledp (signalfd-signalled-p *sigchldfd*)))
     (multiple-value-bind (more-children-p handled-children-count)
-        (handle-signalling-children #'handle-dead-child)
+        (iolib.os:reap-children isys:wnohang)
       (unless (zerop handled-children-count)
         (format *error-output* "~&Handled ~D children.~%" handled-children-count)
         (unless signalledp
-          (format *error-output* "~&Found were children, but a SIGCLD was dropped.~%"))
+          (format *error-output* "~&Found children, but a SIGCHLD was dropped.~%"))
         (when more-children-p
           (format *error-output* "~&More children pending.~%"))
         (maybe-issue-computation)))))
 
 (defun handle-dead-child (pid status)
   (let ((process (gethash pid *pending-processes*)))
-    (assert process)
-    (remhash pid *pending-processes*)
-    (finalize-process process
-                      (and (not (zerop (isys:wifexited status)))
-                           (zerop (isys:wexitstatus status))))))
+    (when process
+      (remhash pid *pending-processes*)
+      (finalize-process process (wexitsuccess status))
+      t)))
 
 (defun maybe-issue-computation ()
   (when (and (ready-computation-p) (cpu-resources-available-p))
@@ -678,11 +678,16 @@ and extra finalization from calling FUN on the world."
   (when (zerop (mod (incf *break-count*) *break-mod*))
     (break)))
 
+(defun pending-actions-p ()
+  (not (null *pending-actions*)))
+
 (defun work-in-progress-p ()
   (format *error-output* "~&Event loop at ~36R~%" (get-universal-time)) (finish-outputs)
-  (DBG :wipp (hash-table->alist *pending-processes*) (hash-table->alist *ready-computations*) (hash-table->alist *waiting-computations*))
+  (DBG :wipp (hash-table->alist *pending-processes*)
+       (hash-table->alist *ready-computations*)
+       (hash-table->alist *waiting-computations*))
   ;;(break?) ;; useful for debugging
-  (or (pending-process-p) (ready-computation-p) (waiting-computation-p)))
+  (or (pending-actions-p) (pending-process-p) (ready-computation-p) (waiting-computation-p)))
 
 (defun setup-computation-model ()
   ;; Compute a static cost model.
@@ -690,6 +695,7 @@ and extra finalization from calling FUN on the world."
   (setf *waiting-computations* (make-hash-table)) ;; set of computations waiting for inputs
   (setf *pending-processes* (make-hash-table :test 'equal)) ;; pid to pending computation
   (setf *expected-latencies* (make-hash-table)) ;; computation to latency evaluation
+  (setf *pending-actions* ()) ;; queue of thunks to be executed outside of current locks
   (compute-latency-model *computations* :latencies *expected-latencies*)
   (loop :for c :in *computations*
     :for n = (length (computation-inputs c)) :do
@@ -701,17 +707,25 @@ and extra finalization from calling FUN on the world."
   #+sbcl (sb-ext:gc :full t) ;; work around IOLib/CFFI bug causing heap corruption during GC.
   (setf *event-base* (make-instance 'iomux:event-base))
   (setf *sigchldfd* (install-signalfd isys:SIGCHLD isys:SA-NOCLDSTOP))
+  (iolib.os:register-child-reaper 'handle-dead-child)
   (iomux:set-io-handler *event-base* *sigchldfd* :read
                         #'(lambda (fd event exception)
                             (declare (ignore fd event exception))
                             (handle-dead-children)))
   (iomux:add-timer *event-base* #'maybe-issue-computation *poll-timeout*))
 
+(defun run-pending-actions ()
+  (let ((actions (reverse *pending-actions*)))
+    (setf *pending-actions* nil)
+    (dolist (thunk actions)
+      (funcall thunk))))
+
 (defun run-event-loop ()
   (loop :while (work-in-progress-p) :do
     ;; handle-dead-children is only useful if signals dropped
     ;; - but it does seem to happen in threads spawned by posix_spawn.
     ;; is it a bug in glibc or in the way we fail to setup posix_spawn's attrp?
+    (run-pending-actions)
     (handle-dead-children)
     (event-step)))
 
@@ -733,10 +747,9 @@ and extra finalization from calling FUN on the world."
   (trace
    do-handshake
    finalize-process
-   handle-dead-children
    handle-dead-child
+   handle-dead-children
    handle-done-grain
-   handle-signalling-children
    install-signalfd
    iolib.os:create-process
    iomux:add-timer
@@ -750,6 +763,8 @@ and extra finalization from calling FUN on the world."
    notify-users-grain-is-ready
    open-fifo
    pick-one-computation-amongst-the-ready-ones
+   reap-child
+   reap-children
    run-event-loop
    setup-event-loop
    shell-tokens-to-Makefile
@@ -760,6 +775,7 @@ and extra finalization from calling FUN on the world."
    work-on-direct-file-compilation
    work-on-starting-world
    work-on-xcvb-driver-command)
+  #+ccl (fmakunbound 'ccl:run-program)
 
   (setf *print-pretty* nil)
   (multiple-value-bind (fullname build) (handle-target name)

@@ -204,7 +204,12 @@ with associated pathnames and tthsums.")
 ;;; Simple variant of run-program with no input, and capturing output
 (defun run-program/process-output-stream (command output-processor
                                           &key ignore-error-status)
-  #+(or clisp ecl) (declare (ignore ignore-error-status))
+  #+(or clisp ecl) (declare (ignorable ignore-error-status))
+  (let* ((p (find-package :quux-iolib))
+         (r 'run-program/process-output-stream)
+         (s (and p (find-symbol (string r) p))))
+    (when s (return-from run-program/process-output-stream
+              (funcall s command output-processor :ignore-error-status ignore-error-status))))
   #-(or sbcl cmu scl clozure clisp)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
   (let* ((process

@@ -12,6 +12,9 @@
         :xcvb-driver :command-line-arguments :xcvb-master
         :fare-utils :interface :pure :quux-iolib :iolib.os)
 
+  (:shadowing-import-from :quux-iolib
+   #:run-program/process-output-stream)
+
   (:import-from :asdf
    ;;#:*default-exclusions*
    #:*default-source-registries*
