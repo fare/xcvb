@@ -231,6 +231,13 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
  * Devise a way to refactor internals so that it becomes easier to extend xcvb.
    Maybe use sheeple?
 
+ * Idea for XCVB:
+   be more like Exscribe -
+   have a pass where rules fire and build a high-level model,
+   then in a second pass, compile this high-level model
+   straightforwardly into a low-level model of simple computations,
+   then interpret the low-level model.
+
  * port ironclad, binascii...
 
  * add supersession of asdf systems by require dependencies, e.g. for sb-bsd-sockets.
@@ -1456,7 +1463,7 @@ will already have adopted XCVB as its build tool.
 
 See ASDF-INSTALL, clbuild, libcl, desire, etc.
 
-See Haskell Hackage, Caml Hump,
+See Haskell Hackage, Caml Hump, (Erlang) Rebar,
 PLaneT, Chicken eggs,
 Ruby gems, Python eggs, Java beans, etc.
 

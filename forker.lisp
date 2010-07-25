@@ -10,10 +10,11 @@
 (in-package :xcvb-driver)
 
 #+sbcl ;;; SBCL specific fork support
-(progn
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require :sb-grovel)
   (require :sb-posix))
+#+sbcl
+(progn
 ;; Simple heuristic: if we have allocated more than the given ratio
 ;; of what is allowed between GCs, then trigger the GC.
 ;; Note: can possibly modify parameters and reset in sb-ext:*after-gc-hooks*
@@ -134,6 +135,11 @@
       (error "Trying to reap unregistered PID ~D" pid))
     (remhash pid *subprocesses*)
     (funcall handler status)))
+(defun maybe-reap-specified-subprocess (pidspec options)
+  (multiple-value-bind (pid status) (posix-waitpid pidspec options)
+    (unless (zerop pid)
+      (reap-subprocess pid status)
+      t)))
 (defun maybe-reap-one-subprocess (&key nohang)
   (unless (zerop (hash-table-count *subprocesses*))
     (if *only-reap-registered-subprocesses*
@@ -142,11 +148,6 @@
                    :thereis (maybe-reap-specified-subprocess pid options))
         :until nohang :do (sleep .1))
       (maybe-reap-specified-subprocess -1 (posix-waitpid-options :nohang nohang)))))
-(defun maybe-reap-specified-subprocess (pidspec options)
-  (multiple-value-bind (pid status) (posix-waitpid pidspec options)
-    (unless (zerop pid)
-      (reap-subprocess pid status)
-      t)))
 (defun reap-subprocesses (&key nohang)
   (loop :while (maybe-reap-one-subprocess :nohang nohang)))
 
@@ -173,7 +174,16 @@
 (defun read-eval-loop (&optional (i *standard-input*))
   (format *error-output* "~&Starting read-eval-loop at ~36R" (get-universal-time))
   (loop :with eof = '#:eof
-    :for form = (read i nil eof)
+    #|:with size = 4096
+    :with buffer = (make-array size :element-type 'character)
+    :for start = 0 :then newstart
+    :for end = 0 :then newend
+    :for position = (- end start)
+    :for () = (replace buffer buffer :start1 0 :end1 position :start2 start :end2 end)
+    :for newend = (read-sequence buffer i :start position :end size)
+    :for (form newstart) =
+    (multiple-value-list (read-from-string buffer nil eof :start 0 :end newend))|#
+    :for form = (read-preserving-whitespace i nil eof)
     :until (eq form eof) :do
     (format *error-output* "~&At ~36R received form ~S~%" (get-universal-time) form)
     (finish-outputs)
@@ -182,20 +192,6 @@
     (finish-outputs)
     :finally (progn (format *error-output* "~&; EOF at ~36R~%" (get-universal-time))
                     (finish-outputs))))
-
-(defun fork-job (id inpath outpath errpath &rest commands)
-  ;; NB: we open the new input/output pipes from the parent,
-  ;; and close them right after the fork,
-  ;; so that closing of the pipe be a signal to the controller
-  ;; that the controlled process is dead.
-  ;; Note that the controller process will have to open the pipe
-  ;; in non-blocking mode, and to select on it.
-  (format *error-output* "Forked process ~D to run job ~S ~S ~S ~S~{ ~S~}~%"
-          (in-fork
-           (lambda ()
-             (work-on-job id inpath outpath errpath commands nil))) ;; t
-          id inpath outpath errpath commands)
-  (finish-outputs))
 
 (defun work-on-job (id inpath outpath errpath commands close)
   (when close (close *error-output*))
@@ -213,6 +209,20 @@
                                         :direction :input :if-does-not-exist :error)
         (let ((*trace-output* *error-output*))
           (run-commands commands))))))
+
+(defun fork-job (id inpath outpath errpath &rest commands)
+  ;; NB: we open the new input/output pipes from the parent,
+  ;; and close them right after the fork,
+  ;; so that closing of the pipe be a signal to the controller
+  ;; that the controlled process is dead.
+  ;; Note that the controller process will have to open the pipe
+  ;; in non-blocking mode, and to select on it.
+  (format *error-output* "Forked process ~D to run job ~S ~S ~S ~S~{ ~S~}~%"
+          (in-fork
+           (lambda ()
+             (work-on-job id inpath outpath errpath commands t))) ;; t
+          id inpath outpath errpath commands)
+  (finish-outputs))
 
 (defun execute-job (id inpath outpath errpath &rest commands)
   (work-on-job id inpath outpath errpath commands nil)

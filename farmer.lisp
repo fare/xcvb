@@ -381,7 +381,7 @@ and extra finalization from calling FUN on the world."
            (iolib.os:create-process
             (car command) (cdr command)
             :stdin :null
-            :stdout (list logpath :append)
+            :stdout (list logpath :output)
             :stderr :stdout)))
       (change-class process 'process*
                     :id id :should-exit-p should-exit-p
@@ -569,7 +569,7 @@ and extra finalization from calling FUN on the world."
         (when (world-process world)
           (setf (process-should-exit-p (world-process world)) t)))
       (let ((text
-             (format nil "(xcvb-driver:run-command '~A)~%"
+             (format nil "(xcvb-driver:run-command '~A)~%()~%"
                     (text-for-xcvb-driver-command env command))))
         (DBG :woac id text command-fifo world)
         (write-sequence text command-fifo)
