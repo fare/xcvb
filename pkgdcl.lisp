@@ -10,8 +10,10 @@
 (defpackage :xcvb
   (:use :closer-common-lisp
         :xcvb-driver :command-line-arguments :xcvb-master
-        :fare-utils :interface :pure :quux-iolib :iolib.os)
+        :fare-utils :interface :pure
+        #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
+  #+xcvb-farmer
   (:shadowing-import-from :quux-iolib
    #:run-program/process-output-stream)
 

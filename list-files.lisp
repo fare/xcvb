@@ -49,6 +49,18 @@
   (setf *use-cfasls* nil)
   (remove-xcvb-from-build build))
 
+(defun purge-xcvb-command (files)
+  (initialize-environment)
+  (loop :for f :in files
+    :for p = (probe-file f) :do
+    (when p
+      (cond
+        ((equal (cons (pathname-name p) (pathname-type p)) '("build" . "xcvb"))
+         (delete-file p))
+        ((equal (pathname-type p) "lisp")
+         (log-format 4 "Removing module statements from ~A" p)
+         (remove-module-from-file p))))))
+
 ;; Using the build.xcvb as a starting point, finds files and
 ;; strips XCVB modules from them.
 (defun remove-xcvb-from-build (fullname)

@@ -16,6 +16,9 @@
     (error "XCVB requires ASDF ~D or later, you only have ~D"
            min (asdf:asdf-version))))
 
+(when (plusp (length (getenv "XCVB_FARMER")))
+  (pushnew :xcvb-farmer *features*))
+
 #+sbcl
 (progn
   ;;; Actually used by XCVB
@@ -42,8 +45,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :fare-utils :command-line-arguments
                  :asdf-dependency-grovel :closer-mop
                  ;; :ironclad :binascii
-                 :quux-iolib
-                 :iolib)
+                 #+xcvb-farmer :quux-iolib ; #+xcvb-farmer :iolib
+                 )
     :components
     ((:file "pkgdcl")
      (:file "conditions" :depends-on ("pkgdcl"))
@@ -79,6 +82,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                                                "asdf-backend" "simplifying-traversal"))
      (:file "asdf-converter" :depends-on ("main" "grain-interface" "search-path"))
      (:file "slave" :depends-on ("main"))
+     #+xcvb-farmer
      (:file "farmer" :depends-on ("profiling" "main" "driver-commands"
                                   "grain-interface" "dependencies-interpreter"))
      (:file "cffi-grovel-support" :depends-on
