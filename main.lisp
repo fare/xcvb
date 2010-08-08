@@ -13,6 +13,8 @@
   (setf *grains* (make-hash-table :test 'equal)
         *computations* nil
         *target-system-features* nil
+        *target-added-features* nil
+        *target-suppressed-features* nil
         *source-registry* nil
         *lisp-setup-dependencies* +fast-xcvb-setup-dependencies+
         *pathname-grain-cache* (make-hash-table :test 'equal)
@@ -50,7 +52,8 @@ a chance to load and/or configure ASDF itself and any extension thereof.")
      "Given an XCVB build file, removes the XCVB modules from each of the files listed in the build file.")
     (("purge-xcvb" "pux" "px")
      purge-xcvb-command ()
-     "Remove XCVB module statements from explicitly listed files")
+     "Remove XCVB module statements from explicitly listed files"
+     "Given a list of files, remove the XCVB module statements from each Lisp file and delete specified build files.")
     (("xcvb-to-asdf" "x2a")
      xcvb-to-asdf-command +xcvb-to-asdf-option-spec+
      "Extract an ASDF system from XCVB"
@@ -113,6 +116,10 @@ for this version of XCVB.")))
 
 (defparameter +cfasl-option-spec+
   '((("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")))
+
+(defparameter +feature-option-spec+
+  '((("define-feature" #\D) :type string :list t :documentation "define a CL into the target")
+    (("undefine-feature" #\U) :type string :list t :documentation "undefine a CL from the target")))
 
 (defparameter +verbosity-option-spec+
   '((("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
@@ -216,6 +223,7 @@ for this version of XCVB.")))
                               disable-cfasl master setup
                               base-image
                               debugging
+                              define-feature undefine-feature
                               &allow-other-keys)
     (reset-variables)
     (when debugging
@@ -237,6 +245,12 @@ for this version of XCVB.")))
         (setf *lisp-implementation-type* type)))
     (when lisp-binary-path
       (setf *lisp-executable-pathname* lisp-binary-path))
+    (flet ((m (x) (mapcar (lambda (s) (intern (string-upcase s) :keyword)) x)))
+      (setf *target-added-features* (m define-feature))
+      (setf *target-suppressed-features* (m undefine-feature))
+      (when-bind (i) (intersection *target-added-features* *target-suppressed-features*)
+        (errexit 2 "Can't both define and undefine feature ~
+                    ~#[~; ~A~; ~A and ~A~~:;~@{~#[~; and~] ~S~^ ,~}~]" i)))
     (read-target-properties) ;; Gets information from target Lisp.
     (setf *use-cfasls* ;; Must be done after read-target-properties
           (or (and *use-cfasls* (not disable-cfasl))

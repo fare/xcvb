@@ -31,6 +31,10 @@
 (defvar *target-system-features* nil
   "value of *features* in the target system
 Autodetected from the target Lisp system.")
+(defvar *target-added-features* nil
+  "extra user-provided *features* to push in the target system")
+(defvar *target-suppressed-features* nil
+  "extra user-provided *features* to remove from the target system")
 
 ;; *use-cfasls* is set by main.lisp after *lisp-implementation-type* is set.
 (defvar *use-cfasls* nil

@@ -290,6 +290,10 @@ for each of its registered names."
   (flet ((entry-string (x)
            (destructuring-bind (fullname . entry) x
              (etypecase entry
+               (require-grain
+                (assert (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf)))
+                (format nil " (:ASDF ~S) superseded by ~S~%"
+                            (second fullname) (fullname entry)))
                (build-module-grain
                 (if (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf))
                     (format nil " (:ASDF ~S) superseded by (:BUILD ~S)~%"

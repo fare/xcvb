@@ -31,7 +31,15 @@
 
 (defun target-feature-p (x)
   (get-target-properties)
-  (member x *target-system-features*))
+  (cond
+    ((member x *target-suppressed-features*)
+     nil)
+    ((member x *target-added-features*)
+     t)
+    ((member x *target-system-features*)
+     t)
+    (t
+     nil)))
 
 (defun read-target-properties ()
   (let ((forms (extract-target-properties)))

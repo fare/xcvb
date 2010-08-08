@@ -45,7 +45,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :fare-utils :command-line-arguments
                  :asdf-dependency-grovel :closer-mop
                  ;; :ironclad :binascii
-                 #+xcvb-farmer :quux-iolib ; #+xcvb-farmer :iolib
+                 #+xcvb-farmer :quux-iolib
                  )
     :components
     ((:file "pkgdcl")

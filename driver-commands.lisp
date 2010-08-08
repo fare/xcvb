@@ -89,7 +89,13 @@ will create the desired content. An atomic rename() will have to be performed af
     (lisp-invocation-arglist
      :image-path (if image (fullname-enough-namestring env image) *lisp-image-pathname*)
      :load (mapcar/ #'fullname-enough-namestring env load)
-     :eval eval)))
+     :eval (if (or *target-added-features* *target-suppressed-features*)
+               (format nil "(progn~
+  ~{~#[~;(pushnew ~S *features*)~:;(dolist(x'(~@{~S~^ ~}))(pushnew x *features*))~]~}~
+  ~@[(setf *feature*(remove~{~#[~; ~S~:;-if(lambda(x)(member x'(~@{~S~^ ~})))~]~} *features*))~]~
+  ~A)"
+                       *target-added-features* *target-suppressed-features* eval)
+               eval))))
 
 (defun compile-file-directly-shell-token (env name &key cfasl)
   (quit-form
