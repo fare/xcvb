@@ -76,14 +76,19 @@ xcvb: xcvb-using-xcvb
 XCVB_MK := ${XCVB_OBJECT_DIRECTORY}/xcvb.mk
 MK_XCVB := ${MAKE} -C ${XCVB_OBJECT_DIRECTORY} -f xcvb.mk
 
+
+XCVB_IMPLEMENTATION_OPTIONS := \
+	     --lisp-implementation ${LISP_IMPL} \
+	     --lisp-binary-path ${LISP_BIN} \
+	     ${FEATURE_OPTIONS}
+
 ${XCVB_MK}: force
 	xcvb make-makefile \
 	     --build /xcvb \
 	     --setup /xcvb/no-asdf \
 	     --output-path $@ \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY} \
-	     --lisp-implementation ${LISP_IMPL} \
-	     --lisp-binary-path ${LISP_BIN}
+	     ${XCVB_IMPL_OPTIONS}
 
 
 PARALLELIZE := -j

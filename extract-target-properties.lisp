@@ -41,6 +41,15 @@
     (t
      nil)))
 
+(defun tweak-features-around-eval-string (eval)
+  (if (or *target-added-features* *target-suppressed-features*)-
+      (format nil "(progn~
+  ~{~#[~;(pushnew ~S *features*)~:;(dolist(x'(~@{~S~^ ~}))(pushnew x *features*))~]~}~
+  ~@[(setf *features*(remove~{~#[~; ~S~:;-if(lambda(x)(member x'(~@{~S~^ ~})))~]~} *features*))~]~
+  ~A)"
+              *target-added-features* *target-suppressed-features* eval)
+      eval))
+
 (defun read-target-properties ()
   (let ((forms (extract-target-properties)))
     (unless forms

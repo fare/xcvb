@@ -52,6 +52,7 @@
       (log-format 8 "T=~A computing makefile body" (get-universal-time))
       (let ((body (computations-to-Makefile env)))
         (log-format 8 "T=~A creating makefile" (get-universal-time))
+        (ensure-directories-exist makefile-path)
         (with-open-file (out makefile-path
                              :direction :output
                              :if-exists :supersede)

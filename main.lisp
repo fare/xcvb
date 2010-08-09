@@ -82,9 +82,10 @@ For debugging your XCVB configuration.")
      make-manifest +make-manifest-option-spec+
      "Create a manifest of files to load (for internal use)"
      "given fullnames and paths, output fullnames, tthsum and paths")
+    #+xcvb-farmer
     (("build")
      standalone-build-command +standalone-build-option-spec+
-     "build a project (not fully implemented yet)"
+     "build a project (experimental)"
      "build the project directly")
     (("load")
      load-command ()
@@ -112,14 +113,13 @@ for this version of XCVB.")))
 
 (defparameter +lisp-implementation-option-spec+
   '((("lisp-implementation" #\l) :type string :initial-value "sbcl" :documentation "specify type of Lisp implementation")
-    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")))
+    (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
+    (("define-feature" #\D) :type string :list t :optional t :documentation "define a CL into the target")
+    (("undefine-feature" #\U) :type string :list t :optional t :documentation "undefine a CL from the target")))
 
 (defparameter +cfasl-option-spec+
   '((("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")))
 
-(defparameter +feature-option-spec+
-  '((("define-feature" #\D) :type string :list t :documentation "define a CL into the target")
-    (("undefine-feature" #\U) :type string :list t :documentation "undefine a CL from the target")))
 
 (defparameter +verbosity-option-spec+
   '((("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")

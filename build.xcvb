@@ -27,9 +27,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
                      (:when (:featurep :xcvb-farmer)
                        (:build "/iolib") ;; I/O event loop
                        (:build "/quux/iolib")) ;; signalfd support (experimental)
-                     (:when (:featurep :xcvb-crypto)
-                       (:asdf :ironclad) ;; unported magic adsf:perform methods...
-                       (:asdf :binascii))
+                     ;;(:when (:featurep :xcvb-crypto)
+                     ;;  (:asdf :ironclad) ;; unported magic adsf:perform methods...
+                     ;;  (:asdf :binascii))
                      "/xcvb/master"
                      (:when (:featurep :sbcl)
                        ;; Used by XCVB

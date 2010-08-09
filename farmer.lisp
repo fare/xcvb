@@ -704,7 +704,6 @@ and extra finalization from calling FUN on the world."
         (setf (gethash c *waiting-computations*) n))))
 
 (defun setup-event-loop ()
-  #+sbcl (sb-ext:gc :full t) ;; work around IOLib/CFFI bug causing heap corruption during GC.
   (setf *event-base* (make-instance 'iomux:event-base))
   (setf *sigchldfd* (install-signalfd isys:SIGCHLD isys:SA-NOCLDSTOP))
   (iolib.os:register-child-reaper 'handle-dead-child)
