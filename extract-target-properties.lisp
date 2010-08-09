@@ -42,7 +42,7 @@
      nil)))
 
 (defun tweak-features-around-eval-string (eval)
-  (if (or *target-added-features* *target-suppressed-features*)-
+  (if (or *target-added-features* *target-suppressed-features*)
       (format nil "(progn~
   ~{~#[~;(pushnew ~S *features*)~:;(dolist(x'(~@{~S~^ ~}))(pushnew x *features*))~]~}~
   ~@[(setf *features*(remove~{~#[~; ~S~:;-if(lambda(x)(member x'(~@{~S~^ ~})))~]~} *features*))~]~
