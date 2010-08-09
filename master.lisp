@@ -23,6 +23,7 @@
    #:*lisp-image-pathname*
    #:*lisp-implementation-directory*
    #:*lisp-flags*
+   #:*features-defined* #:*features-undefined*
    #:*xcvb-verbosity*
    #:*lisp-allow-debugger*
    #:*object-directory*
@@ -91,6 +92,12 @@
   ;;; TODO: add support for overriding this feature at the command-line?
   "What options do we need invoke the target Lisp with?
 A list of strings, or the keyword :DEFAULT.")
+
+(defvar *features-defined* nil
+  "What additional features to define in the target image")
+
+(defvar *features-undefined* nil
+  "What additional features to undefine in the target image")
 
 (defvar *disable-cfasls* nil
   "Should we disable CFASL support when the target Lisp has it?")
@@ -308,6 +315,8 @@ with associated pathnames and tthsums.")
   (when value (list string (namestring value))))
 (defun boolean-option-arguments (string value)
   (when value (list string)))
+(defun list-option-arguments (string value)
+  (loop :for v :in value :nconc (list string v)))
 (defmacro option-string (name)
   (format nil "--~(~a~)" name))
 (defmacro string-option (var)
@@ -333,6 +342,8 @@ with associated pathnames and tthsums.")
       (object-directory *object-directory*)
       (lisp-implementation *lisp-implementation-type*)
       (lisp-binary-path *lisp-executable-pathname*)
+      (features-defined *features-defined*)
+      (features-undefined *features-undefined*)
       (disable-cfasl *disable-cfasls*)
       (base-image *use-base-image*)
       (verbosity *xcvb-verbosity*)
@@ -346,6 +357,8 @@ with associated pathnames and tthsums.")
             build setup lisp-implementation verbosity source-registry)
            (pathname-options
             output-path object-directory lisp-binary-path)
+           (list-option-arguments "define-feature" features-defined)
+           (list-option-arguments "undefine-feature" features-undefined)
            (boolean-options
             disable-cfasl base-image profiling)))
          (slave-output

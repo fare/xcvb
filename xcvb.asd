@@ -19,6 +19,8 @@
 (when (plusp (length (getenv "XCVB_FARMER")))
   (pushnew :xcvb-farmer *features*))
 
+(pushnew :xcvb-using-asdf *features*)
+
 #+sbcl
 (progn
   ;;; Actually used by XCVB

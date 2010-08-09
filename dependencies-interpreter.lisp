@@ -125,7 +125,7 @@
   (declare (ignore env))
   (unless (keywordp atom)
     (error "Invalid feature ~S" atom))
-  (member atom (target-system-features)))
+  (target-feature-p atom))
 
 (define-evaluate-featurep :and (env &rest feature-expressions)
   (loop :for feature-expression :in feature-expressions

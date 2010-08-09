@@ -170,8 +170,16 @@ for this version of XCVB.")))
 ;; Command to print out a version string.
 (defun show-version (args)
   (declare (ignore args))
-  (format t "~&XCVB version ~A~%(compiled with ~A ~A)~%"
-          *xcvb-version* (lisp-implementation-type) (lisp-implementation-version)))
+  (let ((features
+         (loop :for f :in '(:farmer)
+           :when (member (intern (format nil "~A-~A" :xcvb f) :keyword) *features*)
+           :collect (string-downcase f))))
+    (format t "~&XCVB version ~A
+built on ~A ~A
+~@[with ~{~A~#[~; and ~:;, ~]~} enabled~%~]~
+using ~A~%"
+            *xcvb-version* (lisp-implementation-type) (lisp-implementation-version)
+            features (or #+xcvb-using-asdf :asdf :xcvb))))
 
 ;; Command to load a file.
 (defun load-command (args)
@@ -249,8 +257,8 @@ for this version of XCVB.")))
       (setf *target-added-features* (m define-feature))
       (setf *target-suppressed-features* (m undefine-feature))
       (when-bind (i) (intersection *target-added-features* *target-suppressed-features*)
-        (errexit 2 "Can't both define and undefine feature ~
-                    ~#[~; ~A~; ~A and ~A~~:;~@{~#[~; and~] ~S~^ ,~}~]" i)))
+        (errexit 2 "Can't both define and undefine feature~P ~
+                    ~{~A~#[~; and ~:;, ~]~}" (length i) i)))
     (read-target-properties) ;; Gets information from target Lisp.
     (setf *use-cfasls* ;; Must be done after read-target-properties
           (or (and *use-cfasls* (not disable-cfasl))

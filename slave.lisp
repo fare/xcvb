@@ -20,6 +20,7 @@
                       build setup source-registry
                       output-path object-directory
                       lisp-implementation lisp-binary-path
+                      define-feature undefine-feature
                       disable-cfasl base-image verbosity profiling debugging)
   (multiple-value-bind (makefile-path makefile-dir)
       ;; Note that make-makefile calls handle-common-options for us.
@@ -29,6 +30,7 @@
        :source-registry source-registry :output-path output-path
        :object-directory object-directory
        :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
+       :define-feature define-feature :undefine-feature undefine-feature
        :disable-cfasl disable-cfasl :base-image base-image
        :verbosity verbosity :profiling profiling :debugging debugging)
     (let* ((make-command

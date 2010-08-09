@@ -121,9 +121,11 @@ in a fast way that doesn't enforce dependencies."
                                build base-image setup source-registry name
                                output-path object-directory
                                lisp-implementation lisp-binary-path
+                               define-feature undefine-feature
                                verbosity parallel debugging #|force-cfasl profiling|#)
   (declare (ignore source-registry setup verbosity
                    lisp-implementation lisp-binary-path
+                   define-feature undefine-feature
                    object-directory base-image debugging))
   ;;(with-maybe-profiling (profiling)
   (apply 'handle-global-options

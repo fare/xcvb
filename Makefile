@@ -82,13 +82,14 @@ XCVB_IMPLEMENTATION_OPTIONS := \
 	     --lisp-binary-path ${LISP_BIN} \
 	     ${FEATURE_OPTIONS}
 
+mk: ${XCVB_MK}
 ${XCVB_MK}: force
 	xcvb make-makefile \
 	     --build /xcvb \
 	     --setup /xcvb/no-asdf \
 	     --output-path $@ \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY} \
-	     ${XCVB_IMPL_OPTIONS}
+	     ${XCVB_IMPLEMENTATION_OPTIONS}
 
 
 PARALLELIZE := -j
@@ -261,6 +262,6 @@ show-config:
 	xpdf doc online-doc pull push show-current-revision force \
 	release release-directory release-tarball test-and-release-tarball \
 	xcvb-bootstrapped-install xcvb-asdf-install \
-	test fulltest show-config
+	test fulltest show-config mk
 
 # To check out a particular revision: git fetch; git merge $commit

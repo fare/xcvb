@@ -809,10 +809,10 @@ and extra finalization from calling FUN on the world."
 (defun standalone-build-command
     (&rest keys &key
      source-registry setup verbosity output-path
-     build lisp-implementation lisp-binary-path
+     build lisp-implementation lisp-binary-path define-feature undefine-feature
      disable-cfasl master object-directory base-image debugging profiling)
   (declare (ignore source-registry setup verbosity output-path
-                   lisp-implementation lisp-binary-path
+                   lisp-implementation lisp-binary-path define-feature undefine-feature
                    disable-cfasl master object-directory base-image debugging))
   (with-maybe-profiling (profiling)
     (xcvb-driver::tweak-implementation) ;; this hides a SBCL / IOLib bug to be chased later.

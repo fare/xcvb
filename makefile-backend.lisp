@@ -253,10 +253,10 @@ xcvb-ensure-object-directories:
 
 (defun make-makefile (&rest keys &key
                       source-registry setup verbosity output-path
-                      build lisp-implementation lisp-binary-path
+                      build lisp-implementation lisp-binary-path define-feature undefine-feature
                       disable-cfasl master object-directory base-image profiling debugging)
   (declare (ignore source-registry setup verbosity
-                   lisp-implementation lisp-binary-path
+                   lisp-implementation lisp-binary-path define-feature undefine-feature
                    disable-cfasl master object-directory base-image debugging))
   (with-maybe-profiling (profiling)
     (apply 'handle-global-options keys)
