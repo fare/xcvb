@@ -380,6 +380,7 @@ and extra finalization from calling FUN on the world."
     (let ((process
            (iolib.os:create-process
             (car command) (cdr command)
+            :sigmask -1 :sigdefault -1
             :stdin :null
             :stdout (list logpath :output)
             :stderr :stdout)))
@@ -569,9 +570,13 @@ and extra finalization from calling FUN on the world."
         (when (world-process world)
           (setf (process-should-exit-p (world-process world)) t)))
       (let ((text
-             (format nil "(xcvb-driver:run-command '~A)~%()~%"
+             (format nil "(xcvb-driver:run-command '~A)~%"
                     (text-for-xcvb-driver-command env command))))
         (DBG :woac id text command-fifo world)
+        (when (eq :sbcl *lisp-implementation-type*) ;; defeat buffering (hopefully)
+          (let* ((sbcl-buffer-size 4096) ; +bytes-per-buffer+ in sbcl/src/code/fd-stream.lisp
+                 (filling (mod (- (babel:string-size-in-octets text)) sbcl-buffer-size)))
+            (setf text (format nil "~A~VT" text filling))))
         (write-sequence text command-fifo)
         (finish-output command-fifo))
       (when (zerop pending-futures)

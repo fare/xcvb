@@ -185,10 +185,10 @@
     (multiple-value-list (read-from-string buffer nil eof :start 0 :end newend))|#
     :for form = (read-preserving-whitespace i nil eof)
     :until (eq form eof) :do
-    (format *error-output* "~&At ~36R received form ~S~%" (get-universal-time) form)
+    (format *error-output* "~&At ~36R received form~%  ~S~%" (get-universal-time) form)
     (finish-outputs)
     (let ((values (multiple-value-list (eval form))))
-      (format *error-output* "~&; At ~36R it returned~{ ~S~}~%" (get-universal-time) values))
+      (format *error-output* "~&; At ~36R it returned~%~{  ~S~%~}" (get-universal-time) values))
     (finish-outputs)
     :finally (progn (format *error-output* "~&; EOF at ~36R~%" (get-universal-time))
                     (finish-outputs))))
@@ -231,7 +231,7 @@
 
 (defun run-job (id &rest commands)
   (let ((*standard-output* *error-output*))
-    (format t "~&Running job ~S at ~36R~{ ~S~}~%" id (get-universal-time) commands)
+    (format t "~&Running job ~S at ~36R:~%  ~{ ~S~}~%" id (get-universal-time) commands)
     (finish-outputs)
     (run-commands commands)
     (format t "~&Done with job ~S at ~36R~%" id (get-universal-time)))
