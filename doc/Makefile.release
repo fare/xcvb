@@ -81,7 +81,7 @@ checkout:
 	clone git://common-lisp.net/project/xcvb/git/cl-launch.git && \
 	clone git://common-lisp.net/project/qitab/git/command-line-arguments.git && \
 	clone git://common-lisp.net/~frideau/git/fare-utils.git && \
-	clone git://common-lisp.net/project/xcvb/git/iolib.git
+	clone git://common-lisp.net/project/xcvb/git/iolib.git && \
 	clone git://github.com/froydnj/ironclad.git && \
 	clone git://common-lisp.net/project/qitab/git/poiu.git && \
 	clone git://common-lisp.net/project/xcvb/git/quux-iolib.git && \
