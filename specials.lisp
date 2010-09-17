@@ -60,7 +60,7 @@ Autodetected from the target Lisp system.")
 ;;; and/or make the dependency explicit in a way that XCVB is aware of.
 (defvar *xcvb-lisp-directory*
   #p"/usr/share/common-lisp/source/xcvb/"
-  ;; (pathname (strcat (asdf-utilities:getenv "INSTALL_XCVB") "/"))
+  ;; (pathname (strcat (asdf:getenv "INSTALL_XCVB") "/"))
   "Directory pathname for the location where XCVB Lisp files are installed")
 
 ;; *pathname-grain-cache* is used by code in names.lisp.

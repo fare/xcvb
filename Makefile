@@ -82,11 +82,11 @@ XCVB_IMPLEMENTATION_OPTIONS := \
 	     --lisp-binary-path ${LISP_BIN} \
 	     ${FEATURE_OPTIONS}
 
+# 	     --setup /xcvb/no-asdf \
 mk: ${XCVB_MK}
 ${XCVB_MK}: force
 	xcvb make-makefile \
 	     --build /xcvb \
-	     --setup /xcvb/no-asdf \
 	     --output-path $@ \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY} \
 	     ${XCVB_IMPLEMENTATION_OPTIONS}

@@ -189,9 +189,9 @@
     (finish-outputs)
     (let ((values (multiple-value-list (eval form))))
       (format *error-output* "~&; At ~36R it returned~%~{  ~S~%~}" (get-universal-time) values))
-    (finish-outputs)
-    :finally (progn (format *error-output* "~&; EOF at ~36R~%" (get-universal-time))
-                    (finish-outputs))))
+    (finish-outputs))
+  (format *error-output* "~&; EOF at ~36R~%" (get-universal-time))
+  (finish-outputs))
 
 (defun work-on-job (id inpath outpath errpath commands close)
   (when close (close *error-output*))

@@ -197,7 +197,7 @@ in the normalized dependency mini-language"
 (define-compiled-dependency :fasl (x)
   (list (compile-time-fasl-type) x))
 (define-compiled-dependency :build (x)
-  `(:compile-build ,x))
+  `(:build ,x))
 (macrolet ((d (k) `(define-compiled-dependency ,k (&rest r) (cons ,k r)))
            (self-compiled-dependency (&rest r) `(progn ,@(loop :for k :in r :collect `(d ,k)))))
   (self-compiled-dependency :lisp :cfasl :asdf :require :compile-build :source))

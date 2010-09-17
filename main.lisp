@@ -313,7 +313,7 @@ using ~A~%"
 
   ;;; Determine the temporary directory
   (labels ((v (x)
-             (let ((s (asdf-utilities:getenv x)))
+             (let ((s (asdf:getenv x)))
                (and (not (equal s "")) s))))
     (let ((tmp (or (v "TMP") (v "TMPDIR"))))
       (when tmp
