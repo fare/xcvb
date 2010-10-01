@@ -106,7 +106,7 @@ validate_xcvb_version () {
    (clisp) x="CLISP" ;;
   esac
 
-  xcvb version | grep -i "^(compiled with $x" ||
+  xcvb version | grep -i "^built on $x" ||
   abort "XCVB version using wrong Lisp"
 }
 

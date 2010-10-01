@@ -69,22 +69,26 @@ install-using-asdf: install-source
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
 
 checkout:
-	clone () { git clone $$1 || echo "Already got $$(basename $$1)" ; } ; \
-	get () { darcs get $$1 || echo "Already got $$(basename $$1)" ; } ; \
-	clone http://common-lisp.net/project/xcvb/git/xcvb.git && \
+	clone () { x=$($basename $$1 .git) ; \
+	  if [ -d $$x ] ; then echo "Already got $x" ; \
+	  else git clone $$1 ; fi } ; \
+	get () { x=$($basename $$1) ; \
+	  if [ -d $$x ] ; then echo "Already got $x" ; \
+	  else darcs get $$1 ; fi ; } ; \
+	clone git://common-lisp.net/projects/xcvb/xcvb.git && \
 	mkdir -p dependencies && cd dependencies && \
 	clone git://common-lisp.net/projects/xcvb/alexandria.git && \
-	clone git://common-lisp.net/project/asdf/asdf.git && \
-	clone git://common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git && \
+	clone git://common-lisp.net/projects/asdf/asdf.git && \
+	clone git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git && \
 	clone git://github.com/froydnj/binascii.git && \
-	clone git://common-lisp.net/project/xcvb/git/cffi.git && \
-	clone git://common-lisp.net/project/xcvb/git/cl-launch.git && \
-	clone git://common-lisp.net/project/qitab/git/command-line-arguments.git && \
-	clone git://common-lisp.net/~frideau/git/fare-utils.git && \
-	clone git://common-lisp.net/project/xcvb/git/iolib.git && \
+	clone git://common-lisp.net/projects/xcvb/cffi.git && \
+	clone git://common-lisp.net/projects/xcvb/cl-launch.git && \
+	clone git://common-lisp.net/projects/qitab/command-line-arguments.git && \
+	clone git://common-lisp.net/users/frideau/fare-utils.git && \
+	clone git://common-lisp.net/projects/xcvb/iolib.git && \
 	clone git://github.com/froydnj/ironclad.git && \
-	clone git://common-lisp.net/project/qitab/git/poiu.git && \
-	clone git://common-lisp.net/project/xcvb/git/quux-iolib.git && \
+	clone git://common-lisp.net/projects/qitab/poiu.git && \
+	clone git://common-lisp.net/projects/xcvb/quux-iolib.git && \
 	get http://common-lisp.net/project/xcvb/darcs/closer-mop && \
 	get http://common-lisp.net/project/xcvb/darcs/trivial-features && \
 	get http://common-lisp.net/project/xcvb/darcs/trivial-garbage
@@ -129,10 +133,12 @@ prepare-release:
 	./dependencies/cl-launch/cl-launch.sh \
 		-I ./dependencies/cl-launch \
 		-B install_path && \
+	xcvb show-source-registry \
+		--source-registry ${RELEASE_DIR}// ; \
 	for l in sbcl clisp ccl ; do \
 	    xcvb make-makefile \
+		--source-registry ${RELEASE_DIR}// \
 		--build /xcvb \
-		--setup /xcvb/no-asdf \
 		--lisp-implementation $$l \
 		--output-path=${RELEASE_DIR}/xcvb.mk.$$l \
 		--no-master \
