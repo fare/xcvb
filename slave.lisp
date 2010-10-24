@@ -12,7 +12,7 @@
     (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
     ,@+lisp-implementation-option-spec+
     ,@+cfasl-option-spec+
-    (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
+    (("use-base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
     ,@+verbosity-option-spec+
     ,@+profiling-option-spec+))
 
@@ -21,7 +21,7 @@
                       output-path object-directory
                       lisp-implementation lisp-binary-path
                       define-feature undefine-feature
-                      disable-cfasl base-image verbosity profiling debugging)
+                      disable-cfasl use-base-image verbosity profiling debugging)
   (multiple-value-bind (makefile-path makefile-dir)
       ;; Note that make-makefile calls handle-common-options for us.
       (make-makefile
@@ -31,7 +31,7 @@
        :object-directory object-directory
        :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
        :define-feature define-feature :undefine-feature undefine-feature
-       :disable-cfasl disable-cfasl :base-image base-image
+       :disable-cfasl disable-cfasl :use-base-image use-base-image
        :verbosity verbosity :profiling profiling :debugging debugging)
     (let* ((make-command
             (list "make"

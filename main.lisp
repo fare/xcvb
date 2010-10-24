@@ -229,7 +229,7 @@ using ~A~%"
                               object-directory
                               lisp-implementation lisp-binary-path
                               disable-cfasl master setup
-                              base-image
+                              use-base-image
                               debugging
                               define-feature undefine-feature
                               &allow-other-keys)
@@ -263,7 +263,7 @@ using ~A~%"
     (setf *use-cfasls* ;; Must be done after read-target-properties
           (or (and *use-cfasls* (not disable-cfasl))
               (eq *lisp-implementation-type* :ecl)))
-    (setf *use-base-image* base-image)
+    (setf *use-base-image* use-base-image)
     (setf *use-master* master)
     (when master
       (ensure-tthsum-present)

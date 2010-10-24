@@ -806,7 +806,7 @@ and extra finalization from calling FUN on the world."
     (("lisp-binary-path" #\p) :type string :optional t :documentation "specify path of Lisp executable")
     (("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")
     (("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
-    (("base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
+    (("use-base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
     (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
     (("debugging" #\Z) :type boolean :optional t :documentation "enable debugging")
     (("profiling" #\P) :type boolean :optional t :documentation "profiling")))
@@ -815,10 +815,10 @@ and extra finalization from calling FUN on the world."
     (&rest keys &key
      source-registry setup verbosity output-path
      build lisp-implementation lisp-binary-path define-feature undefine-feature
-     disable-cfasl master object-directory base-image debugging profiling)
+     disable-cfasl master object-directory use-base-image debugging profiling)
   (declare (ignore source-registry setup verbosity output-path
                    lisp-implementation lisp-binary-path define-feature undefine-feature
-                   disable-cfasl master object-directory base-image debugging))
+                   disable-cfasl master object-directory use-base-image debugging))
   (with-maybe-profiling (profiling)
     (xcvb-driver::tweak-implementation) ;; this hides a SBCL / IOLib bug to be chased later.
     (asdf:load-system :xcvb)

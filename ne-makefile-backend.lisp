@@ -105,7 +105,7 @@ in a fast way that doesn't enforce dependencies."
 
 (defparameter +non-enforcing-makefile-option-spec+
   `((("build" #\b) :type string :optional nil :list t :documentation "specify a (series of) system(s) to build")
-    (("base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
+    (("use-base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
     (("name" #\n) :type string :optional t :initial-value "xcvb-tmp" :documentation "ASDF name for the target")
     ,@+setup-option-spec+
     ,@+source-registry-option-spec+
@@ -118,7 +118,7 @@ in a fast way that doesn't enforce dependencies."
     ))
 
 (defun non-enforcing-makefile (&rest keys &key
-                               build base-image setup source-registry name
+                               build use-base-image setup source-registry name
                                output-path object-directory
                                lisp-implementation lisp-binary-path
                                define-feature undefine-feature
@@ -126,7 +126,7 @@ in a fast way that doesn't enforce dependencies."
   (declare (ignore source-registry setup verbosity
                    lisp-implementation lisp-binary-path
                    define-feature undefine-feature
-                   object-directory base-image debugging))
+                   object-directory use-base-image debugging))
   ;;(with-maybe-profiling (profiling)
   (apply 'handle-global-options
          ;;:disable-cfasl (not force-cfasl)

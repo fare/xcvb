@@ -246,7 +246,7 @@ xcvb-ensure-object-directories:
     (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
     ,@+lisp-implementation-option-spec+
     ,@+cfasl-option-spec+
-    (("base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
+    (("use-base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
     (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
     ,@+verbosity-option-spec+
     ,@+profiling-option-spec+))
@@ -254,10 +254,10 @@ xcvb-ensure-object-directories:
 (defun make-makefile (&rest keys &key
                       source-registry setup verbosity output-path
                       build lisp-implementation lisp-binary-path define-feature undefine-feature
-                      disable-cfasl master object-directory base-image profiling debugging)
+                      disable-cfasl master object-directory use-base-image profiling debugging)
   (declare (ignore source-registry setup verbosity
                    lisp-implementation lisp-binary-path define-feature undefine-feature
-                   disable-cfasl master object-directory base-image debugging))
+                   disable-cfasl master object-directory use-base-image debugging))
   (with-maybe-profiling (profiling)
     (apply 'handle-global-options keys)
     (write-makefile build :output-path output-path)))
