@@ -308,30 +308,6 @@ with associated pathnames and tthsums.")
   "XCVB driver extension to load a list of files from a manifest"
   (process-manifest (read-first-file-form pathname)))
 
-;;; Simplifying options for XCVB invocation
-(defun string-option-arguments (string value)
-  (when value (list string (let ((*print-case* :downcase)) (princ-to-string value)))))
-(defun pathname-option-arguments (string value)
-  (when value (list string (namestring value))))
-(defun boolean-option-arguments (string value)
-  (when value (list string)))
-(defun list-option-arguments (string value)
-  (loop :for v :in value :nconc (list string v)))
-(defmacro option-string (name)
-  (format nil "--~(~a~)" name))
-(defmacro string-option (var)
-  `(string-option-arguments (option-string ,var) ,var))
-(defmacro string-options (&rest vars)
-  `(append ,@(loop :for var :in vars :collect `(string-option ,var))))
-(defmacro pathname-option (var)
-  `(pathname-option-arguments (option-string ,var) ,var))
-(defmacro pathname-options (&rest vars)
-  `(append ,@(loop :for var :in vars :collect `(pathname-option ,var))))
-(defmacro boolean-option (var)
-  `(boolean-option-arguments (option-string ,var) ,var))
-(defmacro boolean-options (&rest vars)
-  `(append ,@(loop :for var :in vars :collect `(boolean-option ,var))))
-
 ;;; Run a slave, obey its orders.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *bnl-keys*
@@ -342,25 +318,50 @@ with associated pathnames and tthsums.")
       (object-directory *object-directory*)
       (lisp-implementation *lisp-implementation-type*)
       (lisp-binary-path *lisp-executable-pathname*)
+      (lisp-image-path *lisp-image-pathname*)
       (features-defined *features-defined*)
       (features-undefined *features-undefined*)
       (disable-cfasl *disable-cfasls*)
       (base-image *use-base-image*)
       (verbosity *xcvb-verbosity*)
+      (debugging *lisp-allow-debugger*)
       (profiling nil)))
   (defparameter *bnl-keys-without-defaults* (mapcar #'car *bnl-keys*)))
 
 (defun build-slave-command-line (build &key . #.*bnl-keys*)
-  (append
-   (list xcvb-binary "slave-builder")
-   (string-options
-    build setup lisp-implementation verbosity source-registry)
-   (pathname-options
-    output-path object-directory lisp-binary-path)
-   (list-option-arguments "define-feature" features-defined)
-   (list-option-arguments "undefine-feature" features-undefined)
-   (boolean-options
-    disable-cfasl base-image profiling)))
+  (flet ((list-option-arguments (string values)
+           (loop
+             :for value :in values
+             :nconc (list string value))))
+    (macrolet ((to-option-name (name)
+                 (format nil "--~(~a~)" name)))
+      (macrolet
+          ((pathname-option (var)
+             `(when ,var
+                (list (to-option-name ,var) (namestring ,var))))
+           (string-option (var)
+             `(when ,var
+                (list (to-option-name ,var) (let ((*print-case* :downcase))
+                                              (princ-to-string ,var)))))
+           (boolean-option (var)
+             `(when ,var
+                (list (to-option-name ,var))))
+           (pluralize (wrapper &rest vars)
+             `(append ,@(loop :for var :in vars :collect `(,wrapper ,var)))))
+        (macrolet
+            ((string-options (&rest vars)
+               `(pluralize string-option ,@vars))
+             (pathname-options (&rest vars)
+               `(pluralize pathname-option ,@vars))
+             (boolean-options (&rest vars)
+               `(pluralize boolean-option ,@vars)))
+          (append
+           (list xcvb-binary "slave-builder")
+           (string-options build setup lisp-implementation verbosity source-registry)
+           (pathname-options output-path object-directory lisp-binary-path lisp-image-path)
+           (list-option-arguments "define-feature" features-defined)
+           (list-option-arguments "undefine-feature" features-undefined)
+           (boolean-options disable-cfasl base-image debugging profiling)))))))
 
 (defun build-and-load (build &rest args &key . #.*bnl-keys*)
   (declare (ignore . #.(remove 'verbosity *bnl-keys-without-defaults*)))
