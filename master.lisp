@@ -347,20 +347,24 @@ with associated pathnames and tthsums.")
       (disable-cfasl *disable-cfasls*)
       (base-image *use-base-image*)
       (verbosity *xcvb-verbosity*)
-      (profiling nil))))
+      (profiling nil)))
+  (defparameter *bnl-keys-without-defaults* (mapcar #'car *bnl-keys*)))
 
-(defun build-and-load (build &key . #.*bnl-keys*)
-  (let* ((slave-command
-          (append
-           (list xcvb-binary "slave-builder")
-           (string-options
-            build setup lisp-implementation verbosity source-registry)
-           (pathname-options
-            output-path object-directory lisp-binary-path)
-           (list-option-arguments "define-feature" features-defined)
-           (list-option-arguments "undefine-feature" features-undefined)
-           (boolean-options
-            disable-cfasl base-image profiling)))
+(defun build-slave-command-line (build &key . #.*bnl-keys*)
+  (append
+   (list xcvb-binary "slave-builder")
+   (string-options
+    build setup lisp-implementation verbosity source-registry)
+   (pathname-options
+    output-path object-directory lisp-binary-path)
+   (list-option-arguments "define-feature" features-defined)
+   (list-option-arguments "undefine-feature" features-undefined)
+   (boolean-options
+    disable-cfasl base-image profiling)))
+
+(defun build-and-load (build &rest args &key . #.*bnl-keys*)
+  (declare (ignore . #.(remove 'verbosity *bnl-keys-without-defaults*)))
+  (let* ((slave-command (apply 'build-slave-command-line build args))
          (slave-output
           (with-safe-io-syntax ()
             (run-program/read-output-string slave-command :ignore-error-status t)))
@@ -388,5 +392,5 @@ with associated pathnames and tthsums.")
 
 (defun bnl (build &rest keys &key . #.(mapcar #'car *bnl-keys*))
   "Short hand for build-and-load"
-  (declare (ignore . #.(mapcar #'car *bnl-keys*)))
+  (declare (ignore . #.*bnl-keys-without-defaults*))
   (apply 'build-and-load build keys))
