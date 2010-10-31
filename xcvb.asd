@@ -11,10 +11,12 @@
 
 (in-package :asdf)
 (load-system :asdf)
-(let ((min "2.008"))
-  (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) min))
-    (error "XCVB requires ASDF ~D or later, you only have ~D"
-           min (asdf:asdf-version))))
+(let* ((min2.0 "2.010")
+       (min2.1 "2.146")
+       (ver (#+asdf2 asdf-version))
+       (min (if (and ver (version-satisfies ver "2.100")) min2.1 min2.0)))
+    (unless (and ver (version-satisfies ver min))
+      (error "XCVB requires ASDF ~D or later, you only have ~D" min ver)))
 
 (when (plusp (length (getenv "XCVB_FARMER")))
   (pushnew :xcvb-farmer *features*))
