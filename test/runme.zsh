@@ -86,7 +86,7 @@ check_xcvb_dir () {
 check_asdf_setup () {
   CONFIGURED_CL_LAUNCH_FLAGS="$(make show-config $ENV | grep "^CL_LAUNCH_FLAGS=" | cut -d= -f2-)"
   for i in asdf-dependency-grovel cl-launch closer-mop command-line-arguments poiu ; do
-    cl-launch $=CONFIGURED_CL_LAUNCH_FLAGS -i \
+    cl-launch $=CONFIGURED_CL_LAUNCH_FLAGS -s asdf -i \
     "(cl-launch::quit (if (asdf:find-system :$i nil) 0 1))" ||
     abort "Couldn't locate ASDF system $i. Make sure your configure.mk has it."
   done
