@@ -107,9 +107,16 @@ Declare asd system as ASDF-NAME."
 
 (defgeneric asdf-spec (env grain))
 (defmethod asdf-spec (env (grain lisp-file-grain))
-  `(:file ,(asdf-dependency-grovel::strip-extension
-            (enough-namestring (grain-namestring env grain))
-            "lisp")))
+  (let* ((namestring (grain-namestring env grain))
+         (pathname (pathname namestring))
+         (enough (enough-namestring namestring))
+         (noext (asdf-dependency-grovel::strip-extension enough "lisp")))
+    `(:file ,noext
+            ,@(when (or (absolute-pathname-p (pathname enough))
+                        (not (equal (asdf::merge-component-name-type
+                                     noext :type "lisp" :defaults *default-pathname-defaults*)
+                                    pathname)))
+                    `(:pathname ,pathname)))))
 (defmethod asdf-spec (env (grain source-grain))
   `(:static-file ,(enough-namestring (grain-namestring env grain))))
 (defmethod asdf-spec (env (build build-module-grain))
