@@ -6,6 +6,10 @@ build
 *#
 .#*
 *.lisp-expr
+*.lib
+*.fas
+*.[oa]
+*.so
 configure.mk
 xcvb.mk
 xcvb-ne.mk

@@ -310,7 +310,7 @@ with associated pathnames and tthsums.")
 
 ;;; Run a slave, obey its orders.
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *bnl-keys*
+  (defparameter *bnl-keys-with-defaults*
     '((xcvb-binary *xcvb-binary*)
       (setup *xcvb-setup*)
       (source-registry *source-registry*)
@@ -326,45 +326,44 @@ with associated pathnames and tthsums.")
       (verbosity *xcvb-verbosity*)
       (debugging *lisp-allow-debugger*)
       (profiling nil)))
-  (defparameter *bnl-keys-without-defaults* (mapcar #'car *bnl-keys*)))
+  (defparameter *bnl-keys* (mapcar #'car *bnl-keys-with-defaults*)))
 
-(defun build-slave-command-line (build &key . #.*bnl-keys*)
+(defun build-slave-command-line (build &key . #.*bnl-keys-with-defaults*)
   (flet ((list-option-arguments (string values)
            (loop
              :for value :in values
              :nconc (list string value))))
-    (macrolet ((to-option-name (name)
-                 (format nil "--~(~a~)" name)))
-      (macrolet
-          ((pathname-option (var)
-             `(when ,var
-                (list (to-option-name ,var) (namestring ,var))))
-           (string-option (var)
-             `(when ,var
-                (list (to-option-name ,var) (let ((*print-case* :downcase))
-                                              (princ-to-string ,var)))))
-           (boolean-option (var)
-             `(when ,var
-                (list (to-option-name ,var))))
-           (pluralize (wrapper &rest vars)
-             `(append ,@(loop :for var :in vars :collect `(,wrapper ,var)))))
-        (macrolet
-            ((string-options (&rest vars)
-               `(pluralize string-option ,@vars))
-             (pathname-options (&rest vars)
-               `(pluralize pathname-option ,@vars))
-             (boolean-options (&rest vars)
-               `(pluralize boolean-option ,@vars)))
-          (append
-           (list xcvb-binary "slave-builder")
-           (string-options build setup lisp-implementation verbosity source-registry)
-           (pathname-options output-path object-directory lisp-binary-path lisp-image-path)
-           (list-option-arguments "define-feature" features-defined)
-           (list-option-arguments "undefine-feature" features-undefined)
-           (boolean-options disable-cfasl use-base-image debugging profiling)))))))
+    (macrolet
+        ((to-option-name (name)
+                 (format nil "--~(~a~)" name))
+         (pathname-option (var)
+           `(when ,var
+              (list (to-option-name ,var) (namestring ,var))))
+         (string-option (var)
+           `(when ,var
+              (list (to-option-name ,var) (let ((*print-case* :downcase))
+                                            (princ-to-string ,var)))))
+         (boolean-option (var)
+           `(when ,var
+              (list (to-option-name ,var))))
+         (pluralize (wrapper &rest vars)
+           `(append ,@(loop :for var :in vars :collect `(,wrapper ,var))))
+         (string-options (&rest vars)
+           `(pluralize string-option ,@vars))
+         (pathname-options (&rest vars)
+           `(pluralize pathname-option ,@vars))
+         (boolean-options (&rest vars)
+           `(pluralize boolean-option ,@vars)))
+      (append
+       (list xcvb-binary "slave-builder")
+       (string-options build setup lisp-implementation verbosity source-registry)
+       (pathname-options output-path object-directory lisp-binary-path lisp-image-path)
+       (list-option-arguments "define-feature" features-defined)
+       (list-option-arguments "undefine-feature" features-undefined)
+       (boolean-options disable-cfasl use-base-image debugging profiling)))))
 
 (defun build-and-load (build &rest args &key . #.*bnl-keys*)
-  (declare (ignore . #.(remove 'verbosity *bnl-keys-without-defaults*)))
+  (declare (ignore . #.(remove 'verbosity *bnl-keys*)))
   (let* ((slave-command (apply 'build-slave-command-line build args))
          (slave-output
           (with-safe-io-syntax ()
@@ -378,7 +377,7 @@ with associated pathnames and tthsums.")
                      "Failed to execute a build slave.~%~
 			Slave command:~%  ~S~%~
 			Slave output:~%~A~%~
-			(If using SLIME, you might have useful output in your *inferior-lisp* buffer.)"
+			(If using SLIME, you might have useful error output in your *inferior-lisp* buffer.)"
                      slave-command
                      slave-output)
               (error "XCVB slave failed"))
@@ -391,7 +390,7 @@ with associated pathnames and tthsums.")
       (format *error-output* "~&Slave XCVB returned following manifest:~%~S~%" manifest))
     (process-manifest manifest)))
 
-(defun bnl (build &rest keys &key . #.(mapcar #'car *bnl-keys*))
+(defun bnl (build &rest keys &key . #.*bnl-keys*)
   "Short hand for build-and-load"
-  (declare (ignore . #.*bnl-keys-without-defaults*))
+  (declare (ignore . #.*bnl-keys*))
   (apply 'build-and-load build keys))
