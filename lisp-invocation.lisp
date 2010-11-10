@@ -101,6 +101,7 @@
 
 #| ;; Support for CMUCL is missing in other parts of XCVB.
 ;; If you feel like adding support for CMUCL, start by uncomment this.
+;; Note that CMUCL is pretty similar to SBCL. SCL is even more similar.
 (define-lisp-implementation :cmucl ()
   :fullname "CMU CL"
   :name "cmucl"

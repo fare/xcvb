@@ -21,7 +21,7 @@
   (:use :common-lisp)
   (:export
    #:*optimization-settings*
-   #:*restart* #:debugging #:profiling #:*goal* #:*stderr*
+   #:*restart* #:debugging #:*goal* #:*stderr*
    #:*uninteresting-conditions* #:*fatal-condition* #:*deferred-warnings*
    #:getenv #:emptyp #:setenvp #:setup-environment
    #:debugging #:with-profiling
