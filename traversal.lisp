@@ -31,6 +31,7 @@
 (defgeneric graph-for-asdf (env name))
 (defgeneric graph-for-require (env name))
 (defgeneric ensure-grain-generated (env grain))
+(defgeneric tweak-dependency (env dep))
 
 (defclass xcvb-traversal (simple-print-object-mixin)
   ((image-setup

@@ -12,7 +12,7 @@
 (in-package :asdf)
 (load-system :asdf)
 (let* ((min2.0 "2.010")
-       (min2.1 "2.146")
+       (min2.1 "2.150")
        (ver (#+asdf2 asdf-version))
        (min (if (and ver (version-satisfies ver "2.100")) min2.1 min2.0)))
     (unless (and ver (version-satisfies ver min))

@@ -14,7 +14,7 @@ else
   XSH=
 endif
 
-export RELEASE_DIR := $(shell pwd)
+export RELEASE_DIR ?= $(shell pwd)
 export XCVB_DIR := ${RELEASE_DIR}/xcvb
 export XCVB_OBJECT_DIRECTORY ?= ${RELEASE_DIR}/build/obj
 export CL_SOURCE_REGISTRY:=${XCVB_DIR}//:${RELEASE_DIR}/dependencies//:${LISP_SOURCE}//
@@ -69,11 +69,11 @@ install-using-asdf: install-source
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
 
 checkout:
-	clone () { x=$($basename $$1 .git) ; \
-	  if [ -d $$x ] ; then echo "Already got $x" ; \
+	clone () { x=$$(basename $$1 .git) ; \
+	  if [ -d $$x ] ; then echo "Already got $$x" ; \
 	  else git clone $$1 ; fi } ; \
-	get () { x=$($basename $$1) ; \
-	  if [ -d $$x ] ; then echo "Already got $x" ; \
+	get () { x=$$(basename $$1) ; \
+	  if [ -d $$x ] ; then echo "Already got $$x" ; \
 	  else darcs get $$1 ; fi ; } ; \
 	clone git://common-lisp.net/projects/xcvb/xcvb.git && \
 	mkdir -p dependencies && cd dependencies && \
@@ -101,9 +101,8 @@ fake-release-directory:
 	rsync -av ${RELEASE_EXCLUDE} ./ ${RELEASE_DIR}/xcvb/ && \
 	for i in ${DEPENDENCIES} ; do \
 	  rsync -av ${RELEASE_EXCLUDE} ../$$i ${RELEASE_DIR}/dependencies/ ; \
-	done ; \
-		prepare-release
-
+	done
+	${MAKE} -C ${RELEASE_DIR} -f xcvb/doc/Makefile.release prepare-release
 
 gc:
 	echo -n "Packing xcvb..." ; cd xcvb ; git gc ; git repack -Ad
@@ -133,11 +132,10 @@ prepare-release:
 	./dependencies/cl-launch/cl-launch.sh \
 		-I ./dependencies/cl-launch \
 		-B install_path && \
-	xcvb show-source-registry \
-		--source-registry ${RELEASE_DIR}// ; \
+	echo CL_SOURCE_REGISTRY=$$CL_SOURCE_REGISTRY && \
+	xcvb show-source-registry ; \
 	for l in sbcl clisp ccl ; do \
 	    xcvb make-makefile \
-		--source-registry ${RELEASE_DIR}// \
 		--build /xcvb \
 		--lisp-implementation $$l \
 		--output-path=${RELEASE_DIR}/xcvb.mk.$$l \

@@ -8,5 +8,7 @@
   :build-image t)
  (:generate
   ((:lisp "version" :depends-on ("specials")))
-  :depends-on ((:source "version.lisp" :in "xcvb")
+  :depends-on ((:build "/asdf")
+               "/xcvb/driver"
+               (:source "version.lisp" :in "xcvb")
                (:lisp "generate-version"))))

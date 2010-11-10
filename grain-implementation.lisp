@@ -68,7 +68,7 @@
     (setf (grain-finalized-p grain) :in-progress)
     (call-next-method)
     (setf (grain-finalized-p grain) t))
-  (values))
+  grain)
 
 (defmethod finalize-grain ((grain lisp-module-grain))
   (handle-extension-forms grain)
@@ -95,9 +95,18 @@
                   (normalize build-depends-on)
                   (build-dependencies (grain-parent grain))))))))
 
+(defun normalize-supersedes-asdf (n x)
+  (etypecase x
+    (string
+     (list (coerce-asdf-system-name x) n))
+    ((cons string (cons string null))
+     (portable-pathname-from-string (second x) :allow-absolute nil) ; check validity
+     (list (coerce-asdf-system-name (first x)) (strcat n "/" (second x))))))
+
 (defmethod finalize-grain :after ((grain build-module-grain))
-  (with-slots (supersedes-asdf) grain
-    (setf supersedes-asdf (mapcar #'coerce-asdf-system-name supersedes-asdf))))
+  (with-slots (supersedes-asdf asdf-supersessions) grain
+    (setf asdf-supersessions
+          (mapcar/ #'normalize-supersedes-asdf (fullname grain) supersedes-asdf))))
 
 ;; Lisp grain extension form for generating Lisp files.
 

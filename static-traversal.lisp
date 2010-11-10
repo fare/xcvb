@@ -39,8 +39,6 @@
             (reverse (traversed-dependencies-r x))
             (dependency-tweaker x) (linking-traversal-p x))))
 
-(defgeneric tweak-dependency (env dep))
-
 (defmethod tweak-dependency ((env static-traversal) dep)
   (funcall (dependency-tweaker env) dep))
 

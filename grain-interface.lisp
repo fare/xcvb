@@ -193,7 +193,10 @@ into an image that will be used for all future compile/load operations")
     :initarg :supersedes-asdf
     :reader supersedes-asdf
     :initform nil
-    :documentation "A list of ASDF systems superseded by this module")
+    :documentation "A list of ASDF systems superseded by this module, and optional xcvb name")
+   (asdf-supersessions
+    :reader asdf-supersessions
+    :documentation "Parsed version of supersedes-asdf, A-list for asdf name to xcvb name")
    (build-depends-on
     :initform nil)
    (build-pre-image

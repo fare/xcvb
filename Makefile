@@ -239,7 +239,8 @@ fake-release-directory:
 
 version-bumped-test:
 	@if git diff HEAD -- version.lisp | cmp --quiet - /dev/null ; then \
-	  echo "You need to bump up version.lisp" ; exit 2 ; \
+	  echo "You need to bump up version.lisp" ; \
+	  echo "Hit Ctrl-C to cancel, Return to continue." ; read ; \
 	fi
 
 pre-release-test: version-bumped-test fake-release-directory test-release-directory

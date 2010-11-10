@@ -11,36 +11,47 @@
 (defvar *target-builds* (make-hashset :test 'equal)
   "A list of asdf system we supersede")
 
+(defun build-in-target-p (build)
+  (gethash (fullname build) *target-builds*))
+
 (defmethod issue-dependency ((env asdf-traversal) (grain lisp-file-grain))
-  (let* ((build (build-module-grain-for grain)))
-    (if (build-in-target-p build)
-        (call-next-method)
-        (cond
-          ((supersedes-asdf build)
-           (dolist (system (supersedes-asdf build))
-             (pushnew system *asdf-system-dependencies* :test 'equal)))
-          ((equal (fullname build) "/asdf")
-           nil) ;; special case: ASDF is assumed to be there already
-          (t
-           (error "depending on build ~A but it has no ASDF equivalent" (fullname build))))))
+  (if (build-in-target-p (build-module-grain-for grain))
+      (call-next-method)
+      (issue-asdf-equivalents env grain nil))
   (values))
+
+(defun grain-asdf-equivalents (grain &optional (build (build-module-grain-for grain)))
+  (finalize-grain build)
+  (loop :with name = (fullname grain)
+    :for (asdf-name xcvb-name) :in (asdf-supersessions build)
+    :when (equal xcvb-name name)
+    :collect asdf-name))
+
+(defun issue-asdf-equivalents (env grain errorp)
+  (let* ((build (build-module-grain-for grain))
+         (a (grain-asdf-equivalents grain build)))
+    (cond
+      (a
+       (dolist (s a)
+         (pushnew s *asdf-system-dependencies* :test 'equal))
+       (values))
+      ((equal (fullname build) "/asdf")
+       (values)) ;; special case: ASDF is assumed to be there already when using an ASDF 
+      (errorp
+       (error "depending on grain ~A but it has no ASDF equivalent" (fullname build)))
+      ((eq build grain)
+       (values))
+      (t
+       (issue-asdf-equivalents env build t)))))
 
 (defmethod issue-dependency ((env asdf-traversal) (grain build-module-grain))
   (values))
 
-(defun build-in-target-p (build)
-  (gethash (fullname build) *target-builds*))
-
 (defmethod graph-for-build-module-grain ((env asdf-traversal) grain)
   (if (build-in-target-p grain)
     (call-next-method)
-    (let ((asdfs (supersedes-asdf grain)))
-      (unless asdfs
-        (error "Targets ~S depend on ~S but it isn't in an ASDF"
-               (traversed-dependencies-r env) (fullname grain)))
-      (dolist (system asdfs)
-        (pushnew system *asdf-system-dependencies* :test 'equal))
-      nil)))
+    (issue-asdf-equivalents env grain t))
+  (values))
 
 (defun write-asd-prelude (s)
   (format s
@@ -57,13 +68,17 @@
 covering the builds specified by BUILD-NAMES.
 Declare asd system as ASDF-NAME."
   (assert (consp build-names))
-  (let* ((builds (mapcar (lambda (n) (registered-build n :ensure-build t))
+  (let* ((env (make-instance 'asdf-traversal))
+         (*use-cfasls* nil)
+         (*asdf-system-dependencies* nil)
+         (*require-dependencies* nil)
+         (builds (mapcar (lambda (n) (registered-build n :ensure-build t))
                          build-names))
-         (first-build (first builds))
+         (first-build (finalize-grain (first builds)))
          (asdf-name
           (coerce-asdf-system-name
            (or asdf-name
-               (first (supersedes-asdf first-build))
+               (first (grain-asdf-equivalents first-build))
                (pathname-name (fullname first-build)))))
          (default-output-path
           (merge-pathnames
@@ -75,11 +90,7 @@ Declare asd system as ASDF-NAME."
              (ensure-absolute-pathname output-path)
              default-output-path)
             default-output-path))
-         (*target-builds* (make-hashset :test 'equal :list (mapcar #'fullname builds)))
-         (*asdf-system-dependencies* nil)
-         (*require-dependencies* nil)
-         (*use-cfasls* nil)
-         (env (make-instance 'asdf-traversal)))
+         (*target-builds* (make-hashset :test 'equal :list (mapcar #'fullname builds))))
     (log-format 6 "T=~A building dependency graph" (get-universal-time))
     (dolist (b builds)
       (graph-for-build-module-grain env b))
@@ -119,7 +130,9 @@ Declare asd system as ASDF-NAME."
                     `(:pathname ,pathname)))))
 (defmethod asdf-spec (env (grain source-grain))
   `(:static-file ,(enough-namestring (grain-namestring env grain))))
+
 (defmethod asdf-spec (env (build build-module-grain))
+  (declare (ignorable env build))
   ;; should that be an error?
   nil)
 

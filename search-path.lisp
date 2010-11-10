@@ -183,7 +183,10 @@ Initially populated with all build.xcvb files from the search path.")
 ;;;; Registering a build
 
 (defun supersedes-asdf-name (x)
-  `(:supersedes-asdf ,(coerce-asdf-system-name x)))
+  (let ((name (etypecase x
+                (string x)
+                (cons (car x)))))
+    `(:supersedes-asdf ,(coerce-asdf-system-name name))))
 
 (defun registered-build (name &key ensure-build)
   (let ((build (gethash name *builds*)))

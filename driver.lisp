@@ -108,18 +108,17 @@
 
 ;;; Setting up the environment from shell variables
 (defun getenv (x)
-  #-(or cmu clozure allegro gcl clisp ecl sbcl lispworks)
+  #-(or abcl allegro cmu clisp clozure ecl gcl lispworks sbcl scl)
   (error "GETENV not supported for your Lisp implementation")
-  #-cmu
-  (#+clozure ccl::getenv
+  (#+(or abcl clisp) ext:getenv
    #+allegro sys:getenv
-   #+gcl system:getenv
-   #+clisp ext:getenv
+   #+clozure ccl:getenv
+   #+(or cmu scl) (lambda (x) (cdr (assoc x ext:*environment-list* :test #'string=)))
    #+ecl si:getenv
-   #+sbcl sb-ext:posix-getenv
+   #+gcl system:getenv
    #+lispworks lispworks:environment-variable
-   x)
-  #+cmu (cdr (assoc (intern x :keyword) ext:*environment-list*)))
+   #+sbcl sb-ext:posix-getenv
+   x))
 (defun emptyp (x)
   (or (null x) (and (vectorp x) (zerop (length x)))))
 (defun setenvp (x)
@@ -280,6 +279,7 @@ This is designed to abstract away the implementation specific quit forms."
           #+sbcl '(sb-kernel:redefinition-with-defun
                    sb-kernel:redefinition-with-defgeneric
                    sb-kernel:redefinition-with-defmethod)
+          #+clisp '(clos::simple-gf-replacing-method-warning)
           *uninteresting-conditions*)))
     (call-with-controlled-compiler-conditions thunk)))
 (defmacro with-controlled-loader-conditions (() &body body)

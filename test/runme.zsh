@@ -131,7 +131,7 @@ validate_xcvb () {
   # preconditions: env, xcvb built, PWD=.../xcvb/
   validate_xcvb_version # is built xcvb what we think it is?
   validate_xcvb_ssr # can it search its search path?
-  validate_a2x # can it migrate a2x-test from xcvb?
+  if [ "x$LISP" = xsbcl ] ; then validate_a2x ; fi # can it migrate a2x-test from xcvb?
   validate_rmx # can it remove the xcvb annotations from a2x-test?
   validate_x2a # can it convert hello back to asdf?
   #validate_sa_backend # can it build hello with the standalone backend?

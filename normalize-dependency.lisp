@@ -86,11 +86,12 @@ a reference to the system was superseded by a build.xcvb file.")
       (null
        `(:asdf ,n))
       (build-module-grain
-       (let ((nn (fullname superseding)))
-         (unless (member nn *asdf-systems-warned* :test 'equal)
-           (push nn *asdf-systems-warned*)
+       (finalize-grain superseding)
+       (let ((nn (second (assoc name (asdf-supersessions superseding) :test 'equal))))
+         (unless (member n *asdf-systems-warned* :test 'equal)
+           (push n *asdf-systems-warned*)
            (log-format 5 "Declared dependency on ASDF system :~A~%     was superseded by BUILD ~S" n nn))
-         `(:build ,nn)))
+         (normalize-dependency-atom superseding nn)))
       (require-grain
        (let ((nn (fullname superseding)))
          (unless (member nn *asdf-systems-warned* :test 'equal)
