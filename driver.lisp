@@ -222,10 +222,11 @@ This is designed to abstract away the implementation specific quit forms."
   #+clozure (let ((*debug-io* out))
 	      (ccl:print-call-history :count 100 :start-frame-number 1)
 	      (finish-output out))
-  #.(when (member :sbcl *features*)
-      (if (find-symbol "*VERBOSITY*" "SB-DEBUG")
-          '(sb-debug:backtrace :stream out)
-          '(sb-debug:backtrace most-positive-fixnum out))))
+  #+sbcl
+  (sb-debug:backtrace
+   #.(if (and (find-package "SB-DEBUG") (find-symbol "*VERBOSITY*" "SB-DEBUG"))
+         ':stream 'most-positive-fixnum)
+   out))
 (defun die (format &rest arguments)
   (format *stderr* "~&")
   (apply #'format *stderr* format arguments)
