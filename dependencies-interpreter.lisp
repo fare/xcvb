@@ -3,6 +3,7 @@
 (in-package :xcvb)
 
 ;;; BUILD-COMMAND-FOR
+(defgeneric build-command-for (env name))
 (defgeneric build-command-for-lisp (env name))
 (defgeneric build-command-for-fasl (env name))
 (defgeneric build-command-for-cfasl (env name))
@@ -14,10 +15,11 @@
 (defgeneric build-command-for-build-named (env name))
 (defgeneric build-command-for-when (env expression &rest dependencies))
 (defgeneric build-command-for-cond (env &rest cond-expressions))
+(defgeneric simple-build-command-for-grain (env command grain))
 
 (define-simple-dispatcher build-command-for #'build-command-for-atom :generic t)
 
-(defun build-command-for (env spec)
+(defmethod build-command-for (env spec)
   (build-command-for-dispatcher env (tweak-dependency env spec)))
 
 (defun build-command-for* (env specs)
@@ -45,11 +47,13 @@
 (defun simple-build-command-for (env command fullname)
   (call-with-dependency-grain
    env fullname
-   (lambda (grain)
-     (with-dependency-loading (env grain)
-       (build-commands-for-build-dependencies env grain)
-       (build-commands-for-load-dependencies env grain)
-       (issue-build-command env command)))))
+   (lambda (grain) (simple-build-command-for-grain env command grain))))
+
+(defmethod simple-build-command-for-grain (env command grain)
+  (with-dependency-loading (env grain)
+    (build-commands-for-build-dependencies env grain)
+    (build-commands-for-load-dependencies env grain)
+    (issue-build-command env command)))
 
 (define-build-command-for :source (env name &key in)
   ;; Suffices to know data file exists.  No need to issue load command.

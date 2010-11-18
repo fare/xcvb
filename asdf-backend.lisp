@@ -11,18 +11,24 @@
 (defvar *target-builds* (make-hashset :test 'equal)
   "A list of asdf system we supersede")
 
-(defun build-in-target-p (build)
+(defgeneric  build-in-target-p (env build))
+
+(defmethod build-in-target-p ((env asdf-traversal) build)
+  (declare (ignorable env))
   (gethash (fullname build) *target-builds*))
 
-(defmethod issue-dependency ((env asdf-traversal) (grain lisp-file-grain))
-  (if (build-in-target-p (build-module-grain-for grain))
+(defmethod issue-dependency ((env asdf-traversal) (grain lisp-module-grain))
+  (if (build-in-target-p env (build-module-grain-for grain))
       (call-next-method)
-      (issue-asdf-equivalents env grain nil))
+      (issue-asdf-equivalents env grain (typep grain 'build-module-grain)))
   (values))
 
 (defun grain-asdf-equivalents (grain &optional (build (build-module-grain-for grain)))
   (finalize-grain build)
-  (loop :with name = (fullname grain)
+  (loop :with fname = (fullname grain)
+    :with name = (etypecase grain
+                   (build-module-grain fname)
+                   (lisp-module-grain (second fname)))
     :for (asdf-name xcvb-name) :in (asdf-supersessions build)
     :when (equal xcvb-name name)
     :collect asdf-name))
@@ -44,11 +50,8 @@
       (t
        (issue-asdf-equivalents env build t)))))
 
-(defmethod issue-dependency ((env asdf-traversal) (grain build-module-grain))
-  (values))
-
 (defmethod graph-for-build-module-grain ((env asdf-traversal) grain)
-  (if (build-in-target-p grain)
+  (if (build-in-target-p env grain)
     (call-next-method)
     (issue-asdf-equivalents env grain t))
   (values))
@@ -106,12 +109,12 @@ Declare asd system as ASDF-NAME."
     (declare (ignore _))
     (with-open-file (out output-path :direction :output :if-exists :supersede)
       (write-asd-prelude out)
-      (with-safe-io-syntax (:package :asdf)
-        (let* ((form (make-asdf-form env asdf-name))
-               (*print-case* :downcase))
-          (format out "~@[~{(require ~S)~%~}~%~]" (reverse *require-dependencies*))
-          (write form :stream out :pretty t :miser-width 79)
-          (terpri out))))))
+      (let ((form (make-asdf-form env asdf-name)))
+        (with-safe-io-syntax (:package :asdf)
+          (let ((*print-case* :downcase))
+            (format out "~@[~{(require ~S)~%~}~%~]" (reverse *require-dependencies*))
+            (write form :stream out :pretty t :miser-width 79)
+            (terpri out)))))))
 
 (defun keywordify-asdf-name (name)
   (kintern "~:@(~A~)" name))
@@ -138,7 +141,7 @@ Declare asd system as ASDF-NAME."
 
 (defun make-asdf-form (env asdf-name)
   ;; we can assume computations is topologically sorted.
-  ;; TODO: ASDF is stupid, so we should try to optimize dependencies be removing extra ones:
+  ;; TODO: ASDF is stupid, so we should try to optimize dependencies by removing extra ones:
   ;; for each dependency of current node, starting with the most recent one,
   ;; add the dependency and remove all those that it includes.
   ;; NOTE: we assume *default-pathname-defaults* is set to the destination directory
@@ -151,11 +154,12 @@ Declare asd system as ASDF-NAME."
                     :for deps = (rest (computation-inputs computation))
                     :for spec = (and lisp (asdf-spec env lisp))
                     :for build = (and spec (build-module-grain-for lisp))
-                    :for includedp = (and build (build-in-target-p build))
+                    :for includedp = (and build (build-in-target-p env build))
                     :for depends-on = (remove-duplicates
                                        (loop :for dep :in deps
                                          :for dspec = (asdf-spec env dep)
-                                         :when dspec
+                                         :when (and dspec (typep dep 'lisp-file-grain)
+                                                    (build-in-target-p env (build-module-grain-for dep)))
                                          :collect (second dspec))
                                        :test #'equal)
                     :for already-visited = (gethash spec visited)

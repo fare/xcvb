@@ -60,14 +60,14 @@ compute_release_dir_variables () {
   initialize_variables
   BUILD_DIR="$RELEASE_DIR/build"
   XCVB_DIR="$RELEASE_DIR/xcvb"
-  CL_SOURCE_REGISTRY="${BUILD_DIR}//:${XCVB_DIR}:${RELEASE_DIR}//"
+  CL_SOURCE_REGISTRY="${BUILD_DIR}//:${XCVB_DIR}//:${RELEASE_DIR}/dependencies//"
   finalize_variables
   ENV=($ENV CL_LAUNCH_FLAGS="$TEST_CL_LAUNCH_FLAGS")
 }
 compute_xcvb_dir_variables () {
   initialize_variables
   BUILD_DIR="$XCVB_DIR/build"
-  CL_SOURCE_REGISTRY="${BUILD_DIR}//:${PWD}:${CL_SOURCE_REGISTRY}"
+  CL_SOURCE_REGISTRY="${BUILD_DIR}//:${PWD}//:${CL_SOURCE_REGISTRY}"
   finalize_variables
 }
 
@@ -115,7 +115,7 @@ validate_xcvb_ssr () {
   # postconditions: xcvb ssr working
   local out=${BUILD_DIR}/xcvb-ssr.out
 
-  xcvb ssr --source-registry ${XCVB_DIR}// | tee $out
+  xcvb ssr --source-registry ${XCVB_DIR}//: | tee $out
 
   grep -q "(:BUILD \"/xcvb\") in \".*/build.xcvb\"" $out ||
   abort "Can't find build for xcvb"

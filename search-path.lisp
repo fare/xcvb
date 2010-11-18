@@ -299,8 +299,12 @@ for each of its registered names."
                             (second fullname) (fullname entry)))
                (build-module-grain
                 (if (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf))
-                    (format nil " (:ASDF ~S) superseded by (:BUILD ~S)~%"
-                            (second fullname) (fullname entry))
+                    (let* ((nn (second (assoc (second fullname)
+                                              (asdf-supersessions (finalize-grain entry))
+                                              :test 'equal)))
+                           (b (registered-build nn)))
+                      (format nil " (:ASDF ~S) superseded by ~S~%"
+                              (second fullname) (if b `(:BUILD ,nn) `(:FASL ,nn))))
                     (format nil " (:BUILD ~S) in ~S~%"
                             fullname (namestring (grain-pathname entry)))))
                (invalid-build-file

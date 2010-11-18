@@ -4,18 +4,18 @@
 
 (in-package :xcvb)
 
-(defclass nem-traversal (simplifying-traversal makefile-traversal)
+(defclass nem-traversal (asdf-traversal makefile-traversal)
   ())
 
-(define-build-command-for :build ((env nem-traversal) name)
-  (unless (equal name "/asdf")
-    (call-next-method)))
+(defmethod build-in-target-p ((env nem-traversal) build)
+  (declare (ignorable env build))
+  t)
 
-(defmethod issue-dependency ((env nem-traversal) (grain lisp-module-grain))
-  (let* ((build (build-module-grain-for grain))
-         (name (fullname build)))
-    (setf (gethash name *target-builds*) t))
-  (call-next-method))
+(defmethod issue-dependency ((env nem-traversal) (grain lisp-file-grain))
+  (unless (member (second (fullname grain)) '("/xcvb/driver" "/asdf/asdf" "/poiu/poiu")
+                  :test 'equal)
+    (call-next-method))
+  (values))
 
 (defun make-nem-stage (env asdf-name build &key previous parallel)
   (let* ((*computations* nil)
@@ -24,7 +24,7 @@
          (_g (graph-for-build-module-grain env build))
          (inputs (loop :for computation :in (reverse *computations*)
                    :for i = (first (computation-inputs computation))
-                   :unless (grain-computation i)
+                   :when (and i (not (grain-computation i)))
                    :collect i))
          (asd-vp (make-vp :obj "/" asdf-name "." "asd"))
          (_w (do-write-asd-file env :output-path (vp-namestring env asd-vp)

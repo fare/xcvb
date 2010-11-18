@@ -62,7 +62,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "lisp-invocation" :depends-on ("specials"))
      (:file "main" :depends-on ("specials"))
      (:file "string-escape" :depends-on ("utilities"))
-     (:file "virtual-pathnames" :depends-on ("specials" "utilities")) ;;; FIX THIS FILE AND BELOW
+     (:file "virtual-pathnames" :depends-on ("specials" "utilities"))
      (:file "grain-interface" :depends-on ("utilities" "conditions"))
      (:file "grain-sets" :depends-on ("grain-interface"))
      (:file "registry" :depends-on ("grain-interface" "specials"))

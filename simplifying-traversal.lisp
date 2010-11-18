@@ -56,7 +56,8 @@ and the non-enforcing Makefile backend.
       (make-computation
        ()
        :outputs (list fasl)
-       :inputs (remove-if-not #'lisp-file-grain-p (traversed-dependencies env))
+       :inputs  ;(remove-if-not #'lisp-file-grain-p
+                               (traversed-dependencies env) ;)
        :command nil)
       fasl)))
 
