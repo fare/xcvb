@@ -50,7 +50,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :asdf-dependency-grovel :closer-mop
                  ;; :ironclad :binascii
                  #+xcvb-farmer :quux-iolib
-                 )
+                 :rucksack)
     :components
     ((:file "pkgdcl")
      (:file "conditions" :depends-on ("pkgdcl"))

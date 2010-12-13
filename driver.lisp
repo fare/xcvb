@@ -256,6 +256,8 @@ This is designed to abstract away the implementation specific quit forms."
     (symbol (typep condition x))
     (function (funcall x condition))
     (string (and (typep condition 'simple-condition)
+                 #+(or ccl sbcl) (slot-boundp x #+ccl 'ccl::format-control
+                                              #+sbcl 'sb-kernel::format-control)
                  (equal (simple-condition-format-control condition) x)))))
 (defun fatal-condition-p (condition)
   (typep condition *fatal-condition*))

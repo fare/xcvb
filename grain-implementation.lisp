@@ -321,6 +321,12 @@
 (defun world-grain-p (x)
   (typep x 'world-grain))
 
+(defmethod print-object ((g file-grain) stream)
+  (with-output (stream)
+    (print-unreadable-object (g stream :type t)
+      (format stream "~@<:vp ~S :pathname ~S~>"
+              (grain-vp g) (grain-pathname g)))))
+
 (defun coerce-asdf-system-name (name)
   "This function take the name of an asdf-system, and
 converts it to a string representation that can universally be used to refer to that system.

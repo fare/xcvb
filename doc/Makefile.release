@@ -28,10 +28,10 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 		RELEASE_DIR=${RELEASE_DIR} XCVB_DIR=${XCVB_DIR}
 
 GIT_DEPENDENCIES := \
-	asdf asdf-dependency-grovel binascii cl-launch \
+	asdf asdf-dependency-grovel babel cl-launch \
 	command-line-arguments fare-utils poiu \
 	alexandria cffi iolib quux-iolib \
-	ironclad binascii
+	ironclad binascii rucksack
 
 DARCS_DEPENDENCIES := closer-mop bordeaux-threads \
 	trivial-garbage trivial-features
@@ -80,6 +80,7 @@ checkout:
 	clone git://common-lisp.net/projects/xcvb/alexandria.git && \
 	clone git://common-lisp.net/projects/asdf/asdf.git && \
 	clone git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git && \
+	clone git://common-lisp.net/projects/xcvb/babel.git && \
 	clone git://github.com/froydnj/binascii.git && \
 	clone git://common-lisp.net/projects/xcvb/cffi.git && \
 	clone git://common-lisp.net/projects/xcvb/cl-launch.git && \
