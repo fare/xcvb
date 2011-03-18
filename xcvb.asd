@@ -11,12 +11,10 @@
 
 (in-package :asdf)
 (load-system :asdf)
-(let* ((min2.0 "2.010")
-       (min2.1 "2.150")
-       (ver (#+asdf2 asdf-version))
-       (min (if (and ver (version-satisfies ver "2.100")) min2.1 min2.0)))
-    (unless (and ver (version-satisfies ver min))
-      (error "XCVB requires ASDF ~D or later, you only have ~D" min ver)))
+(let ((min "2.010")
+      (ver (#+asdf2 asdf-version)))
+  (unless (and ver (version-satisfies ver min))
+    (error "XCVB requires ASDF ~D or later, you only have ~D" min ver)))
 
 (when (plusp (length (getenv "XCVB_FARMER")))
   (pushnew :xcvb-farmer *features*))
@@ -24,15 +22,11 @@
 (pushnew :xcvb-using-asdf *features*)
 
 #+sbcl
-(progn
-  ;;; Actually used by XCVB
-  (require :sb-grovel)
-  (require :sb-posix)
-  (require :sb-sprof)
-  ;;; Used by SLIME
-  (require :sb-cltl2)
-  (require :sb-introspect)
-  (require :sb-bsd-sockets))
+(map () 'require
+     '(;; Actually used by XCVB
+       :sb-grovel :sb-posix :sb-sprof
+       ;; Used by SLIME
+       :sb-cltl2 :sb-introspect :sb-bsd-sockets))
 
 (proclaim '(optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
 

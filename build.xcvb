@@ -3,7 +3,7 @@
 ;;;                                                                  ;;;
 ;;; Free Software available under an MIT-style license. See LICENSE  ;;;
 ;;;                                                                  ;;;
-;;; Copyright (c) 2008-2010 ITA Software, Inc.  All rights reserved. ;;;
+;;; Copyright (c) 2008-2011 ITA Software, Inc.  All rights reserved. ;;;
 ;;;                                                                  ;;;
 ;;; Original authors: Francois-Rene Rideau, Spencer Brody            ;;;
 ;;;                                                                  ;;;
@@ -28,7 +28,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                        (:build "/iolib") ;; I/O event loop
                        (:build "/quux/iolib")) ;; signalfd support (experimental)
                      ;;(:when (:featurep :xcvb-crypto)
-                     ;;  (:asdf :ironclad) ;; unported magic adsf:perform methods...
+                     ;;  (:asdf :ironclad) ;; unported magic asdf:perform methods...
                      ;;  (:asdf :binascii))
                      "/xcvb/master"
                      (:when (:featurep :sbcl)

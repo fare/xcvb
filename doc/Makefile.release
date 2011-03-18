@@ -28,13 +28,11 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 		RELEASE_DIR=${RELEASE_DIR} XCVB_DIR=${XCVB_DIR}
 
 GIT_DEPENDENCIES := \
-	asdf asdf-dependency-grovel babel cl-launch \
-	command-line-arguments fare-utils poiu \
-	alexandria cffi iolib quux-iolib \
-	ironclad binascii rucksack
+	alexandria asdf asdf-dependency-grovel babel binascii bordeaux-threads \
+	cffi cl-launch command-line-arguments fare-utils \
+	iolib ironclad poiu quux-iolib rucksack
 
-DARCS_DEPENDENCIES := closer-mop bordeaux-threads \
-	trivial-garbage trivial-features
+DARCS_DEPENDENCIES := closer-mop trivial-garbage trivial-features
 
 DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
 
@@ -82,12 +80,14 @@ checkout:
 	clone git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git && \
 	clone git://common-lisp.net/projects/xcvb/babel.git && \
 	clone git://github.com/froydnj/binascii.git && \
+	clone git://common-lisp.net/projects/xcvb/bordeaux-threads.git && \
 	clone git://common-lisp.net/projects/xcvb/cffi.git && \
 	clone git://common-lisp.net/projects/xcvb/cl-launch.git && \
 	clone git://common-lisp.net/projects/qitab/command-line-arguments.git && \
 	clone git://common-lisp.net/users/frideau/fare-utils.git && \
 	clone git://common-lisp.net/projects/xcvb/iolib.git && \
 	clone git://github.com/froydnj/ironclad.git && \
+	clone git://common-lisp.net/projects/xcvb/rucksack.git && \
 	clone git://common-lisp.net/projects/qitab/poiu.git && \
 	clone git://common-lisp.net/projects/xcvb/quux-iolib.git && \
 	get http://common-lisp.net/project/xcvb/darcs/closer-mop && \
