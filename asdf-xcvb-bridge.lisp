@@ -2,27 +2,24 @@
 
 (in-package :cl)
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (intern (string '#:use-build.xcvb) :asdf))
-
 (defpackage :xcvb-bridge
-  (:nicknames :xcvb-bridge)
+  (:nicknames :xcvbb)
   (:use :cl :asdf :xcvb-master)
-  (:import-from :asdf #:use-build.xcvb))
+  (:export #:build))
 
 (in-package :xcvb-bridge)
 
-(defclass use-build.xcvb (system)
-  ((build-name :initarg :build :reader system-xcvb-build-name :initform nil)))
+(defclass build (system)
+  ((name :initarg :build :reader build-name :initform nil)))
 
-(defun build-and-load-system (u)
-  (build-and-load (or (system-xcvb-build-name u)
-                      (component-name u))))
+(defgeneric build-and-load-system (b)
+  (:method ((b build))
+    (build-and-load (or (build-name b) (component-name b)))))
 
-(defmethod perform ((op compile-op) (u use-build.xcvb))
-  (declare (ignorable operation c))
-  (build-and-load-system u))
+(defmethod perform ((op compile-op) (b build))
+  (declare (ignorable op))
+  (build-and-load-system b))
 
-(defmethod perform ((op load-op) (u use-build.xcvb))
-  (declare (ignorable operation c))
-  (build-and-load-system u))
+(defmethod perform ((op load-op) (b build))
+  (declare (ignorable op))
+  (build-and-load-system b))
