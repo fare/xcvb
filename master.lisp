@@ -385,7 +385,7 @@ with associated pathnames and tthsums.")
              slave-output t nil
              :start (length +xcvb-slave-greeting+)
              :end (- (length slave-output) (length +xcvb-slave-farewell+)))))
-         (*xcvb-verbosity* (+ verbosity 2)))
+         (*xcvb-verbosity* (+ (or verbosity *xcvb-verbosity*) 2)))
     (when (>= *xcvb-verbosity* 9)
       (format *error-output* "~&Slave XCVB returned following manifest:~%~S~%" manifest))
     (process-manifest manifest)))
