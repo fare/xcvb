@@ -10,11 +10,20 @@
 (in-package :xcvb-bridge)
 
 (defclass build (system)
-  ((name :initarg :build :reader build-name :initform nil)))
+  ((name :initarg :build :reader %build-name :initform nil)))
+
+(defgeneric build-name (b)
+  (:method ((b build))
+    (or (%build-name b) (component-name b))))
+
+(defun object-directory ()
+  (if (absolute-pathname-p *object-directory*)
+      *object-directory*
+      (asdf::resolve-location (list *user-cache* "xcvb-obj"))))
 
 (defgeneric build-and-load-system (b)
   (:method ((b build))
-    (build-and-load (or (build-name b) (component-name b)))))
+    (build-and-load (build-name b) :object-directory (object-directory))))
 
 (defmethod perform ((op compile-op) (b build))
   (declare (ignorable op))
