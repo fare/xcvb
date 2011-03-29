@@ -228,6 +228,17 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
+ * Release: merge iolib, etc., make a new release.
+
+ * Backend: have one run-program based backend. - Make sure it works on Windows,
+
+ * Targets: make sure we support every Lisp implementation that ASDF supports,
+   except maybe legacy ones (genera, mcl, cormancl) — and even then, have a bridge,
+   whereby one can cross-compile an ASDF system or such.
+
+ * Cache: use rucksack to implement cache metadata,
+   tthsum for a content-addressed repository.
+
  * Devise a way to refactor internals so that it becomes easier to extend xcvb.
    Maybe use sheeple?
 

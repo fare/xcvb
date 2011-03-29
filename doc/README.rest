@@ -1174,17 +1174,29 @@ may contain the usual ASDF hackery, including such snippets as::
 ASDF systems depending on XCVB builds
 -------------------------------------
 
-A current limitation of ASDF is that
-ASDF systems cannot at this time depend on XCVB builds.
+An ASDF can depend on an XCVB build
+by wrapping said build with a trivial ``.asd`` file::
 
-However, you can easily extract an ASDF system from one or more XCVB builds,
+   (defsystem :foo
+     :defsystem-depends-on (:xcvb-bridge)
+     :class :xcvb-bridge:build)
+
+Or if your asdf system name doesn't match your xcvb build name::
+
+   (defsystem :foo-bar
+     :defsystem-depends-on (:xcvb-bridge)
+     :class :xcvb-bridge:build
+     :build "/foo/bar")
+
+However, XCVB must be present on the system
+and support your Lisp implementation
+for such a construction to work.
+
+Alternatively, you can easily extract an ASDF system from one or more XCVB builds,
 and use that as a system that other ASDF systems may depend upon.
 (See `Converting XCVB builds into ASDF systems`_ below.)
 Or you can use a manually maintained ``.asd`` file that covers
 the same software as an XCVB build.
-Finally, you can have create a ``.asd`` file that depends on ``xcvb-master``
-and contains only one file that calls ``xcvb-master:build-and-load``
-to bring the XCVB-compiled software into your ASDF-controlled image.
 
 Now, there may at this point be "interesting" situations
 where some software is loaded both as an ASDF system and an XCVB build.
@@ -1549,21 +1561,42 @@ used at ITA. With this experience, we confidently believe the following:
 
  * The semantics of compiling with XCVB are essentially backwards incompatible
    with the semantics of compiling with ASDF.
-   While we could conceivably be compatible with
-   the surface syntax of an ASDF defsystem, this would both
-   entail a significant amount of additional work for us
-   and necessarily break down into distressing incompatibilities
-   in the corner cases of ASDF usage.
-   Moreover, unless we also reimplement all our extensions twice
-   so they work with the regular ASDF as well as with XCVB,
-   any ``.asd`` file that uses them would actually be a lie
-   as it would only run with XCVB.
+
+    * We could try to "embrace and extend" the ASDF syntax, but
+      we would still be incompatible, only in very confusing ways.
+      So we might as well get a fresh start. We're still providing bridges.
+
+    * An important semantic difference in the dependency language is
+      that an ASDF system includes as dependencies all the modules included.
+      This makes it very painful to have conditionally-included dependencies.
+      With XCVB, you can have, declare and name modules under a build
+      without the build itself depending on them.
+      Conditional dependencies are a breeze.
+
+    * Another important semantic difference is that ASDF files contain
+      arbitrary code, and that code is run in a single environment
+      that conflates planning time, building time, runtime.
+      XCVB distinguishes those times and executes them in isolated processes.
+      Therefore there's no possible automatic reuse
+      of a general ASDF-targeted ``.asd`` files
+      into an XCVB build with an ``.asd`` syntax.
+
+    * In the other direction, unless we also reimplement all our extensions twice
+      so they work with the regular ASDF as well as with XCVB,
+      any ``.asd`` file that uses them would actually be a lie
+      as it would only run with XCVB.
+
+    * In conclusion, while we could conceivably be compatible with
+      the surface syntax of an ASDF defsystem in the simple cases,
+      this would both entail a significant amount of additional work for us
+      and necessarily break down into distressing incompatibilities
+      in the corner cases of ASDF usage.
 
  * With the tools to convert ASDF systems to XCVB builds and vice versa,
    XCVB is already as compatible with ASDF as we can hope it to be.
    These tools work perfectly in the simple cases that matter.
    Moreover, it is possible for XCVB builds to depend on ASDF systems, and
-   for ASDF systems to load XCVB-built software via xcvb-master.
+   for ASDF systems to depend on a XCVB build via a trivial xcvb-bridge.
 
  * Yes, future tighter integration of ASDF and XCVB is conceivable,
    but as usual is more work and not very high on my priority list,
@@ -1571,8 +1604,8 @@ used at ITA. With this experience, we confidently believe the following:
    fork-based compilation, (exploded) dependency caching, etc.
 
 
-Why is XCVB so much more bigger and more complex than ASDF?
------------------------------------------------------------
+Why is XCVB so much bigger and more complex than ASDF?
+------------------------------------------------------
 
 It isn't really.
 You should be comparing ASDF to XCVB-Master, not to XCVB.

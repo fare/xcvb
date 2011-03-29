@@ -7,4 +7,4 @@
     :description "XCVB bridge for ASDF"
     :long-description "A module to integrate XCVB builds into ASDF"
     :depends-on (:asdf :xcvb-master)
-    :components ((:file "asdf-xcvb-bridge")))
+    :components ((:file "bridge")))
