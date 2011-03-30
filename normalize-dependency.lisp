@@ -12,8 +12,8 @@ a reference to the system was superseded by a build.xcvb file.")
 (defun lisp-module-grain-from (name grain)
   (let ((lisp-module-grain (resolve-module-name name grain)))
     (unless (lisp-module-grain-p lisp-module-grain)
-      (error "Couldn't resolve ~S to a valid module from grain ~S"
-             name (fullname grain)))
+      (error "Couldn't resolve ~S to a valid module from grain ~S~@[ pathname ~S~]"
+             name (fullname grain) (grain-pathname grain)))
     lisp-module-grain))
 
 (defun lisp-fullname-from (name grain)
@@ -24,8 +24,8 @@ a reference to the system was superseded by a build.xcvb file.")
 
 (defun normalize-dependencies (grain deps type)
   (unless (listp deps)
-    (error "In module ~S, ~S dependencies are not a list but ~S"
-           (fullname grain) type deps))
+    (error "In module ~S~@[ pathname ~S~], ~S dependencies are not a list but ~S"
+           (fullname grain) (grain-pathname grain) type deps))
   (mapcar/ #'normalize-dependency grain deps))
 
 (defun normalize-dependency (grain dep)
@@ -36,7 +36,8 @@ a reference to the system was superseded by a build.xcvb file.")
 (defun normalize-dependency-atom (grain name)
   (let ((g (resolve-module-name name grain)))
     (etypecase g
-      (null (error "Failed to resolve name ~S from grain ~S" name (fullname grain)))
+      (null (error "~@<Failed to resolve name ~S from grain ~S~@[ pathname ~S~]~:>"
+		   name (fullname grain) (grain-pathname grain)))
       (build-module-grain `(:build ,(fullname g)))
       (lisp-file-grain `(:fasl ,(second (fullname g)))))))
 

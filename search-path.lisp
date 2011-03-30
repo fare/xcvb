@@ -119,8 +119,8 @@ Initially populated with all build.xcvb files from the search path.")
            :for v = (verify-path-element path)
            :when v :collect (cons v flags)))))
 
-(defvar +all-builds-path+
-  (make-pathname :directory '(:relative :wild-inferiors)
+(defvar +build-path+
+  (make-pathname :directory nil
                  :name "build"
                  :type "xcvb"
                  :version :newest))
@@ -136,31 +136,33 @@ Initially populated with all build.xcvb files from the search path.")
        (equal (pathname-type x) "xcvb")
        #+genera (pathname-newest-version-p x)))
 
+(defun build.xcvb-in-directory (directory)
+  (merge-pathnames* +build-path+ directory))
+
+(defun directory-has-build-file-p (directory)
+  (ignore-errors
+    (and (asdf::directory* (build.xcvb-in-directory directory)) t)))
+
+(defun collect-sub*directories-with-build.xcvb
+    (directory &key
+     (exclude asdf::*default-source-registry-exclusions*)
+     collect)
+  (asdf::collect-sub*directories
+   directory
+   #'directory-has-build-file-p
+   #'(lambda (x) (not (member (car (last (pathname-directory x))) exclude :test #'equal)))
+   collect))
 
 (defun find-build-files-under (root)
-  (destructuring-bind (pathname &key recurse exclude) root
+  (destructuring-bind (pathname &key recurse (exclude asdf::*default-source-registry-exclusions*))
+      root
     (if (not recurse)
-        (let ((path (probe-file (merge-pathnames "build.xcvb" pathname))))
+        (let ((path (probe-file (merge-pathnames* +build-path+ pathname))))
           (when path (list path)))
-        ;; This is what we want, but too slow with SBCL.
-        ;; It took 5.8 seconds on my machine, whereas what's below takes .56 seconds
-        ;; I haven't timed it with other implementations
-        ;; -- they might or might not need the same hack.
-        ;; TODO: profile it and fix SBCL.
-        #-sbcl
-        (loop
-          :for file :in (ignore-errors
-                          (directory (merge-pathnames +all-builds-path+ pathname)
-                                     #+sbcl #+sbcl :resolve-symlinks nil
-                                     #+clisp #+clisp :circle t))
-          :unless (loop :for x :in exclude
-                    :thereis (find x (pathname-directory file) :test #'equal))
-          :collect file)
-        #+sbcl
-        (run-program/read-output-lines
-         `("find" "-H" ,(escape-shell-token (namestring pathname))
-           "(" "(" "-false" ,@(loop :for x :in exclude :append `("-o" "-name" ,x)) ")" "-prune"
-           "-o" "-name" "build.xcvb" ")" "-type" "f" "-print")))))
+	(mapcar 'build.xcvb-in-directory
+		(while-collecting (c)
+		  (collect-sub*directories-with-build.xcvb
+		   pathname :exclude exclude :collect #'c))))))
 
 (defun map-build-files-under (root fn)
   "Call FN for all BUILD files under ROOT"
