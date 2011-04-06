@@ -40,6 +40,11 @@ command gives specific help on that command.")
      make-makefile +make-makefile-option-spec+
      "Create some Makefile"
      "Create Makefile rules to build a project.")
+    (("simple-build" "simb" "sb")
+     simple-build-command +simple-build-option-spec+
+     "Build the xcvb dependencies"
+     "Determine the dependencies and execute shell commands to build the
+application")
     (("asdf-to-xcvb" "a2x")
      asdf-to-xcvb-command +asdf-to-xcvb-option-spec+
      "Convert ASDF system to XCVB"

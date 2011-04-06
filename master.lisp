@@ -102,7 +102,7 @@ A list of strings, or the keyword :DEFAULT.")
 (defvar *disable-cfasls* nil
   "Should we disable CFASL support when the target Lisp has it?")
 
-(defvar *xcvb-verbosity* 5
+(defvar *xcvb-verbosity* 10
   "Level of verbosity of XCVB:
   0 - quiet
   5 - usual warnings

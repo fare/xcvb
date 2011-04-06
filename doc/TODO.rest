@@ -110,7 +110,7 @@ Here is the top of our TODO list at ITA:
    + Run tests on the XCVB-compiled system.
 
    + Re-branch based on a recent trunk.
-
+   
    + Use ``remove-xcvb`` to extract the non-XCVB changes needed by QRes,
      and integrate those fixes into trunk.
 
@@ -229,17 +229,23 @@ Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
   I propose we restrict ourselves as follows:
+
     * have a reduced version of XCVB that can run portably
       in any Lisp implementation, including legacy systems like Genera,
       using a single, simple backend, that dumps and loads an ASDF system.
       This would ensure total compatibility.
+
     * For an external XCVB, include the core plus additional backends:
       Makefile, direct calls to run-program, etc.
       This would only be available on "modern", maintained, platforms.
       No need to support genera, corman, mcl, gcl.
       Should hopefully work on Windows.
+
     * For an optimized XCVB managing its own processes, assume Linux
       with SBCL or CCL, maybe if not too hard CLISP,
+
+    * Determine what proportion of the projects in Quicklisp can be
+      automatically converted to xcvb using xcvb a2x.
 
   Define what "extensibility" actually means & provide examples.
 
@@ -252,6 +258,8 @@ in a random order. They would be ideal for a non-ITA hacker to tackle.
   Stabalize current xcvb source code:
   
    + merge iolib with upstream - push patches to xcvb repo, if not upstream
+
+   + unit tests or more functional tests? hu.dwim.stefil
 
   Fix basic functionality:
   

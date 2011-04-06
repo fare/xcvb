@@ -1,25 +1,7 @@
 #+xcvb
-(module (:depends-on ("utilities" "specials" "grain-interface")))
+(module (:depends-on ("utilities" "specials" "grain-interface" #|"external-commands"|#)))
 
 (in-package :xcvb)
-
-(defvar *renamed-targets* ()
-  "alist of targets really desired, and the temporary names under which the XCVB driver commands
-will create the desired content. An atomic rename() will have to be performed afterwards.")
-
-(defun register-renamed-target (target tempname)
-  (push (cons target tempname) *renamed-targets*))
-
-(defun rename-target (target tempname)
-  (register-renamed-target target tempname)
-  tempname)
-
-(defun tempname-target (target)
-  (let* ((path (pathname target))
-         (tempname (namestring
-                    (make-pathname :name (strcat (pathname-name path) "__temp")
-                                   :defaults path))))
-    (rename-target target tempname)))
 
 (define-simple-dispatcher text-for-xcvb-driver-command #'text-for-xcvb-driver-command-atom)
 
@@ -113,12 +95,6 @@ will create the desired content. An atomic rename() will have to be performed af
            (when cfasl
              (tempname-target (fullname-enough-namestring env `(:cfasl ,(second name))))))))
 
-(defun xcvb-driver-commands-to-shell-token (env commands)
-  (with-output-to-string (s)
-    (write-string "(xcvb-driver:run " s)
-    (dolist (c commands)
-      (write-string (text-for-xcvb-driver-command env c) s))
-    (write-string ")" s)))
 
 (defgeneric grain-pathname-text (env grain))
 

@@ -11,7 +11,7 @@
 
 (in-package :asdf)
 (load-system :asdf)
-(let ((min "2.010")
+(let ((min "2.014")
       (ver (#+asdf2 asdf-version)))
   (unless (and ver (version-satisfies ver min))
     (error "XCVB requires ASDF ~D or later, you only have ~D" min ver)))
@@ -70,7 +70,10 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "traversal" :depends-on ("names" "computations"))
      (:file "dependencies-interpreter" :depends-on ("normalize-dependency" "traversal"))
      (:file "static-traversal" :depends-on ("grain-sets" "dependencies-interpreter"))
-     (:file "driver-commands" :depends-on ("specials" "utilities" "grain-interface"))
+     (:file "external-commands" :depends-on ("specials" "utilities" "grain-interface"))
+     (:file "driver-commands" :depends-on ("specials" "utilities" "grain-interface" "external-commands"))
+     (:file "run-program-backend" :depends-on ("profiling" "static-traversal" "driver-commands"
+					       "computations" "main" "virtual-pathnames"))
      (:file "makefile-backend" :depends-on ("profiling" "static-traversal" "driver-commands"
 					    "computations" "main" "virtual-pathnames"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
