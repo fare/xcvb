@@ -87,19 +87,7 @@ Top ITA TODO [V1]
 
 Here is the top of our TODO list at ITA:
 
-  Fix our performance issue:
-
-   + Profile make-makefile and see where it's wasting its time.
-     Probably, we need to guard dependency recursion
-     with a dependency already having been issued, if not already.
-
-   + Provide for fast compilation of QRes with XCVB and POIU.
-
-   + Finish the standalone backend, for a fast(er) enforcing build?
-     The enforcing build of QRes is an order of magnitude slower than the ASDF build
-     (on a quad-core system). See below `Enhancing Build Speed [V1]`_.
-
-  Finish applying XCVB to QRes:
+  * Finish applying XCVB to QRes:
 
    + Collect differences on ITA library dependencies into diffs.
      Publish them in the XCVB releases/ directory.
@@ -110,7 +98,7 @@ Here is the top of our TODO list at ITA:
    + Run tests on the XCVB-compiled system.
 
    + Re-branch based on a recent trunk.
-   
+
    + Use ``remove-xcvb`` to extract the non-XCVB changes needed by QRes,
      and integrate those fixes into trunk.
 
@@ -120,6 +108,19 @@ Here is the top of our TODO list at ITA:
 
  * Figure out the shortest path from here to providing incremental testing
    for unit-tests and regression scripts. See `Tests [V2]`_.
+
+ * Fix our performance issue:
+
+   + Profile make-makefile and see where it's wasting its time.
+     Probably, we need to guard dependency recursion
+     with a dependency already having been issued, if not already.
+
+   + Provide for fast compilation of QRes with XCVB and POIU.
+
+   + Try the standalone backend on QRes, for a fast(er) enforcing build.
+     Make it robust where it isn't, and more user-friendly, as needed.
+     The enforcing build of QRes is an order of magnitude slower than the ASDF build
+     (on a quad-core system). See below `Enhancing Build Speed [V1]`_.
 
 
 Enhancing Build Speed [V1]
@@ -228,76 +229,81 @@ Other Top TODO Items [V1]
 Other top TODO items that are not on ITA's critical path include the following,
 in a random order. They would be ideal for a non-ITA hacker to tackle.
 
-  I propose we restrict ourselves as follows:
+I propose our next steps should be as follows:
 
-    * have a reduced version of XCVB that can run portably
-      in any Lisp implementation, including legacy systems like Genera,
-      using a single, simple backend, that dumps and loads an ASDF system.
-      This would ensure total compatibility.
+ * Make XCVB a universally applicable alternative or complement to ASDF.
 
-    * For an external XCVB, include the core plus additional backends:
-      Makefile, direct calls to run-program, etc.
-      This would only be available on "modern", maintained, platforms.
-      No need to support genera, corman, mcl, gcl.
-      Should hopefully work on Windows.
+   + Have a mostly portable version of XCVB
+     that runs standalone on both Windows and Unix,
+     have a backend that doesn't go through Make,
+     but directly calls run-program.
+     This would only be available targetting all maintained platforms:
+     ccl sbcl clisp ecl abcl cmucl scl allegro lispworks allegromodern xcl.
+     No need to support corman, gcl, genera, mcl.
 
-    * For an optimized XCVB managing its own processes, assume Linux
-      with SBCL or CCL, maybe if not too hard CLISP,
+   + To ensure total compatibility, have a universal version of XCVB
+     that can run target any Lisp implementation,
+     including legacy systems like Genera.
+     We more or less have that with the ASDF backend already.
+     We should "just" streamline that, make it available from xcvb-master,
+     and be the fallback approach on those platforms where it is meaningful.
+     Since those platforms do not bundle ASDF, streamlining might include
+     producing a load-script that loads and uses ASDF.
 
-    * Determine what proportion of the projects in Quicklisp can be
-      automatically converted to xcvb using xcvb a2x.
+   + For an optimized XCVB managing its own processes, assume Linux
+     with SBCL or CCL, maybe if not too hard CLISP.
 
-  Define what "extensibility" actually means & provide examples.
+ * Determine what proportion of the projects in Quicklisp can be
+   automatically converted to xcvb using xcvb a2x.
 
-  Provide a way out of ASDF that doesn't require maintenance
-  of two files, foo/foo.asd AND foo/build.xcvb
+ * Provide a way out of ASDF that doesn't require maintenance
+   of two files, foo/foo.asd AND foo/build.xcvb.
+   DONE: the xcvb-bridge.
 
-  Minimize/remove dependencies in the building of xcvb.
-   + each dependency is costly to have, *especially* if they fork.
+ * Minimize/remove dependencies in the building of xcvb.
 
-  Stabalize current xcvb source code:
-  
-   + merge iolib with upstream - push patches to xcvb repo, if not upstream
+    + each dependency is costly to have, *especially* if they fork.
 
-   + unit tests or more functional tests? hu.dwim.stefil
+    + Note: they won't have to fork if we remove all obstacles to XCVB acceptance.
 
-  Fix basic functionality:
-  
-   + Make sure xcvb ssr works and in robust
+ * Stabilize current xcvb source code:
 
-   + Make sure xcvb passes all tests
+    + merge iolib with upstream - push patches to xcvb repo, if not upstream
 
-  Add more examples. keep them _simple_
+    + unit tests or more functional tests? hu.dwim.stefil
 
- * Release: merge iolib, etc., make a new release.
+    + Release
 
- * Backend: have one run-program based backend. - Make sure it works on Windows,
+ * Fix basic functionality:
 
- * Targets: make sure we support every Lisp implementation that ASDF supports,
-   except maybe legacy ones (genera, mcl, cormancl) — and even then, have a bridge,
-   whereby one can cross-compile an ASDF system or such.
+    + Make sure xcvb ssr works and is robust
+
+    + Make sure xcvb passes all tests
+
+ * Add more examples. keep them _simple_
 
  * Cache: use rucksack to implement cache metadata,
    tthsum for a content-addressed repository.
 
- * Devise a way to refactor internals so that it becomes easier to extend xcvb.
+ * Define what "extensibility" actually means & provide examples.
 
-   + Maybe use sheeple?
+    + Devise a way to refactor internals so that it becomes easier to extend xcvb.
 
-   + Registry location/definition & virtual path names
+    + Maybe use sheeple?
 
-   + Walking over virtual directories
+    + Registry location/definition & virtual path names
 
-   + Dependency graph generation should be more seperable
+    + Walking over virtual directories
 
-     - decorated with information from various stages
+    + Dependency graph generation should be more seperable
 
-     - type checking
+      - decorated with information from various stages
 
-     - compilation to computation specification
+      - type checking
 
-     - dot file output
+      - compilation to computation specification
 
+      - dot file output
 
  * Idea for XCVB:
    be more like Exscribe -

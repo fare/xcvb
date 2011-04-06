@@ -59,7 +59,7 @@ will create the desired content. An atomic rename() will have to be performed af
          (commands (external-commands-for-computation-dispatcher env computation-command)))
     (append commands
 	    (loop :for (target . tempname) :in *renamed-targets*
-		  :collect (shell-tokens-to-Makefile (list "mv" tempname target))))))
+		  :collect (list "mv" tempname target)))))
 
 (define-external-commands-for-computation :xcvb-driver-command (env keys &rest commands)
   (list
@@ -75,20 +75,15 @@ will create the desired content. An atomic rename() will have to be performed af
     :append (external-commands-for-computation env command)))
 
 #|
-(define-external-commands-for-computation :shell-command (env command)
-  (declare (ignore env))
-  (list (escape-string-for-Makefile command)))
-
 (define-external-commands-for-computation :exec-command (env &rest argv)
   (declare (ignore env))
-  (list (shell-tokens-to-Makefile argv)))
+  (list argv))
 |#
 
 (define-external-commands-for-computation :make-manifest (env manifest &rest commands)
-  (list (shell-tokens-to-Makefile
-         (cmdize 'xcvb 'make-manifest
-                 :output (pseudo-fullname-enough-namestring env manifest)
-                 :spec (let ((manifest-spec (commands-to-manifest-spec env commands)))
-                         (with-safe-io-syntax ()
-                           (write-to-string manifest-spec :case :downcase)))))))
-
+  (list
+   (cmdize 'xcvb 'make-manifest
+           :output (pseudo-fullname-enough-namestring env manifest)
+           :spec (let ((manifest-spec (commands-to-manifest-spec env commands)))
+                   (with-safe-io-syntax ()
+                     (write-to-string manifest-spec :case :downcase))))))

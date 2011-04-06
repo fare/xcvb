@@ -306,6 +306,9 @@
 (defun build-module-grain-p (x)
   (typep x 'build-module-grain))
 
+(defun file-grain-p (x)
+  (typep x 'file-grain))
+
 (defun lisp-file-grain-p (x)
   (typep x 'lisp-file-grain))
 
@@ -324,8 +327,8 @@
 (defmethod print-object ((g file-grain) stream)
   (with-output (stream)
     (print-unreadable-object (g stream :type t)
-      (format stream "~@<:vp ~S :pathname ~S~>"
-              (grain-vp g) (grain-pathname g)))))
+      (format stream "~@<:vp ~S~@[ :pathname ~S~]~>"
+              (grain-vp g) (when (slot-boundp g 'pathname) (grain-pathname g))))))
 
 (defun coerce-asdf-system-name (name)
   "This function take the name of an asdf-system, and

@@ -63,10 +63,6 @@
      standalone package)))
 
 (defun lisp-invocation-for (env keys eval)
-  (shell-tokens-to-Makefile
-   (lisp-invocation-arglist-for env keys eval)))
-
-(defun lisp-invocation-arglist-for (env keys eval)
   (destructuring-bind (&key image load) keys
     (lisp-invocation-arglist
      :image-path (if image (fullname-enough-namestring env image) *lisp-image-pathname*)
@@ -99,14 +95,12 @@
 (defgeneric grain-pathname-text (env grain))
 
 (defmethod grain-pathname-text (env (grain file-grain))
-  (let ((pathname (enough-namestring (vp-namestring env (grain-vp grain)))))
-    (values (escape-shell-token-for-Makefile pathname) pathname)))
+  (enough-namestring (vp-namestring env (grain-vp grain))))
 
 (defmethod grain-pathname-text (env (grain asdf-grain))
-  (declare (ignore env grain))
-  "")
+  (declare (ignorable env grain))
+  nil)
 
 (defmethod grain-pathname-text (env (grain require-grain))
-  (declare (ignore env grain))
-  "")
-
+  (declare (ignorable env grain))
+  nil)

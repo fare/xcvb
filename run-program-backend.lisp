@@ -11,11 +11,7 @@
 (defclass run-program-traversal (static-traversal makefile-traversal)
   ())
 
-(defvar *makefile-target-directories-to-mkdir* ())
-(defvar *makefile-target-directories* (make-hash-table :test 'equal))
-(defvar *makefile-phonies* ())
-
-(defun simple-build (fullname &key output-path)
+(defun simple-build (fullname &key output-path force)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
   (multiple-value-bind (target-dependency build) (handle-target fullname)
     (let* ((default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
@@ -39,45 +35,66 @@
       (graph-for env target-dependency)
       ;; Pass 2: Execute the ordered computations contained in *computations*
       (log-format 8 "Attempting to serially execute *computations*")
-      (run-computations-serially env))))
+      (run-computations-serially env :force force))))
 
 ;; FIXME to do the right thing.
-(defun run-computations-serially (env)
+(defun run-computations-serially (env &key force)
   (log-format 8 "All *computations* = ~S" (reverse *computations*))
   (dolist (computation (reverse *computations*))
     (log-format 8 "Running computation: ~S" computation)
-    (run-computation env computation)))
+    (run-computation env computation :force force)))
 
 ;; XXX Broken when files are written in subsecond intervals, Fix for when
 ;; output-files don't even exist yet.
 (defun all-newer-pathnames-p (output-pn input-pn)
-  (every #'(lambda (out-pn in-pn)
-	     (> (file-write-date in-pn) (file-write-date out-pn)))
-	 output-pn
-	 input-pn))
-  
+  (>= (oldest-timestamp output-pn) (newest-timestamp input-pn)))
+
+(defun safe-file-write-date (p)
+  (and p (asdf::probe-file* p) (ignore-errors (file-write-date p))))
+
+(defun oldest-timestamp (pathnames)
+  (loop :with ot = most-positive-single-float
+    :for p :in pathnames
+    :for pt = (safe-file-write-date p)
+    :when (and pt (< pt ot)) :do (setf ot pt)
+    :finally (return ot)))
+
+(defun newest-timestamp (pathnames)
+  (loop :with nt = most-negative-single-float
+    :for p :in pathnames
+    :for pt = (safe-file-write-date p)
+    :when (and pt (> pt nt)) :do (setf nt pt)
+    :finally (return nt)))
+
 ;; FIXME XXX Test this! Fix why I get an unbound symbol in finding the
 ;; grain-pathname of the outputs list...
-(defun run-computation (env computation)
+(defun run-computation (env computation &key force)
   (let* ((inputs (computation-inputs computation)) ; a grain
 	 (outputs (computation-outputs computation)) ; a grain
 	 (command (computation-command computation)) ; in the xcvb command language, as understood by external-commands-for-computation
 	 (input-pathnames (progn (log-format 9 "input-grain = ~S" inputs)
-				 (mapcar #'grain-pathname inputs)))
+                                 (loop :for i :in inputs :when (file-grain-p i)
+                                   :collect (grain-pathname-text env i))))
 	 (output-pathnames (progn (log-format 9 "output-grain = ~S" outputs)
-				  (mapcar #'grain-pathname outputs))))
-    
+                                 (loop :for o :in outputs :when (file-grain-p o)
+                                   :collect (grain-pathname-text env o)))))
+
     ;; first, check the outputs are newew than the inputs, if so, bail.
     (when (and (all-newer-pathnames-p output-pathnames input-pathnames) ; same checking as with make
-	       #|(not *force*)|#) ; special force computation -- TBD
+	       (not force)) ; force computation
       (return-from run-computation t))
     ;; create the output directories
     (dolist (output-pn output-pathnames)
       (ensure-directories-exist output-pn))
     (dolist (external-command (external-commands-for-computation env command))
-      (run-program/read-output-lines external-command))))
+      (log-format 5 "running:~{ ~A~}" (mapcar #'escape-shell-token external-command))
+      (let ((text (run-program/read-output-string external-command)))
+        (when (plusp (length text))
+          (log-format 5 "command emitted following text:~%~A~&" text))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; TODO: have only one build command. Have it multiplex the various build backends.
 
 (defparameter +simple-build-option-spec+
   `((("build" #\b) :type string :optional nil :documentation "specify what system to build")
@@ -87,6 +104,7 @@
     (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
     ,@+lisp-implementation-option-spec+
     ,@+cfasl-option-spec+
+    (("force" #\F) :type boolean :optional t :initial-value nil :documentation "force building everything")
     (("use-base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
     (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
     ,@+verbosity-option-spec+
@@ -96,10 +114,10 @@
     (&rest keys &key
      source-registry setup verbosity output-path
      build lisp-implementation lisp-binary-path define-feature undefine-feature
-     disable-cfasl master object-directory use-base-image profiling debugging)
+     disable-cfasl master object-directory use-base-image profiling debugging force)
   (declare (ignore source-registry setup verbosity
                    lisp-implementation lisp-binary-path define-feature undefine-feature
                    disable-cfasl master object-directory use-base-image debugging))
   (with-maybe-profiling (profiling)
     (apply 'handle-global-options keys)
-    (simple-build build :output-path output-path)))
+    (simple-build build :output-path output-path :force force)))

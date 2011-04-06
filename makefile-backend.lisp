@@ -123,6 +123,17 @@ xcvb-ensure-object-directories:
       (ensure-makefile-will-make-pathname env namestring))
     namestring))
 
+(defmethod grain-pathname-text ((env makefile-traversal) (grain file-grain))
+  (let ((pathname (call-next-method)))
+    (values (escape-shell-token-for-Makefile pathname) pathname)))
+
+(defmethod grain-pathname-text :around ((env makefile-traversal) grain)
+  (or (call-next-method) ""))
+
+(defun Makefile-commands-for-computation (env computation-command)
+  (mapcar 'shell-tokens-to-Makefile
+          (external-commands-for-computation-dispatcher env computation-command)))
+
 (defun write-computation-to-makefile (env stream computation)
   (with-accessors ((command computation-command)
                    (inputs computation-inputs)
@@ -140,7 +151,7 @@ xcvb-ensure-object-directories:
       (when command
         (dolist (c (cons
                     (format nil "echo Building ~A" target)
-                    (external-commands-for-computation env command)))
+                    (Makefile-commands-for-computation env command)))
           (format stream "~C@~A~%" #\Tab c)))
       (terpri stream))))
 
