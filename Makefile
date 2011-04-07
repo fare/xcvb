@@ -68,7 +68,7 @@ endif
 setup.lisp:
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_setup > $@
 
-xcvb: xcvb-using-xcvb
+xcvb: xcvb-using-asdf # Broken for now? xcvb-using-xcvb
 
 # Below you may use either of these setups, or none at all.
 # --setup /xcvb/no-asdf   ## This will be made obsolete by newer ASDF (>= 1.371).
@@ -259,10 +259,20 @@ show-config:
 	echo "INSTALL_XCVB=${INSTALL_XCVB}" ; \
 	echo "XCVB_OBJECT_DIRECTORY=${XCVB_OBJECT_DIRECTORY}"
 
+WRONGFUL_TAGS := xcvb_0.1 xcvb_0.11 xcvb_0.300 xcvb_0.539
+# Delete wrongful tags from local repository
+fix-local-git-tags:
+	for i in ${WRONGFUL_TAGS} ; do git tag -d $$i ; done
+
+# Delete wrongful tags from remote repository
+fix-remote-git-tags:
+	for i in ${WRONGFUL_TAGS} ; do git push $${REMOTE:-origin} :refs/tags/$$i ; done
+
 .PHONY: all install lisp-install tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision force \
 	release release-directory release-tarball test-and-release-tarball \
 	xcvb-bootstrapped-install xcvb-asdf-install \
-	test fulltest show-config mk
+	test fulltest show-config mk \
+	fix-local-git-tags fix-remote-git-tags
 
 # To check out a particular revision: git fetch; git merge $commit

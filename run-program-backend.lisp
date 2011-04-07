@@ -2,14 +2,18 @@
 (module
   (:author ("Francois-Rene Rideau" "Peter Keller")
    :maintainer "Francois-Rene Rideau"
-   ;; :run-depends-on ("string-escape")
-   :depends-on ("profiling" "static-traversal" "computations"
-                "virtual-pathnames" "driver-commands" "main")))
+   :depends-on ("static-traversal" "main")))
 
 (in-package :xcvb)
 
 (defclass run-program-traversal (static-traversal makefile-traversal)
   ())
+
+(defun run-program/echo-output (command &key prefix (stream t) ignore-error-status)
+  (run-program/process-output-stream
+   command #'(lambda (s) (loop :for line = (read-line s nil nil) :while line
+                           :do (format stream "~@[~A~]~A~&" prefix line)))
+   :ignore-error-status ignore-error-status))
 
 (defun simple-build (fullname &key output-path force)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
@@ -95,9 +99,7 @@
 
     (dolist (external-command (external-commands-for-computation env command))
       (log-format 5 "running:~{ ~A~}" (mapcar #'escape-shell-token external-command))
-      (let ((text (run-program/read-output-string external-command)))
-        (when (plusp (length text))
-          (log-format 5 "command emitted following text:~%~A~&" text))))))
+      (run-program/echo-output external-command :prefix "command output: "))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

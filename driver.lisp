@@ -22,7 +22,7 @@
   (:export
    #:*optimization-settings*
    #:*restart* #:debugging #:*goal* #:*stderr*
-   #:*uninteresting-conditions* #:*fatal-condition* #:*deferred-warnings*
+   #:*uninteresting-conditions* #:*fatal-conditions* #:*deferred-warnings*
    #:getenv #:emptyp #:setenvp #:setup-environment
    #:debugging #:with-profiling
    #:finish-outputs #:quit #:shell-boolean
@@ -98,8 +98,8 @@
    '("No generic function ~S present when encountering macroexpansion of defmethod. Assuming it will be an instance of standard-generic-function.") ;; from closer2mop
    )
   "Conditions that may be skipped. type symbols, predicates or strings")
-(defvar *fatal-condition*
-  '(or serious-condition)
+(defvar *fatal-conditions*
+  '(serious-condition)
   "Conditions to be considered fatal during compilation.")
 (defvar *deferred-warnings* ()
   "Warnings the handling of which is deferred until the end of the compilation unit")
@@ -110,7 +110,7 @@
 (defun getenv (x)
   #-(or abcl allegro cmu clisp clozure ecl gcl lispworks sbcl scl)
   (error "GETENV not supported for your Lisp implementation")
-  (#+(or abcl clisp) ext:getenv
+  (#+(or abcl clisp xcl) ext:getenv
    #+allegro sys:getenv
    #+clozure ccl:getenv
    #+(or cmu scl) (lambda (x) (cdr (assoc x ext:*environment-list* :test #'string=)))
@@ -201,16 +201,19 @@
 (defun quit (&optional (code 0) (finish-output t))
   "Quits from the Lisp world, with the given exit status if provided.
 This is designed to abstract away the implementation specific quit forms."
-  (when finish-output (finish-outputs))
-  #+cmu (unix:unix-exit code)
-  #+clisp (ext:quit code)
-  #+sbcl (sb-unix:unix-exit code)
-  #+clozure (ccl:quit code)
-  #+gcl (lisp:quit code)
+  (when finish-output ;; essential, for ClozureCL, and for standard compliance.
+    (finish-outputs))
+  #+(or abcl xcl) (ext:quit :status code)
   #+allegro (excl:exit code :quiet t)
+  #+clisp (ext:quit code)
+  #+clozure (ccl:quit code)
+  #+cormanlisp (win32:exitprocess code)
+  #+(or cmu scl) (unix:unix-exit code)
   #+ecl (si:quit code)
+  #+gcl (lisp:quit code)
   #+lispworks (lispworks:quit :status code :confirm nil :return nil :ignore-errors-p t)
-  #-(or cmu clisp sbcl clozure gcl allegro ecl lispworks)
+  #+sbcl (sb-unix:unix-exit code)
+  #-(or abcl allegro clisp clozure cmu ecl gcl lispworks sbcl scl xcl)
   (error "xcvb driver: Quitting not implemented"))
 (defun shell-boolean (x)
   (quit
@@ -249,8 +252,6 @@ This is designed to abstract away the implementation specific quit forms."
 
 
 ;;; Filtering conditions during the build.
-(defun uninteresting-condition-p (condition)
-  (loop :for x :in *uninteresting-conditions* :thereis (match-condition-p x condition)))
 (defun match-condition-p (x condition)
   (etypecase x
     (symbol (typep condition x))
@@ -259,8 +260,12 @@ This is designed to abstract away the implementation specific quit forms."
                  #+(or ccl sbcl) (slot-boundp condition #+ccl 'ccl::format-control
                                               #+sbcl 'sb-kernel:format-control)
                  (equal (simple-condition-format-control condition) x)))))
+(defun match-any-condition-p (condition conditions)
+  (loop :for x :in conditions :thereis (match-condition-p x condition)))
+(defun uninteresting-condition-p (condition)
+  (match-any-condition-p condition *uninteresting-conditions*))
 (defun fatal-condition-p (condition)
-  (typep condition *fatal-condition*))
+  (match-any-condition-p condition *fatal-conditions*))
 (defun call-with-controlled-compiler-conditions (thunk)
   (handler-bind
       ((t
@@ -437,14 +442,19 @@ This is designed to abstract away the implementation specific quit forms."
 (defmacro with-determinism (goal &body body)
   `(call-with-determinism ,goal (lambda () ,@body)))
 
-(defun call-with-determinism (goal thunk)
-  ;;; We use the goal (fullname) as the seed as opposed to the tthsum of some contents
+(defun call-with-determinism (seed thunk)
+  ;;; The seed is an arbitrary object from (a hash of) which we initialize
+  ;;; all sources of randomness and non-determinism in the file being compiled.
+  ;;;
+  ;;; We typically use as a seed the goal as opposed to the tthsum of some contents
   ;;; to give a greater chance to trivial modifications of the source text (e.g.
   ;;; comments and whitespace changes) to be without effect on the compilation output.
+  ;;; We possibly should be using the tthsum instead of a sxhash,
+  ;;; as provided by the master process.
   ;;;
   ;;; In SBCL, we'll also need to somehow disable the start-time slot of the
   ;;; (def!struct (source-info ...)) from main/compiler.lisp (package SB-C).
-  (let* ((hash (sxhash goal))
+  (let* ((hash (sxhash seed))
          (*gensym-counter* (* hash 10000))
          #+sbcl (sb-impl::*gentemp-counter* (* hash 10000))
          ;;; SBCL will hopefully export a better mechanism soon. See:
@@ -497,7 +507,10 @@ This is designed to abstract away the implementation specific quit forms."
 (defun dump-image (filename &key standalone package)
   (declare (ignorable filename standalone))
   (setf *package* (find-package (or package :cl-user)))
-  (defparameter *previous-features* *features*)
+  #+allegro
+  (progn
+   (sys:resize-areas :global-gc t :pack-heap t :sift-old-areas t :tenure t) ; :new 5000000
+   (excl:dumplisp :name filename :suppress-allegro-cl-banner t))
   #+clisp
   (apply #'ext:saveinitmem filename
    :quiet t
@@ -508,36 +521,36 @@ This is designed to abstract away the implementation specific quit forms."
      (list
       :norc t
       :script nil
-      :init-function #'resume)))
-  #+sbcl
-  (progn
-    ;;(sb-pcl::precompile-random-code-segments) ;--- it is ugly slow at compile-time (!) when the initial core is a big CLOS program. If you want it, do it yourself.
-   (setf sb-ext::*gc-run-time* 0)
-   (apply 'sb-ext:save-lisp-and-die filename
-    :executable t ;--- always include the runtime that goes with the core
-    (when standalone (list :toplevel #'resume :save-runtime-options t)))) ;--- only save runtime-options for standalone executables
-  #+cmu
+      :init-function #'resume
+      ;; :parse-options nil ;--- requires a non-standard patch to clisp.
+      )))
+  #+clozure
+  (ccl:save-application filename :prepend-kernel t)
+  #+(or cmu scl)
   (progn
    (ext:gc :full t)
    (setf ext:*batch-mode* nil)
    (setf ext::*gc-run-time* 0)
-   (extensions:save-lisp filename))
-  #+clozure
-  (ccl:save-application filename :prepend-kernel t)
-  #+allegro
-  (progn
-   (sys:resize-areas :global-gc t :pack-heap t :sift-old-areas t :tenure t) ; :new 5000000
-   (excl:dumplisp :name filename :suppress-allegro-cl-banner t))
-  #+lispworks
-  (if standalone
-    (lispworks:deliver 'resume filename 0 :interface nil)
-    (hcl:save-image filename :environment nil))
+   (ext:save-lisp filename))
   #+gcl
   (progn
    (si::set-hole-size 500) (si::gbc nil) (si::sgc-on t)
    (si::save-system filename))
-  #-(or clisp sbcl cmu clozure allegro gcl lispworks)
-  (%abort 11 "XCVB-Driver doesn't supports image dumping with this Lisp implementation.~%"))
+  #+lispworks
+  (progn
+    ;;(system::copy-file (getenv "LWLICENSE") (make-pathname :name "lwlicense" :type nil :defaults filename))
+    (if standalone
+        (lispworks:deliver 'resume filename 0 :interface nil)
+        (hcl:save-image filename :environment nil)))
+  #+sbcl
+  (progn
+    ;;(sb-pcl::precompile-random-code-segments) ;--- it is ugly slow at compile-time (!) when the initial core is a big CLOS program. If you want it, do it yourself
+   (setf sb-ext::*gc-run-time* 0)
+   (apply 'sb-ext:save-lisp-and-die filename
+    :executable t ;--- always include the runtime that goes with the core
+    (when standalone (list :toplevel #'resume :save-runtime-options t)))) ;--- only save runtime-options for standalone executables
+  #-(or allegro clisp clozure cmu gcl lispworks sbcl scl)
+  (%abort 11 "Can't dump ~S: xcvb-driver doesn't support image dumping with this Lisp implementation.~%" filename))
 
 ;;; Actually creating images
 #-ecl

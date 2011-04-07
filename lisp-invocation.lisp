@@ -31,39 +31,56 @@
   (or (gethash implementation-type *lisp-implementations*)
       (error "Unknown Lisp implementation type ~S" implementation-type)))
 
-(define-lisp-implementation :sbcl ()
-  :fullname "Steel Bank Common Lisp"
-  :name "sbcl"
-  :feature :sbcl
-  ;; We need both --userinit /dev/null AND --sysinit /dev/null
-  ;; because on debian, the default /etc/sbcl*rc do ASDF trickery
-  ;; that make the sequence of no-asdf and asdf unhappy.
-  :flags ("--noinform" "--no-userinit" "--no-sysinit")
-  :eval-flag "--eval" ;; Note: SBCL's eval can only handle one form per argument.
+(define-lisp-implementation :abcl ()
+  :fullname "Armed Bear Common Lisp"
+  :name "abcl"
+  :feature :abcl
+  :flags ("--noinform" "--noinit" "--nosystem")
+  :eval-flag "--eval"
   :load-flag "--load"
-  :arguments-end "--end-toplevel-options"
-  :image-flag "--core"
-  :image-executable-p t
-  :standalone-executable t ;; requires sbcl 1.0.21.24 or later.
-  :argument-control t
-  :disable-debugger ("--disable-debugger")
-  :quit-format "(sb-ext:quit :unix-status ~A)"
-  :dump-format "(sb-ext:save-lisp-and-die ~S :executable t)")
-
-(define-lisp-implementation :ecl () ;; demand 10.4.2 or later.
-  :fullname "ECL"
-  :name "ecl"
-  :feature :ecl
-  :flags ("-norc")
-  :eval-flag "-eval" ; -e
-  :load-flag "-load"
+  :arguments-end "--"
   :image-flag nil
+  :image-executable-p t
+  :standalone-executable nil
+  :argument-control t
+  :disable-debugger ("--batch") ;; ???
+  :quit-format "(ext:quit :status ~A)"
+  :dump-format nil)
+
+(define-lisp-implementation :allegro ()
+  :fullname "Allegro CL"
+  :name "alisp"
+  :feature :allegro
+  :flags ("-qq") ; on windows, +c ? On Allegro 5 and earlier, -Q and/or -QQ ?
+  :eval-flag "-e"
+  :load-flag "-L"
+  ; :quit-flags ("-kill")
+  :arguments-end "--"
+  :image-flag "-I"
+  :image-executable-p t
+  :standalone-executable nil
+  :argument-control t
+  :disable-debugger ("-batch") ; see also -#D -#C -#!
+  :quit-format "(excl:exit ~A :quiet t)"
+  :dump-format "(progn (sys:resize-areas :global-gc t :pack-heap t :sift-old-areas t :tenure t) (excl:dumplisp :name ~A :suppress-allegro-cl-banner t))")
+
+(define-lisp-implementation :ccl () ;; demand 1.4 or later.
+  :fullname "Clozure Common Lisp"
+  ;; formerly OpenMCL, forked from MCL, formerly Macintosh Common Lisp, nee Coral Common Lisp
+  ;; Random note: (finish-output) is essential for ccl, that won't do it by default,
+  ;; unlike the other lisp implementations tested.
+  :name "ccl"
+  :feature :clozure
+  :flags ("--no-init")
+  :eval-flag "--eval" ; -e
+  :load-flag "--load"
+  :image-flag "--image-name" ; -I
   :image-executable-p t
   :arguments-end "--"
   :argument-control t ;; must be fixed now, but double-checking needed.
-  :disable-debugger ()
-  :quit-format "(si:quit ~A)"
-  :dump-format "(error \"Cannot dump with ECL. Link instead.\")")
+  :disable-debugger ("--batch")
+  :quit-format "(let ((x ~A)) (finish-output *standard-output*) (finish-output *error-output*) (ccl:quit x))"
+  :dump-format "(save-application ~S :prepend-kernel t)")
 
 (define-lisp-implementation :clisp ()
   :fullname "GNU CLISP"
@@ -81,27 +98,6 @@
   :quit-format "(ext:quit ~A)"
   :dump-format "(ext:saveinitmem ~S :quiet t :executable t)")
 
-(define-lisp-implementation :ccl () ;; demand 1.4 or later.
-  :fullname "Clozure CL"
-  ;; formerly OpenMCL, forked from MCL, formerly Macintosh Common Lisp, nee Coral Common Lisp
-  ;; Random note: (finish-output) is essential for ccl, that won't do it by default,
-  ;; unlike the other lisp implementations tested.
-  :name "ccl"
-  :feature :clozure
-  :flags ("--no-init")
-  :eval-flag "--eval" ; -e
-  :load-flag "--load"
-  :image-flag "--image-name" ; -I
-  :image-executable-p t
-  :arguments-end "--"
-  :argument-control t ;; must be fixed now, but double-checking needed.
-  :disable-debugger ("--batch")
-  :quit-format "(let ((x ~A)) (finish-output *standard-output*) (finish-output *error-output*) (ccl:quit x))"
-  :dump-format "(save-application ~S :prepend-kernel t)")
-
-#| ;; Support for CMUCL is missing in other parts of XCVB.
-;; If you feel like adding support for CMUCL, start by uncomment this.
-;; Note that CMUCL is pretty similar to SBCL. SCL is even more similar.
 (define-lisp-implementation :cmucl ()
   :fullname "CMU CL"
   :name "cmucl"
@@ -115,7 +111,100 @@
   :disable-debugger ("-batch")
   :quit-format "(unix:unix-exit ~A)"
   :dump-format "(extensions:save-lisp ~S)")
-|#
+
+(define-lisp-implementation :ecl () ;; demand 10.4.2 or later.
+  :fullname "Embeddable Common-Lisp"
+  :name "ecl"
+  :feature :ecl
+  :flags ("-norc")
+  :eval-flag "-eval" ; -e
+  :load-flag "-load"
+  :image-flag nil
+  :image-executable-p t
+  :arguments-end "--"
+  :argument-control t ;; must be fixed now, but double-checking needed.
+  :disable-debugger ()
+  :quit-format "(si:quit ~A)"
+  :dump-format nil) ;; Cannot dump with ECL. Link instead.
+
+(define-lisp-implementation :gcl () ;; Demand 2.7.0 - if it is ever released.
+  :fullname "GNU Common Lisp"
+  :name "gcl" ;; may have to export GCL_ANSI=t or something
+  :feature :gcl
+  :flags ()
+  :eval-flag "-eval" ; -e
+  :load-flag "-load"
+  :image-flag nil
+  :image-executable-p t
+  :arguments-end "--" ;; -f ?
+  :disable-debugger ("-batch")
+  :quit-format "(lisp:quit ~A)"
+  :dump-format "(progn (si::set-hole-size 500) (si::gbc nil) (si::sgc-on t) (si::save-system ~A))")
+
+(define-lisp-implementation :lispworks ()
+  :fullname "LispWorks"
+  :name "lispworks" ;; This assumes you dumped a proper image for batch processing...
+  :feature :lispworks
+  :flags ("-site-init" "-" "-init" "-")
+  :eval-flag "-eval"
+  :load-flag "-build" ;; This is magic. See also -load
+  :arguments-end nil ; What's the deal with THIS? "--"
+  :image-flag nil
+  :image-executable-p t
+  :standalone-executable t
+  :argument-control t
+  :disable-debugger ("--disable-debugger")
+  :quit-format "(lispworks:quit :status ~A :confirm nil :return nil :ignore-errors-p t)"
+  ;; when you dump, you may also have to (system::copy-file ".../lwlicense" (make-pathname :name "lwlicense" :type nil :defaults filename))
+  :dump-format "(lispworks:deliver 'xcvb-driver:resume ~A 0 :interface nil)") ; "(hcl:save-image ~A :environment nil)"
+
+(define-lisp-implementation :sbcl ()
+  :fullname "Steel Bank Common Lisp"
+  :name "sbcl"
+  :feature :sbcl
+  ;; We need both --userinit /dev/null AND --sysinit /dev/null
+  ;; because on debian, the default /etc/sbcl*rc do ASDF trickery
+  ;; that make the sequence of no-asdf and asdf unhappy. [2011 note: no more]
+  :flags ("--noinform" "--no-userinit" "--no-sysinit")
+  :eval-flag "--eval" ;; Note: SBCL's eval can only handle one form per argument.
+  :load-flag "--load"
+  :arguments-end "--end-toplevel-options"
+  :image-flag "--core"
+  :image-executable-p t
+  :standalone-executable t ;; requires sbcl 1.0.21.24 or later.
+  :argument-control t
+  :disable-debugger ("--disable-debugger")
+  :quit-format "(sb-ext:quit :unix-status ~A)"
+  :dump-format "(sb-ext:save-lisp-and-die ~S :executable t)")
+
+(define-lisp-implementation :scl ()
+  :fullname "Scieneer Common Lisp" ; use 1.3.9 or later
+  :name "scl"
+  :feature :scl
+  :flags ("-quiet" "-noinit")
+  :eval-flag "-eval"
+  :load-flag "-load"
+  :arguments-end "--"
+  :image-flag "-core"
+  :argument-control nil ;; cmucl will always scan all the arguments for -eval... EVIL!
+  :disable-debugger ("-batch")
+  :quit-format "(unix:unix-exit ~A)"
+  :dump-format "(extensions:save-lisp ~S)")
+
+(define-lisp-implementation :xcl ()
+  :fullname "XCL"
+  :name "xcl"
+  :feature :xcl
+  :flags ("--no-userinit")
+  :eval-flag "--eval"
+  :load-flag "--load"
+  :arguments-end "--"
+  :image-flag nil
+  :image-executable-p nil
+  :standalone-executable nil
+  :disable-debugger ()
+  :quit-format "(ext:quit :status ~A)"
+  :dump-format nil)
 
 (defun ensure-path-executable (x)
   (if (and (stringp x)
