@@ -58,23 +58,25 @@
   (or (loop :for p :in pathnames
         :minimize (safe-file-write-date p #'(lambda () (return *oldest-time*))))
       *newest-time*))
-(defun newest-timestamp (pathnames)
+(defun newest-timestamp (pathnames &key (error t))
   (or (loop :for p :in pathnames
-        :maximize (safe-file-write-date p #'(lambda () (return *newest-time*))))
+        :maximize (safe-file-write-date
+                   p (if error
+                         #'(lambda () (error "Missing input file ~S" p))
+                         #'(lambda () (return *newest-time*)))))
       *oldest-time*))
 
-;; XXX Broken when files are written in subsecond intervals.
-;; XXX Touches the disk too much to get timestamps.
+;; We rely on the same approximation as make and asdf.
+;; If the modified file is a generated file a previous version of which
+;; was last generated and compiled in the same second, you lose. Unlikely, though.
+;; More likely, if you have object files from the recent past and
+;; unpack a source code update from a further past (as archived), you lose.
+;; Or, if your (file)system clock is skewed and produces object files in the past
+;; of the source code, you may lose in strange ways by rebuilding too much.
 (defun all-newer-pathnames-p (output-pn input-pn)
-  (and
-   ;; If any output files don't exist, then they can't possibly be
-   ;; newer than the inputs!
-   ;;(every #'safe-file-write-date output-pn)
-   ;; If any input files have newer timestamps than output files...
-   (<= (newest-timestamp input-pn)
-       (oldest-timestamp output-pn))))
+  (<= (newest-timestamp input-pn) (oldest-timestamp output-pn)))
 
-;; FIXME XXX Test this!
+
 (defun run-computation (env computation &key force)
   (let* ((inputs (computation-inputs computation)) ; a grain
 	 (outputs (computation-outputs computation)) ; a grain
