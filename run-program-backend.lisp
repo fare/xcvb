@@ -44,14 +44,12 @@
     (log-format 8 "Running computation: ~S" computation)
     (run-computation env computation :force force)))
 
-;; XXX Broken when files are written in subsecond intervals, Fix for when
-;; output-files don't even exist yet.
-(defun all-newer-pathnames-p (output-pn input-pn)
-  (>= (oldest-timestamp output-pn) (newest-timestamp input-pn)))
-
 (defun safe-file-write-date (p)
   (and p (asdf::probe-file* p) (ignore-errors (file-write-date p))))
 
+;; XXX I am suspicious of this code since if you pass it a pathname to
+;; a file which doesn't exist, the oldest timestamp is the most future
+;; timestamp which could exist.
 (defun oldest-timestamp (pathnames)
   (loop :with ot = most-positive-single-float
     :for p :in pathnames
@@ -59,6 +57,9 @@
     :when (and pt (< pt ot)) :do (setf ot pt)
     :finally (return ot)))
 
+;; XXX I am suspicious of this code since if you pass it a pathname to
+;; a file which doesn't exist, the newest timestamp is the most in the
+;; past timestamp which could exist.
 (defun newest-timestamp (pathnames)
   (loop :with nt = most-negative-single-float
     :for p :in pathnames
@@ -66,8 +67,18 @@
     :when (and pt (> pt nt)) :do (setf nt pt)
     :finally (return nt)))
 
-;; FIXME XXX Test this! Fix why I get an unbound symbol in finding the
-;; grain-pathname of the outputs list...
+;; XXX Broken when files are written in subsecond intervals.
+;; XXX Touches the disk too much to get timestamps.
+(defun all-newer-pathnames-p (output-pn input-pn)
+  (and
+   ;; If any output files don't exist, then they can't possibly be
+   ;; newer than the inputs!
+   (every #'safe-file-write-date output-pn)
+   ;; If any input files have newer timestamps than output files...
+   (>= (newest-timestamp input-pn)
+       (oldest-timestamp output-pn))))
+
+;; FIXME XXX Test this!
 (defun run-computation (env computation &key force)
   (let* ((inputs (computation-inputs computation)) ; a grain
 	 (outputs (computation-outputs computation)) ; a grain
@@ -80,12 +91,16 @@
                                    :collect (grain-pathname-text env o)))))
 
     ;; first, check the outputs are newew than the inputs, if so, bail.
-    (when (and (all-newer-pathnames-p output-pathnames input-pathnames) ; same checking as with make
+    ;; same checking as with make
+    (when (and (all-newer-pathnames-p output-pathnames input-pathnames)
 	       (not force)) ; force computation
+      (log-format 5 "Nothing to regenerate!~%")
       (return-from run-computation t))
+    
     ;; create the output directories
     (dolist (output-pn output-pathnames)
       (ensure-directories-exist output-pn))
+    
     (dolist (external-command (external-commands-for-computation env command))
       (log-format 5 "running:~{ ~A~}" (mapcar #'escape-shell-token external-command))
       (let ((text (run-program/read-output-string external-command)))
@@ -114,10 +129,12 @@
     (&rest keys &key
      source-registry setup verbosity output-path
      build lisp-implementation lisp-binary-path define-feature undefine-feature
-     disable-cfasl master object-directory use-base-image profiling debugging force)
+     disable-cfasl master object-directory use-base-image profiling debugging
+     force)
   (declare (ignore source-registry setup verbosity
-                   lisp-implementation lisp-binary-path define-feature undefine-feature
-                   disable-cfasl master object-directory use-base-image debugging))
+                   lisp-implementation lisp-binary-path define-feature
+		   undefine-feature disable-cfasl master object-directory
+		   use-base-image debugging))
   (with-maybe-profiling (profiling)
     (apply 'handle-global-options keys)
     (simple-build build :output-path output-path :force force)))
