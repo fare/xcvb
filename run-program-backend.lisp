@@ -44,28 +44,20 @@
     (log-format 8 "Running computation: ~S" computation)
     (run-computation env computation :force force)))
 
-(defun safe-file-write-date (p)
-  (and p (asdf::probe-file* p) (ignore-errors (file-write-date p))))
+(defun safe-file-write-date (p &optional error)
+  (or (and p (asdf::probe-file* p) (ignore-errors (file-write-date p)))
+      (error-behaviour error)))
 
-;; XXX I am suspicious of this code since if you pass it a pathname to
-;; a file which doesn't exist, the oldest timestamp is the most future
-;; timestamp which could exist.
+(defparameter *newest-time* most-positive-single-float) ; behold the Y1e31 bug!
+(defparameter *oldest-time* most-negative-single-float)
 (defun oldest-timestamp (pathnames)
-  (loop :with ot = most-positive-single-float
-    :for p :in pathnames
-    :for pt = (safe-file-write-date p)
-    :when (and pt (< pt ot)) :do (setf ot pt)
-    :finally (return ot)))
-
-;; XXX I am suspicious of this code since if you pass it a pathname to
-;; a file which doesn't exist, the newest timestamp is the most in the
-;; past timestamp which could exist.
+  (or (loop :for p :in pathnames
+        :minimize (safe-file-write-date p #'(lambda () (return *oldest-time*))))
+      *newest-time*))
 (defun newest-timestamp (pathnames)
-  (loop :with nt = most-negative-single-float
-    :for p :in pathnames
-    :for pt = (safe-file-write-date p)
-    :when (and pt (> pt nt)) :do (setf nt pt)
-    :finally (return nt)))
+  (or (loop :for p :in pathnames
+        :maximize (safe-file-write-date p #'(lambda () (return *newest-time*))))
+      *oldest-time*))
 
 ;; XXX Broken when files are written in subsecond intervals.
 ;; XXX Touches the disk too much to get timestamps.
@@ -73,9 +65,9 @@
   (and
    ;; If any output files don't exist, then they can't possibly be
    ;; newer than the inputs!
-   (every #'safe-file-write-date output-pn)
+   ;;(every #'safe-file-write-date output-pn)
    ;; If any input files have newer timestamps than output files...
-   (>= (newest-timestamp input-pn)
+   (<= (newest-timestamp input-pn)
        (oldest-timestamp output-pn))))
 
 ;; FIXME XXX Test this!
@@ -96,11 +88,11 @@
 	       (not force)) ; force computation
       (log-format 5 "Nothing to regenerate!~%")
       (return-from run-computation t))
-    
+
     ;; create the output directories
     (dolist (output-pn output-pathnames)
       (ensure-directories-exist output-pn))
-    
+
     (dolist (external-command (external-commands-for-computation env command))
       (log-format 5 "running:~{ ~A~}" (mapcar #'escape-shell-token external-command))
       (let ((text (run-program/read-output-string external-command)))
