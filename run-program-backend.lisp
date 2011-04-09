@@ -6,14 +6,8 @@
 
 (in-package :xcvb)
 
-(defclass run-program-traversal (static-traversal makefile-traversal)
+(defclass run-program-traversal (static-traversal timestamp-based-change-detection)
   ())
-
-(defun run-program/echo-output (command &key prefix (stream t) ignore-error-status)
-  (run-program/process-output-stream
-   command #'(lambda (s) (loop :for line = (read-line s nil nil) :while line
-                           :do (format stream "~@[~A~]~A~&" prefix line)))
-   :ignore-error-status ignore-error-status))
 
 (defun simple-build (fullname &key output-path force)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
@@ -41,67 +35,29 @@
       (log-format 8 "Attempting to serially execute *computations*")
       (run-computations-serially env :force force))))
 
-;; FIXME to do the right thing.
 (defun run-computations-serially (env &key force)
   (log-format 8 "All *computations* = ~S" (reverse *computations*))
   (dolist (computation (reverse *computations*))
     (log-format 8 "Running computation: ~S" computation)
     (run-computation env computation :force force)))
 
-(defun safe-file-write-date (p &optional error)
-  (or (and p (asdf::probe-file* p) (ignore-errors (file-write-date p)))
-      (error-behaviour error)))
-
-(defparameter *newest-time* most-positive-single-float) ; behold the Y1e31 bug!
-(defparameter *oldest-time* most-negative-single-float)
-(defun oldest-timestamp (pathnames)
-  (or (loop :for p :in pathnames
-        :minimize (safe-file-write-date p #'(lambda () (return *oldest-time*))))
-      *newest-time*))
-(defun newest-timestamp (pathnames &key (error t))
-  (or (loop :for p :in pathnames
-        :maximize (safe-file-write-date
-                   p (if error
-                         #'(lambda () (error "Missing input file ~S" p))
-                         #'(lambda () (return *newest-time*)))))
-      *oldest-time*))
-
-;; We rely on the same approximation as make and asdf.
-;; If the modified file is a generated file a previous version of which
-;; was last generated and compiled in the same second, you lose. Unlikely, though.
-;; More likely, if you have object files from the recent past and
-;; unpack a source code update from a further past (as archived), you lose.
-;; Or, if your (file)system clock is skewed and produces object files in the past
-;; of the source code, you may lose in strange ways by rebuilding too much.
-(defun all-newer-pathnames-p (output-pn input-pn)
-  (<= (newest-timestamp input-pn) (oldest-timestamp output-pn)))
-
-
 (defun run-computation (env computation &key force)
-  (let* ((inputs (computation-inputs computation)) ; a grain
-	 (outputs (computation-outputs computation)) ; a grain
-	 (command (computation-command computation)) ; in the xcvb command language, as understood by external-commands-for-computation
-	 (input-pathnames (progn (log-format 9 "input-grain = ~S" inputs)
-                                 (loop :for i :in inputs :when (file-grain-p i)
-                                   :collect (grain-pathname-text env i))))
-	 (output-pathnames (progn (log-format 9 "output-grain = ~S" outputs)
-                                 (loop :for o :in outputs :when (file-grain-p o)
-                                   :collect (grain-pathname-text env o)))))
-
+  (when (and (not force) (already-computed-p env computation))
     ;; first, check the outputs are newew than the inputs, if so, bail.
     ;; same checking as with make
-    (when (and (all-newer-pathnames-p output-pathnames input-pathnames)
-	       (not force)) ; force computation
-      (log-format 5 "Nothing to regenerate!~%")
-      (return-from run-computation t))
-
+    (log-format 5 "Nothing to regenerate!~%")
+    (return-from run-computation t))
+  (let* ((outputs (computation-outputs computation))
+         (output-pathnames (loop :for o :in outputs :when (file-grain-p o)
+                             :collect (grain-pathname-text env o)))
+         (command (computation-command computation))) ; in the xcvb command language
     ;; create the output directories
     (dolist (output-pn output-pathnames)
       (ensure-directories-exist output-pn))
-
     (dolist (external-command (external-commands-for-computation env command))
       (log-format 5 "running:~{ ~A~}" (mapcar #'escape-shell-token external-command))
-      (run-program/echo-output external-command :prefix "command output: "))))
+      (run-program/echo-output external-command :prefix "command output: "))
+    (mapcar/ 'update-change-information env outputs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

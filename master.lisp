@@ -39,6 +39,7 @@
    ;#:string-prefix-p
    ;#:string-suffix-p
    ;#:string-enclosed-p
+   #:escape-windows-command
 
    ;;; I/O utilities
    #:slurp-stream-string
@@ -55,6 +56,7 @@
    #:run-program/read-output-string
    #:run-program/read-output-form
    #:run-program/read-output-forms
+   #:run-program/echo-output
 
    ;; Magic strings
    #:+xcvb-slave-greeting+
@@ -208,6 +210,42 @@ with associated pathnames and tthsums.")
     (with-open-file (in filepath)
       (read in nil nil))))
 
+(defun escape-windows-command (command)
+  (with-output-to-string (s)
+    ;; encode a list of arguments into a string suitable for parsing by CommandLineToArgv
+    ;; http://msdn.microsoft.com/en-us/library/bb776391(v=vs.85).aspx
+    ;; http://msdn.microsoft.com/en-us/library/17w5ykft(v=vs.85).aspx
+    (loop :for first = t :then nil :for x :in command :do
+      (labels ((issue (c) (princ c s))
+               (issue-backslash (&optional (n 1)) (loop :repeat n :do (issue #\\))))
+        (unless first (issue #\space))
+        (if (every #'(lambda (c) (not (find c #(#\space #\tab #\")))) x)
+            (issue x)
+            (loop
+              :initially (issue #\") :finally (issue #\")
+              :with l = (length x) :with i = 0
+              :for i+1 = (1+ i) :while (< i l) :do
+              (case (char x i)
+                ((#\") (issue-backslash) (issue #\") (incf i))
+                ((#\\)
+                 (let* ((j (and (< i+1 l)
+                                (position-if-not (lambda (c) (eql c #\\)) x :start i+1)))
+                        (n (- (or j l) i)))
+                   (cond
+                     ((null j)
+                      (issue-backslash (* 2 n))
+                      (setf i l))
+                     ((and (< j l) (eql (char x j) #\"))
+                      (issue-backslash (1+ (* 2 n)))
+                      (issue #\")
+                      (setf i (1+ j)))
+                     (t
+                      (issue-backslash n)
+                      (setf i j)))))
+                (otherwise
+                 (issue (char x i))
+                 (incf i)))))))))
+
 ;;; Simple variant of run-program with no input, and capturing output
 (defun run-program/process-output-stream (command output-processor
                                           &key ignore-error-status)
@@ -217,36 +255,46 @@ with associated pathnames and tthsums.")
          (s (and p (find-symbol (string r) p))))
     (when s (return-from run-program/process-output-stream
               (funcall s command output-processor :ignore-error-status ignore-error-status))))
-  #-(or sbcl cmu scl clozure clisp)
+  #-(or allegro sbcl cmu scl clozure clisp)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
-  (let* ((process
-          (#+sbcl sb-ext:run-program
-           #+(or clisp cmu ecl scl) ext:run-program
+  (let* (#+allegro
+         (process*
+          (multiple-value-list
+           (excl:run-shell-command
+            #-windows (coerce (cons (first command) command) 'vector)
+            #+windows (escape-windows-command command)
+            :input nil :output :stream :wait nil)))
+         (process
+          #+allegro (third process*)
+          #-allegro
+          (#+(or clisp cmu ecl scl) ext:run-program
            #+clozure ccl:run-program
+           #+sbcl sb-ext:run-program
            (car command) #+clisp :arguments (cdr command)
-           :input nil :output :stream
-           #+(or clozure cmu ecl sbcl scl) :error #+(or clozure cmu ecl sbcl scl) t
-           :wait nil
-           #+sbcl :search #+sbcl t))
-         (stream (#+sbcl sb-ext:process-output
-                  #+(or cmu scl) ext:process-output
-                  #+clozure ccl::external-process-output
+           :input nil :output :stream :wait nil
+           . #.(append
+                #+(or clozure cmu ecl sbcl scl) '(:error t)
+                #+sbcl '(:search t))))
+         (stream (#+allegro second #+allegro process*
                   #+(or clisp ecl) identity
-                  process)))
+                  #+clozure ccl::external-process-output
+                  #+(or cmu scl) ext:process-output
+                  #+sbcl sb-ext:process-output
+                  #-allegro process)))
     (unwind-protect
          (multiple-value-prog1
              (funcall output-processor stream)
-           #-(or clisp ecl)
+           #-(or allegro clisp ecl)
            (#+sbcl sb-ext:process-wait
             #+(or cmu scl) ext:process-wait
             #+clozure ccl::external-process-wait
             process)
            #-(or clisp ecl)
            (let ((return-code
-                  (#+sbcl sb-ext:process-exit-code
-                   #+(or cmu scl) ext:process-exit
-                   #+clozure (lambda (p) (nth-value 1 (ccl:external-process-status p)))
-                   process)))
+                  #+allegro (sys:reap-os-subprocess :pid process :wait t)
+                  #+clozure (nth-value 1 (ccl:external-process-status process))
+                  #+(or cmu scl) (ext:process-exit process)
+                  #+sbcl (sb-ext:process-exit-code process)))
              (unless (or ignore-error-status (zerop return-code))
                (cerror "ignore error code~*~*"
                        "Process ~S exited with error code ~D"
@@ -268,6 +316,12 @@ with associated pathnames and tthsums.")
 (defun run-program/read-output-forms (command &rest keys)
   (apply 'run-program/process-output-stream command
          'read-many keys))
+
+(defun run-program/echo-output (command &key prefix (stream t) ignore-error-status)
+  (run-program/process-output-stream
+   command #'(lambda (s) (loop :for line = (read-line s nil nil) :while line
+                           :do (format stream "~@[~A~]~A~&" prefix line)))
+   :ignore-error-status ignore-error-status))
 
 ;;; Maintaining memory of which grains have been loaded in the current image.
 (defun process-manifest-entry (&rest entry &key command tthsum pathname &allow-other-keys)

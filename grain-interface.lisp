@@ -35,6 +35,10 @@
    (content-digest
     :accessor grain-content-digest
     :documentation "digest of the contents of the grain.")
+   (build-timestamp
+    :accessor grain-build-timestamp
+    :initform nil
+    :documentation "timestamp at which the grain was built.")
    (generator
     :initarg :generator
     :initform nil
@@ -50,9 +54,13 @@
     :accessor grain-users))
   (:documentation "Mixin for a grain you can build (for V2)"))
 
-(defclass persistent-grain (grain)
+(defclass persistent-grain (buildable-grain)
   ()
   (:documentation "Files and other persistent data grain"))
+
+(defclass transient-grain (buildable-grain)
+  ()
+  (:documentation "Non persistent data grain"))
 
 (defclass named-grain (grain)
   ((fullname
@@ -62,7 +70,7 @@
 (defclass explicitly-named-grain (named-grain)
   ((fullname :initarg :fullname)))
 
-(defclass world-grain (buildable-grain explicitly-named-grain)
+(defclass world-grain (transient-grain explicitly-named-grain)
   ;; the fullname a plist of the form
   ;; (:world :setup ,setup :commands-r ,commands-r)
   ((hash
@@ -75,11 +83,11 @@
     :documentation "hashset of grains included in this world"
     :reader included-dependencies :initarg :included-dependencies)))
 
-(defclass phony-grain (buildable-grain explicitly-named-grain)
+(defclass phony-grain (transient-grain explicitly-named-grain)
   ()
   (:documentation "virtual grain used for side-effects"))
 
-(defclass file-grain (persistent-grain buildable-grain named-grain)
+(defclass file-grain (persistent-grain named-grain)
   ((vp
     :initarg :vp
     :accessor grain-vp
@@ -232,7 +240,7 @@ into an image that will be used for all future compile/load operations")
     :reader load-dependencies))
   (:documentation "Linkable compiled Lisp object file grain"))
 
-(defclass asdf-grain (buildable-grain explicitly-named-grain)
+(defclass asdf-grain (transient-grain explicitly-named-grain)
   ((name
     :initarg :name
     :reader asdf-grain-system-name)
@@ -241,7 +249,7 @@ into an image that will be used for all future compile/load operations")
     :reader asdf-grain-implementation))
   (:documentation "Loaded ASDF system"))
 
-(defclass require-grain (buildable-grain explicitly-named-grain build-registry-entry)
+(defclass require-grain (transient-grain explicitly-named-grain build-registry-entry)
   ((name
     :initarg :name
     :reader require-grain-name))

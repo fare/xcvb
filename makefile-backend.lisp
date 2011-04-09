@@ -128,6 +128,7 @@ xcvb-ensure-object-directories:
     (values (escape-shell-token-for-Makefile pathname) pathname)))
 
 (defmethod grain-pathname-text :around ((env makefile-traversal) grain)
+  (declare (ignorable env grain))
   (or (call-next-method) ""))
 
 (defun Makefile-commands-for-computation (env computation-command)

@@ -1,0 +1,83 @@
+#+xcvb (module (:depends-on ("traversal")))
+
+(in-package :xcvb)
+
+(defgeneric already-computed-p (env computation)
+  (:documentation "was the computation already done?"))
+(defgeneric grain-change-information (env grain &key error)
+  (:documentation "change information for the grain"))
+(defgeneric update-change-information (env grain &key)
+  (:documentation "update the change information for the grain"))
+
+(defparameter *newest-time* most-positive-single-float) ; behold the Y1e31 bug!
+(defparameter *oldest-time* most-negative-single-float)
+(defun time-or-oldest (time)
+  (or time *oldest-time*))
+(defun time-or-newest (time)
+  (or time *newest-time*))
+(defun oldest-time* (times)
+  (time-or-newest (loop :for time :in times :minimize (time-or-oldest time))))
+(defun newest-time* (times)
+  (time-or-oldest (loop :for time :in times :maximize (time-or-newest time))))
+(defun oldest-time (&rest times)
+  (oldest-time* times))
+(defun newest-time (&rest times)
+  (newest-time* times))
+
+(defun safe-file-write-date (p &optional error)
+  (or (and p (asdf::probe-file* p) (ignore-errors (file-write-date p)))
+      (error-behaviour error)))
+
+;; We rely on the same approximation as make and asdf.
+;; If the modified file is a generated file a previous version of which
+;; was last generated and compiled in the same second, you lose. Unlikely, though.
+;; More likely, if you have object files from the recent past and
+;; unpack a source code update from a further past (as archived), you lose.
+;; Or, if your (file)system clock is skewed and produces object files in the past
+;; of the source code, you may lose in strange ways by rebuilding too much.
+
+(defun newest-timestamp (env grains &key (error t))
+  (time-or-oldest
+   (loop :for g :in grains :maximize
+     (or (grain-change-information env g)
+         (if error
+             (error "~@<Grain not yet built: ~S~:>" g)
+             (return *newest-time*))))))
+
+(defun oldest-timestamp (env grains)
+  (time-or-newest
+   (loop :for g :in grains :minimize
+     (or (grain-change-information env g)
+         (return *oldest-time*)))))
+
+(defclass timestamp-based-change-detection (traversal) ())
+
+(defmethod already-computed-p ((env timestamp-based-change-detection) computation)
+  "Use timestamps to identify whether the grain has changed since last built"
+  (let ((inputs (computation-inputs computation))
+        (outputs (computation-outputs computation)))
+    (<= (newest-timestamp env inputs)
+        (oldest-timestamp env outputs))))
+
+(defmethod grain-change-information ((env timestamp-based-change-detection) grain &key error)
+  (or (grain-build-timestamp grain)
+      (error-behaviour error)))
+
+(defmethod grain-change-information ((env timestamp-based-change-detection) (grain file-grain)
+                                     &key error)
+  (or (grain-build-timestamp grain)
+      (update-change-information env grain)
+      (error-behaviour error)))
+
+(defmethod update-change-information ((env timestamp-based-change-detection) grain &key timestamp)
+  (declare (ignorable env))
+  (check-type timestamp real)
+  (setf (grain-build-timestamp grain) timestamp)
+  timestamp)
+
+(defmethod update-change-information ((env timestamp-based-change-detection) (grain file-grain)
+                                      &key timestamp)
+  (declare (ignore timestamp))
+  (let ((write-date (safe-file-write-date (grain-namestring env grain))))
+    (setf (grain-build-timestamp grain) write-date)
+    write-date))

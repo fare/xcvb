@@ -4,7 +4,7 @@
 
 (declaim (optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
 
-(defclass enforcing-traversal (xcvb-traversal)
+(defclass enforcing-traversal (traversal)
   ())
 
 (defclass static-traversal (enforcing-traversal)

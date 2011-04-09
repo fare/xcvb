@@ -27,7 +27,7 @@
 (defmethod print-object ((x virtual-pathname) stream)
   (if *print-readably*
       (format stream "#.~S" `(make-vp '(,(vp-root x) ,@(vp-subpath x))))
-      (format stream "#<VP: ~S>" `(,(vp-root x) ,@(vp-subpath x)))))
+      (format stream "#<VP ~S>" `(,(vp-root x) ,@(vp-subpath x)))))
 
 (defun grain-namestring (env grain)
   (vp-namestring env (grain-vp grain)))

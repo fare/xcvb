@@ -68,6 +68,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "names" :depends-on ("registry" "grain-interface"))
      (:file "normalize-dependency" :depends-on ("names" "grain-interface"))
      (:file "traversal" :depends-on ("names" "computations"))
+     (:file "change-detection" :depends-on ("traversal"))
      (:file "dependencies-interpreter" :depends-on ("normalize-dependency" "traversal"))
      (:file "static-traversal" :depends-on ("grain-sets" "dependencies-interpreter"))
      (:file "external-commands" :depends-on ("specials" "utilities" "grain-interface"))

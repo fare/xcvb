@@ -327,7 +327,7 @@
 (defmethod print-object ((g file-grain) stream)
   (with-output (stream)
     (print-unreadable-object (g stream :type t)
-      (format stream "~@<:vp ~S~@[ :pathname ~S~]~>"
+      (format stream "~@<~S~@[ ~S~]~>"
               (grain-vp g) (when (slot-boundp g 'pathname) (grain-pathname g))))))
 
 (defun coerce-asdf-system-name (name)

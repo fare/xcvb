@@ -7,7 +7,7 @@ into just one kind. Used by non-enforcing backends such as the ASDF backend
 and the non-enforcing Makefile backend.
 |#
 
-(defclass simplifying-traversal (xcvb-traversal)
+(defclass simplifying-traversal (traversal)
   ())
 
 (defmethod issue-build-command ((env simplifying-traversal) command)

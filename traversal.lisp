@@ -33,7 +33,7 @@
 (defgeneric ensure-grain-generated (env grain))
 (defgeneric tweak-dependency (env dep))
 
-(defclass xcvb-traversal (simple-print-object-mixin)
+(defclass traversal (simple-print-object-mixin)
   ((image-setup
     :accessor image-setup
     :documentation "xcvb-driver-command options to setup the image for the current world")
@@ -53,7 +53,7 @@
     :accessor traversed-dependencies-r
     :documentation "dependencies issued as part of the current computation, in reverse order")))
 
-(defmethod graph-for ((env xcvb-traversal) spec)
+(defmethod graph-for ((env traversal) spec)
   (let ((current-grains-r (traversed-grain-names-r env)))
     (when (member spec current-grains-r :test 'equal)
       (error "circularity in the dependencies:~%~{ ~S~%~}"
@@ -75,26 +75,26 @@
    spec
    #'(lambda () (graph-for-dispatcher env spec))))
 
-(defmethod next-traversal ((env xcvb-traversal) spec)
+(defmethod next-traversal ((env traversal) spec)
   (make-instance
    (class-of env)
    :grain-names (cons spec (traversed-grain-names-r env))))
 
-(defmethod traversed-dependencies ((env xcvb-traversal))
+(defmethod traversed-dependencies ((env traversal))
   (reverse (traversed-dependencies-r env)))
 
 (defmethod dependency-already-included-p :before (env grain)
-  (check-type env xcvb-traversal)
+  (check-type env traversal)
   (check-type grain grain))
 
-(defmethod dependency-already-included-p ((env xcvb-traversal) grain)
+(defmethod dependency-already-included-p ((env traversal) grain)
   (gethash grain (issued-dependencies env)))
 
 (defmethod issue-dependency :before (env grain)
-  (check-type env xcvb-traversal)
+  (check-type env traversal)
   (check-type grain grain))
 
-(defmethod issue-dependency ((env xcvb-traversal) grain)
+(defmethod issue-dependency ((env traversal) grain)
   (setf (gethash grain (issued-dependencies env)) t)
   (push grain (traversed-dependencies-r env)))
 
@@ -108,18 +108,18 @@
 
 (define-simple-dispatcher graph-for #'graph-for-atom :generic t)
 
-(defmethod traversed-build-commands ((env xcvb-traversal))
+(defmethod traversed-build-commands ((env traversal))
   (reverse (traversed-build-commands-r env)))
 
-(defmethod build-command-issued-p ((env xcvb-traversal) command)
+(defmethod build-command-issued-p ((env traversal) command)
   (values (gethash command (issued-build-commands env))))
 
-(define-graph-for :asdf ((env xcvb-traversal) system-name)
+(define-graph-for :asdf ((env traversal) system-name)
   (declare (ignore env))
   (make-asdf-grain :name system-name
                    :implementation *lisp-implementation-type*))
 
-(define-graph-for :require ((env xcvb-traversal) name)
+(define-graph-for :require ((env traversal) name)
   (declare (ignore env))
   (make-require-grain :name name))
 
