@@ -2,6 +2,8 @@
 
 (in-package :xcvb)
 
+(eval-now (named-readtables:in-readtable :fare-quasiquote))
+
 (defgeneric already-computed-p (env computation)
   (:documentation "was the computation already done?"))
 (defgeneric grain-change-information (env grain &key error)
@@ -81,3 +83,43 @@
   (let ((write-date (safe-file-write-date (grain-namestring env grain))))
     (setf (grain-build-timestamp grain) write-date)
     write-date))
+
+
+(defclass digest-based-change-detection (traversal) ())
+
+#|
+(defmethod already-computed-p ((env digest-based-change-detection) computation)
+  "Use cache of previous checksums to determine whether the grain has changed since last built"
+  (let* ((inputs (computation-inputs computation))
+         (outputs (computation-outputs computation))
+         (command (computation-command computation))
+         (digest-name `(:computation
+                        :command ,command :inputs ,inputs
+                        :digests (mapcar 'grain-digest inputs)))
+         (cached-results (lookup-metadata-cache (digest digest-name))))
+    (ifmatch
+     cached-results `(:results :outputs ,(values outputs) :digests ,result-digests)
+     (when (and (length=p outputs result-digests)
+                (every 'content-cache-present-p result-digests))
+       ;; Side-effect: extract the data from the file cache into its destination
+       (loop :for o :in outputs :for h :in result-digests :do
+         (extract-from-content-cache (grain-namestring env o) h))
+       t))))
+
+(defmethod grain-change-information ((env digest-based-change-detection) grain &key error)
+  (or (grain-digest grain)
+      (error-behaviour error)))
+
+(defmethod grain-change-information ((env digest-based-change-detection) (grain file-grain)
+                                     &key error)
+  (or (grain-digest grain)
+      (update-change-information env grain)
+      (error-behaviour error)))
+
+(defmethod update-change-information ((env digest-based-change-detection) grain &key)
+  (declare (ignorable env))
+  (setf (grain-digest grain) (digest (digest-name grain))))
+
+(defmethod update-change-information ((env digest-based-change-detection) (grain file-grain) &key)
+  (setf (grain-build-timestamp grain) (file-digest (grain-namestring env grain))))
+|#

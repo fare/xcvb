@@ -145,7 +145,7 @@ Initially populated with all build.xcvb files from the search path.")
 
 (defun collect-sub*directories-with-build.xcvb
     (directory &key
-     (exclude asdf::*default-source-registry-exclusions*)
+     (exclude *default-source-registry-exclusions*)
      collect)
   (asdf::collect-sub*directories
    directory

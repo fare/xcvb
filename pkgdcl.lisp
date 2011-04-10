@@ -10,7 +10,7 @@
 (defpackage :xcvb
   (:use :closer-common-lisp
         :xcvb-driver :command-line-arguments :xcvb-master
-        :fare-utils :interface :pure
+        :fare-matcher :fare-utils :interface :pure
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
   #+xcvb-farmer
@@ -18,7 +18,7 @@
    #:run-program/process-output-stream)
 
   (:import-from :asdf
-   ;;#:*default-exclusions*
+   #:*default-source-registry-exclusions*
    #:*default-source-registries*
    #:inherit-source-registry)
 
@@ -29,14 +29,9 @@
   ;;; Instead, we only export bare essentials.
   ;;; Happily, XCVB is an end-program, not a library meant to be reused.
   (:export
-     ;; version
-     #:*xcvb-version*
-
-     ;; Defining and using modules and extensions
-     #:module
-
-     ;; Easy REPL access to the command-line interface
-     #:cmd))
+   #:*xcvb-version* ;; version
+   #:module ;; Defining and using modules and extensions
+   #:cmd)) ;; Easy REPL access to the command-line interface
 
 (defpackage :xcvb-user
   (:use :common-lisp :xcvb-driver :xcvb))

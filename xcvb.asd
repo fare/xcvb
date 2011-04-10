@@ -42,7 +42,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :xcvb-driver :xcvb-master
                  :fare-utils :command-line-arguments
                  :asdf-dependency-grovel :closer-mop
-                 ;; :ironclad :binascii
+                 :fare-matcher :fare-quasiquote-readtable
+                 :ironclad :binascii :babel
                  #+xcvb-farmer :quux-iolib
                  :rucksack)
     :components
