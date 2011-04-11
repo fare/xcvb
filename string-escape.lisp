@@ -3,18 +3,7 @@
 
 (in-package :xcvb)
 
-(defun escape-string-for-Makefile (string &optional out)
-  "Takes a string and excapes all the characters that need to be put into a makefile.
-The only such character right now is $.
-Raises an error if the string contains a newline."
-  (with-output (out)
-    (loop :for c :across string :do
-      (case c
-        ;; Q: Instead of erroring, should this insert a "\\n" or something to escape the newline???
-        ;; Q: Do we need to handle #\\ specially?
-        (#\newline (error "Makefile line cannot contain a newline"))
-        (#\$ (write-string "$$" out))
-        (otherwise (write-char c out))))))
+;;; Escaping for the Shell
 
 (defparameter *need-shell-double-quote-escape* "\"`$\\"
   "characters that need be escaped in a shell double-quote context")
@@ -52,6 +41,29 @@ Raises an error if the string contains a newline."
     (t
      (with-output (out)
        (write-string string out)))))
+
+(defun escape-shell-command (command &optional out)
+  "Takes a list of strings and if needed, includes the string in double quotes, to use as shell command"
+  (with-output (out)
+    (loop :for first = t :then nil :for string :in command :do
+      (unless first (princ #\space out))
+      (escape-shell-token string out))))
+
+
+;;; Escaping for a Makefile
+
+(defun escape-string-for-Makefile (string &optional out)
+  "Takes a string and excapes all the characters that need to be put into a makefile.
+The only such character right now is $.
+Raises an error if the string contains a newline."
+  (with-output (out)
+    (loop :for c :across string :do
+      (case c
+        ;; Q: Instead of erroring, should this insert a "\\n" or something to escape the newline???
+        ;; Q: Do we need to handle #\\ specially?
+        (#\newline (error "Makefile line cannot contain a newline"))
+        (#\$ (write-string "$$" out))
+        (otherwise (write-char c out))))))
 
 (defun escape-shell-token-for-Makefile (string &optional out)
   "Takes a string and escapes it first for the shell, then for a makefile"

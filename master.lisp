@@ -35,13 +35,13 @@
    #:*source-registry*
    #:*loaded-grains*
 
-   ;;; String utilities - also in fare-utils
+   ;;; String utilities - copied from fare-utils
    ;#:string-prefix-p
    ;#:string-suffix-p
    ;#:string-enclosed-p
-   #:escape-windows-command
 
    ;;; I/O utilities
+   ;#:with-output ; copied from fare-utils
    #:slurp-stream-string
    #:slurp-stream-lines
    #:copy-stream-to-stream
@@ -49,6 +49,9 @@
    #:read-many
    #:with-safe-io-syntax
    #:read-first-file-form
+
+   ;;; Escaping the command invocation madness
+   #:escape-windows-command
 
    ;;; run-program/foo
    #:run-program/process-output-stream
@@ -70,8 +73,21 @@
 
 ;;; These variables are shared with XCVB itself.
 (defvar *lisp-implementation-type*
-  (or #+sbcl :sbcl #+clisp :clisp #+clozure :ccl #+cmu :cmucl #+ecl :ecl
-      (error "Your Lisp implementation is not supported by XCVB master (yet)."))
+  ;; TODO: a fallback implementation that outputs to a temporary file and reads the results.
+  ;; TODO: #+abcl :abcl ;; requires ABCL to (re)implement run-program
+  ;; TODO: #+xcl :xcl ;; requires XCL to (re)implement run-program
+  ;; MAYBE: #+gcl :gcl
+  ;; PROBABLY NOT: cormancl mcl genera
+  #+allegro :allegro
+  #+clisp :clisp
+  #+clozure :ccl
+  #+cmu :cmucl
+  #+ecl :ecl
+  #+(and lispworks unix) :lispworks ;; run-program only available on UNIX
+  #+sbcl :sbcl
+  #+scl :scl
+  #-(or allegro clisp clozure cmu ecl (and lispworks unix) sbcl scl)
+  (error "Your Lisp implementation is not supported by XCVB master (yet).")
   "Type of Lisp implementation for the target system. A keyword.
   Default: same as XCVB itself.")
 
@@ -163,6 +179,34 @@ with associated pathnames and tthsums.")
        (string-suffix-p string suffix)))
 
 ;;; I/O utilities
+(defgeneric call-with-output (x thunk)
+  (:documentation ;; from fare-utils
+   "Calls FUN with an actual stream argument, behaving like FORMAT with respect to stream'ing:
+If OBJ is a stream, use it as the stream.
+If OBJ is NIL, use a STRING-OUTPUT-STREAM as the stream, and return the resulting string.
+If OBJ is T, use *STANDARD-OUTPUT* as the stream.
+If OBJ is a string with a fill-pointer, use it as a string-output-stream.
+Otherwise, signal an error.")
+  (:method ((x null) thunk)
+    (with-output-to-string (s) (funcall thunk s)))
+  (:method ((x (eql t)) thunk)
+    (funcall thunk *standard-output*) nil)
+  #-genera
+  (:method ((x stream) thunk)
+    (funcall thunk x) nil)
+  (:method ((x string) thunk)
+    (assert (fill-pointer x))
+    (with-output-to-string (s x) (funcall thunk s)))
+  (:method (x thunk)
+    (declare (ignorable thunk))
+    (cond
+      #+genera
+      ((typep x 'stream) (funcall thunk x) nil)
+      (t (error "not a valid stream designator ~S" x)))))
+
+(defmacro with-output ((x &optional (value x)) &body body)
+  `(call-with-output ,value #'(lambda (,x) ,@body)))
+
 (defun copy-stream-to-stream (input output &key (element-type 'character))
   (loop :with length = 8192
     :for buffer = (make-array length :element-type element-type)
@@ -210,41 +254,45 @@ with associated pathnames and tthsums.")
     (with-open-file (in filepath)
       (read in nil nil))))
 
-(defun escape-windows-command (command)
-  (with-output-to-string (s)
+(defun escape-windows-token-with-double-quotes (x &optional s quotes)
+  (with-output (s)
+    (labels ((issue (c) (princ c s))
+             (issue-backslash (n) (loop :repeat n :do (issue #\\))))
+      (when quotes (issue #\"))
+      (loop
+        :with l = (length x) :with i = 0
+        :for i+1 = (1+ i) :while (< i l) :do
+        (case (char x i)
+          ((#\") (issue-backslash 1) (issue #\") (incf i))
+          ((#\\)
+           (let* ((j (and (< i+1 l) (position-if-not (lambda (c) (eql c #\\)) x :start i+1)))
+                  (n (- (or j l) i)))
+             (cond
+               ((null j)
+                (issue-backslash (* 2 n)) (setf i l))
+               ((and (< j l) (eql (char x j) #\"))
+                (issue-backslash (1+ (* 2 n))) (issue #\") (setf i (1+ j)))
+               (t
+                (issue-backslash n) (setf i j)))))
+          (otherwise
+           (issue (char x i)) (incf i))))
+      (when quotes (issue #\")))))
+
+(defun escape-windows-token (token &optional s)
+  (with-output (s)
+    (if (every #'(lambda (c) (not (find c #(#\space #\tab #\")))) token)
+        (princ token s)
+        (escape-windows-token-with-double-quotes token s t))))
+
+(defun escape-windows-command (command &optional s)
+  (with-output (s)
     ;; encode a list of arguments into a string suitable for parsing by CommandLineToArgv
     ;; http://msdn.microsoft.com/en-us/library/bb776391(v=vs.85).aspx
     ;; http://msdn.microsoft.com/en-us/library/17w5ykft(v=vs.85).aspx
-    (loop :for first = t :then nil :for x :in command :do
-      (labels ((issue (c) (princ c s))
-               (issue-backslash (&optional (n 1)) (loop :repeat n :do (issue #\\))))
-        (unless first (issue #\space))
-        (if (every #'(lambda (c) (not (find c #(#\space #\tab #\")))) x)
-            (issue x)
-            (loop
-              :initially (issue #\") :finally (issue #\")
-              :with l = (length x) :with i = 0
-              :for i+1 = (1+ i) :while (< i l) :do
-              (case (char x i)
-                ((#\") (issue-backslash) (issue #\") (incf i))
-                ((#\\)
-                 (let* ((j (and (< i+1 l)
-                                (position-if-not (lambda (c) (eql c #\\)) x :start i+1)))
-                        (n (- (or j l) i)))
-                   (cond
-                     ((null j)
-                      (issue-backslash (* 2 n))
-                      (setf i l))
-                     ((and (< j l) (eql (char x j) #\"))
-                      (issue-backslash (1+ (* 2 n)))
-                      (issue #\")
-                      (setf i (1+ j)))
-                     (t
-                      (issue-backslash n)
-                      (setf i j)))))
-                (otherwise
-                 (issue (char x i))
-                 (incf i)))))))))
+    (loop :for first = t :then nil :for token :in command :do
+      (unless first (princ #\space s))
+      (escape-windows-token token s))))
+
 
 ;;; Simple variant of run-program with no input, and capturing output
 (defun run-program/process-output-stream (command output-processor
@@ -255,18 +303,22 @@ with associated pathnames and tthsums.")
          (s (and p (find-symbol (string r) p))))
     (when s (return-from run-program/process-output-stream
               (funcall s command output-processor :ignore-error-status ignore-error-status))))
-  #-(or allegro sbcl cmu scl clozure clisp)
+  #-(or allegro clisp clozure cmu ecl (and lispworks unix) sbcl scl)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
-  (let* (#+allegro
+  (let* (#+(or allegro lispworks)
          (process*
           (multiple-value-list
+           #+allegro
            (excl:run-shell-command
             #-windows (coerce (cons (first command) command) 'vector)
             #+windows (escape-windows-command command)
-            :input nil :output :stream :wait nil)))
+            :input nil :output :stream :wait nil)
+           #+lispworks
+           (system:run-shell-command (cons "/usr/bin/env" command) ; lispworks wants a full path.
+            :input nil :output :stream :wait nil :save-exit-status t)))
          (process
-          #+allegro (third process*)
-          #-allegro
+          #+(or allegro lispworks) (third process*)
+          #-(or allegro lispworks)
           (#+(or clisp cmu ecl scl) ext:run-program
            #+clozure ccl:run-program
            #+sbcl sb-ext:run-program
@@ -275,25 +327,23 @@ with associated pathnames and tthsums.")
            . #.(append
                 #+(or clozure cmu ecl sbcl scl) '(:error t)
                 #+sbcl '(:search t))))
-         (stream (#+allegro second #+allegro process*
-                  #+(or clisp ecl) identity
-                  #+clozure ccl::external-process-output
-                  #+(or cmu scl) ext:process-output
-                  #+sbcl sb-ext:process-output
-                  #-allegro process)))
+         (stream #+(or allegro lispworks) (first process*)
+                 #+(or clisp ecl) process
+                 #+clozure (ccl::external-process-output process)
+                 #+(or cmu scl) (ext:process-output process)
+                 #+sbcl (sb-ext:process-output process)))
     (unwind-protect
          (multiple-value-prog1
              (funcall output-processor stream)
-           #-(or allegro clisp ecl)
-           (#+sbcl sb-ext:process-wait
-            #+(or cmu scl) ext:process-wait
-            #+clozure ccl::external-process-wait
-            process)
+           #+clozure (ccl::external-process-wait process)
+           #+(or cmu scl) (ext:process-wait process)
+           #+sbcl (sb-ext:process-wait process)
            #-(or clisp ecl)
            (let ((return-code
                   #+allegro (sys:reap-os-subprocess :pid process :wait t)
                   #+clozure (nth-value 1 (ccl:external-process-status process))
                   #+(or cmu scl) (ext:process-exit process)
+                  #+lispworks (system:pid-exit-status process :wait t)
                   #+sbcl (sb-ext:process-exit-code process)))
              (unless (or ignore-error-status (zerop return-code))
                (cerror "ignore error code~*~*"
