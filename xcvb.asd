@@ -90,7 +90,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "asdf-converter" :depends-on ("main" "grain-interface" "source-registry"))
      (:file "slave" :depends-on ("main"))
      #+xcvb-farmer
-     (:file "farmer" :depends-on ("profiling" "main" "driver-commands"
+     (:file "farmer" :depends-on ("profiling" "main" "driver-commands" "external-commands"
                                   "grain-interface" "dependencies-interpreter"))
      (:file "cffi-grovel-support" :depends-on
             ("makefile-backend" "static-traversal" "computations" "driver-commands"

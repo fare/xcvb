@@ -75,7 +75,8 @@
   (let ((directories
          (join-strings
           (mapcar #'escape-string-for-Makefile
-                  *makefile-target-directories-to-mkdir*)
+                  (mapcar 'enough-namestring
+                          *makefile-target-directories-to-mkdir*))
           :separator " ")))
     (format stream "~
 ### This file was automatically created by XCVB ~A with the arguments~%~
@@ -107,7 +108,8 @@ xcvb-ensure-object-directories:
 	mkdir -p ~A
 
 .PHONY: force xcvb-ensure-object-directories~{ ~A~}~2%"
-          (shell-tokens-to-Makefile *makefile-target-directories-to-mkdir*)
+          (shell-tokens-to-Makefile
+           (mapcar 'enough-namestring *makefile-target-directories-to-mkdir*))
           *makefile-phonies*))
 
 (defun ensure-makefile-will-make-pathname (env namestring)
@@ -140,7 +142,7 @@ xcvb-ensure-object-directories:
 
 (defun Makefile-commands-for-computation (env computation-command)
   (mapcar 'shell-tokens-to-Makefile
-          (external-commands-for-computation-dispatcher env computation-command)))
+          (external-commands-for-computation env computation-command)))
 
 (defun write-computation-to-makefile (env stream computation)
   (with-accessors ((command computation-command)

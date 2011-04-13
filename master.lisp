@@ -254,35 +254,46 @@ Otherwise, signal an error.")
     (with-open-file (in filepath)
       (read in nil nil))))
 
-(defun escape-windows-token-with-double-quotes (x &optional s quotes)
-  (with-output (s)
-    (labels ((issue (c) (princ c s))
-             (issue-backslash (n) (loop :repeat n :do (issue #\\))))
-      (when quotes (issue #\"))
-      (loop
-        :with l = (length x) :with i = 0
-        :for i+1 = (1+ i) :while (< i l) :do
-        (case (char x i)
-          ((#\") (issue-backslash 1) (issue #\") (incf i))
-          ((#\\)
-           (let* ((j (and (< i+1 l) (position-if-not (lambda (c) (eql c #\\)) x :start i+1)))
-                  (n (- (or j l) i)))
-             (cond
-               ((null j)
-                (issue-backslash (* 2 n)) (setf i l))
-               ((and (< j l) (eql (char x j) #\"))
-                (issue-backslash (1+ (* 2 n))) (issue #\") (setf i (1+ j)))
-               (t
-                (issue-backslash n) (setf i j)))))
-          (otherwise
-           (issue (char x i)) (incf i))))
-      (when quotes (issue #\")))))
+(defun escape-token (token &key stream quote good-chars bad-chars escaper)
+  (with-output (stream)
+    (if (every
+         (cond
+           ((functionp good-chars) good-chars)
+           ((typep good-chars 'sequence) (lambda (c) (find c good-chars)))
+           ((functionp bad-chars) (complement bad-chars))
+           ((typep bad-chars 'sequence) (lambda (c) (not (find c bad-chars))))
+           (t (error "maybe-escape-token: no good-char criterion")))
+         token)
+        (princ token stream)
+        (progn
+          (when quote (princ quote stream))
+          (funcall escaper token stream)
+          (when quote (princ quote stream))))))
+
+(defun escape-windows-token-within-double-quotes (x &optional s)
+  (labels ((issue (c) (princ c s))
+           (issue-backslash (n) (loop :repeat n :do (issue #\\))))
+    (loop
+      :with l = (length x) :with i = 0
+      :for i+1 = (1+ i) :while (< i l) :do
+      (case (char x i)
+        ((#\") (issue-backslash 1) (issue #\") (incf i))
+        ((#\\)
+         (let* ((j (and (< i+1 l) (position-if-not (lambda (c) (eql c #\\)) x :start i+1)))
+                (n (- (or j l) i)))
+           (cond
+             ((null j)
+              (issue-backslash (* 2 n)) (setf i l))
+             ((and (< j l) (eql (char x j) #\"))
+              (issue-backslash (1+ (* 2 n))) (issue #\") (setf i (1+ j)))
+             (t
+              (issue-backslash n) (setf i j)))))
+        (otherwise
+         (issue (char x i)) (incf i))))))
 
 (defun escape-windows-token (token &optional s)
-  (with-output (s)
-    (if (every #'(lambda (c) (not (find c #(#\space #\tab #\")))) token)
-        (princ token s)
-        (escape-windows-token-with-double-quotes token s t))))
+  (escape-token token :stream s :bad-chars #(#\space #\tab #\") :quote #\"
+                :escaper 'escape-windows-token-within-double-quotes))
 
 (defun escape-windows-command (command &optional s)
   (with-output (s)
@@ -292,6 +303,16 @@ Otherwise, signal an error.")
     (loop :for first = t :then nil :for token :in command :do
       (unless first (princ #\space s))
       (escape-windows-token token s))))
+
+(defun escape-sh-token-within-double-quotes (x &optional s)
+  (loop :for c :across x :do
+    (when (find c "$`\\\"") (princ #\\ s))
+    (princ c s)))
+
+(defun escape-sh-token (token &optional s)
+  (escape-token token :stream s :quote #\" :good-chars
+                #'(lambda (x) (or (alphanumericp x) (find x "+-_.,%@:/")))
+                :escaper 'escape-sh-token-within-double-quotes))
 
 
 ;;; Simple variant of run-program with no input, and capturing output

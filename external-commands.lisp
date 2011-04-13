@@ -30,9 +30,11 @@
 (defvar *renamed-targets* ()
   "alist of targets really desired, and the temporary names under which the XCVB driver commands
 will create the desired content. An atomic rename() will have to be performed afterwards.")
+(makunbound '*renamed-targets*) ; catch those who try to use it outside of proper context!
 
 (defun register-renamed-target (target tempname)
-  (push (cons target tempname) *renamed-targets*))
+  (push (cons target tempname) *renamed-targets*)
+  t)
 
 (defun rename-target (target tempname)
   (register-renamed-target target tempname)

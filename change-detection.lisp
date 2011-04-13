@@ -2,7 +2,8 @@
 
 (in-package :xcvb)
 
-(eval-now (named-readtables:in-readtable :fare-quasiquote))
+(eval-when (:compile-toplevel :execute)
+  (named-readtables:in-readtable :fare-quasiquote))
 
 (defgeneric already-computed-p (env computation)
   (:documentation "was the computation already done?"))
@@ -123,5 +124,3 @@
 (defmethod update-change-information ((env digest-based-change-detection) (grain file-grain) &key)
   (setf (grain-build-timestamp grain) (file-digest (grain-namestring env grain))))
 |#
-
-(eval-now (named-readtables:in-readtable :standard))
