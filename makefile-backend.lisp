@@ -18,6 +18,13 @@
 (defvar *makefile-target-directories* (make-hash-table :test 'equal))
 (defvar *makefile-phonies* ())
 
+(defmethod effective-namestring ((env makefile-traversal) fullname)
+  (fullname-enough-namestring env fullname))
+(defmethod pseudo-effective-namestring ((env makefile-traversal) fullname)
+  (pseudo-fullname-enough-namestring env fullname))
+(defmethod grain-pathname-text ((env makefile-traversal) (grain file-grain))
+  (enough-namestring (call-next-method)))
+
 (defun computations-to-Makefile (env)
   (with-output-to-string (s)
     (dolist (computation *computations*)

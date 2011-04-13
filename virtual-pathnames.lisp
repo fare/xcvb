@@ -35,10 +35,20 @@
   (grain-namestring env (or (registered-grain fullname)
                             (resolve-absolute-module-name fullname)
                             (error "Can't resolve ~S" fullname))))
+
+(defgeneric effective-namestring (env fullname))
+(defmethod effective-namestring (env fullname)
+  (fullname-namestring env fullname))
+
 (defun fullname-enough-namestring (env fullname)
   (enough-namestring (fullname-namestring env fullname)))
-(defun pseudo-fullname-namestring (env pseudo-fullname) ;; FIXME!
+(defun pseudo-fullname-namestring (env pseudo-fullname) ;; FIXME! - make manifests into their own grain!
   (vp-namestring env (default-vp-for-fullname env pseudo-fullname)))
+
+(defgeneric pseudo-effective-namestring (env fullname))
+(defmethod pseudo-effective-namestring (env fullname)
+  (pseudo-fullname-namestring env fullname))
+
 (defun pseudo-fullname-enough-namestring (env pseudo-fullname) ;; FIXME!
   (enough-namestring (pseudo-fullname-namestring env pseudo-fullname)))
 

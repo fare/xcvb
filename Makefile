@@ -108,6 +108,7 @@ XCVB_INIT :=	--init "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCV
 xcvb-bootstrapped-install:
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image ${XCVB_OBJECT_DIRECTORY}/xcvb.image --no-include \
+		--file require-asdf.lisp \
 		$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb) \
 		${XCVB_INIT}
 
@@ -116,6 +117,7 @@ xcvb-bootstrapped-install:
 xcvb-using-asdf:
 	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
+	--file require-asdf.lisp \
 	--system xcvb ${XCVB_INIT} \
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
 

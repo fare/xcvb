@@ -10,11 +10,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (in-package :asdf)
-(load-system :asdf)
-(let ((min "2.014")
-      (ver (#+asdf2 asdf-version)))
-  (unless (and ver (version-satisfies ver min))
-    (error "XCVB requires ASDF ~D or later, you only have ~D" min ver)))
+(let ((old-ver (#+asdf2 asdf-version)))
+  (load-system :asdf)
+  (let ((min "2.014")
+	(ver (#+asdf2 asdf-version)))
+    (unless (equal ver old-ver)
+      (error "You must upgrade ASDF to your latest *before* you load XCVB~%~
+		If you're trying to load XCVB at a REPL, try again, it should work."))
+    (unless (and ver (version-satisfies ver min))
+      (error "XCVB requires ASDF ~D or later, you only have ~D" min ver))))
 
 (when (plusp (length (getenv "XCVB_FARMER")))
   (pushnew :xcvb-farmer *features*))

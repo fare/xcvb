@@ -98,10 +98,10 @@
       "lisp")))
 
 (define-text-for-xcvb-driver-command :process-cffi-grovel-file (env name &key cc-flags)
-  (let ((spec-path (fullname-enough-namestring env `(:cffi-grovel ,name)))
-        (c-path (fullname-enough-namestring env `(:cffi-grovel-c ,name)))
-        (exe-path (fullname-enough-namestring env `(:cffi-grovel-exe ,name)))
-        (lisp-path (fullname-enough-namestring env `(:lisp ,name))))
+  (let ((spec-path (effective-namestring env `(:cffi-grovel ,name)))
+        (c-path (effective-namestring env `(:cffi-grovel-c ,name)))
+        (exe-path (effective-namestring env `(:cffi-grovel-exe ,name)))
+        (lisp-path (effective-namestring env `(:lisp ,name))))
     (format nil "(:process-cffi-grovel-file ~S ~S ~S ~S~@[ :cc-flags '~S~])"
             spec-path c-path exe-path lisp-path cc-flags)))
 
@@ -229,10 +229,10 @@ This will need to be extended as we test on more OSes."
       "lisp")))
 
 (define-text-for-xcvb-driver-command :process-cffi-wrapper-file (env name &key cc-flags)
-  (let ((spec-path (fullname-enough-namestring env `(:cffi-wrapper ,name)))
-        (c-path (fullname-enough-namestring env `(:cffi-wrapper-c ,name)))
-        (so-path (fullname-enough-namestring env `(:cffi-wrapper-so ,name)))
-        (lisp-path (fullname-enough-namestring env `(:lisp ,name))))
+  (let ((spec-path (effective-namestring env `(:cffi-wrapper ,name)))
+        (c-path (effective-namestring env `(:cffi-wrapper-c ,name)))
+        (so-path (effective-namestring env `(:cffi-wrapper-so ,name)))
+        (lisp-path (effective-namestring env `(:lisp ,name))))
     (format nil "(:process-cffi-wrapper-file ~S ~S ~S ~S~@[ :cc-flags '~S~])"
             spec-path c-path so-path lisp-path cc-flags)))
 

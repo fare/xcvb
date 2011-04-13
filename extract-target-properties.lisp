@@ -84,7 +84,7 @@
 
 (defun get-asdf-pathname ()
   (let ((build (registered-build "/asdf")))
-    (when (typep build 'build-module-grain
+    (when (typep build 'build-module-grain)
       (asdf:merge-pathnames* (asdf:coerce-pathname "asdf.lisp")
                              (grain-pathname build)))))
 
