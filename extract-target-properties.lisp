@@ -9,6 +9,8 @@
 (defparameter *target-properties-variables*
   '((*use-cfasls*
      . "(or #+sbcl (and (find-symbol \"*EMIT-CFASL*\" \"SB-C\") t))")
+    (*implementation-identifier*
+     . "(when (find-package :asdf) (funcall (find-symbol (string :implementation-identifier) :asdf)))")
     (*target-system-features*
      . "*features*")
     (*lisp-implementation-directory*
@@ -80,6 +82,12 @@
             (mapcar #'car *target-properties-variables*)
             (mapcar #'cdr *target-properties-variables*))))
 
+(defun get-asdf-pathname ()
+  (let ((build (registered-build "/asdf")))
+    (when (typep build 'build-module-grain
+      (asdf:merge-pathnames* (asdf:coerce-pathname "asdf.lisp")
+                             (grain-pathname build)))))
+
 (defun query-target-lisp-command (query-string)
   (assert *lisp-implementation-type*)
   ;; When XCVB is itself compiled with SBCL, and the target is a different SBCL,
@@ -92,12 +100,12 @@
   ;; whichever implementation XCVB itself was using,
   ;; so the semantics of XCVB would not depend on said implementation,
   ;; but -u is apparently a GNU extension not available on other systems
-  ;; (most notably BSD systems including OS X),
+  ;; (most notably BSD systems, including OS X),
   ;; so we'd instead resort to unsetting SBCL_HOME when the XCVB implementation is sbcl
   ;; (in main.lisp)
   ;; Except that sb-posix:putenv is broken before SBCL 1.0.33.21 (SBCL bug 460455).
   (append
    #+(and sbcl (or linux cygwin)) '("env" "-u" "SBCL_HOME")
    (lisp-invocation-arglist
-    :eval (format nil "(progn ~A (finish-output) ~A)"
-                  query-string (quit-form :code 0)))))
+    :eval (format nil "(progn (ignore-errors (require :asdf))~@[(unless (find-package :asdf) (load ~S))~] ~A (finish-output) ~A)"
+                  (get-asdf-pathname) query-string (quit-form :code 0)))))

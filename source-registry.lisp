@@ -1,5 +1,5 @@
 ;;; Handle the Search Path for XCVB modules.
-#+xcvb (module (:depends-on ("main" "registry")))
+#+xcvb (module (:depends-on ("main" "grain-registry")))
 (in-package :xcvb)
 
 ;;; The Source Registry itself.
@@ -342,4 +342,5 @@ for each of its registered names."
 (defparameter +find-module-option-spec+
   `((("name" #\n) :type string :optional nil :list t :documentation "name to search for")
     (("short" #\s) :type boolean :optional t :documentation "short output")
-    ,@+source-registry-option-spec+))
+    ,@+source-registry-option-spec+
+    ,@+verbosity-option-spec+))

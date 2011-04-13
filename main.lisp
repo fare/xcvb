@@ -237,6 +237,7 @@ using ~A~%"
                               use-base-image
                               debugging
                               define-feature undefine-feature
+                              (use-target-lisp t)
                               &allow-other-keys)
     (reset-variables)
     (when debugging
@@ -258,16 +259,17 @@ using ~A~%"
         (setf *lisp-implementation-type* type)))
     (when lisp-binary-path
       (setf *lisp-executable-pathname* lisp-binary-path))
-    (flet ((m (x) (mapcar (lambda (s) (intern (string-upcase s) :keyword)) x)))
-      (setf *target-added-features* (m define-feature))
-      (setf *target-suppressed-features* (m undefine-feature))
-      (when-bind (i) (intersection *target-added-features* *target-suppressed-features*)
-        (errexit 2 "Can't both define and undefine feature~P ~
+    (when use-target-lisp
+      (flet ((m (x) (mapcar (lambda (s) (intern (string-upcase s) :keyword)) x)))
+        (setf *target-added-features* (m define-feature))
+        (setf *target-suppressed-features* (m undefine-feature))
+        (when-bind (i) (intersection *target-added-features* *target-suppressed-features*)
+          (errexit 2 "Can't both define and undefine feature~P ~
                     ~{~A~#[~; and ~:;, ~]~}" (length i) i)))
-    (read-target-properties) ;; Gets information from target Lisp.
-    (setf *use-cfasls* ;; Must be done after read-target-properties
-          (or (and *use-cfasls* (not disable-cfasl))
-              (eq *lisp-implementation-type* :ecl)))
+      (read-target-properties) ;; Gets information from target Lisp.
+      (setf *use-cfasls* ;; Must be done after read-target-properties
+            (or (and *use-cfasls* (not disable-cfasl))
+                (eq *lisp-implementation-type* :ecl))))
     (setf *use-base-image* use-base-image)
     (setf *use-master* master)
     (when master

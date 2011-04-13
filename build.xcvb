@@ -54,9 +54,10 @@ deterministic separate compilation and enforced locally-declared dependencies."
                "asdf-backend"
                "list-files"
                "slave"
+               "run-program-backend"
                (:when (:featurep :xcvb-farmer)
                  "farmer")
-               "search-path"
+               "source-registry"
                "main"
                "version"
                "cffi-grovel-support")

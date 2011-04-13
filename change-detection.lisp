@@ -71,15 +71,15 @@
       (update-change-information env grain)
       (error-behaviour error)))
 
-(defmethod update-change-information ((env timestamp-based-change-detection) grain &key timestamp)
+(defmethod update-change-information ((env timestamp-based-change-detection) grain &key)
   (declare (ignorable env))
-  (check-type timestamp real)
-  (setf (grain-build-timestamp grain) timestamp)
-  timestamp)
+  (setf (grain-build-timestamp grain)
+        (newest-time* (mapcar #'grain-change-information
+                              (let ((computation (grain-computation grain)))
+                                (when computation (computation-inputs computation)))))))
 
 (defmethod update-change-information ((env timestamp-based-change-detection) (grain file-grain)
-                                      &key timestamp)
-  (declare (ignore timestamp))
+                                      &key)
   (let ((write-date (safe-file-write-date (grain-namestring env grain))))
     (setf (grain-build-timestamp grain) write-date)
     write-date))
@@ -123,3 +123,5 @@
 (defmethod update-change-information ((env digest-based-change-detection) (grain file-grain) &key)
   (setf (grain-build-timestamp grain) (file-digest (grain-namestring env grain))))
 |#
+
+(eval-now (named-readtables:in-readtable :standard))

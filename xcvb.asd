@@ -3,7 +3,7 @@
 ;;;                                                                  ;;;
 ;;; Free Software available under an MIT-style license. See LICENSE  ;;;
 ;;;                                                                  ;;;
-;;; Copyright (c) 2008-2010 ITA Software, Inc.  All rights reserved. ;;;
+;;; Copyright (c) 2008-2011 ITA Software, Inc.  All rights reserved. ;;;
 ;;;                                                                  ;;;
 ;;; Original authors: Spencer Brody, Francois-Rene Rideau            ;;;
 ;;;                                                                  ;;;
@@ -60,13 +60,13 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "virtual-pathnames" :depends-on ("specials" "utilities"))
      (:file "grain-interface" :depends-on ("utilities" "conditions"))
      (:file "grain-sets" :depends-on ("grain-interface"))
-     (:file "registry" :depends-on ("grain-interface" "specials"))
-     (:file "search-path" :depends-on ("registry" "main"))
-     (:file "computations" :depends-on ("grain-interface" "registry"))
+     (:file "grain-registry" :depends-on ("grain-interface" "specials"))
+     (:file "source-registry" :depends-on ("grain-registry" "main"))
+     (:file "computations" :depends-on ("grain-interface" "grain-registry"))
      (:file "manifest" :depends-on ("macros" "virtual-pathnames"))
      (:file "extract-target-properties" :depends-on ("string-escape" "lisp-invocation"))
-     (:file "grain-implementation" :depends-on ("registry" "extract-target-properties"))
-     (:file "names" :depends-on ("registry" "grain-interface"))
+     (:file "grain-implementation" :depends-on ("grain-registry" "extract-target-properties"))
+     (:file "names" :depends-on ("grain-registry" "grain-interface"))
      (:file "normalize-dependency" :depends-on ("names" "grain-interface"))
      (:file "traversal" :depends-on ("names" "computations"))
      (:file "change-detection" :depends-on ("traversal"))
@@ -83,7 +83,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging" "main"))
      (:file "ne-makefile-backend" :depends-on ("main" "makefile-backend"
                                                "asdf-backend" "simplifying-traversal"))
-     (:file "asdf-converter" :depends-on ("main" "grain-interface" "search-path"))
+     (:file "asdf-converter" :depends-on ("main" "grain-interface" "source-registry"))
      (:file "slave" :depends-on ("main"))
      #+xcvb-farmer
      (:file "farmer" :depends-on ("profiling" "main" "driver-commands"

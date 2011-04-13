@@ -1,5 +1,5 @@
 ;;;;; Syntax and Semantics of Lisp grains, including build.xcvb files
-#+xcvb (module (:depends-on ("registry" "extract-target-properties")))
+#+xcvb (module (:depends-on ("grain-registry" "extract-target-properties")))
 (in-package :xcvb)
 
 (declaim (optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))

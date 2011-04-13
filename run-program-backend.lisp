@@ -2,7 +2,7 @@
 (module
   (:author ("Francois-Rene Rideau" "Peter Keller")
    :maintainer "Francois-Rene Rideau"
-   :depends-on ("static-traversal" "main")))
+   :depends-on ("static-traversal" "change-detection" "main")))
 
 (in-package :xcvb)
 

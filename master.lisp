@@ -120,7 +120,7 @@ A list of strings, or the keyword :DEFAULT.")
 (defvar *disable-cfasls* nil
   "Should we disable CFASL support when the target Lisp has it?")
 
-(defvar *xcvb-verbosity* 10
+(defvar *xcvb-verbosity* 5
   "Level of verbosity of XCVB:
   0 - quiet
   5 - usual warnings
@@ -305,8 +305,8 @@ Otherwise, signal an error.")
               (funcall s command output-processor :ignore-error-status ignore-error-status))))
   #-(or allegro clisp clozure cmu ecl (and lispworks unix) sbcl scl)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
-  (let* (#+(or allegro lispworks)
-         (process*
+  (let* ((process*
+          #+(or allegro lispworks)
           (multiple-value-list
            #+allegro
            (excl:run-shell-command
@@ -315,9 +315,7 @@ Otherwise, signal an error.")
             :input nil :output :stream :wait nil)
            #+lispworks
            (system:run-shell-command (cons "/usr/bin/env" command) ; lispworks wants a full path.
-            :input nil :output :stream :wait nil :save-exit-status t)))
-         (process
-          #+(or allegro lispworks) (third process*)
+            :input nil :output :stream :wait nil :save-exit-status t))
           #-(or allegro lispworks)
           (#+(or clisp cmu ecl scl) ext:run-program
            #+clozure ccl:run-program
@@ -327,6 +325,9 @@ Otherwise, signal an error.")
            . #.(append
                 #+(or clozure cmu ecl sbcl scl) '(:error t)
                 #+sbcl '(:search t))))
+         (process
+          #+(or allegro lispworks) (third process*)
+          #-(or allegro lispworks) process*)
          (stream #+(or allegro lispworks) (first process*)
                  #+(or clisp ecl) process
                  #+clozure (ccl::external-process-output process)
