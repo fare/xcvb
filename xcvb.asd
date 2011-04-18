@@ -12,7 +12,7 @@
 (in-package :asdf)
 (let ((old-ver (#+asdf2 asdf-version)))
   (load-system :asdf)
-  (let ((min "2.014")
+  (let ((min "2.014.8")
 	(ver (#+asdf2 asdf-version)))
     (unless (equal ver old-ver)
       (error "You must upgrade ASDF to your latest *before* you load XCVB~%~
@@ -42,7 +42,7 @@
     :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-    :depends-on (:asdf
+    :depends-on (;; :asdf ; not safe unless everyone uses ASDF >= 2.014.8
                  :xcvb-driver :xcvb-master
                  :fare-utils :command-line-arguments
                  :asdf-dependency-grovel :closer-mop
