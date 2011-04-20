@@ -23,12 +23,11 @@
         :hu.dwim.stefil)
 
   (:import-from :xcvb
-   #:run-program/process-output-stream
-   #:slurp-stream-lines
-   #:slurp-stream-string)
-
+                #:run-program/process-output-stream
+                #:slurp-stream-lines
+                #:slurp-stream-string)
   (:export
-   #:xcvb-unit-tests))
+   #:run-program/*))
 
 (in-package #:xcvb-unit-tests)
 
@@ -37,4 +36,14 @@
 ;; choose the correct type of newline delimiters
 (defun nl (str)
   (format nil "~A~%" str))
+
+;; Sometimes we only want forms to be present when we've been compiled
+;; on a unix machine of any kind
+(defmacro using-unix (&body body)
+  (or #+os-unix `(progn ,@body)))
+
+;; Sometimes we only want forms to be present when we've been compiled
+;; on a windows machine of any kind
+(defmacro using-windows (&body body)
+  (or #+os-windows `(progn ,@body)))
 
