@@ -253,6 +253,12 @@ I propose our next steps should be as follows:
    + For an optimized XCVB managing its own processes, assume Linux
      with SBCL or CCL, maybe if not too hard CLISP.
 
+ * Modify default location so that /example-1/foo.lisp compiles into
+     ~/.cache/common-lisp/sbcl-1.0.43-x86/xcvb-obj/example-1/foo.fasl
+
+ * xcvb --defaults  should show all the defaults used, notably regarding
+   target compiler, paths, etc.
+ 
  * Determine what proportion of the projects in Quicklisp can be
    automatically converted to xcvb using xcvb a2x.
 

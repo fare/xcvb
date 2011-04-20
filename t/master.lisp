@@ -24,14 +24,13 @@
         (input-string (format nil "one~%two~%~%three")))
     (with-open-stream (s (make-string-input-stream input-string))
       (is (equal output-list (slurp-stream-lines s)))))
-  
+
   ;; Test that slurp-stream-lines function works with no input
   (let ((output-list nil)
         (input-string (format nil "")))
     (with-open-stream (s (make-string-input-stream input-string))
       (is (equal output-list (slurp-stream-lines s))))))
 
-  
 
 (deftest test/run-program/process-output-stream ()
   ;; Test that the 'echo' program can echo a single string.
@@ -81,7 +80,7 @@
   ;; Test that run-program/process-output-stream signals an error with an
   ;; executable that doesn't return 0
   (signals error (run-program/process-output-stream '("/bin/false")
-                                                    'slurp-stream-lines))
+                                                     'slurp-stream-lines))
 
   ;; XXX This is UNIX specific
   ;; Test that we can surpress the error on run-program/process-output-stream

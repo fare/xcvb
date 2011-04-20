@@ -90,8 +90,7 @@ Now fix XCVB for it assumes that's impossible")
   (error "Congratulations for trying XCVB on an operating system~%~
 that is neither Unix, nor Windows.~%Now you port it."))
 
-#+os-windows ;; from xcvb-driver, to use %TEMP%
-(defun getenv (x)
+(defun getenv (x)  ;; from xcvb-driver, to use $TMP or %TEMP%
   #-(or abcl allegro cmu clisp clozure ecl gcl lispworks sbcl scl)
   (error "GETENV not supported for your Lisp implementation")
   (#+(or abcl clisp xcl) ext:getenv
@@ -106,12 +105,10 @@ that is neither Unix, nor Windows.~%Now you port it."))
 
 ;;; These variables are shared with XCVB itself.
 (defvar *lisp-implementation-type*
-  ;; TODO: a fallback implementation that outputs to a temporary file and reads the results(?)
-  ;; TODO: fix things on Windows!
-  ;; TODO: #+abcl :abcl ;; requires ABCL to (re)implement run-program
-  ;; TODO: #+xcl :xcl ;; requires XCL to (re)implement run-program
+  ;; TODO: test on all OS and implementation platform combinations!
   ;; MAYBE: #+gcl :gcl
   ;; PROBABLY NOT: cormancl mcl genera
+  #+abcl :abcl
   #+allegro :allegro
   #+clisp :clisp
   #+clozure :ccl
@@ -120,7 +117,8 @@ that is neither Unix, nor Windows.~%Now you port it."))
   #+lispworks :lispworks ;; run-program currently only available on UNIX
   #+sbcl :sbcl
   #+scl :scl
-  #-(or allegro clisp clozure cmu ecl (and lispworks unix) sbcl scl)
+  #+xcl :xcl
+  #-(or abcl allegro clisp clozure cmu ecl lispworks sbcl scl xcl)
   (error "Your Lisp implementation is not supported by XCVB master (yet).")
   "Type of Lisp implementation for the target system. A keyword.
   Default: same as XCVB itself.")
@@ -372,10 +370,14 @@ Otherwise, signal an error.")
                                  (external-format :default))
   (check-type direction (member :output :io))
   (loop
-    :with prefix = (or prefix #+os-unix "/tmp/xm"
+    :with prefix = (or prefix
+		       #+os-unix (format nil "~A/xm" (or (getenv "TMP") "/tmp"))
                        #+os-windows (format nil "~A\\xm" (getenv "TEMP")))
     :for counter :from (random (ash 1 32))
     :for pathname = (pathname (format nil "~A~36R" prefix counter)) :do
+     ;; TODO: on Unix, do something about umask
+     ;; TODO: on Unix, audit the code so we make sure it uses O_CREAT|O_EXCL
+     ;; TODO: on Unix, use CFFI and mkstemp -- but the master is precisely meant to not depend on CFFI or on anything! Grrrr.
     (with-open-file (stream pathname
                             :direction direction
                             :element-type element-type :external-format external-format
@@ -513,8 +515,7 @@ Otherwise, signal an error.")
                   (format nil "~A > ~A"
                           (etypecase command
                             (string command)
-                            (list #+os-unix (escape-sh-command command)
-                                  #+os-windows (escape-windows-command command)))
+                            (list (escape-shell-command command)))
                           tmp)))
             (check-result (system command-string))
             (with-open-file (stream tmp

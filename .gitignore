@@ -29,5 +29,5 @@ xcvb-bootstrapped
 todf
 patches
 commit.txt
-hello/xcvb-hello.asd
-hello/version.lisp
+examples/hello/xcvb-hello.asd
+examples/hello/version.lisp

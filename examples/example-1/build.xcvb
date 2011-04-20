@@ -1,0 +1,6 @@
+;-*- Lisp -*-
+#+xcvb
+(module
+ (:fullname "example-1"
+  :depends-on ("main" "package")
+  :build-image t))

@@ -1,0 +1,16 @@
+;-*- Lisp -*-
+
+#+xcvb
+(module
+ (:fullname "example-2"
+  :depends-on ("main"
+	       "package"
+	       "lib-a/func-1"
+	       "lib-a/func-2"
+	       "lib-a/func-3"
+	       "lib-a/package"
+	       "lib-b/func-1"
+	       "lib-b/func-2"
+	       "lib-b/func-3"
+	       "lib-b/package")
+  :build-image t))
