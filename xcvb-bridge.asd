@@ -6,5 +6,6 @@
     :licence "MIT"
     :description "XCVB bridge for ASDF"
     :long-description "A module to integrate XCVB builds into ASDF"
-    :depends-on (:asdf :xcvb-master)
+    :depends-on (;; :asdf ; not safe unless everyone uses ASDF >= 2.014.8
+                 :xcvb-master)
     :components ((:file "bridge")))
