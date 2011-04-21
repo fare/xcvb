@@ -53,10 +53,13 @@
 (defmethod print-object ((x computation) stream)
   (print-unreadable-object (x stream :type t :identity nil)
     (with-slots (inputs outputs command) x
-    (format stream ":outputs ~S :inputs ~S :command ~S"
-            (mapcar #'fullname outputs)
-            (mapcar #'fullname inputs)
-            command))))
+      (let ((*print-pretty* t)
+	    (*print-miser-width* 80))
+	(fresh-line stream)
+	(format stream "  :outputs~%    ~S~%" (mapcar #'fullname outputs))
+	(format stream "  :inputs~%    ~S~%" (mapcar #'fullname inputs))
+	(format stream "  :command~%    ~S" command))))
+  (fresh-line stream))
 
 (defun computation-target (computation)
   (first (computation-outputs computation)))
