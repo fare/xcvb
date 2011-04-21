@@ -36,9 +36,10 @@
       (run-computations-serially env :force force))))
 
 (defun run-computations-serially (env &key force)
-  (log-format 8 "All *computations* = ~S" (reverse *computations*))
+  (log-format 8 "All *computations* =~%~S" (reverse *computations*))
+  (log-format 5 "Executing all computations!~%")
   (dolist (computation (reverse *computations*))
-    (log-format 8 "Running computation: ~S" computation)
+    (log-format 8 "Running Computation:~%~S" computation)
     (run-computation env computation :force force)))
 
 (defun run-computation (env computation &key force)
@@ -55,7 +56,9 @@
     (dolist (output-pn output-pathnames)
       (ensure-directories-exist output-pn))
     (dolist (external-command (external-commands-for-computation env command))
-      (log-format 5 "running:~{ ~A~}" (mapcar #'escape-shell-token external-command))
+      (log-format
+       5 "Running Computation's Shell Command:~% ~{~<~%~1,72:; ~A~>~}~%~%"
+       (mapcar #'escape-shell-token external-command))
       (run-program/echo-output external-command :prefix "command output: "))
     (mapcar/ 'update-change-information env outputs)))
 
