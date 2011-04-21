@@ -56,8 +56,8 @@
       (let ((*print-pretty* t)
 	    (*print-miser-width* 80))
 	(fresh-line stream)
-	(format stream "  :outputs~%    ~S~%" (mapcar #'fullname outputs))
 	(format stream "  :inputs~%    ~S~%" (mapcar #'fullname inputs))
+	(format stream "  :outputs~%    ~S~%" (mapcar #'fullname outputs))
 	(format stream "  :command~%    ~S" command))))
   (fresh-line stream))
 
