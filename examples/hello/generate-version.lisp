@@ -10,7 +10,7 @@
 
 (defparameter *hello-version-path*
   (or (xcvb-driver:pathname-mapping "/xcvb/hello/version")
-      #+asdf2 (asdf-call :system-relative-pathname :xcvb "hello/version.lisp")))
+      #+asdf2 (asdf-call :system-relative-pathname :xcvb "examples/hello/version.lisp")))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (find-package :xcvb)
