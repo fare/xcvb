@@ -1,7 +1,22 @@
-one
-two
-three
-
-four
-five
-six
+Single
+double entry
+triple word entry
+escape +
+escape -
+escape _
+escape .
+escape ,
+escape %
+escape @
+escape :
+escape /
+escape \
+escape !
+escape &
+escape *
+escape [
+escape ]
+escape (
+escape )
+escape {
+escape }

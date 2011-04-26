@@ -79,8 +79,7 @@
   (signals error (slurp-stream-lines 42))
   (signals error (slurp-stream-lines "not valid")))
 
-
-(deftest test/run-program/process-output-stream ()
+(defun common-test/run-program/process-output-stream ()
   ;; Test that the 'echo' program can echo a single string.
   ;; Use the output-processor of slurp-stream-lines.
   (let ((ret (run-program/process-output-stream
@@ -122,16 +121,57 @@
   ;; Test that run-program/process-output-stream fails properly when the
   ;; executable doesn't exist.
   (signals error (run-program/process-output-stream '("does-not-exist")
-                                                    'slurp-stream-lines))
+                                                    'slurp-stream-lines)))
+
+(defun unix-only-test/run-program/process-output-stream ()
+
+  ;; a basic smoke test
+  (let ((ret (run-program/process-output-stream
+              '("/bin/grep" "Single" "test-file") 'slurp-stream-lines)))
+    (is (equal ret '("Single"))))
+
+  ;; Make sure space is handled correctly
+  (let ((ret (run-program/process-output-stream
+              '("/bin/grep" "double entry" "test-file") 'slurp-stream-lines)))
+    (is (equal ret '("double entry"))))
+
+  ;; Make sure space is handled correctly
+  (let ((ret (run-program/process-output-stream
+              '("/bin/grep" "triple word entry" "test-file")
+              'slurp-stream-lines)))
+    (is (equal ret '("triple word entry"))))
+
+  ;; Testing special characters
+  (when nil ;; XXX FIXME
+    (let ((strs '("+" "-" "_" "." "," "%" "@" ":" "/" "\\" "!" "&" "*" "[" "]"
+                  "(" ")" "{" "}")))
+      (dolist (str strs)
+        (let ((ret-line (concatenate 'string "escape " str))
+              (ret (run-program/process-output-stream
+                    `("/bin/grep" ,str "test-file")
+                    'slurp-stream-lines)))
+          (is (equal ret (list ret-line)))))))
+
 
   ;; Test that run-program/process-output-stream signals an error with an
   ;; executable that doesn't return 0
-  (using-unix
-    (signals error (run-program/process-output-stream '("/bin/false")
-                                                      'slurp-stream-lines)))
+  (signals error (run-program/process-output-stream '("/bin/false")
+                                                    'slurp-stream-lines))
 
   ;; Test that we can surpress the error on run-program/process-output-stream
+  (is (null (run-program/process-output-stream '("/bin/false")
+                                               'slurp-stream-lines
+                                               :ignore-error-status t))))
+
+(defun windows-only-test/run/progra/process/output-stream ()
+  nil)
+
+
+(deftest test/run-program/process-output-stream ()
+  (common-test/run-program/process-output-stream)
   (using-unix
-    (is (null (run-program/process-output-stream '("/bin/false")
-                                                 'slurp-stream-lines
-                                                 :ignore-error-status t)))))
+    (unix-only-test/run-program/process-output-stream))
+  (using-windows
+    (windows-only-test/run/progra/process/output-stream)))
+
+
