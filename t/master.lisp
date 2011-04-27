@@ -104,10 +104,20 @@
               '("echo" "Hello World") 'slurp-stream-string)))
     (is (string= ret (nl "Hello World"))))
 
+  ;; Test that the 'echo' program can echo an argument with a space.
+  ;; Use the output-processor of slurp-stream-string. Also use the
+  ;; command string form.
+  (let ((ret (run-program/process-output-stream
+              "echo Hello World" 'slurp-stream-string)))
+    (is (string= ret (nl "Hello World"))))
+
   ;; Test that run-program/process-output-stream fails properly with an
   ;; empty program string
   (signals error (run-program/process-output-stream '("")
                                                     'slurp-stream-lines))
+  
+  ;; An empty string itself is ok since it is passed to the shell.
+  (is (string= "" (run-program/process-output-stream "" 'slurp-stream-string)))
 
   ;; Test that run-program/process-output-stream fails properly with an
   ;; program list containing a nil executable
@@ -121,6 +131,8 @@
   ;; Test that run-program/process-output-stream fails properly when the
   ;; executable doesn't exist.
   (signals error (run-program/process-output-stream '("does-not-exist")
+                                                    'slurp-stream-lines))
+  (signals error (run-program/process-output-stream "does-not-exist"
                                                     'slurp-stream-lines)))
 
 (defun unix-only-test/run-program/process-output-stream ()
@@ -165,7 +177,6 @@
 
 (defun windows-only-test/run/progra/process/output-stream ()
   nil)
-
 
 (deftest test/run-program/process-output-stream ()
   (common-test/run-program/process-output-stream)
