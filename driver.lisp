@@ -21,7 +21,7 @@
   (:use :common-lisp)
   (:export
    #:*optimization-settings*
-   #:*restart* #:debugging #:*goal* #:*stderr*
+   #:*restart* #:debugging #:*goal* #:*stderr* #:*debugging*
    #:*uninteresting-conditions* #:*fatal-conditions* #:*deferred-warnings*
    #:getenv #:emptyp #:setenvp #:setup-environment
    #:debugging #:with-profiling
@@ -56,7 +56,7 @@
   (setf *print-readably* nil)
   #+gcl ;;; If using GCL, do some safety checks
   (flet ((bork (&rest args)
-           (apply #'format *error-output* args)
+           (apply #'format! *error-output* args)
            (lisp:quit 42)))
     (when (or (< system::*gcl-major-version* 2)
               (and (= system::*gcl-major-version* 2)
@@ -143,7 +143,7 @@
     (let ((settings (get-optimization-settings)))
       (unless (equal *previous-optimization-settings* settings)
         (setf *previous-optimization-settings* settings)
-        (format *error-output* "~&Optimization settings: ~S~%" settings)))))
+        (format! *error-output* "~&Optimization settings: ~S~%" settings)))))
 
 ;;; Debugging
 (defun debugging (&optional (debug t))
@@ -164,13 +164,15 @@
 ;;; Profiling
 (defun call-with-maybe-profiling (thunk what goal)
   (when *debugging*
-    (format *trace-output* "~&Now ~S~&" what))
+    (format! *trace-output* "~&Now ~S~&" what))
   (if *profiling*
     (let* ((start-time (get-internal-real-time))
            (values (multiple-value-list (funcall thunk)))
            (end-time (get-internal-real-time))
            (duration (coerce (/ (- end-time start-time) internal-time-units-per-second) 'double-float)))
+      (finish-outputs)
       (format *trace-output* "~&~S~&" `(:profiling ,what :from ,goal :duration ,duration))
+      (finish-outputs)
       (apply #'values values))
     (funcall thunk)))
 (defmacro with-profiling (what &body body)
@@ -198,9 +200,16 @@
   (dolist (s (list *stderr* *error-output* *standard-output* *trace-output*))
     (ignore-errors (finish-output s))))
 
+(defun format! (stream format &rest args)
+  (finish-outputs)
+  (apply 'format stream format args)
+  (finish-output stream))
+
 (defun quit (&optional (code 0) (finish-output t))
   "Quits from the Lisp world, with the given exit status if provided.
 This is designed to abstract away the implementation specific quit forms."
+  (when *debugging*
+    (format! *stderr* "~&Quitting with code ~A~%" code))
   (when finish-output ;; essential, for ClozureCL, and for standard compliance.
     (finish-outputs))
   #+(or abcl xcl) (ext:quit :status code)
@@ -230,13 +239,12 @@ This is designed to abstract away the implementation specific quit forms."
          ':stream 'most-positive-fixnum)
    out))
 (defun die (format &rest arguments)
-  (format *stderr* "~&")
-  (apply #'format *stderr* format arguments)
-  (format *stderr* "~&")
-  (finish-outputs)
+  (format! *stderr* "~&")
+  (apply #'format! *stderr* format arguments)
+  (format! *stderr* "~&")
   (quit 99))
 (defun bork (condition)
-  (format *stderr* "~&BORK:~%~A~%" condition)
+  (format! *stderr* "~&BORK:~%~A~%" condition)
   (cond
     (*debugging*
      (invoke-debugger condition))
@@ -257,8 +265,11 @@ This is designed to abstract away the implementation specific quit forms."
     (symbol (typep condition x))
     (function (funcall x condition))
     (string (and (typep condition 'simple-condition)
-                 #+(or ccl sbcl) (slot-boundp condition #+ccl 'ccl::format-control
-                                              #+sbcl 'sb-kernel:format-control)
+                 #+(or ccl cmu sbcl scl)
+		 (slot-boundp condition
+			      #+ccl 'ccl::format-control
+			      #+(or cmu scl) 'conditions::format-control
+			      #+sbcl 'sb-kernel:format-control)
                  (equal (simple-condition-format-control condition) x)))))
 (defun match-any-condition-p (condition conditions)
   (loop :for x :in conditions :thereis (match-condition-p x condition)))

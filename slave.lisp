@@ -9,10 +9,9 @@
     ,@+setup-option-spec+
     ,@+source-registry-option-spec+
     (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
-    (("object-directory" #\O) :type string :initial-value "obj" :documentation "specify object directory")
+    ,@+object-directory-option-spec+
     ,@+lisp-implementation-option-spec+
     ,@+cfasl-option-spec+
-    (("use-base-image" #\B) :type boolean :optional t :initial-value nil :documentation "use a base image")
     ,@+verbosity-option-spec+
     ,@+profiling-option-spec+))
 

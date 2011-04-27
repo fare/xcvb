@@ -79,6 +79,10 @@ For debugging your XCVB configuration.")
      "Show builds in the specified XCVB path"
      "Show builds in the implicitly or explicitly specified XCVB path.
 For debugging your XCVB configuration.")
+    (("show-settings" "show" "s")
+     (show-settings-command :rest-arity t) +show-settings-option-spec+
+     "Show settings"
+     "Show settings implicitly or explicitly configured from user-specified options.")
     (("slave-builder")
      slave-builder +slave-builder-option-spec+
      "Build some project as a slave to the XCVB master (for internal use)"
@@ -125,16 +129,22 @@ for this version of XCVB.")))
 (defparameter +cfasl-option-spec+
   '((("disable-cfasl" #\C) :type boolean :optional t :documentation "disable the CFASL feature")))
 
-
 (defparameter +verbosity-option-spec+
   '((("verbosity" #\v) :type integer :initial-value 5 :documentation "set verbosity")
     (("debugging" #\Z) :type boolean :optional t :initial-value nil :documentation "debug")))
 
 (defparameter +setup-option-spec+
-  '((("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")))
+  '((("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
+    (("use-base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")))
 
 (defparameter +profiling-option-spec+
   '((("profiling" #\P) :type boolean :optional t :documentation "profiling")))
+
+(defparameter +object-directory-option-spec+
+  '((("object-directory" #\O) :type string :optional t :documentation "specify object directory")))
+
+(defparameter +build-option-spec+
+  '((("build" #\b) :type string :optional nil :documentation "specify what system to build")))
 
 
 ;; Lookup the command spec for the given command name, or return nil if the
@@ -226,7 +236,61 @@ using ~A~%"
     (format t "~{~S~^ ;~%~}" /)
     (xcvb-driver:finish-outputs)))
 
+;;;; Show options
+(defparameter +show-settings-option-spec+
+  `(,@+build-option-spec+
+    ,@+source-registry-option-spec+
+    ,@+lisp-implementation-option-spec+
+    ,@+cfasl-option-spec+
+    ,@+verbosity-option-spec+
+    ,@+setup-option-spec+
+    ,@+object-directory-option-spec+
+    (("all" #\a) :type boolean :optional t :documentation "show all settings")))
+
+(defparameter *showable-settings*
+  '(*debugging* *xcvb-verbosity*
+    *lisp-implementation-type*
+    *lisp-executable-pathname*
+    *target-added-features*
+    *target-suppressed-features*
+    *target-system-features*
+    *target-lisp-image-pathname*
+    *target-lisp-executable-pathname*
+    *target-asdf-version*
+    *implementation-identifier*
+    *use-cfasls*
+    *object-directory*
+    *object-directory-pathname*
+    *use-base-image*
+    *use-master*
+    *lisp-setup-dependencies*))
+
+(defun show-settings-command (args &rest keys
+			      &key build source-registry setup use-base-image verbosity debugging
+			      lisp-implementation lisp-binary-path define-feature undefine-feature
+			      disable-cfasl object-directory all)
+  (declare (ignore build source-registry setup use-base-image verbosity debugging
+		   lisp-implementation lisp-binary-path define-feature undefine-feature
+		   disable-cfasl object-directory))
+  (apply 'handle-global-options keys)
+  #|TODO: (setf *object-directory* ... DO THE SAME AS MAKEFILE-BACKEND ?)|#
+  (flet ()
+    (if all
+	(dolist (var *showable-settings*)
+	  (format t "~(~A~) = ~S~%" var (symbol-value var)))
+	(loop :for attr :in args
+	   :for var = (find-symbol (format nil "*~:@(~A~)*" attr) :xcvb) :do
+	   (if (find var *showable-settings*)
+	       (format t "~A~%" (symbol-value var))
+	       (die "Not a showable setting: ~A" attr))))))
+
 ;;;; Common option handling
+(defun object-directory-default ()
+  (get-target-properties)
+  (asdf:merge-pathnames*
+   (asdf:coerce-pathname
+    (strcat ".cache/xcvb/common-lisp/" *implementation-identifier* "/"))
+   (asdf::user-homedir)))
 
 (defun handle-global-options (&rest keys &key
                               verbosity
@@ -247,11 +311,6 @@ using ~A~%"
     (log-format 9 "xcvb options: ~S" keys)
     (initialize-source-registry source-registry)
     (search-source-registry)
-    (when object-directory
-      (setf *object-directory* object-directory))
-    (setf *object-directory-pathname* (ensure-pathname-is-directory *object-directory*))
-    (setf *object-directory* (but-last-char (namestring *object-directory-pathname*)))
-    (log-format 8 "object-directory: given ~S using ~S" object-directory *object-directory*)
     (when lisp-implementation
       (let ((type (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
         (unless (and type (get-lisp-implementation type))
@@ -269,7 +328,12 @@ using ~A~%"
       (read-target-properties) ;; Gets information from target Lisp.
       (setf *use-cfasls* ;; Must be done after read-target-properties
             (or (and *use-cfasls* (not disable-cfasl))
-                (eq *lisp-implementation-type* :ecl))))
+                (eq *lisp-implementation-type* :ecl)))
+      (setf *object-directory* (or object-directory (object-directory-default))))
+    (when *object-directory*
+      (setf *object-directory-pathname* (ensure-pathname-is-directory *object-directory*))
+      (setf *object-directory* (but-last-char (namestring *object-directory-pathname*)))
+      (log-format 8 "object-directory: given ~S using ~S" object-directory *object-directory*))
     (setf *use-base-image* use-base-image)
     (setf *use-master* master)
     (when master
@@ -338,16 +402,20 @@ using ~A~%"
          (command-spec (lookup-command command))
          (fun (second command-spec))
          (option-spec-var (third command-spec)))
-    (cond
-      (option-spec-var
-       (handle-command-line (symbol-value option-spec-var) fun
-                            :command-line args :name command))
-      (fun
-       (funcall fun args))
-      ((not command)
-       (errexit 2 "XCVB requires a command -- try 'xcvb help'."))
-      (t
-       (errexit 2 "Invalid XCVB command ~S -- try 'xcvb help'." command)))))
+    (multiple-value-bind (fun keys)
+	(etypecase fun (cons (values (car fun) (cdr fun))) (symbol (values fun nil)))
+      (cond
+	(option-spec-var
+	 (apply 'handle-command-line
+		(symbol-value option-spec-var) fun
+		:command-line args :name command
+		keys))
+	(fun
+	 (funcall fun args))
+	((not command)
+	 (errexit 2 "XCVB requires a command -- try 'xcvb help'."))
+	(t
+	 (errexit 2 "Invalid XCVB command ~S -- try 'xcvb help'." command))))))
 
 (defun cmdize/1 (x)
   (typecase x

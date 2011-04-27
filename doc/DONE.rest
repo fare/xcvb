@@ -1,0 +1,29 @@
+.. ; -*- mode:rst; -*-
+
+=============
+DONE for XCVB
+=============
+
+Items dumped from TODO that were done.
+
+ * 2011-03-29:
+   Provide a way out of ASDF that doesn't require maintenance
+   of two files, foo/foo.asd AND foo/build.xcvb.
+   DONE: the xcvb-bridge.
+
+ * 2011-04-27:
+   Have a mostly portable version of XCVB
+   that runs standalone on both Windows and Unix,
+   have a backend that doesn't go through Make,
+   but directly calls run-program.
+   This would only be available targetting all maintained platforms:
+   ccl sbcl clisp ecl abcl cmucl scl allegro lispworks allegromodern xcl.
+   No need to support corman, gcl, genera, mcl.
+
+ * 2011-04-27:
+   Modify default location so that /example-1/foo.lisp compiles into
+     ~/.cache/xcvb/common-lisp/sbcl-1.0.43-x86/example-1/foo.fasl
+
+ * 2011-04-27:
+   xcvb show-settings shows all the settings used, notably regarding
+   target compiler, paths, etc.

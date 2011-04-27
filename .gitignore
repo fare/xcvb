@@ -31,3 +31,5 @@ patches
 commit.txt
 examples/hello/xcvb-hello.asd
 examples/hello/version.lisp
+examples/example-1/obj
+examples/example-1/example-1

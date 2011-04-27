@@ -22,6 +22,9 @@
    #:*default-source-registries*
    #:inherit-source-registry)
 
+  (:import-from :xcvb-driver
+   #:*debugging*)
+
   ;;; We have stopped trying to try to export a sensible interface
   ;;; through the package system.
   ;;; No wonder why: the CL package system is not very maintainable,

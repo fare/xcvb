@@ -1,4 +1,5 @@
 
+LISP = sbcl
 XCVB_ROOT := $(shell readlink -f ../..)
 XCVB_OBJECT_DIRECTORY=$(XCVB_ROOT)/examples/example-1/obj
 XCVB_IMAGE=${XCVB_OBJECT_DIRECTORY}/example-1.image
@@ -11,15 +12,16 @@ build:
 	mkdir -p ${XCVB_OBJECT_DIRECTORY}
 	xcvb simple-build \
 		--build "example-1" \
-		--lisp-implementation sbcl \
+		--lisp-implementation ${LISP} \
 		--object-directory ${XCVB_OBJECT_DIRECTORY} \
 		--verbosity 10
-	cl-launch --lisp 'sbcl sbcl clisp ccl' \
+	cl-launch --lisp ${LISP} \
 		--image ${XCVB_IMAGE} \
 		--no-include \
-		--output example-1 \
 		--dump '!' \
+		--output example-1 \
 		--init '(xcvb-example-1::main)'
+
 
 # Build by creating the xcvb.mk file and running it. 
 all: example-1

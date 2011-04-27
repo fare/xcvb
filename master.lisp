@@ -162,8 +162,9 @@ A list of strings, or the keyword :DEFAULT.")
 (defvar *lisp-allow-debugger* nil
   "Should we allow interactive debugging of failed build attempts?")
 
-(defvar *object-directory* "obj"
-  "where to store object files")
+(defvar *object-directory* nil
+  "where to store object files.
+NIL: default to ~/.cache/xcvb/common-lisp/sbcl-1.0.47-x86/ or some such, see docs")
 
 (defvar *tmp-directory-pathname* #p"/tmp/"
   "pathname of directory where to store temporary files")
@@ -481,7 +482,7 @@ Otherwise, signal an error.")
              ;; 2- extract result
              #+allegro (sys:reap-os-subprocess :pid process :wait t)
              #+clozure (nth-value 1 (ccl:external-process-status process))
-             #+(or cmu scl) (ext:process-exit process)
+             #+(or cmu scl) (ext:process-exit-code process)
              #+lispworks (system:pid-exit-status process :wait t)
              #+sbcl (sb-ext:process-exit-code process))
            (check-result (return-code)

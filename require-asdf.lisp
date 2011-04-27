@@ -10,4 +10,5 @@
   (error "XCVB requires ASDF2"))
 
 ;; Make sure you have the latest ASDF *before* you load any other system
-(asdf:load-system :asdf)
+(handler-bind ((style-warning #'muffle-warning))
+  (asdf:load-system :asdf))

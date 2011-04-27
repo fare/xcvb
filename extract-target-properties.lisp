@@ -9,8 +9,9 @@
 (defparameter *target-properties-variables*
   '((*use-cfasls*
      . "(or #+sbcl (and (find-symbol \"*EMIT-CFASL*\" \"SB-C\") t))")
+    (*target-asdf-version* . "(when(member :asdf2 *features*) (funcall (find-symbol(string :asdf-version):asdf)))")
     (*implementation-identifier*
-     . "(when (find-package :asdf) (funcall (find-symbol (string :implementation-identifier) :asdf)))")
+     . "(when(member :asdf2 *features*) (funcall(find-symbol(string :implementation-identifier):asdf)))")
     (*target-system-features*
      . "*features*")
     (*lisp-implementation-directory*
@@ -107,5 +108,7 @@
   (append
    #+(and sbcl (or linux cygwin)) '("env" "-u" "SBCL_HOME")
    (lisp-invocation-arglist
-    :eval (format nil "(progn (ignore-errors (require :asdf))~@[(unless (find-package :asdf) (load ~S))~] ~A (finish-output) ~A)"
+    :eval (format nil "(progn (ignore-errors (require :asdf))~
+ (handler-bind ((style-warning #'muffle-warning)) (ignore-errors (funcall (find-symbol(string'oos):asdf) (find-symbol(string'load-op):asdf) :asdf)))~
+ ~@[(unless (member :asdf2 *features*) (load ~S))~] ~A (finish-output) ~A)"
                   (get-asdf-pathname) query-string (quit-form :code 0)))))
