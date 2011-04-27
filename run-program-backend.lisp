@@ -39,10 +39,10 @@
   (log-format 8 "All *computations* =~%~S" (reverse *computations*))
   (log-format 5 "Executing all computations!~%")
   (dolist (computation (reverse *computations*))
-    (log-format 8 "Running Computation:~%~S" computation)
     (run-computation env computation :force force)))
 
 (defun run-computation (env computation &key force)
+  (log-format 8 "Running Computation:~%~S" computation)
   (when (and (not force) (already-computed-p env computation))
     ;; first, check the outputs are newew than the inputs, if so, bail.
     ;; same checking as with make
