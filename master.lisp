@@ -9,8 +9,8 @@
   :build-depends-on nil))
 
 (cl:in-package :cl)
-(declaim (optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3))
-         #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note))
+;;(declaim #-ecl (optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3))
+#+sbcl (declaim (sb-ext:muffle-conditions sb-ext:compiler-note))
 
 (defpackage :xcvb-master
   (:nicknames :xcvbm)
@@ -90,36 +90,55 @@ Now fix XCVB for it assumes that's impossible")
   (error "Congratulations for trying XCVB on an operating system~%~
 that is neither Unix, nor Windows.~%Now you port it."))
 
-(defun getenv (x)  ;; from xcvb-driver, to use $TMP or %TEMP%
-  #-(or abcl allegro cmu clisp clozure ecl gcl lispworks sbcl scl)
-  (error "GETENV not supported for your Lisp implementation")
-  (#+(or abcl clisp xcl) ext:getenv
-   #+allegro sys:getenv
-   #+clozure ccl:getenv
-   #+(or cmu scl) (lambda (x) (cdr (assoc x ext:*environment-list* :test #'string=)))
-   #+ecl si:getenv
-   #+gcl system:getenv
-   #+lispworks lispworks:environment-variable
-   #+sbcl sb-ext:posix-getenv
-   x))
+#+mcl
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (ccl:define-entry-point (_getenv "getenv") ((name :string)) :string))
+(defun getenv (x)
+  (declare (ignorable x))
+  #+(or abcl clisp xcl) (ext:getenv x)
+  #+allegro (sys:getenv x)
+  #+clozure (ccl:getenv x)
+  #+(or cmu scl) (cdr (assoc x ext:*environment-list* :test #'string=))
+  #+cormanlisp
+  (let* ((buffer (ct:malloc 1))
+         (cname (ct:lisp-string-to-c-string x))
+         (needed-size (win:getenvironmentvariable cname buffer 0))
+         (buffer1 (ct:malloc (1+ needed-size))))
+    (prog1 (if (zerop (win:getenvironmentvariable cname buffer1 needed-size))
+               nil
+               (ct:c-string-to-lisp-string buffer1))
+      (ct:free buffer)
+      (ct:free buffer1)))
+  #+ecl (si:getenv x)
+  #+gcl (system:getenv x)
+  #+genera nil
+  #+lispworks (lispworks:environment-variable x)
+  #+mcl (ccl:with-cstrs ((name x))
+          (let ((value (_getenv name)))
+            (unless (ccl:%null-ptr-p value)
+              (ccl:%get-cstring value))))
+  #+sbcl (sb-ext:posix-getenv x)
+  #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl genera lispworks mcl sbcl scl xcl)
+  (error "~S is not supported on your implementation" 'getenv))
 
 ;;; These variables are shared with XCVB itself.
 (defvar *lisp-implementation-type*
   ;; TODO: test on all OS and implementation platform combinations!
-  ;; MAYBE: #+gcl :gcl
-  ;; PROBABLY NOT: cormancl mcl genera
+  ;; PROBABLY NOT: mcl genera
   #+abcl :abcl
   #+allegro :allegro
   #+clisp :clisp
   #+clozure :ccl
   #+cmu :cmucl
+  #+cormanlisp :corman
   #+ecl :ecl
+  #+gcl :gcl
   #+lispworks :lispworks ;; run-program currently only available on UNIX
   #+sbcl :sbcl
   #+scl :scl
   #+xcl :xcl
-  #-(or abcl allegro clisp clozure cmu ecl lispworks sbcl scl xcl)
-  (error "Your Lisp implementation is not supported by XCVB master (yet).")
+  #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl lispworks sbcl scl xcl)
+  (error "Your Lisp implementation is not supported by XCVB master (yet). Please help.")
   "Type of Lisp implementation for the target system. A keyword.
   Default: same as XCVB itself.")
 
@@ -222,8 +241,10 @@ If OBJ is T, use *STANDARD-OUTPUT* as the stream.
 If OBJ is a string with a fill-pointer, use it as a string-output-stream.
 Otherwise, signal an error.")
   (:method ((x null) thunk)
+    (declare (ignorable x))
     (with-output-to-string (s) (funcall thunk s)))
   (:method ((x (eql t)) thunk)
+    (declare (ignorable x))
     (funcall thunk *standard-output*) nil)
   #-genera
   (:method ((x stream) thunk)
@@ -288,23 +309,30 @@ Otherwise, signal an error.")
     (with-open-file (in filepath)
       (read in nil nil))))
 
+(defun requires-escaping-p (token &key good-chars bad-chars)
+  (some
+   (cond
+     ((functionp good-chars)
+      (complement good-chars))
+     ((functionp bad-chars)
+      bad-chars)
+     ((and good-chars (typep good-chars 'sequence))
+      (lambda (c) (not (find c good-chars))))
+     ((and bad-chars (typep bad-chars 'sequence))
+      (lambda (c) (find c bad-chars)))
+     (t (error "requires-escaping-p: no good-char criterion")))
+   token))
+
 (defun escape-token (token &key stream quote good-chars bad-chars escaper)
   (cond
-    ((some
-      (cond
-        ((functionp good-chars) (complement good-chars))
-        ((typep good-chars 'sequence) (lambda (c) (not (find c good-chars))))
-        ((functionp bad-chars) bad-chars)
-        ((typep bad-chars 'sequence) (lambda (c) (find c bad-chars)))
-        (t (error "maybe-escape-token: no good-char criterion")))
-      token)
+    ((requires-escaping-p token :good-chars good-chars :bad-chars bad-chars)
      (with-output (stream)
        (apply escaper token stream (when quote `(:quote ,quote)))))
-     ((null stream)
-      token)
-     (t
-      (with-output (stream)
-        (princ token stream)))))
+    ((null stream)
+     token)
+    (t
+     (with-output (stream)
+       (princ token stream)))))
 
 (defun escape-command (command s &optional
                        (escaper #+os-unix 'escape-sh-token
@@ -337,7 +365,7 @@ Otherwise, signal an error.")
          (issue (char x i)) (incf i))))))
 
 (defun escape-windows-token (token &optional s)
-  (escape-token token :stream s :bad-chars #(#\space #\tab #\") :quote #\"
+  (escape-token token :stream s :bad-chars #(#\space #\tab #\") :quote nil
                 :escaper 'escape-windows-token-within-double-quotes))
 
 (defun escape-windows-command (command &optional s)
@@ -367,7 +395,7 @@ Otherwise, signal an error.")
                                  prefix
                                  keep
                                  (direction :io)
-                                 (element-type :default)
+                                 (element-type (or #+(or abcl xcl) 'character :default))
                                  (external-format :default))
   (check-type direction (member :output :io))
   (loop
@@ -399,7 +427,7 @@ Otherwise, signal an error.")
             ,@(unless pathnamep `((declare (ignore ,pathname))))
             ,@(unless streamp `((close ,stream)))
             ,@body))
-     (declare (dynamic-extent #'think))
+     #-gcl (declare (dynamic-extent #'think))
      (call-with-temporary-file
       #'think
       ,@(when prefix `(:prefix ,prefix))
@@ -416,7 +444,7 @@ Otherwise, signal an error.")
 ;;; On some implementations, may output to a temporary file...
 (defun run-program/process-output-stream (command output-processor
                                           &key ignore-error-status force-shell
-                                          (element-type :default)
+                                          (element-type (or #+(or abcl xcl) 'character :default))
                                           (external-format :default))
   (declare (ignorable ignore-error-status element-type external-format))
   (let* ((p (find-package :quux-iolib))
@@ -424,7 +452,7 @@ Otherwise, signal an error.")
          (s (and p (find-symbol (string r) p))))
     (when s (return-from run-program/process-output-stream
               (funcall s command output-processor :ignore-error-status ignore-error-status))))
-  #-(or abcl allegro clisp clozure cmu ecl lispworks sbcl scl xcl)
+  #-(or abcl allegro clisp clozure cmu ecl gcl lispworks sbcl scl xcl)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
   (labels (#+(or allegro clisp clozure cmu ecl
                  (and lispworks os-unix) sbcl scl)
@@ -432,62 +460,71 @@ Otherwise, signal an error.")
              "runs the specified command (a list of program and arguments).
               If using a pipe, returns two values: process and stream
               If not using a pipe, returns one values: the process result"
-             (let* ((command (etypecase command
-                              (string
-                               #+os-unix `("/bin/sh" "-c" ,command)
-                               #+os-windows `("cmd" "/c" ,command))
-                              (list
-                               command)))
+             (let* ((command
+                     (etypecase command
+                       #+os-unix (string `("/bin/sh" "-c" ,command))
+                       #+os-unix (list command)
+                       #+os-windows
+                       (string
+                        #+allegro (format nil "cmd /c ~A" command)
+                        #-allegro `("cmd" "/c" ,command))
+                       #+os-windows
+                       (list
+                        #+allegro (escape-windows-command command)
+                        #-allegro command)))
                     (process*
-                     #+(or allegro lispworks)
                      (multiple-value-list
                       #+allegro
                       (excl:run-shell-command
                        #+os-unix (coerce (cons (first command) command) 'vector)
-                       #+os-windows (escape-windows-command command)
+                       #+os-windows command
                        :input nil :output (and pipe :stream) :wait (not pipe))
                       #+lispworks
                       (system:run-shell-command
                        (cons "/usr/bin/env" command) ; lispworks wants a full path.
                        :input nil :output (and pipe :stream)
-                       :wait (not pipe) :save-exit-status (and pipe t)))
-                     #-(or allegro lispworks)
-                     (#+(or clisp cmu ecl scl) ext:run-program
-                      #+clozure ccl:run-program
-                      #+sbcl sb-ext:run-program
-                      (car command) #+clisp :arguments (cdr command)
-                      :input nil :output (and pipe :stream) :wait (not pipe)
-                      . #.(append
-                           #+(or clozure cmu ecl sbcl scl) '(:error t)
-                           #+sbcl '(:search t
-                                    :external-format external-format))))
+                       :wait (not pipe) :save-exit-status (and pipe t))
+                      #-(or allegro lispworks)
+                      (#+(or clisp cmu ecl scl) ext:run-program
+                       #+clozure ccl:run-program
+                       #+sbcl sb-ext:run-program
+                       (car command) #+clisp :arguments (cdr command)
+                       :input nil :output (and pipe :stream) :wait (not pipe)
+                       . #.(append
+                            #+(or clozure cmu ecl sbcl scl) '(:error t)
+                            #+sbcl '(:search t
+                                     :external-format external-format)))))
                     (process
-                     #+(or allegro lispworks) (third process*)
-                     #-(or allegro lispworks) process*)
+                     #+(or allegro lispworks ecl) (third process*)
+                     #-(or allegro lispworks ecl) (first process*))
                     (stream
-                     #+(or allegro lispworks) (first process*)
-                     #+(or clisp ecl) process
+                     #+(or allegro lispworks ecl) (first process*)
+                     #+clisp process
                      #+clozure (ccl::external-process-output process)
                      #+(or cmu scl) (ext:process-output process)
                      #+sbcl (sb-ext:process-output process)))
                (if pipe
                    (values process stream)
-                   (process-result process))))
+                   #-allegro (process-result process)
+                   #+allegro (check-result (first process*)))))
+           #-(or abcl cormanlisp gcl (and lispworks os-windows) xcl)
            (process-result (process)
-             #+(or clisp ecl (and lispworks os-windows)) nil
+             (declare (ignorable process))
              ;; 1- wait
-             #+clozure (ccl::external-process-wait process)
+             #+(and clozure os-unix) (ccl::external-process-wait process)
              #+(or cmu scl) (ext:process-wait process)
+             #+(and ecl os-unix) (ext:external-process-wait process)
              #+sbcl (sb-ext:process-wait process)
              ;; 2- extract result
              #+allegro (sys:reap-os-subprocess :pid process :wait t)
              #+clozure (nth-value 1 (ccl:external-process-status process))
              #+(or cmu scl) (ext:process-exit-code process)
+             #+ecl (nth-value 1 (ext:external-process-status process))
              #+lispworks (system:pid-exit-status process :wait t)
              #+sbcl (sb-ext:process-exit-code process))
            (check-result (return-code)
              (unless (or ignore-error-status
-                         #+(or ecl clisp) t
+                         #+clisp t
                          (zerop return-code))
                (cerror "ignore error code~*~*"
                        "Process ~S exited with error code ~D"
@@ -495,35 +532,45 @@ Otherwise, signal an error.")
            (system (command)
              #+(or abcl xcl)
              (ext:run-shell-command command)
-             #+(or allegro clisp clozure cmu ecl
-                   (and lispworks os-unix) sbcl scl)
+             #+allegro
+             (excl:run-shell-command command :input nil :output nil :wait t)
+             #+(or clisp clozure cmu (and lispworks os-unix) sbcl scl)
              (run-program command :pipe nil)
+             #+ecl
+             (ext:system command)
+             #+cormanlisp
+             (win32:system command)
+             #+gcl
+             (lisp:system command)
              #+(and lispworks os-windows)
              (system:call-system-showing-output
-              command :show-cmd nil :prefix "" :output-stream nil)))
+              command :show-cmd nil :prefix "" :output-stream nil))
+           (use-run-program ()
+             #-(or abcl cormanlisp gcl (and lispworks os-windows) xcl)
+             (multiple-value-bind (process stream)
+                 (run-program command :pipe t)
+               (unwind-protect
+                    (funcall output-processor stream)
+                 (close stream)
+                 (check-result (process-result process)))))
+           (use-system ()
+             (with-temporary-file (:pathname tmp)
+               (let* ((command-string
+                       (format nil "~A > ~A"
+                               (etypecase command
+                                 (string command)
+                                 (list (escape-shell-command command)))
+                               tmp)))
+                 (check-result (system command-string))
+                 (with-open-file (stream tmp
+                                         :direction :input :if-does-not-exist :error
+                                         :element-type element-type
+                                         :external-format external-format)
+                   (funcall output-processor stream))))))
     (if (and (not force-shell)
-             #+(or abcl (and lispworks os-windows) xcl) nil)
-        ;; run-program
-        (multiple-value-bind (process stream)
-            (run-program command :pipe t)
-          (unwind-protect
-               (funcall output-processor stream)
-            (close stream)
-            (check-result (process-result process))))
-        ;; system
-        (with-temporary-file (:pathname tmp)
-          (let* ((command-string
-                  (format nil "~A > ~A"
-                          (etypecase command
-                            (string command)
-                            (list (escape-shell-command command)))
-                          tmp)))
-            (check-result (system command-string))
-            (with-open-file (stream tmp
-                             :direction :input :if-does-not-exist :error
-                             :element-type element-type
-                             :external-format external-format)
-              (funcall output-processor stream)))))))
+             #+(or abcl cormanlisp gcl (and lispworks os-windows) xcl) nil)
+        (use-run-program)
+        (use-system))))
 
 (defun run-program/read-output-lines (command &rest keys)
   (apply 'run-program/process-output-stream command

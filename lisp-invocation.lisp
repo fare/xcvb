@@ -112,6 +112,23 @@
   :quit-format "(unix:unix-exit ~A)"
   :dump-format "(extensions:save-lisp ~S)")
 
+#| ;; Maybe someone will add support for this?
+(define-lisp-implementation :corman ()
+  :fullname "Corman Lisp"
+  :name "clconsole"
+  :feature :cormanlisp
+  :flags XXX
+  :eval-flag XXX
+  :load-flag XXX
+  :image-flag XXX
+  :image-executable-p XXX
+  :arguments-end XXX
+  :argument-control XXX
+  :disable-debugger XXX
+  :quit-format "(win:exitprocess ~A)"
+  :dump-format XXX)
+|#
+
 (define-lisp-implementation :ecl () ;; demand 10.4.2 or later.
   :fullname "Embeddable Common-Lisp"
   :name "ecl"

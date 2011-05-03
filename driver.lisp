@@ -107,18 +107,37 @@
   "initial random state to preserve determinism")
 
 ;;; Setting up the environment from shell variables
+#+mcl
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (ccl:define-entry-point (_getenv "getenv") ((name :string)) :string))
 (defun getenv (x)
-  #-(or abcl allegro cmu clisp clozure ecl gcl lispworks sbcl scl)
-  (error "GETENV not supported for your Lisp implementation")
-  (#+(or abcl clisp xcl) ext:getenv
-   #+allegro sys:getenv
-   #+clozure ccl:getenv
-   #+(or cmu scl) (lambda (x) (cdr (assoc x ext:*environment-list* :test #'string=)))
-   #+ecl si:getenv
-   #+gcl system:getenv
-   #+lispworks lispworks:environment-variable
-   #+sbcl sb-ext:posix-getenv
-   x))
+  (declare (ignorable x))
+  #+(or abcl clisp xcl) (ext:getenv x)
+  #+allegro (sys:getenv x)
+  #+clozure (ccl:getenv x)
+  #+(or cmu scl) (cdr (assoc x ext:*environment-list* :test #'string=))
+  #+cormanlisp
+  (let* ((buffer (ct:malloc 1))
+         (cname (ct:lisp-string-to-c-string x))
+         (needed-size (win:getenvironmentvariable cname buffer 0))
+         (buffer1 (ct:malloc (1+ needed-size))))
+    (prog1 (if (zerop (win:getenvironmentvariable cname buffer1 needed-size))
+               nil
+               (ct:c-string-to-lisp-string buffer1))
+      (ct:free buffer)
+      (ct:free buffer1)))
+  #+ecl (si:getenv x)
+  #+gcl (system:getenv x)
+  #+genera nil
+  #+lispworks (lispworks:environment-variable x)
+  #+mcl (ccl:with-cstrs ((name x))
+          (let ((value (_getenv name)))
+            (unless (ccl:%null-ptr-p value)
+              (ccl:%get-cstring value))))
+  #+sbcl (sb-ext:posix-getenv x)
+  #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl genera lispworks mcl sbcl scl xcl)
+  (error "~S is not supported on your implementation" 'getenv))
+
 (defun emptyp (x)
   (or (null x) (and (vectorp x) (zerop (length x)))))
 (defun setenvp (x)
