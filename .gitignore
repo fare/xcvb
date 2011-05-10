@@ -1,6 +1,9 @@
 build
 *.*fsl
 *.*fasl
+*.amd64f
+*.abcl
+*.xcl
 *Makefile.xcvb
 *~
 *#

@@ -302,7 +302,7 @@ and extra finalization from calling FUN on the world."
 ;; 2- a second version computes latency assuming finite cpu (specified or detected)
 ;; 3- a third version actually goes on and does it, using strategy based on above estimates
 ;; compute maximum possible parallelization using the Hopcroft-Karp algorithm?
-;;   http://en.wikipedia.org/wiki/Hopcroft–Karp_algorithm
+;;   http://en.wikipedia.org/wiki/Hopcroft-Karp_algorithm
 
 ;; TODO: for a scheduler,
 ;; 1- minimize total latency, maximize parallelism
