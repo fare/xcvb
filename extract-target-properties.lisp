@@ -57,7 +57,7 @@
   (let ((forms (extract-target-properties)))
     (unless forms
       (error "Failed to extract properties from your Lisp implementation"))
-    (log-format 7 "Information from target Lisp:~% ~S" forms)
+    (log-format-pp 7 "Information from target Lisp:~% ~S" forms)
     (unless (and (list-of-length-p 1 forms)
                  (consp (car forms)) (eq 'setf (caar forms)))
       (error "Malformed target properties"))
@@ -74,7 +74,7 @@
 (defun extract-target-properties ()
   (with-safe-io-syntax (:package :xcvb-user)
     (let ((command (query-target-lisp-command (target-properties-form))))
-      (log-format 8 "Extract information from target Lisp:~% ~S" command)
+      (log-format-pp 8 "Extract information from target Lisp:~% ~S" command)
       (run-program/read-output-forms command))))
 
 (defun target-properties-form ()

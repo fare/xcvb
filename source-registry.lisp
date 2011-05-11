@@ -85,16 +85,21 @@ Initially populated with all build.xcvb files from the search path.")
   "special systems that are part of SBCL")
 
 (defun initialize-builds ()
+  (log-format 10 "Initializing builds to supersede ASDF...~%")
   (clrhash *builds*)
   (when (eq *lisp-implementation-type* :sbcl)
     (loop :for x :in *sbcl-contribs*
-      :for n = (string-downcase x) :do
-      (setf (registered-build `(:supersedes-asdf ,n)) (make-require-grain :name n)))))
+       :for n = (string-downcase x) :do
+       (log-format 10 "  Initializing specific build to supersede ASDF: ~S~%"
+		   n)
+       (setf (registered-build `(:supersedes-asdf ,n)) (make-require-grain :name n)))))
 
 (defun initialize-source-registry (&optional parameter)
   (initialize-builds)
+  (log-format 10  "Initializing source registry: ")
   (let ((source-registry (compute-source-registry parameter)))
     (setf *flattened-source-registry* (list source-registry))
+    (log-format-pp 10 "~S~%" *flattened-source-registry*)
     *flattened-source-registry*))
 
 (defun ensure-source-registry ()
@@ -107,12 +112,14 @@ Initially populated with all build.xcvb files from the search path.")
   (let* ((absolute-path (ensure-absolute-pathname element)))
     (cond
       ((ignore-errors (truename absolute-path))
+       (log-format 10 "  Verified path element: ~S~%" absolute-path)
        absolute-path)
       (t
-       (log-format 7 "Discarding invalid path element ~S~%" element)
+       (log-format 7 "  Discarding invalid path element ~S~%" element)
        nil))))
 
 (defun finalize-source-registry ()
+  (log-format 10 "Finalizing (verifying) source registry~%")
   (setf *flattened-source-registry*
         (list
          (loop :for (path . flags) :in (car *flattened-source-registry*)
@@ -166,6 +173,10 @@ Initially populated with all build.xcvb files from the search path.")
 
 (defun map-build-files-under (root fn)
   "Call FN for all BUILD files under ROOT"
+  (log-format-pp
+   10 "Processing all build.xcvb files in source registry root:~%    ~S~%"
+   root)
+  
   (let* ((builds (find-build-files-under root))
          ;; depth first traversal
          (builds (sort (mapcar #'truename builds) #'<
@@ -173,9 +184,13 @@ Initially populated with all build.xcvb files from the search path.")
     (map () fn builds)))
 
 (defun search-source-registry ()
+  (log-format 10 "Searching for build files in source registry.~%")
   (finalize-source-registry)
   (dolist (root (car *flattened-source-registry*))
-    (map-build-files-under root #'(lambda (x) (register-build-file x root)))
+    (map-build-files-under root
+			   #'(lambda (x)
+			       (log-format 10 "  Registering build file: ~S" x)
+			       (register-build-file x root)))
     (confirm-builds-under root)))
 
 (defun ensure-source-registry-searched ()
@@ -237,6 +252,7 @@ for each of its registered names."
     (values)))
 
 (defun confirm-builds-under (root)
+  (log-format 10 "Confirming discovered build files!~%")
   (loop
     :with builds-under-root = (loop :for b :being :the :hash-values :of *builds*
                                 :when (and (build-module-grain-p b) (equal (bre-root b) root))

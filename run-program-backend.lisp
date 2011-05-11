@@ -11,12 +11,10 @@
 
 (defun simple-build (fullname &key force)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
+  (log-format 10 "Beginning simple-build with target: ~S~%" fullname)
   (multiple-value-bind (target-dependency) (handle-target fullname)
-    (let* (#|(*default-pathname-defaults*
-	    (pathname-directory-pathname (grain-pathname build)))|#
-           (*print-pretty* nil); otherwise SBCL will slow us down a lot.
+    (let* ((*print-pretty* nil); otherwise SBCL will slow us down a lot.
            (env (make-instance 'run-program-traversal)))
-      ;;(log-format 9 "*default-pathname-defaults*: ~S" *default-pathname-defaults*)
       (log-format 7 "object-directory: ~S" *object-directory*)
       ;; Pass 1: Traverse the graph of dependencies
       (log-format 8 "T=~A building dependency graph" (get-universal-time))

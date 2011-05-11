@@ -19,12 +19,17 @@
         :when (getf keys key) :do
         (error "While parsing module form ~S, invalid key ~S provided"
                form key))
+      (log-format-pp 10
+		     "      Constructing grain of class ~A with~%        ~S~%" class
+		  `(:extension-forms ,extension-forms :computation nil
+				     ,(append keys form-keys)))
       (apply #'make-instance class
            :extension-forms extension-forms
            :computation nil
            (append keys form-keys)))))
 
 (defun grain-from-file-declaration (path &key build-p)
+  (log-format 10 "    Creating grain from path ~S~%" path)
   (parse-module-declaration
    (let ((*features* (list :xcvb)))
      (read-first-file-form path :package :xcvb-user))

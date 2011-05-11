@@ -308,7 +308,7 @@ using ~A~%"
       (xcvb-driver:debugging))
     (when verbosity
       (setf *xcvb-verbosity* verbosity))
-    (log-format 9 "xcvb options: ~S" keys)
+    (log-format-pp 9 "xcvb options: ~S" keys)
     (initialize-source-registry source-registry)
     (search-source-registry)
     (when lisp-implementation
