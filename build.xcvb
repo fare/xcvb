@@ -11,7 +11,7 @@
 
 (module
  (:fullname "xcvb"
-  :author ("Francois-Rene Rideau" "Joyce Chen" "Spencer Brody")
+  :author ("Francois-Rene Rideau" "Joyce Chen" "Spencer Brody" "Peter Keller")
   :maintainer "Francois-Rene Rideau"
   :licence "MIT" ;; MIT-style license. See LICENSE
   :description "XCVB"

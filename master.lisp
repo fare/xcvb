@@ -49,6 +49,7 @@
    #:read-many
    #:with-safe-io-syntax
    #:read-first-file-form
+   #:with-temporary-file
 
    ;;; Escaping the command invocation madness
    #:escape-windows-token
@@ -152,8 +153,9 @@ that is neither Unix, nor Windows.~%Now you port it."))
   Default: whatever's the default for your implementation.")
 
 (defvar *lisp-implementation-directory*
-  (or #+sbcl (namestring (sb-int:sbcl-homedir-pathname))
-      #+ccl (namestring (ccl::ccl-directory)))
+  (or #+ccl (namestring (ccl::ccl-directory))
+      #+gcl (namestring system::*system-directory*)
+      #+sbcl (namestring (sb-int:sbcl-homedir-pathname)))
   "Where is the home directory for the Lisp implementation,
   in case we need it to (require ...) special features?
   Default: whatever's the default for your implementation.")
@@ -185,7 +187,10 @@ A list of strings, or the keyword :DEFAULT.")
   "where to store object files.
 NIL: default to ~/.cache/xcvb/common-lisp/sbcl-1.0.47-x86/ or some such, see docs")
 
-(defvar *tmp-directory-pathname* #p"/tmp/"
+(defvar *tmp-directory-pathname*
+  (pathname
+   #+os-unix (format nil "~A/" (or (getenv "TMP") "/tmp"))
+   #+os-windows (format nil "~A\\" (or (getenv "TEMP") (error "No temporary directory!"))))
   "pathname of directory where to store temporary files")
 
 (defvar *use-base-image* t
@@ -399,9 +404,7 @@ Otherwise, signal an error.")
                                  (external-format :default))
   (check-type direction (member :output :io))
   (loop
-    :with prefix = (or prefix
-		       #+os-unix (format nil "~A/xm" (or (getenv "TMP") "/tmp"))
-                       #+os-windows (format nil "~A\\xm" (getenv "TEMP")))
+    :with prefix = (or prefix (format nil "~Axm" *tmp-directory-pathname*))
     :for counter :from (random (ash 1 32))
     :for pathname = (pathname (format nil "~A~36R" prefix counter)) :do
      ;; TODO: on Unix, do something about umask

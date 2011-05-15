@@ -289,7 +289,7 @@ using ~A~%"
   (get-target-properties)
   (asdf:merge-pathnames*
    (asdf:coerce-pathname
-    (strcat ".cache/xcvb/common-lisp/" *implementation-identifier* "/"))
+    (strcat ".cache/xcvb/" *implementation-identifier* "/"))
    (asdf::user-homedir)))
 
 (defun handle-global-options (&rest keys &key

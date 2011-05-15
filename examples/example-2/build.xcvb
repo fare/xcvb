@@ -2,7 +2,7 @@
 
 #+xcvb
 (module
- (:fullname "example-2"
+ (:fullname "/xcvb/example-2"
   :depends-on ("main"
 	       "package"
 	       "lib-a/func-1"

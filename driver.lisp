@@ -580,7 +580,7 @@ This is designed to abstract away the implementation specific quit forms."
     :executable t ;--- always include the runtime that goes with the core
     (when standalone (list :toplevel #'resume :save-runtime-options t)))) ;--- only save runtime-options for standalone executables
   #-(or allegro clisp clozure cmu gcl lispworks sbcl scl)
-  (%abort 11 "Can't dump ~S: xcvb-driver doesn't support image dumping with this Lisp implementation.~%" filename))
+  (die "Can't dump ~S: xcvb-driver doesn't support image dumping with this Lisp implementation.~%" filename))
 
 ;;; Actually creating images
 #-ecl

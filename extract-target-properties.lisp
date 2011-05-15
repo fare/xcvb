@@ -71,11 +71,41 @@
             (t
              (set var (second value)))))))
 
-(defun extract-target-properties ()
+(defun extract-target-properties-via-pipe ()
   (with-safe-io-syntax (:package :xcvb-user)
     (let ((command (query-target-lisp-command (target-properties-form))))
       (log-format-pp 8 "Extract information from target Lisp:~% ~S" command)
-      (run-program/read-output-forms command))))
+      (handler-case
+          (let ((output (run-program/read-output-string command)))
+            (handler-case (with-input-from-string (s output) (read-many s))
+              (t () (error "Failed to extract properties from target Lisp:~%~
+			Command:~S~%Output:~%~A~%" command output))))
+        (t (c) (error "Failed to extract properties from target Lisp:~%~
+			Command:~S~%Error:~%~A~%" command c))))))
+
+(defun extract-target-properties-via-tmpfile ()
+  (with-temporary-file (:pathname pn :prefix (format nil "~Axtp" *tmp-directory-pathname*))
+    (with-safe-io-syntax (:package :xcvb-user)
+      (let* ((command (query-target-lisp-command
+                       (format nil "(with-open-file (*standard-output* ~S :direction :output :if-exists :overwrite :if-does-not-exist :error) ~A)"
+                               pn (target-properties-form)))))
+        (log-format-pp 8 "Extract information from target Lisp:~% ~S" command)
+        (let ((stdout (run-program/read-output-string command)))
+          (handler-case
+              (with-open-file (s pn :direction :input :if-does-not-exist :error)
+                (read-many s))
+            (t () (error "Failed to extract properties from target Lisp:~%~
+			  Command:~S~%stdout:~%~A~%Output:~%~A~%"
+                         command stdout
+                         (with-open-file (s pn :direction :input)
+                           (slurp-stream-string s))))))))))
+
+(defun extract-target-properties ()
+  (case *lisp-implementation-type*
+    ((:gcl :xcl :lispworks)
+     (extract-target-properties-via-tmpfile))
+    (otherwise
+     (extract-target-properties-via-pipe))))
 
 (defun target-properties-form ()
   (with-safe-io-syntax (:package :xcvb-user)

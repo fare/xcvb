@@ -3,7 +3,9 @@
 # Q: what to do of this old broken test suite?
 # ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-test --restart xcvb::quit
 
-LISPS=(clisp ccl sbcl)
+XCVB_LISPS=(clisp ccl sbcl)
+SIMPLE_TARGET_LISPS=(clisp ccl sbcl scl)
+FARMER_TARGET_LISPS=(clisp ccl sbcl)
 
 abort () {
   : PATH=$PATH
@@ -303,7 +305,7 @@ validate_xcvb_dir () {
 
 validate_xcvb_dir_all_lisps () {
   compute_xcvb_dir_variables
-  for LISP in $LISPS ; do
+  for LISP in $XCVB_LISPS ; do
     validate_xcvb_dir
   done
 }
@@ -331,7 +333,7 @@ validate_release_dir () {
 
 validate_release_dir_all_lisps () {
   compute_release_dir_variables
-  for LISP in $LISPS ; do
+  for LISP in $XCVB_LISPS ; do
     validate_release_dir
   done
 }

@@ -233,6 +233,10 @@ I propose our next steps should be as follows:
 
  * Make XCVB a universally applicable alternative or complement to ASDF.
 
+   + Add GCL support: offer a way to extract target properties through
+     named temporary file instead of stdout, because stdout is not to be trusted.
+     Use an abstraction layer over getting output from finishing Lisp programs.
+
    + Add ECL support.
 
    + Debug support for

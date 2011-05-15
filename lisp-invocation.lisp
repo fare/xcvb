@@ -144,9 +144,9 @@
   :quit-format "(si:quit ~A)"
   :dump-format nil) ;; Cannot dump with ECL. Link instead.
 
-(define-lisp-implementation :gcl () ;; Demand 2.7.0 - if it is ever released.
+(define-lisp-implementation :gcl () ;; Demand 2.7.0, if it is ever released. In ANSI mode.
   :fullname "GNU Common Lisp"
-  :name "gcl" ;; may have to export GCL_ANSI=t or something
+  :name "gcl" ;; we might export GCL_ANSI=t or something
   :feature :gcl
   :flags ()
   :eval-flag "-eval" ; -e

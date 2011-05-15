@@ -1,7 +1,7 @@
 
 LISP = sbcl
 XCVB_ROOT := $(shell readlink -f ../..)
-XCVB_OBJECT_DIRECTORY=`xcvb show object-directory`
+XCVB_OBJECT_DIRECTORY := $(shell xcvb show object-directory)
 XCVB_IMAGE=${XCVB_OBJECT_DIRECTORY}/example-1.image
 
 # Required for xcvb to find the source registry
@@ -10,7 +10,7 @@ export CL_SOURCE_REGISTRY := ${XCVB_ROOT}//:${CL_SOURCE_REGISTRY}
 # Build by having xcvb run the simple-build steps itself.
 build:
 	xcvb simple-build \
-		--build "example-1" \
+		--build "/xcvb/example-1" \
 		--lisp-implementation ${LISP} \
 		--verbosity 10
 	cl-launch --lisp ${LISP} \
@@ -36,8 +36,9 @@ ${XCVB_IMAGE}: xcvb.mk
 
 xcvb.mk: build.xcvb $(wildcard *.lisp)
 	xcvb make-makefile \
-		--build "example-1" \
+		--build "/xcvb/example-1" \
 		--lisp-implementation ${LISP} \
+		--object-directory ${XCVB_OBJECT_DIRECTORY} \
 		--verbosity 10
 
 clean:

@@ -1,3 +1,5 @@
+#+xcvb (module (:depends-on ("package")))
+
 (in-package #:xcvb-unit-tests)
 
 (defsuite* (run-program/*
@@ -175,7 +177,11 @@
                                                'slurp-stream-lines
                                                :ignore-error-status t))))
 
-(defun windows-only-test/run/progra/process/output-stream ()
+(defun windows-only-test/run-program/process-output-stream ()
+
+  ;; a basic smoke test
+  (is (equal (run-program/read-output-lines '("cmd" "/c" "echo" "ok")) '(("ok"))))
+
   nil)
 
 (deftest test/run-program/process-output-stream ()
@@ -184,5 +190,3 @@
     (unix-only-test/run-program/process-output-stream))
   (using-windows
     (windows-only-test/run/progra/process/output-stream)))
-
-

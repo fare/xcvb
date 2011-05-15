@@ -20,7 +20,9 @@
   (:import-from :asdf
    #:*default-source-registry-exclusions*
    #:*default-source-registries*
-   #:inherit-source-registry)
+   #:inherit-source-registry
+   #:coerce-pathname
+   #:user-homedir)
 
   (:import-from :xcvb-driver
    #:*debugging*)
