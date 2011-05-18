@@ -10,11 +10,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (in-package :asdf)
-(let ((old-ver (#+asdf2 asdf-version)))
+#-asdf2 (error "XCVB requires ASDF 2")
+
+(let ((old-ver (asdf-version)))
   (load-system :asdf)
-  (let ((min "2.014.8")
-	(ver (#+asdf2 asdf-version)))
-    (unless (equal ver old-ver)
+  (let ((min "2.015.3")
+	(ver (asdf-version)))
+    (unless (or (version-satisfies old-ver "2.014.8") ; first version to do magic upgrade
+		(equal ver old-ver))
       (error "You must upgrade ASDF to your latest *before* you load XCVB~%~
 		If you're trying to load XCVB at a REPL, try again, it should work."))
     (unless (and ver (version-satisfies ver min))

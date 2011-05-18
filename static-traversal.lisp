@@ -250,6 +250,10 @@
   (assert *use-cfasls*)
   (second (graph-for-fasls env lisp-name)))
 
+(define-graph-for :lisp-object ((env enforcing-traversal) lisp-name)
+  (assert (target-ecl-p))
+  (second (graph-for-fasls env lisp-name)))
+
 (defun setup-dependencies-before-fasl (fullname)
   (assert (equal '(:fasl "/xcvb/driver") (car *lisp-setup-dependencies*)))
   (mapcar

@@ -195,7 +195,7 @@
       (apply #'values values))
     (funcall thunk)))
 (defmacro with-profiling (what &body body)
-  `(call-with-maybe-profiling (lambda () ,@body) ,what *goal*))
+  `(call-with-maybe-profiling #'(lambda () ,@body) ,what *goal*))
 
 ;;; Tweak implementation
 (defun tweak-implementation ()
@@ -275,7 +275,7 @@ This is designed to abstract away the implementation specific quit forms."
     (funcall thunk)
     (quit 0)))
 (defmacro with-coded-exit (() &body body)
-  `(call-with-coded-exit (lambda () ,@body)))
+  `(call-with-coded-exit #'(lambda () ,@body)))
 
 
 ;;; Filtering conditions during the build.
@@ -309,7 +309,7 @@ This is designed to abstract away the implementation specific quit forms."
                (bork condition))))))
     (funcall thunk)))
 (defmacro with-controlled-compiler-conditions (() &body body)
-  `(call-with-controlled-compiler-conditions (lambda () ,@body)))
+  `(call-with-controlled-compiler-conditions #'(lambda () ,@body)))
 (defun call-with-controlled-loader-conditions (thunk)
   (let ((*uninteresting-conditions*
          (append
@@ -320,7 +320,7 @@ This is designed to abstract away the implementation specific quit forms."
           *uninteresting-conditions*)))
     (call-with-controlled-compiler-conditions thunk)))
 (defmacro with-controlled-loader-conditions (() &body body)
-  `(call-with-controlled-loader-conditions (lambda () ,@body)))
+  `(call-with-controlled-loader-conditions #'(lambda () ,@body)))
 (defun save-forward-references (forward-references)
   #+sbcl
   (loop :for w :in sb-c::*undefined-warnings*
@@ -362,7 +362,7 @@ This is designed to abstract away the implementation specific quit forms."
             (funcall thunk))
         (save-forward-references forward-references)))))
 (defmacro with-xcvb-compilation-unit ((&key forward-references) &body body)
-  `(call-with-xcvb-compilation-unit (lambda () ,@body) :forward-references ,forward-references))
+  `(call-with-xcvb-compilation-unit #'(lambda () ,@body) :forward-references ,forward-references))
 
 
 ;;; Interpreting commands from the xcvb-driver-command DSL.
@@ -470,7 +470,21 @@ This is designed to abstract away the implementation specific quit forms."
 
 ;;; Actually compiling
 (defmacro with-determinism (goal &body body)
-  `(call-with-determinism ,goal (lambda () ,@body)))
+  `(call-with-determinism ,goal #'(lambda () ,@body)))
+
+(defun seed-random-state (seed) ; seed is a integer
+  #+sbcl (sb-ext:seed-random-state :state seed)
+  #+ccl (flet ((get-bits (&aux bits)
+                 (multiple-value-setq (seed bits) (floor seed ccl::mrg31k3p-limit))
+                 bits))
+          (multiple-value-bind (x0 x1 x2 x3 x4 x5)
+              (apply 'values (loop :repeat 6 :collect (get-bits)))
+            (when (zerop (logior x0 x1 x2))
+              (setf x0 (logior (get-bits) 1)))
+            (when (zerop (logior x3 x4 x5))
+              (setf x3 (logior (get-bits) 1)))
+            (ccl::initialize-mrg31k3p-state x0 x1 x2 x3 x4 x5)))
+  #-(or sbcl ccl) (make-random-state *initial-random-state*))
 
 (defun call-with-determinism (seed thunk)
   ;;; The seed is an arbitrary object from (a hash of) which we initialize
@@ -489,13 +503,11 @@ This is designed to abstract away the implementation specific quit forms."
          #+sbcl (sb-impl::*gentemp-counter* (* hash 10000))
          ;;; SBCL will hopefully export a better mechanism soon. See:
          ;;; https://bugs.launchpad.net/sbcl/+bug/310116
-         (*random-state*
-          #+sbcl (sb-kernel::%make-random-state
-                  :state (sb-kernel::init-random-state (ldb (byte 32 0) hash)))
-          #-sbcl (make-random-state *initial-random-state*)))
+         (*random-state* (seed-random-state hash)))
     (funcall thunk)))
 
-(defun do-compile-lisp (dependencies source fasl &key cfasl)
+(defun do-compile-lisp (dependencies source fasl
+                        &key #+sbcl cfasl #+ecl lisp-object)
   (let ((*goal* `(:compile-lisp ,source))
         (*default-pathname-defaults* (truename *default-pathname-defaults*)))
     (multiple-value-bind (output-truename warnings-p failure-p)
@@ -507,24 +519,24 @@ This is designed to abstract away the implementation specific quit forms."
                 (multiple-value-prog1
                     (apply #'compile-file source
                            :output-file (merge-pathnames fasl)
-                           (when cfasl
-                             #+ecl `(:system-p t)
-                             #+sbcl `(:emit-cfasl ,(merge-pathnames cfasl))))
+                           (append
+                            #+sbcl (when cfasl `(:emit-cfasl ,(merge-pathnames cfasl)))
+                            #+ecl (when lisp-object '(:system-p t))))
                   #+ecl
-                  (when cfasl
-                    (call :c :build-fasl
-                          (merge-pathnames cfasl)
-                          :lisp-files (list (merge-pathnames fasl)))))))))
+                  (when lisp-object
+                    (or (call :c :build-fasl
+                              (merge-pathnames lisp-object)
+                              :lisp-files (list (merge-pathnames fasl)))
+                        (die "Failed to build ~S from ~S" fasl lisp-object))))))))
       (declare (ignore output-truename))
       (when failure-p
         (die "Compilation Failed for ~A" source))
       (when warnings-p
         (die "Compilation Warned for ~A" source))))
   (values))
-(defun compile-lisp (spec &rest dependencies)
-  (destructuring-bind (source fasl &key cfasl) spec
-    (do-compile-lisp dependencies source fasl :cfasl cfasl)))
 
+(defun compile-lisp (spec &rest dependencies)
+  (apply 'do-compile-lisp dependencies spec))
 
 ;;; Dumping and resuming an image
 (defun do-resume (&key (restart *restart*))
@@ -597,30 +609,35 @@ This is designed to abstract away the implementation specific quit forms."
     (read s)))
 
 #+ecl ;; wholly untested and probably buggy.
-(defun do-create-image (image dependencies &key standalone package)
-  (let ((*goal* `(create-image ,image)))
-    ;;(with-controlled-compiler-conditions ()
-    ;;  (run-commands dependencies))
-    (multiple-value-bind (lisp-files manifest)
-        (case (caar dependencies)
-           ((:initialize-manifest :load-manifest)
-            (assert (null (cdr dependencies)))
-            (let ((manifest (read-first-form (cadar dependencies))))
-              (values
-               (loop :for l :in (read-first-form (cadar dependencies)) :collect
-                 (destructuring-bind (&key command pathname
-                                           tthsum source-pathname source-tthsum) l
-                   (declare (ignore tthsum source-pathname source-tthsum))
-                   (assert (eq (car command) :load-file))
-                   pathname))
-               manifest)))
-           (:load-file
-            (loop :for l :in dependencies :collect
-              (destructuring-bind (load-file pathname) l
-                (assert (eq load-file :load-file))
-                pathname)))
-           (t
-            (assert (null dependencies))))
+(defun do-create-image (image dependencies &key)
+    (create-bundle  images dependencies
+                   :type (if standalone :program :dll)
+                   :epilogue-code `(setf *package* (find-package ,(string package))))))
+
+#+ecl
+(defun create-bundle (bundle dependencies
+                      &rest keys &key type package prologue-code epilogue-code)
+  (let ((*goal* `(create-bundle ,bundle ,dependencies ,@keys)))
+    (multiple-value-bind (object-files manifest)
+      (case (caar dependencies)
+        ((:link-manifest)
+         (assert (null (cdr dependencies)))
+         (let ((manifest (read-first-form (cadar dependencies))))
+           (values
+            (loop :for l :in (read-first-form (cadar dependencies)) :collect
+              (destructuring-bind (&key command parent pathname
+                                        tthsum source-pathname source-tthsum) l
+                (declare (ignore tthsum source-pathname source-tthsum))
+                (assert (eq (car command) :link-file))
+                pathname))
+            manifest)))
+        (:link-file
+         (loop :for l :in dependencies :collect
+           (destructuring-bind (link-file pathname) l
+             (assert (eq link-file :link-file))
+             pathname)))
+        (t
+         (assert (null dependencies))))
       (let ((epilogue-code
              `(progn
                 ,(when manifest
@@ -633,6 +650,8 @@ This is designed to abstract away the implementation specific quit forms."
         (c::builder :program (parse-namestring image)
                     :lisp-files lisp-files
                     :epilogue-code epilogue-code)))))
+
+#-ecl
 (defun create-image (spec &rest dependencies)
   (destructuring-bind (image &key standalone package) spec
     (do-create-image image dependencies

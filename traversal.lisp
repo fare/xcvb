@@ -43,7 +43,7 @@
     :reader traversed-grain-names-r
     :documentation "grain names in the stack of things we try to create -- to avoid circularities")
    ;; do we also need them as a set? possibly... to be measured.
-   ;; we might benefit from a pure functional set implementation; maybe use FSet?
+   ;; we might benefit from a pure functional set implementation; maybe use fare-utils:pure of FSet
    (issued-dependencies
     :initform (make-hashset :test 'equal)
     :accessor issued-dependencies
@@ -115,12 +115,12 @@
   (values (gethash command (issued-build-commands env))))
 
 (define-graph-for :asdf ((env traversal) system-name)
-  (declare (ignore env))
+  (declare (ignorable env))
   (make-asdf-grain :name system-name
                    :implementation *lisp-implementation-type*))
 
 (define-graph-for :require ((env traversal) name)
-  (declare (ignore env))
+  (declare (ignorable env))
   (make-require-grain :name name))
 
 (defun handle-target (fullname)

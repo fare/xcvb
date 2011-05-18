@@ -134,36 +134,37 @@ To debug XCVB, I use the following::
 General Architecture of XCVB
 ----------------------------
 
-  0- Read command-line.
+  1- Read command-line.
      Choose the backend that corresponds to what the user requested.
 
-  1- Do a first pass, that
+  2- Initialize the namespace by finding all the build.xcvb files
+     and identify which xcvb fullname maps to which source directory.
+
+  3- Do a first pass, that
      focuses on grains (files and intermediate *states* of the computation),
      and in the style of denotational semantics,
      traverses on each grain's dependencies,
      making the grain's environment explicit,
-     and recurses to build a graph
+     and recurses top-down to build a graph
      of all grains involved in the build.
      Along the way, create computation objects that each describe a command
      by which a list of output grains is computed from a list of input grains.
 
-  2- Do a second pass that iterates on the the list of ``*computations*``
+  4- Do a second pass that iterates bottom-up on the the list of ``*computations*``
      produced by the first pass, and in the style of operational semantics,
      takes appropriate action:
      write them to a Makefile, write them a .asd file, actually effect them,
      or otherwise do whatever makes sense for the current backend.
 
-Along the way, we use plenty of extensible of helper functions and methods that
+Along the way, we use plenty of extensible helper functions and methods that
 take as first argument an ``env`` argument that allows to customize their behavior.
 The traversal strategy is characterized by an object of the ``traversal`` class
 that is passed around as this first argument.
-Said object contains context state for the current graph node
+Said object contains context state for the current graph node.
 
-"little languages" processed by functions
-that use ``define-simple-dispatcher``
-(see below `Simple dispatchers as extension points`_), and other helper functions.
-The processors for these languages and associated helper functions
-
+Many of these extensible helper functions are evaluators for "little languages",
+and defined using ``define-simple-dispatcher``
+(see below `Simple dispatchers as extension points`_).
 
 We use (multiple) inheritance for incremental development of our code
 and specializing the passes to the various stragegies available to the users;

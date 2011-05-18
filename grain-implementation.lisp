@@ -61,6 +61,12 @@
   (validate-fullname grain)
   (values))
 
+(defmethod shared-initialize :after
+    ((grain lisp-object-grain) slot-names &rest initargs &key &allow-other-keys)
+  (declare (ignore slot-names initargs))
+  (validate-fullname grain)
+  (values))
+
 (defmethod grain-vp :before ((grain file-grain))
   (unless (slot-boundp grain 'vp)
     (setf (slot-value grain 'vp) (default-vp-for grain))))
@@ -304,6 +310,8 @@
   nil)
 (defmethod build-dependencies ((grain cfasl-grain))
   nil)
+(defmethod build-dependencies ((grain lisp-object-grain))
+  nil)
 
 (defun lisp-module-grain-p (x)
   (typep x 'lisp-module-grain))
@@ -444,6 +452,12 @@ Modeled after the asdf function coerce-name"
    (case *lisp-implementation-type*
      (:ecl "fas")
      (t "cfasl"))))
+(define-default-vp-for-fullname :lisp-object (env name)
+  (declare (ignore env))
+  (vp-for-name-extension
+   name
+   (ecase *lisp-implementation-type*
+     (:ecl "o"))))
 (define-default-vp-for-fullname :source (env sub &key in)
   (declare (ignore env))
   (assert (equal in (fullname (registered-build in :ensure-build t))))
