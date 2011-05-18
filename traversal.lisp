@@ -54,6 +54,7 @@
     :documentation "dependencies issued as part of the current computation, in reverse order")))
 
 (defmethod graph-for ((env traversal) spec)
+  (log-format 10 "Producing graph-for ~S" spec)
   (let ((current-grains-r (traversed-grain-names-r env)))
     (when (member spec current-grains-r :test 'equal)
       (error "circularity in the dependencies:~%~{ ~S~%~}"
@@ -95,6 +96,7 @@
   (check-type grain grain))
 
 (defmethod issue-dependency ((env traversal) grain)
+  (log-format-pp 10 "Issuing dependency for ~A" grain)
   (setf (gethash grain (issued-dependencies env)) t)
   (push grain (traversed-dependencies-r env)))
 

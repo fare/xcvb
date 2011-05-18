@@ -2,7 +2,7 @@
 LISP = sbcl
 XCVB_ROOT := $(shell readlink -f ../..)
 XCVB_OBJECT_DIRECTORY := $(shell xcvb show object-directory)
-XCVB_IMAGE=${XCVB_OBJECT_DIRECTORY}/example-1.image
+XCVB_IMAGE=${XCVB_OBJECT_DIRECTORY}/xcvb/example-1.image
 
 # Required for xcvb to find the source registry
 export CL_SOURCE_REGISTRY := ${XCVB_ROOT}//:${CL_SOURCE_REGISTRY}
@@ -42,4 +42,4 @@ xcvb.mk: build.xcvb $(wildcard *.lisp)
 		--verbosity 10
 
 clean:
-	rm -rf xcvb.mk example-1
+	rm -rf xcvb.mk example-1 ${XCVB_OBJECT_DIRECTORY}
