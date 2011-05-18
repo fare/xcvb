@@ -42,4 +42,4 @@ xcvb.mk: build.xcvb $(wildcard *.lisp)
 		--verbosity 10
 
 clean:
-	rm -rf xcvb.mk example-1 ${XCVB_OBJECT_DIRECTORY}
+	rm -rf xcvb.mk example-1
