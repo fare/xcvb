@@ -27,3 +27,8 @@ Items dumped from TODO that were done.
  * 2011-04-27:
    xcvb show-settings shows all the settings used, notably regarding
    target compiler, paths, etc.
+
+ * 2010-11-10:
+   Finer-grain ASDF supersession [V2]:
+   Allow XCVB to supersede ``xcvb-driver``
+   by redirecting to just ``/xcvb/driver``.

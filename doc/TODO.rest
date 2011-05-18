@@ -233,23 +233,25 @@ I propose our next steps should be as follows:
 
  * Make XCVB a universally applicable alternative or complement to ASDF.
 
-   + Add GCL support: offer a way to extract target properties through
-     named temporary file instead of stdout, because stdout is not to be trusted.
-     Use an abstraction layer over getting output from finishing Lisp programs.
-
    + Add ECL support.
 
    + Debug support for
-     ccl sbcl clisp abcl cmucl scl allegro lispworks allegromodern xcl.
+     ccl sbcl clisp abcl cmucl scl allegro lispworks allegromodern xcl gcl.
 
    + To ensure total compatibility, have a universal version of XCVB
      that can run target any Lisp implementation,
      including legacy systems like Genera.
      We more or less have that with the ASDF backend already.
-     We should "just" streamline that, make it available from xcvb-master,
+     We should "just" streamline that, make it available from xcvb-driver,
      and be the fallback approach on those platforms where it is meaningful.
      Since those platforms do not bundle ASDF, streamlining might include
      producing a load-script that loads and uses ASDF.
+
+   + For the universal version of XCVB, include "reverse slave" functionality,
+     whereby the slave XCVB would tell its master process
+     to do all the compilation. This would allow XCVB to run
+     on Lispworks personal, Corman Lisp, and other crippled Lisp systems.
+     Maybe even on Genera, with an XCVB daemon on the host.
 
    + For an optimized XCVB managing its own processes, assume Linux
      with SBCL or CCL, maybe if not too hard CLISP.
@@ -1089,7 +1091,7 @@ To correctly handle more complex cases,
 
  * push these extensions for inclusion in upstream ASDF, and/or
 
- * just punt and have ASDF delegate to xcvb-master.
+ * just punt and have ASDF delegate to xcvb-driver.
 
 Note that the conversion can be tested with::
 
@@ -1117,13 +1119,6 @@ To support it, we may need to
     probably less simple changes in the ``farmer`` when it's ready.
 
 As usual, the test suite is your friend.
-
-
-Finer-grain ASDF supersession [V2]
-----------------------------------
-
-Allow XCVB to supersede ``xcvb-driver`` by redirecting to just ``/xcvb/driver``,
-and similarly ``xcvb-master`` should be just ``/xcvb/master``.
 
 
 Better Debugging [V3]

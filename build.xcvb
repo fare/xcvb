@@ -30,7 +30,6 @@ deterministic separate compilation and enforced locally-declared dependencies."
                      ;;(:when (:featurep :xcvb-crypto)
                      ;;  (:asdf :ironclad) ;; unported magic asdf:perform methods...
                      ;;  (:asdf :binascii))
-                     "/xcvb/master"
                      (:when (:featurep :sbcl)
                        ;; Used by XCVB
                        (:require :sb-posix)
@@ -61,6 +60,6 @@ deterministic separate compilation and enforced locally-declared dependencies."
                "main"
                "version"
                "cffi-grovel-support")
-  :supersedes-asdf ("xcvb" ("xcvb-driver" "driver") ("xcvb-master" "master"))
+  :supersedes-asdf ("xcvb" ("xcvb-driver" "driver") ("xcvb-master" "driver"))
   :pre-image t
   :build-image t))

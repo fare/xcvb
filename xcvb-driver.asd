@@ -3,7 +3,7 @@
 ;;;                                                                  ;;;
 ;;; Free Software available under an MIT-style license. See LICENSE  ;;;
 ;;;                                                                  ;;;
-;;; Copyright (c) 2009 ITA Software, Inc.  All rights reserved.      ;;;
+;;; Copyright (c) 2009-2011 ITA Software, Inc.  All rights reserved. ;;;
 ;;;                                                                  ;;;
 ;;; Original authors: Spencer Brody, Francois-Rene Rideau            ;;;
 ;;;                                                                  ;;;

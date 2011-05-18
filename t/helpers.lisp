@@ -4,7 +4,7 @@
 
 (defun all-xcvb-vars ()
   (remove-duplicates
-   (loop :for pkg-name :in '(:xcvb :xcvb-driver :xcvb-master)
+   (loop :for pkg-name :in '(:xcvb :xcvb-driver)
      :for pkg = (find-package pkg-name) :append
      (loop :for sym :being :the :present-symbols :of pkg
        :when (and (boundp sym) (not (constantp sym)))

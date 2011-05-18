@@ -9,7 +9,7 @@
 
 (defpackage :xcvb
   (:use :closer-common-lisp
-        :xcvb-driver :command-line-arguments :xcvb-master
+        :xcvb-driver :command-line-arguments
         :fare-matcher :fare-utils :interface :pure
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 

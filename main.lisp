@@ -337,8 +337,7 @@ using ~A~%"
     (setf *use-base-image* use-base-image)
     (setf *use-master* master)
     (when master
-      (ensure-tthsum-present)
-      (append1f *lisp-setup-dependencies* '(:fasl "/xcvb/master")))
+      (ensure-tthsum-present))
     (when setup
       (let ((module (resolve-absolute-module-name setup)))
         (unless module

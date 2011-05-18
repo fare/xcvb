@@ -26,7 +26,7 @@ enforced locally-declared dependencies.
       2.2  Starting a new XCVB project
       2.3  Compiling with XCVB
       2.4  Lisp Setup
-      2.5  Interactive update of a running image with XCVB master
+      2.5  Interactive update of a running image with XCVB driver
     3  Restrictions on your Lisp Code
       3.1  Compile-time side-effects
       3.2  Full library needed at compile-time
@@ -228,7 +228,7 @@ you will need the following Lisp software libraries to get XCVB running:
 		``git clone git://github.com/froydnj/binascii.git``
 
 Additionally, our XCVB master mode
-(see below `Interactive update of a running image with XCVB master`_)
+(see below `Interactive update of a running image with XCVB driver`_)
 currently requires
 the utility ``tthsum`` to be installed
 so as to compute identifying cryptographic hashes of your files.
@@ -537,14 +537,14 @@ new and incompatible version of ASDF.
 (This is made redundant by ASDF 2, that can now properly upgrade itself.)
 
 
-Interactive update of a running image with XCVB master
+Interactive update of a running image with XCVB driver
 ------------------------------------------------------
 
-``/xcvb/master`` is a small standalone Lisp file.
+``/xcvb/driver`` is a small standalone Lisp file.
 It allows you to build some Lisp software cleanly in a subprocess
 then load the results into the current image.
 
-When you call ``xcvb-master:build-and-load``
+When you call ``xcvb-driver:build-and-load``
 (which also has the short-hand ``xcvbm:bnl``),
 it will use ``run-program`` to invoke a slave XCVB process
 that will drive all the compilation out-of-image
@@ -558,29 +558,25 @@ including a TTH_ checksum of each file (currently using the external utility ``t
 so the master can skip the files of which the very same version has already been loaded.
 The slave will do all the cryptographic hashing on its side,
 so you don't have to include crypto libraries in your image --
-or anything beside the simple and short ``xcvb-master``.
+or anything beside the simple and short ``xcvb-driver``.
 
 .. _TTH: http://en.wikipedia.org/wiki/Hash_tree#Tiger_tree_hash
 
-By default XCVB will include the master and provide initial configuration of it
-in any build you make with the ``Makefile`` backend,
-unless you explicitly specify ``--no-master``
-(which really is only useful for bootstrapping XCVB itself).
-Even then, you can explicitly include it in your software by
-specifying a dependency on ``/xcvb/master``,
-though it might not be initially configured by XCVB
-if you compiled with the ``--no-master`` flag
-or with the ASDF/POIU backend.
+The XCVB driver includes the interface and initial configuration,
+so your Lisp process may call XCVB to build software,
+and load this software in its current image.
 
-You can also include the XCVB master in an ASDF build as system ``xcvb-master``
+You can also include the XCVB driver in an ASDF build as system ``xcvb-driver``
 or load it as a Lisp file from a bare image with
-``(load "/path/to/xcvb/master.lisp")``
+``(load "/path/to/xcvb/driver.lisp")``
 as an alternative to using ``asdf.lisp`` to drive further compilations.
 
-The XCVB master can advantageously replace ASDF, as it has a much smaller footprint,
+The XCVB driver can advantageously replace ASDF,
+as it has a noticeably smaller footprint,
 doesn't pollute the current process with artefacts of compilation
 or the compilation with the artefacts of the current process,
-doesn't have as many multithreading concurrency issues as compiling in-process can raise,
+doesn't have as many multithreading concurrency issues
+as compiling in-process can raise,
 and preserves determinism and reusability in the FASL files being built.
 
 Note that if you built your Lisp image using ASDF,
@@ -592,9 +588,11 @@ However you can use the usual ASDF mechanisms to update your system as usual.
 If you used our non-enforcing backend, you currently have to regenerate
 a new image from the command-line, then use ASDF to reload the system
 in your current image
-(TODO item: we hope to provide automation for that in a further version of XCVB).
+(TODO item: we hope to provide automation for that
+in a further version of XCVB).
 
-Note that the usual restrictions apply as to any update of a running Common Lisp image:
+Note that the usual restrictions apply
+as to any update of a running Common Lisp image:
 
   * errors may happen if you change a symbol's nature
     between lexical, special, constant or symbol-macro as a variable,
@@ -604,7 +602,8 @@ Note that the usual restrictions apply as to any update of a running Common Lisp
     the definition of a structure type, if you fail to provide appropriate
     methods on ``update-instance-for-redefined-class``, etc.
 
-  * side-effects may override your variables (such as from ``setf`` or ``defparameter``).
+  * side-effects may override your variables
+    (such as from ``setf`` or ``defparameter``).
 
   * the order in which side-effects happen or fail to happen
     (as XCVB master skips files an identical copy of which was already loaded)
@@ -614,11 +613,12 @@ Note that the usual restrictions apply as to any update of a running Common Lisp
 More generally, the correct loading a file may implicitly require
 pre-conditions that are valid in a clean build,
 but violated in an incremental load.
-Some of these issues can be worked around by manually uninterning specific symbols,
+Some of these issues can be worked around by
+manually uninterning specific symbols,
 clearing and rebuilding dictionaries or twiddling specific entries,
 unregistering and re-registering specific hooks,
 deleting and re-creating specific packages, etc.
-(see for instance the ``/xcvb/no-asdf``).
+(see for instance the ``/xcvb/no-asdf`` used with ASDF 1).
 Unhappily, there is no general solution to this problem,
 and that we know, no declarative meta-level protocol
 was devised to help alleviate it.
@@ -1608,8 +1608,8 @@ Why is XCVB so much bigger and more complex than ASDF?
 ------------------------------------------------------
 
 It isn't really.
-You should be comparing ASDF to XCVB-Master, not to XCVB.
-XCVB-Master is ten times smaller than ASDF.
+You should be comparing ASDF to XCVB-Driver, not to XCVB.
+XCVB-Driver is three times smaller than ASDF.
 It is all you need to load in your Lisp image, and
 it provides all you need to do incremental development.
 
@@ -1619,4 +1619,5 @@ XCVB includes conditional dependencies, conversion between XCVB and ASDF,
 a Makefile backend, cross-compilation, eager error checking, warning control,
 an extensive command-line interface (also at the Lisp REPL),
 plus plenty of new features that are still in the works.
-Yet, XCVB (not counting library dependencies) is only twice the size of ASDF.
+Yet, XCVB (not counting library dependencies) is only twice the size of ASDF
+--- and importantly, you don't have to load it into your current image.

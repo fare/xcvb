@@ -64,7 +64,6 @@ concepts underlying XCVB.
       2.33  farmer.lisp
       2.34  cffi-grovel-support.lisp
       2.35  version.lisp
-      2.36  master.lisp
     3  Good places to extend XCVB
       3.1  Add more tests
       3.2  Extending the driver
@@ -374,33 +373,44 @@ driver.lisp
 -----------
 
 A collection of utilities and trivial domain-specific languages
-to be compiled into buildee processes
-so as to provide an abstraction layer for XCVB to compile files.
+to be compiled into Lisp processes so as to provide an abstraction layer
+for XCVB to compile files.
 
-The driver includes support for both ASDF and XCVB master (see below)
-either of which can be loaded either before or after the driver is loaded,
+The driver may be used either as part of a master process using XCVB
+to build software that will be loaded into the current image, or
+as part of a slave process used by XCVB to actually build the software.
+
+See the README section about Interactive Updates for the master mode
+whereby a process can drive an XCVB build.
+This provides an alternative to ASDF to build Lisp software into your image.
+
+The driver includes support for ASDF. If ASDF is used,
+it may be loaded either before or after the driver is loaded,
 but must obviously be loaded before it is used.
+See also the XCVB-ASDF bridge.
 
 The driver also includes some support for filtering error messages,
 support for debugging and profiling, etc.
 
-Finally, the driver includes support for forking subprocesses so that
-a controlling XCVB can copy the current state of the Lisp world and
+Finally on supported implementations it includes helpers to fork subprocesses
+so that a controlling XCVB can copy the current state of the Lisp world
 before to compile further files and thus share previous computations.
 
 Goals and Constraints:
 
-   * Should not otherwise have any dependencies beyond what the implementation provides;
-     otherwise, compiling one of these dependencies could cause "interesting" complications
+   * The driver must not depend on any software beyond
+     what each implementation provides;
+     otherwise, compiling one of these dependencies
+     could cause "interesting" complications
      due to non-atomic self-modification.
 
-   * Should be able to fork a new listener for an XCVB farmer to control the child with
-     arbitrary commands, with minimal reliance on non-portable code.
-     Design choice: so we only have to model ``fork(2)`` and not stream I/O through pipes,
-     the farmer will use ``with-open-file`` to open specified named pipes created by the farmer.
+   * Design choice when forking, we only model ``fork(2)``
+     and not stream I/O through pipes;
+     the farmer will use ``with-open-file``
+     to open specified named pipes created by the farmer.
 
-   * It is OK to fail to reap a completely hosed process -- in these cases,
-     it is up to the driving XCVB to take action.
+   * It is OK to fail to reap a completely hosed process
+     -- in these cases, it is up to the driving XCVB to take action.
 
 
 pkgdcl.lisp
@@ -725,15 +735,6 @@ version.lisp
 The version of the current XCVB release.
 
 
-master.lisp
------------
-
-This is the XCVB master, a small standalone alternative to ASDF
-that invokes an external XCVB process to drive builds.
-
-See the README section about XCVB master.
-
-
 Good places to extend XCVB
 ==========================
 
@@ -836,7 +837,7 @@ Backwards Compatibility
 
 Starting whenever we have users who actually use XCVB to bootstrap XCVB
 and we made an official stable release,
-we'll want ``/xcvb/driver`` and ``/xcvb/master`` to provide backwards compatibility.
+we'll want ``/xcvb/driver`` to provide backwards compatibility.
 
 Therefore we can no longer change the semantics of ``:compile-lisp``.
 Instead, we must keep the old ``:compile-lisp`` and possibly provide new versions
@@ -1290,6 +1291,3 @@ and update (if needed) each time you re-compile a file.
 Each compiled file would have a corresponding dependencies file
 caching which dependencies were used during the compilation of it,
 stored in the ``obj/`` directory and updated when it changed. Lots of infrastructure, but doable.
-
-
-

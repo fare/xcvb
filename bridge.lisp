@@ -4,7 +4,7 @@
 
 (defpackage :xcvb-bridge
   (:nicknames :xcvbb)
-  (:use :cl :asdf :xcvb-master)
+  (:use :cl :asdf :xcvb-driver)
   (:export #:build))
 
 (in-package :xcvb-bridge)

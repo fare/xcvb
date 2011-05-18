@@ -1,11 +1,14 @@
 ;;; -*- mode: lisp -*-
+(in-package :asdf)
 
-(asdf:defsystem :xcvb-bridge
+(unless (or #+asdf2 (version-satisfies (asdf-version) "2.015"))
+  (error "ASDF 2.015 or later required for XCVB bridge"))
+
+(defsystem :xcvb-bridge
     :author ("Francois-Rene Rideau")
     :maintainer "Francois-Rene Rideau"
     :licence "MIT"
     :description "XCVB bridge for ASDF"
     :long-description "A module to integrate XCVB builds into ASDF"
-    :depends-on (;; :asdf ; not safe unless everyone uses ASDF >= 2.014.8
-                 :xcvb-master)
+    :depends-on (:asdf :xcvb-driver)
     :components ((:file "bridge")))

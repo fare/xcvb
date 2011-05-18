@@ -37,7 +37,7 @@
 
 (proclaim '(optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
 
-(asdf:defsystem :xcvb
+(defsystem :xcvb
     :author ("Francois-Rene Rideau" "Spencer Brody" "Joyce Chen")
     :maintainer "Francois-Rene Rideau"
     :licence "MIT"
@@ -45,8 +45,7 @@
     :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-    :depends-on (;; :asdf ; not safe unless everyone uses ASDF >= 2.014.8
-                 :xcvb-driver :xcvb-master
+    :depends-on (:asdf :xcvb-driver
                  :fare-utils :command-line-arguments
                  :asdf-dependency-grovel :closer-mop
                  :fare-matcher :fare-quasiquote-readtable

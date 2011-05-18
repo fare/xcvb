@@ -3,7 +3,7 @@
 (in-package #:cl)
 
 (defpackage #:xcvb-unit-tests
-  (:use :hu.dwim.stefil :xcvb :xcvb-driver :xcvb-master :closer-common-lisp
+  (:use :hu.dwim.stefil :xcvb :xcvb-driver :closer-common-lisp
         :fare-utils)
   (:export
    #:run-program/*

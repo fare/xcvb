@@ -144,7 +144,7 @@ validate_xcvb () {
     (*)
       echo "Skipping nemk for $LISP for now." ;;
   esac
-  validate_master # does xcvb-master work?
+  validate_master # does the xcvb master work?
 }
 
 validate_hello () {
@@ -202,13 +202,13 @@ validate_a2x () {
 validate_master () {
   which xcvb
   xcvb version
-  xcvb find-module --name xcvb/master --short
-#  cl-launch -l $LISP -f $(xcvb fm -n xcvb/master -s) \
-#	-i "(xcvb-master:bnl \"xcvb/hello\" :setup \"xcvb/no-asdf\" \
+  xcvb find-module --name xcvb/driver --short
+#  cl-launch -l $LISP -f $(xcvb fm -n xcvb/driver -s) \
+#	-i "(xcvb-driver:bnl \"xcvb/hello\" :setup \"xcvb/no-asdf\" \
 #		:output-path \"$BUILD_DIR/\" :object-directory \"$obj\" :verbosity 9)" \
 #        -i "(let ((*print-base* 30)) (xcvb-hello::hello :name 716822547 :traditional t))" \
 #	> $BUILD_DIR/out
-  xcvb eval "'(#.(xcvb-master:bnl \"xcvb/hello\" :setup \"xcvb/no-asdf\" \
+  xcvb eval "'(#.(xcvb-driver:bnl \"xcvb/hello\" :setup \"xcvb/no-asdf\" \
 		:output-path \"$BUILD_DIR/\" :object-directory \"$obj\" :verbosity 9) \
 	       #.(let ((*print-base* 30)) (xcvb-hello::hello :name 716822547 :traditional t)))" \
 	> $BUILD_DIR/out
