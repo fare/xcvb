@@ -473,7 +473,7 @@ This is designed to abstract away the implementation specific quit forms."
   `(call-with-determinism ,goal #'(lambda () ,@body)))
 
 (defun seed-random-state (seed) ; seed is a integer
-  #+sbcl (sb-ext:seed-random-state :state seed)
+  #+sbcl (sb-ext:seed-random-state seed)
   #+ccl (flet ((get-bits (&aux bits)
                  (multiple-value-setq (seed bits) (floor seed ccl::mrg31k3p-limit))
                  bits))
@@ -612,7 +612,7 @@ This is designed to abstract away the implementation specific quit forms."
 (defun do-create-image (image dependencies &key)
     (create-bundle  images dependencies
                    :type (if standalone :program :dll)
-                   :epilogue-code `(setf *package* (find-package ,(string package))))))
+                   :epilogue-code `(setf *package* (find-package ,(string package)))))
 
 #+ecl
 (defun create-bundle (bundle dependencies

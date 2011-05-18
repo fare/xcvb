@@ -189,4 +189,4 @@
   (using-unix
     (unix-only-test/run-program/process-output-stream))
   (using-windows
-    (windows-only-test/run/progra/process/output-stream)))
+    (windows-only-test/run/program/process/output-stream)))
