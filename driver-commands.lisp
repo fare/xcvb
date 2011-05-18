@@ -48,11 +48,13 @@
   (destructuring-bind (name &key &aux (basename (second name))) name-options
     (text-for-xcvb-driver-helper
      env dependencies
-     ":compile-lisp (~S ~S~@[ :cfasl ~S~])"
+     ":compile-lisp (~S ~S~@[ :cfasl ~S~]~@[ :lisp-object ~S~])"
      (effective-namestring env name)
      (tempname-target (effective-namestring env `(:fasl ,basename)))
      (when *use-cfasls*
-       (tempname-target (effective-namestring env `(:cfasl ,basename)))))))
+       (tempname-target (effective-namestring env `(:cfasl ,basename))))
+     (when (target-ecl-p)
+       (tempname-target (effective-namestring env `(:lisp-object ,basename)))))))
 
 (define-text-for-xcvb-driver-command :create-image (env spec &rest dependencies)
   (destructuring-bind (&key image standalone package) spec
@@ -76,18 +78,16 @@
                     (let ((*default-pathname-defaults* ~
                            (truename *default-pathname-defaults*))) ~
                       (compile-file ~S :verbose nil :print nil ~
-                       :output-file (merge-pathnames ~S) ~
-                       ~[~;:emit-cfasl (merge-pathnames ~S)~;~
-                       :system-p t) (c::build-fasl ~
-                         (merge-pathnames ~S) :lisp-files (list ~3:*(merge-pathnames ~S))~]))~
+                       :output-file (merge-pathnames ~:[~S~;~:*~S~*~]) ~
+                       ~@[:emit-cfasl (merge-pathnames ~S)~] ~
+                       ~3:*~:[~;:system-p t) ~
+                       (c::build-fasl (merge-pathnames ~S) ~
+                        :lisp-files (list ~3:*(merge-pathnames ~S))~]))~
                   (if (or (not output) warningp failurep) 1 0))"
            (effective-namestring env name)
+	   (when (target-ecl-p)
+	     (tempname-target (effective-namestring env `(:lisp-object ,(second name)))))
            (tempname-target (effective-namestring env `(:fasl ,(second name))))
-           (if cfasl
-             (ecase *lisp-implementation-type*
-               (:sbcl 1)
-               (:ecl 2))
-             0)
            (when cfasl
              (tempname-target (effective-namestring env `(:cfasl ,(second name))))))))
 
