@@ -60,6 +60,8 @@ a reference to the system was superseded by a build.xcvb file.")
   (normalize-dependency-lisp* :fasl grain name))
 (define-normalize-dependency :cfasl (grain name)
   (normalize-dependency-lisp* :cfasl grain name))
+(define-normalize-dependency :lisp-object (grain name)
+  (normalize-dependency-lisp* :lisp-object grain name))
 
 (defun normalize-dependency-build* (type grain name)
   (let ((g (lisp-module-grain-from name grain)))
@@ -145,6 +147,7 @@ a reference to the system was superseded by a build.xcvb file.")
   '((:lisp . lisp-module-grain)
     (:fasl . fasl-grain)
     (:cfasl . cfasl-grain)
+    (:lisp-object . lisp-object-grain)
     (:asdf . asdf-grain)
     (:require . t)
     (:build . t)
@@ -202,7 +205,7 @@ in the normalized dependency mini-language"
   `(:build ,x))
 (macrolet ((d (k) `(define-compiled-dependency ,k (&rest r) (cons ,k r)))
            (self-compiled-dependency (&rest r) `(progn ,@(loop :for k :in r :collect `(d ,k)))))
-  (self-compiled-dependency :lisp :cfasl :asdf :require :compile-build :source))
+  (self-compiled-dependency :lisp :cfasl :lisp-object :asdf :require :compile-build :source))
 (define-compiled-dependency :when (c &rest deps)
   `(:when ,c ,@(mapcar #'compiled-dependency deps)))
 (define-compiled-dependency :cond (&rest clauses)
@@ -235,6 +238,7 @@ in the normalized dependency mini-language"
   (linkable-dependency-dispatcher dep))
 (define-simple-dispatcher linkable-dependency #'unrecognized-dependency :environment nil)
 (define-linkable-dependency :cfasl (x) `(:fasl ,x))
+(define-linkable-dependency :lisp-object (x) `(:lisp-object ,x)) ;; OUCH MY HEAD HURTS. On ECL, should .fas be a :cfasl and .o a :fasl?
 (define-linkable-dependency :compile-build (x) `(:build ,x))
 (macrolet ((d (k) `(define-linkable-dependency ,k (&rest r) (cons ,k r)))
            (self-linkable-dependency (&rest r) `(progn ,@(loop :for k :in r :collect `(d ,k)))))
@@ -275,7 +279,7 @@ in the normalized dependency mini-language"
 
 (defun grain-source (grain)
   (typecase grain
-    ((or fasl-grain cfasl-grain)
+    ((or fasl-grain cfasl-grain lisp-object-grain)
      (registered-grain `(:lisp (second (fullname grain)))))
     (t
      nil)))

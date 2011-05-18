@@ -427,11 +427,12 @@ and extra finalization from calling FUN on the world."
       (push continuation *pending-actions*))))
 
 (defun work-on-direct-file-compilation (env computation)
-  (destructuring-bind (fullname &key cfasl) (cdr (computation-command computation))
+  (destructuring-bind (fullname &key cfasl lisp-object) (cdr (computation-command computation))
     (let* ((*renamed-targets* nil)
            (command (lisp-invocation-arglist-for
                      env ()
-                     (compile-file-directly-shell-token env fullname :cfasl cfasl))))
+                     (compile-file-directly-shell-token env fullname
+                                                        :cfasl cfasl :lisp-object lisp-object))))
       (start-process*
        command
        :id *worker-id*

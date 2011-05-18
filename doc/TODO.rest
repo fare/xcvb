@@ -50,9 +50,8 @@ and background on the design and ultimate goals of XCVB.
       4.17  Configuration Management [V2]
       4.18  Better ASDF backend [V2]
       4.19  ECL support [V1]
-      4.20  Finer-grain ASDF supersession [V2]
-      4.21  Better Debugging [V3]
-      4.22  Support common ASDF Extensions [V1]
+      4.20  Better Debugging [V3]
+      4.21  Support common ASDF Extensions [V1]
     5  Internals [V4]
       5.1  Type-Checking [V4]
       5.2  Error handling [V4]
@@ -278,6 +277,8 @@ I propose our next steps should be as follows:
     + Make sure xcvb ssr works and is robust
 
     + Make sure xcvb passes all tests
+
+ * Fix the interface between the manifest and the driver.
 
  * Add more examples. keep them _simple_
 

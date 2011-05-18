@@ -71,7 +71,7 @@
      :load (mapcar/ #'effective-namestring env load)
      :eval (tweak-features-around-eval-string eval))))
 
-(defun compile-file-directly-shell-token (env name &key cfasl)
+(defun compile-file-directly-shell-token (env name &key cfasl lisp-object)
   (quit-form
    :code
    (format nil "(multiple-value-bind (output warningp failurep) ~
@@ -85,7 +85,7 @@
                         :lisp-files (list ~3:*(merge-pathnames ~S))~]))~
                   (if (or (not output) warningp failurep) 1 0))"
            (effective-namestring env name)
-	   (when (target-ecl-p)
+	   (when lisp-object
 	     (tempname-target (effective-namestring env `(:lisp-object ,(second name)))))
            (tempname-target (effective-namestring env `(:fasl ,(second name))))
            (when cfasl

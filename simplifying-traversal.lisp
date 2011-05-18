@@ -20,6 +20,9 @@ and the non-enforcing Makefile backend.
 (defmethod issue-dependency ((env simplifying-traversal) (grain cfasl-grain))
   (issue-dependency env (graph-for env `(:lisp ,(second (fullname grain))))))
 
+(defmethod issue-dependency ((env simplifying-traversal) (grain lisp-object-grain))
+  (issue-dependency env (graph-for env `(:lisp ,(second (fullname grain))))))
+
 (define-build-command-for :lisp ((env simplifying-traversal) name)
   (build-command-for-fasl env name))
 

@@ -443,21 +443,18 @@ Modeled after the asdf function coerce-name"
   (vp-for-name-extension
    name
    (case *lisp-implementation-type*
-     (:ecl "o")
+     (:ecl "fas")
      (t "fasl"))))
 (define-default-vp-for-fullname :cfasl (env name)
   (declare (ignore env))
   (vp-for-name-extension
    name
-   (case *lisp-implementation-type*
-     (:ecl "fas")
-     (t "cfasl"))))
+   "cfasl"))
 (define-default-vp-for-fullname :lisp-object (env name)
   (declare (ignore env))
   (vp-for-name-extension
    name
-   (ecase *lisp-implementation-type*
-     (:ecl "o"))))
+   "o"))
 (define-default-vp-for-fullname :source (env sub &key in)
   (declare (ignore env))
   (assert (equal in (fullname (registered-build in :ensure-build t))))

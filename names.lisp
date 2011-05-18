@@ -68,6 +68,8 @@
   (ensure-valid-fullname (fullname grain) :fasl))
 (defmethod validate-fullname ((grain cfasl-grain))
   (ensure-valid-fullname (fullname grain) :cfasl))
+(defmethod validate-fullname ((grain lisp-object-grain))
+  (ensure-valid-fullname (fullname grain) :lisp-object))
 (defmethod validate-fullname ((grain build-module-grain))
   (ensure-valid-fullname (fullname grain)))
 

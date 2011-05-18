@@ -290,6 +290,7 @@
                        env fullname
                        load-dependencies cload-dependencies
                        build-dependencies))
+             ;; TODO: something for lisp-objects!
              (cfasl (when (second outputs) (fullname (second outputs)))))
         (make-computation
          env
