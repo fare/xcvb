@@ -69,7 +69,9 @@ Initially populated with all build.xcvb files from the search path.")
     ;; Check to see that if this envar is defined to a non-empty
     ;; string, ensure that it is an absolute path to, not a relative
     ;; one.
-    (unless (or (string= esr "") (absolute-pathname-p (pathname esr)))
+    (when (and (stringp esr)
+	       (not (string= esr ""))
+	       (not (absolute-pathname-p (pathname esr))))
       (error "The environment variable CL_SOURCE_REGISTRY=~A must specify an absolute pathname" esr))
     (asdf::flatten-source-registry parameter)))
 
