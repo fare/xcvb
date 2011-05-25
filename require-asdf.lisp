@@ -5,10 +5,13 @@
 
 (in-package :cl-user)
 
+;; We assume that your implementation comes with ASDF.
+;; If not, complain to your vendor.
 (require :asdf)
 (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) "2.000"))
   (error "XCVB requires ASDF2"))
 
-;; Make sure you have the latest ASDF *before* you load any other system
+;; Make sure you have the latest ASDF *before* you load any other system.
+;; This matters when the implementation provides an ASDF earlier than 2.015.
 (handler-bind ((style-warning #'muffle-warning))
   (asdf:load-system :asdf))

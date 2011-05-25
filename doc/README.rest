@@ -59,6 +59,7 @@ enforced locally-declared dependencies.
       8.2  How do I prevent clash between incompatible FASLs?
       8.3  What are CFASLs?
       8.4  Why not just extend ASDF?
+      8.5  Why is XCVB so much bigger and more complex than ASDF?
 
 
 About XCVB
@@ -72,8 +73,12 @@ XCVB is available as a working deterministic build system for Common Lisp.
 It can already replace ASDF for the better in many cases,
 but is not yet a universal replacement for it.
 
-Currently only SBCL, CCL and CLISP are supported.
-There is also some ECL support.
+The following Common Lisp implementations are supported as target systems:
+CLISP, CCL, CMUCL, SBCL (free); Allegro, Lispworks, SCL (proprietary).
+The following Common Lisp implementations are NOT supported as target systems:
+ABCL, ECL, GCL, MCL, XCL (free); Cormanlisp, Genera (proprietary).
+
+Only SBCL, CCL and CLISP are currently supported to compile XCVB itself.
 
 The current version (in git master branch or the release tarball)
 can handle builds of very large and complex systems,
@@ -92,7 +97,7 @@ XCVB builds can depend on other builds and/or on ASDF systems.
 ASDF systems can be superseded by incrementally migrated XCVB builds when available,
 for better dependency management.
 
-Hopefully a version 1.0 will be released at the end of this year
+Hopefully a version 1.0 will be released at the end of this year (which?)
 that can seriously replace ASDF and provide a migration path.
 
 
@@ -1556,15 +1561,19 @@ Why not just extend ASDF?
 -------------------------
 
 Before we started XCVB, we had already done many experiments with ASDF.
-See POIU, and imagine the tens of small unpublished ASDF customizations
-used at ITA. With this experience, we confidently believe the following:
+See POIU, and many customizations used at ITA,
+hooks for which we have integrated into ASDF since.
+With this experience, we confidently believe the following:
 
- * The semantics of compiling with XCVB are essentially backwards incompatible
-   with the semantics of compiling with ASDF.
+ * It is easier and less confusing to provide bridges between ASDF and XCVB
+   than to try to mimic the very different semantics of XCVB with ASDF syntax:
+
+    * The semantics of compiling with XCVB are essentially
+      backwards incompatible with the semantics of compiling with ASDF.
 
     * We could try to "embrace and extend" the ASDF syntax, but
       we would still be incompatible, only in very confusing ways.
-      So we might as well get a fresh start. We're still providing bridges.
+      So we might as well get a fresh start.
 
     * An important semantic difference in the dependency language is
       that an ASDF system includes as dependencies all the modules included.
@@ -1576,12 +1585,14 @@ used at ITA. With this experience, we confidently believe the following:
     * Another important semantic difference is that ASDF files contain
       arbitrary code, and that code is run in a single environment
       that conflates planning time, building time, runtime.
-      XCVB distinguishes those times and executes them in isolated processes.
+      XCVB distinguishes those times and executes them in isolated processes,
+      possibly in different Lisp implementations and/or computer architecture.
       Therefore there's no possible automatic reuse
       of a general ASDF-targeted ``.asd`` files
       into an XCVB build with an ``.asd`` syntax.
 
-    * In the other direction, unless we also reimplement all our extensions twice
+    * In the other direction,
+      unless we also reimplement all our extensions twice
       so they work with the regular ASDF as well as with XCVB,
       any ``.asd`` file that uses them would actually be a lie
       as it would only run with XCVB.
@@ -1602,6 +1613,7 @@ used at ITA. With this experience, we confidently believe the following:
    but as usual is more work and not very high on my priority list,
    since I'm after what seems to me to be lower-hanging fruits:
    fork-based compilation, (exploded) dependency caching, etc.
+   See my TODO file.
 
 
 Why is XCVB so much bigger and more complex than ASDF?
@@ -1620,4 +1632,4 @@ a Makefile backend, cross-compilation, eager error checking, warning control,
 an extensive command-line interface (also at the Lisp REPL),
 plus plenty of new features that are still in the works.
 Yet, XCVB (not counting library dependencies) is only twice the size of ASDF
---- and importantly, you don't have to load it into your current image.
+--- and importantly, you don't have to load any of it into your current image.
