@@ -91,7 +91,7 @@
 
 (defmethod graph-for-build-module-grain ((env enforcing-traversal) (grain build-module-grain))
   (let ((post-image-name (build-image-name grain)))
-    (if post-image-name
+    (if (and *target-can-dump-image-p* post-image-name)
         (graph-for env `(:image ,post-image-name))
         (make-phony-grain
          :name `(:build ,(fullname grain))
@@ -290,15 +290,15 @@
                        env fullname
                        load-dependencies cload-dependencies
                        build-dependencies))
-             ;; TODO: something for lisp-objects!
-             (cfasl (when (second outputs) (fullname (second outputs)))))
+             (cfasl (when *use-cfasls* (fullname (second outputs))))
+             (lisp-object (when (target-ecl-p) (fullname (second outputs)))))
         (make-computation
          env
          :outputs outputs
          :inputs (traversed-dependencies env)
          :command
          (if driverp
-           `(:compile-file-directly ,fullname :cfasl ,cfasl)
+           `(:compile-file-directly ,fullname :cfasl ,cfasl :lisp-object ,lisp-object)
            `(:xcvb-driver-command
              ,(if specialp `(:load (,(loadable-dependency '(:fasl "/xcvb/driver"))))
                   (image-setup env))

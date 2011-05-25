@@ -14,6 +14,8 @@
      . "(when(member :asdf2 *features*) (funcall(find-symbol(string :implementation-identifier):asdf)))")
     (*target-system-features*
      . "*features*")
+    (*target-can-dump-image-p*
+     . "(and (or #+(or allegro ccl clisp cmu gcl lispworks sbcl scl) t) #+(or abcl cormanlisp ecl lispworks-personal-edition mcl xcl) nil)")
     (*lisp-implementation-directory*
      . "(or #+sbcl (namestring(sb-int:sbcl-homedir-pathname)) #+ccl (namestring(ccl::ccl-directory)))")
     (*target-lisp-image-pathname*

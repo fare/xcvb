@@ -101,11 +101,11 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *optimization-settings*
     '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 2)
-      ;; #+sbcl (sb-ext:inhibit-warnings 3) ;--- inhibits too much.
       ;; These should ensure all tail calls are optimized, says jsnell:
       #+sbcl (sb-c::merge-tail-calls 3) #+sbcl (sb-c::insert-debug-catch 0)
       #+(or cmu scl) (ext:inhibit-warnings 3)))
   (proclaim *optimization-settings*))
+
 
 ;;; Initial implementation-dependent setup
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -452,12 +452,12 @@ This is designed to abstract away the implementation specific quit forms."
     (symbol (typep condition x))
     (function (funcall x condition))
     (string (and (typep condition 'simple-condition)
-                 #+(or ccl cmu sbcl scl)
+                 #+(or ccl cmu scl)
 		 (slot-boundp condition
 			      #+ccl 'ccl::format-control
 			      #+(or cmu scl) 'conditions::format-control
-                              #+sbcl 'sb-kernel:format-control)
-                 (equal (simple-condition-format-control condition) x)))))
+			      #+sbcl 'sb-kernel:format-control)
+                 (ignore-errors (equal (simple-condition-format-control condition) x))))))
 (defun match-any-condition-p (condition conditions)
   (loop :for x :in conditions :thereis (match-condition-p x condition)))
 (defun uninteresting-condition-p (condition)
@@ -672,15 +672,15 @@ This is designed to abstract away the implementation specific quit forms."
               (with-determinism `(:compiling ,source)
                 (multiple-value-prog1
                     (apply #'compile-file source
-                           :output-file (merge-pathnames fasl)
+                           :output-file (merge-pathnames (or #+ecl lisp-object fasl))
                            (append
                             #+sbcl (when cfasl `(:emit-cfasl ,(merge-pathnames cfasl)))
                             #+ecl (when lisp-object '(:system-p t))))
                   #+ecl
                   (when lisp-object
                     (or (call :c :build-fasl
-                              (merge-pathnames lisp-object)
-                              :lisp-files (list (merge-pathnames fasl)))
+                              (merge-pathnames fasl)
+                              :lisp-files (list (merge-pathnames lisp-object)))
                         (die "Failed to build ~S from ~S" fasl lisp-object))))))))
       (declare (ignore output-truename))
       (when failure-p
@@ -763,7 +763,7 @@ This is designed to abstract away the implementation specific quit forms."
     (read s)))
 
 #+ecl ;; wholly untested and probably buggy.
-(defun do-create-image (image dependencies &key package prologue-code epilogue-code)
+(defun do-create-image (image dependencies &key standalone package prologue-code epilogue-code)
   (create-bundle image dependencies
                  :type (if standalone :program :dll)
                  :package package
@@ -803,9 +803,11 @@ This is designed to abstract away the implementation specific quit forms."
                             (append ',manifest (symbol-value msym)))))
                 ,(when package
                    `(setf *package* (find-package ,package)))
-                ,(if standalone '(resume) '(si::top-level)))))
-        (c::builder :program (parse-namestring image)
-                    :lisp-files lisp-files
+                ,(if (eq type :program) '(resume) '(si::top-level))
+		,epilogue-code)))
+        (c::builder type (parse-namestring bundle)
+                    :lisp-files object-files
+		    :prologue-code prologue-code
                     :epilogue-code epilogue-code)))))
 
 #-ecl

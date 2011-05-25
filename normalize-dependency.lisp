@@ -260,16 +260,14 @@ in the normalized dependency mini-language"
             :fullname fullname
             :vp (default-vp-for-fullname env fullname)
             :load-dependencies deps)))
-    (cons (m 'fasl-grain :fasl fullname (append build-dependencies load-dependencies))
-          (cond
-            ((target-ecl-p)
-             (list (m 'lisp-object-grain :lisp-object fullname
-                      (append build-dependencies cload-dependencies))))
-            (*use-cfasls*
-             (list (m 'cfasl-grain :cfasl fullname
-                      (append build-dependencies cload-dependencies))))
-            (t
-             nil)))))
+    `(,(m 'fasl-grain :fasl fullname (append build-dependencies load-dependencies))
+      ,@(cond
+	 ((target-ecl-p)
+	  `(,(m 'lisp-object-grain :lisp-object fullname
+			      (append build-dependencies cload-dependencies))))
+         (*use-cfasls*
+	  `(,(m 'cfasl-grain :cfasl fullname
+		(append build-dependencies cload-dependencies))))))))
 
 (defun cfasl-for-fasl (fasl-grain)
   (check-type fasl-grain fasl-grain)

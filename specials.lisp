@@ -101,6 +101,9 @@ nickname, or SEXP representing a computed entity.")
 (defvar *computations* ()
   "A list of all the computations created")
 
+(defvar *target-can-dump-image-p* t
+  "Some targets can't dump an image (using xcvb at least). Is our target one of them?")
+
 (defvar *target-lisp-executable-pathname* nil
   "Path of the target executable")
 (defvar *target-lisp-image-pathname* nil

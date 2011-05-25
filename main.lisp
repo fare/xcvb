@@ -327,14 +327,13 @@ using ~A~%"
                     ~{~A~#[~; and ~:;, ~]~}" (length i) i)))
       (read-target-properties) ;; Gets information from target Lisp.
       (setf *use-cfasls* ;; Must be done after read-target-properties
-            (or (and *use-cfasls* (not disable-cfasl))
-                (eq *lisp-implementation-type* :ecl)))
+            (and *use-cfasls* (not disable-cfasl)))
       (setf *object-directory* (or object-directory (object-directory-default))))
     (when *object-directory*
       (setf *object-directory-pathname* (ensure-pathname-is-directory *object-directory*))
       (setf *object-directory* (but-last-char (namestring *object-directory-pathname*)))
       (log-format 8 "object-directory: given ~S using ~S" object-directory *object-directory*))
-    (setf *use-base-image* use-base-image)
+    (setf *use-base-image* (and *target-can-dump-image-p* use-base-image))
     (setf *use-master* master)
     (when master
       (ensure-tthsum-present))
