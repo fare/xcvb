@@ -83,7 +83,7 @@
    ;;; Environment support
    #:getenv #:emptyp #:setenvp #:setup-environment
    #:debugging #:with-profiling
-   #:finish-outputs #:quit #:shell-boolean
+   #:format! #:finish-outputs #:quit #:shell-boolean
    #:print-backtrace #:die #:bork #:with-coded-exit
    #:uninteresting-condition-p #:fatal-condition-p
    #:with-controlled-compiler-conditions #:with-controlled-loader-conditions

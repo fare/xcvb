@@ -4,15 +4,19 @@
 
 ;;; Conditions
 
-(define-condition dependency-cycle (simple-error)
+(define-condition user-error (simple-error)
+  ;; This condition is for user-errors. A user error does NOT trigger a backtrace.
+  ())
+
+(define-condition dependency-cycle (user-error)
   ;; This condition is signaled if the dependency graph has any cycles in it.
   ())
 
-(define-condition syntax-error (simple-error)
+(define-condition syntax-error (user-error)
   ;; Condition is signaled if there is some syntax error in some user-specified data
   ())
 
-(define-condition grain-not-found (simple-error)
+(define-condition grain-not-found (user-error)
   ;; Condition is signaled if there is some syntax error in some user-specified data
   ())
 

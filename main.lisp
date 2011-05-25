@@ -352,21 +352,24 @@ using ~A~%"
              (log-format 9 "quitting with code ~A" code)
              (quit code)))
       (restart-case
-          ;; revert-to-repl is in a nested restart-case so that the other two
-          ;; restarts are available from the repl.
-          (restart-case
-              (progn
-                (interpret-command-line
-                 (command-line-arguments:get-command-line-arguments))
-                (quit 0))
-            (revert-to-repl ()
-              :report (lambda (stream)
-                        (format stream "Abort current computation and bring up a toplevel REPL"))
-              (repl)))
-        (exit (&optional (exit-code 0))
-          :report (lambda (stream)
-                    ;; when invoked interactively exit-code is always 0
-                    (format stream "Abort current computation and quit the process with process exit code 0"))
+	  (handler-case
+	      ;; revert-to-repl is in a nested restart-case so that the other two
+	      ;; restarts are available from the repl.
+	      (restart-case
+		  (progn
+		    (interpret-command-line
+		     (command-line-arguments:get-command-line-arguments))
+		    (quit 0))
+		(revert-to-repl ()
+		  :report (lambda (stream)
+			    (format stream "Abort current computation and bring up a toplevel REPL"))
+		  (repl)))
+	    (user-error (c)
+	      (die "~A" c)))
+	(exit (&optional (exit-code 0))
+	  :report (lambda (stream)
+		    ;; when invoked interactively exit-code is always 0
+		    (format stream "Abort current computation and quit the process with process exit code 0"))
           (quit exit-code))
         (abort ()
           :report (lambda (stream)

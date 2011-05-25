@@ -72,7 +72,7 @@ Initially populated with all build.xcvb files from the search path.")
     (when (and (stringp esr)
 	       (not (string= esr ""))
 	       (not (absolute-pathname-p (pathname esr))))
-      (error "The environment variable CL_SOURCE_REGISTRY=~A must specify an absolute pathname" esr))
+      (simply-error 'user-error "The environment variable CL_SOURCE_REGISTRY=~A must specify an absolute pathname" esr))
     (asdf::flatten-source-registry parameter)))
 
 (defparameter *sbcl-contribs*

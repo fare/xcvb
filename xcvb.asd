@@ -61,7 +61,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "utilities" :depends-on ("macros"))
      (:file "logging" :depends-on ("specials"))
      (:file "lisp-invocation" :depends-on ("specials"))
-     (:file "main" :depends-on ("specials"))
+     (:file "main" :depends-on ("specials" "macros"))
      (:file "string-escape" :depends-on ("utilities"))
      (:file "virtual-pathnames" :depends-on ("specials" "utilities"))
      (:file "grain-interface" :depends-on ("utilities" "conditions"))
@@ -96,5 +96,4 @@ deterministic separate compilation and enforced locally-declared dependencies."
                                   "grain-interface" "dependencies-interpreter"))
      (:file "cffi-grovel-support" :depends-on
             ("makefile-backend" "static-traversal" "computations" "driver-commands"
-                                "grain-implementation" "asdf-backend"))
-     (:file "version" :depends-on ("specials"))))
+                                "grain-implementation" "asdf-backend"))))
