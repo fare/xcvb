@@ -57,7 +57,7 @@
   ; :quit-flags ("-kill")
   :arguments-end "--"
   :image-flag "-I"
-  :image-executable-p t
+  :image-executable-p nil
   :standalone-executable nil
   :argument-control t
   :disable-debugger ("-batch") ; see also -#D -#C -#!
