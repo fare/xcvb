@@ -102,8 +102,9 @@ xcvb-using-xcvb: ${INSTALL_BIN}/xcvb
 ${INSTALL_BIN}/xcvb: ${XCVB_OBJECT_DIRECTORY}/xcvb.image
 	${MAKE} xcvb-bootstrapped-install
 
-XCVB_INIT :=	--init "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCVB}/\"))" \
-		--init '(xcvb::main)'
+XCVB_INIT :=	--final "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCVB}/\"))" \
+		--final "(setf xcvb::*xcvb-version* \#.(xcvb::get-xcvb-version))" \
+		--restart 'xcvb::main'
 
 xcvb-bootstrapped-install:
 	mkdir -p ${INSTALL_BIN}

@@ -102,7 +102,7 @@ Initially populated with all build.xcvb files from the search path.")
     (log-format-pp 10 "~S~%" *flattened-source-registry*)
     *flattened-source-registry*))
 
-(defun ensure-source-registry ()
+(defun assert-source-registry ()
   (unless *flattened-source-registry*
     (error "You should have already initialized the source registry by now!")))
 

@@ -101,7 +101,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *optimization-settings*
     '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 2)
-      #+sbcl (sb-ext:inhibit-warnings 3)
+      ;; #+sbcl (sb-ext:inhibit-warnings 3) ;--- inhibits too much.
       ;; These should ensure all tail calls are optimized, says jsnell:
       #+sbcl (sb-c::merge-tail-calls 3) #+sbcl (sb-c::insert-debug-catch 0)
       #+(or cmu scl) (ext:inhibit-warnings 3)))
@@ -1124,12 +1124,15 @@ Otherwise, signal an error.")
                        #+os-unix (list command)
                        #+os-windows
                        (string
-                        #+allegro (format nil "cmd /c ~A" command)
+                        #+(or allegro clozure) command ;; (format nil "cmd /c ~A" command)
                         #-allegro `("cmd" "/c" ,command))
                        #+os-windows
                        (list
-                        #+allegro (escape-windows-command command)
+                        #+(or allegro clozure) (escape-windows-command command)
                         #-allegro command)))
+                    ;; CCL on windows requires some magic until they fix
+                    ;; http://trac.clozure.com/ccl/ticket/858
+                    #+(and clozure os-windows) (command (list command))
                     (process*
                      (multiple-value-list
                       #+allegro
@@ -1188,18 +1191,14 @@ Otherwise, signal an error.")
                        "Process ~S exited with error code ~D"
                        command return-code)))
            (system (command)
-             #+(or abcl xcl)
-             (ext:run-shell-command command)
+             #+(or abcl xcl) (ext:run-shell-command command)
              #+allegro
              (excl:run-shell-command command :input nil :output nil :wait t)
              #+(or clisp clozure cmu (and lispworks os-unix) sbcl scl)
              (run-program command :pipe nil)
-             #+ecl
-             (ext:system command)
-             #+cormanlisp
-             (win32:system command)
-             #+gcl
-             (lisp:system command)
+             #+ecl (ext:system command)
+             #+cormanlisp (win32:system command)
+             #+gcl (lisp:system command)
              #+(and lispworks os-windows)
              (system:call-system-showing-output
               command :show-cmd nil :prefix "" :output-stream nil))
