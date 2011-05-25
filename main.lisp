@@ -364,7 +364,11 @@ using ~A~%"
 			    (format stream "Abort current computation and bring up a toplevel REPL"))
 		  (repl)))
 	    (user-error (c)
-	      (die "~A" c)))
+	      ;; XXX Hrm, why doesn't this seem to work when I set
+	      ;; XCVB_DEBUGGING=t in the environment?
+	      (if *debugging*
+		  (bork c)
+		  (die "~A" c))))
 	(exit (&optional (exit-code 0))
 	  :report (lambda (stream)
 		    ;; when invoked interactively exit-code is always 0
