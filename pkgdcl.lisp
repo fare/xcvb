@@ -9,7 +9,7 @@
 
 (defpackage :xcvb
   (:use :closer-common-lisp
-        :xcvb-driver :command-line-arguments
+        :xcvb-driver :command-line-arguments :asdf
         :fare-matcher :fare-utils :interface :pure
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
@@ -17,11 +17,18 @@
   (:shadowing-import-from :quux-iolib
    #:run-program/process-output-stream)
 
+  (:shadowing-import-from :asdf
+   #:absolute-pathname-p
+   #:getenv
+   #:merge-pathnames*
+   #:pathname-directory-pathname
+   #:while-collecting)
+
   (:import-from :asdf
    #:*default-source-registry-exclusions*
    #:*default-source-registries*
-   #:inherit-source-registry
    #:coerce-pathname
+   #:inherit-source-registry
    #:user-homedir)
 
   (:import-from :xcvb-driver

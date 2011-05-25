@@ -751,6 +751,13 @@ After the file is compiled, one may want to
   * register dynamic dependencies (i.e. "requires once-per-project instantiation of this form")
   * more generally update meta-data
 
+After a whole system is compiled,
+but before a bundle (library or executable) is created,
+it might be useful to run some code to finalize internal datastructures,
+grab a version number from git, etc.
+In some targets (e.g. ECL), this might mean compiling a temporary file
+with appropriate commands in it, the result of which is to be linked in.
+
 
 Tests [V2]
 ----------

@@ -431,9 +431,14 @@ using ~A~%"
 (defun cmdize (&rest args)
   (cmdize* args))
 
-(defun cmd (&rest args)
+(defun cmd* (&rest args)
   "For debugging purposes, let the user try a command from the REPL"
   (interpret-command-line (cmdize* args)))
+
+(defun cmd (&rest args)
+  "For debugging purposes, let the user try a command from the REPL, in a local context"
+  (with-local-xcvb-vars ()
+    (apply 'cmd* args)))
 
 (defun exit (&optional (code 0) &rest r)
   (declare (ignore r))

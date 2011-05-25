@@ -139,48 +139,43 @@
 
 (defun unix-only-test/run-program/process-output-stream ()
 
-  ;; a basic smoke test
-  (let ((ret (run-program/process-output-stream
-              '("/bin/grep" "Single" "test-file") 'slurp-stream-lines)))
-    (is (equal ret '("Single"))))
+  (let ((tf (namestring (asdf:system-relative-pathname :xcvb "t/test-file"))))
 
-  ;; Make sure space is handled correctly
-  (let ((ret (run-program/process-output-stream
-              '("/bin/grep" "double entry" "test-file") 'slurp-stream-lines)))
-    (is (equal ret '("double entry"))))
+    ;; a basic smoke test
+    (is (equal '("Single")
+               (run-program/read-output-lines
+                `("/bin/grep" "Single" ,tf))))
 
-  ;; Make sure space is handled correctly
-  (let ((ret (run-program/process-output-stream
-              '("/bin/grep" "triple word entry" "test-file")
-              'slurp-stream-lines)))
-    (is (equal ret '("triple word entry"))))
+    ;; Make sure space is handled correctly
+    (is (equal '("double entry")
+               (run-program/read-output-lines
+                `("/bin/grep" "double entry" ,tf))))
 
-  ;; Testing special characters
-  (when nil ;; XXX FIXME
-    (let ((strs '("+" "-" "_" "." "," "%" "@" ":" "/" "\\" "!" "&" "*" "[" "]"
-                  "(" ")" "{" "}")))
-      (dolist (str strs)
-        (let ((ret-line (concatenate 'string "escape " str))
-              (ret (run-program/process-output-stream
-                    `("/bin/grep" ,str "test-file")
-                    'slurp-stream-lines)))
-          (is (equal ret (list ret-line)))))))
+    ;; Make sure space is handled correctly
+    (is (equal '("triple word entry")
+               (run-program/read-output-lines
+                `("/bin/grep" "triple word entry" ,tf))))
 
+    ;; Testing special characters
+    (loop :for char :across "+-_.,%@:/\\!&*(){}"
+      :for str = (string char) :do
+      (is (equal (list (strcat "escape " str))
+                 (run-program/read-output-lines
+                  `("/bin/grep" ,(strcat "[" str "]") ,tf)))))
 
-  ;; Test that run-program/process-output-stream signals an error with an
-  ;; executable that doesn't return 0
-  (signals error (run-program/process-output-stream '("/bin/false")
-                                                    'slurp-stream-lines))
+    ;; Test that run-program/process-output-stream signals an error
+    ;; with an executable that doesn't return 0
+    (signals error (run-program/read-output-lines '("/bin/false")))
 
-  ;; Test that we can surpress the error on run-program/process-output-stream
-  (is (null (run-program/process-output-stream '("/bin/false")
-                                               'slurp-stream-lines
-                                               :ignore-error-status t))))
+    ;; Test that we can suppress the error on run-program/process-output-stream
+    (is (null (run-program/read-output-lines '("/bin/false")
+                                             :ignore-error-status t)))))
 
 (defun windows-only-test/run-program/process-output-stream ()
 
   ;; a basic smoke test
-  (is (equal (run-program/read-output-lines '("cmd" "/c" "echo" "ok")) '(("ok"))))
+  (is (equal (run-program/read-output-lines '("cmd" "/c" "echo" "ok"))
+             '(("ok"))))
 
   nil)
 

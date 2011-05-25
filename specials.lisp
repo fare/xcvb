@@ -64,9 +64,13 @@ Autodetected from the target Lisp system.")
 ;;; TODO: make that not depend on an environment variable,
 ;;; and/or make the dependency explicit in a way that XCVB is aware of.
 (defvar *xcvb-lisp-directory*
-  #p"/usr/share/common-lisp/source/xcvb/"
-  ;; (pathname (strcat (asdf:getenv "INSTALL_XCVB") "/"))
+  (ensure-directory-pathname
+   (or (getenv "INSTALL_XCVB")
+       #p"/usr/share/common-lisp/source/xcvb/"))
   "Directory pathname for the location where XCVB Lisp files are installed")
+
+(defvar *xcvb-version* nil ;; set at the end of the build process, from git describe --tags
+  "XCVB version.")
 
 ;; *pathname-grain-cache* is used by code in names.lisp.
 ;; build-module extension-form :generate inserts lisp grains of

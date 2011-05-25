@@ -9,10 +9,9 @@
 (defun test-simple-build (&key (build (first +example-builds+))
                           (implementation *lisp-implementation-type*))
   (check-type build string)
-  (with-local-xcvb-vars ()
-    (cmd 'simple-build :build build
-         :lisp-implementation (string-downcase implementation)
-         :verbosity 10)))
+  (cmd 'simple-build :build build
+       :lisp-implementation (string-downcase implementation)
+       :verbosity 10))
 
 (macrolet ((defs ()
              (let ((defined (make-hash-table :test 'equal)))
