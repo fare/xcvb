@@ -444,6 +444,7 @@ Modeled after the asdf function coerce-name"
    name
    (case *lisp-implementation-type*
      (:ecl "fas")
+     (:lispworks "ufasl") ;; if we don't use this extension, lispworks tries to load as source.
      (t "fasl"))))
 (define-default-vp-for-fullname :cfasl (env name)
   (declare (ignore env))

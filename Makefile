@@ -180,12 +180,12 @@ online-doc: doc
 	rsync -av doc/*.html doc/*.pdf doc/ui common-lisp.net:/project/xcvb/public_html/doc/
 
 pull:
-	git pull git@github.com:fare/xcvb.git master:master
 	git pull common-lisp.net:/project/xcvb/public_html/git/xcvb.git master:master
+	git pull git@github.com:fare/xcvb.git master:master
 
 push:
-	git push --tags git@github.com:fare/xcvb.git master:master
 	git push --tags common-lisp.net:/project/xcvb/public_html/git/xcvb.git master:master
+	git push --tags git@github.com:fare/xcvb.git master:master
 	git pull
 
 show-current-revision:

@@ -376,9 +376,8 @@ using ~A~%"
           (quit 111))))))
 
 (defun initialize-environment ()
-  ;;; This setting helps extract-target-properties.lisp
-  ;;; NOTE: sb-posix:putenv only works in SBCL 1.0.33.21 and later.
-  ;;#+sbcl (sb-posix:putenv (strcat "SBCL_HOME=" *lisp-implementation-directory*))
+  ;;; This setting helps extract-target-properties.lisp. See there.
+  #+sbcl (sb-posix:unsetenv "SBCL_HOME")
 
   ;;; This setting makes things sensible for run-program on CCL
   #+clozure (setf *error-output* ccl::*stderr* *trace-output* ccl::*stderr*)

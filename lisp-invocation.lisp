@@ -164,13 +164,13 @@
   :feature :lispworks
   :flags ("-site-init" "-" "-init" "-")
   :eval-flag "-eval"
-  :load-flag "-build" ;; This is magic. See also -load
+  :load-flag () ;; Or should we use -build as magic load? See also -load
   :arguments-end nil ; What's the deal with THIS? "--"
   :image-flag nil
   :image-executable-p t
   :standalone-executable t
   :argument-control t
-  :disable-debugger ("--disable-debugger")
+  :disable-debugger ()
   :quit-format "(lispworks:quit :status ~A :confirm nil :return nil :ignore-errors-p t)"
   ;; when you dump, you may also have to (system::copy-file ".../lwlicense" (make-pathname :name "lwlicense" :type nil :defaults filename))
   :dump-format "(lispworks:deliver 'xcvb-driver:resume ~A 0 :interface nil)") ; "(hcl:save-image ~A :environment nil)"
@@ -262,7 +262,10 @@
 	 lisp-flags)
      (unless debugger
        disable-debugger)
-     (mapcan (lambda (x) (list load-flag x)) (if (listp load) load (list load)))
+     (mapcan (if load-flag
+                 (lambda (x) (list load-flag x))
+                 (lambda (x) (list eval-flag (format nil "(load ~S)" x))))
+             (if (listp load) load (list load)))
      (when eval
        (list eval-flag eval))
      (when arguments

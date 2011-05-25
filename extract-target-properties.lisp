@@ -13,7 +13,8 @@
     (*implementation-identifier*
      . "(when(member :asdf2 *features*) (funcall(find-symbol(string :implementation-identifier):asdf)))")
     (*target-system-features*
-     . "*features*")
+     ;; lispworks 6.0 on linux/386 has HARP::PC386 HARP::PC386-X, so remove bad features
+     . "(remove-if-not 'keywordp *features*)")
     (*target-can-dump-image-p*
      . "(and (or #+(or allegro ccl clisp cmu gcl lispworks sbcl scl) t) #+(or abcl cormanlisp ecl lispworks-personal-edition mcl xcl) nil)")
     (*lisp-implementation-directory*
@@ -96,9 +97,9 @@
           (handler-case
               (with-open-file (s pn :direction :input :if-does-not-exist :error)
                 (read-many s))
-            (t () (error "Failed to extract properties from target Lisp:~%~
-			  Command:~S~%stdout:~%~A~%Output:~%~A~%"
-                         command stdout
+            (t (c) (error "Failed to extract properties from target Lisp:~%~
+			  Condition: ~A~%Command:~S~%stdout:~%~A~%Output:~%~A~%"
+                         c command stdout
                          (with-open-file (s pn :direction :input)
                            (slurp-stream-string s))))))))))
 
@@ -138,7 +139,7 @@
   ;; (in main.lisp)
   ;; Except that sb-posix:putenv is broken before SBCL 1.0.33.21 (SBCL bug 460455).
   (append
-   #+(and sbcl (or linux cygwin)) '("env" "-u" "SBCL_HOME")
+   ;;#+(and sbcl (or linux cygwin)) '("env" "-u" "SBCL_HOME") ; we now rely on a recent SBCL
    (lisp-invocation-arglist
     :eval (format nil "(progn (ignore-errors (require :asdf))~
  (handler-bind ((style-warning #'muffle-warning)) (ignore-errors (funcall (find-symbol(string'oos):asdf) (find-symbol(string'load-op):asdf) :asdf)))~
