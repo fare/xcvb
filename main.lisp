@@ -70,7 +70,7 @@ a chance to load and/or configure ASDF itself and any extension thereof.")
 that will use ASDF or POIU to create one or a series of images each containing
 the previous image, a build and its dependencies.")
     (("show-source-registry" "source-registry" "ssr")
-     show-source-registry-command +source-registry-option-spec+
+     show-source-registry-command +show-source-registry-option-spec+
      "Show builds in the configured source registry"
      "Show builds in the implicitly or explicitly configured source registry.
 For debugging your XCVB configuration.")
@@ -309,7 +309,7 @@ using ~A~%"
     (when verbosity
       (setf *xcvb-verbosity* verbosity))
     (log-format-pp 9 "xcvb options: ~S" keys)
-    (initialize-source-registry source-registry)
+    (initialize-xcvb-source-registry source-registry)
     (search-source-registry)
     (when lisp-implementation
       (let ((type (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))

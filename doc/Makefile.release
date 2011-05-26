@@ -95,7 +95,8 @@ checkout:
 	get http://common-lisp.net/project/xcvb/darcs/trivial-garbage
 
 fake-release-directory:
-	[ -d "${RELEASE_DIR}" ] || { echo "RELEASE_DIR not defined" ; exit 42 ;} ; \
+	[ -n "${RELEASE_DIR}" ] || { echo "RELEASE_DIR not defined" ; exit 42 ;} ; \
+	[ -d "${RELEASE_DIR}" ] || { echo "directory does not exist: ${RELEASE_DIR}" ; exit 42 ;} ; \
 	[ -n "${RELEASE_EXCLUDE}" ] || { echo "RELEASE_EXCLUDE not defined" ; exit 42 ;} ; \
 	mkdir -p ${RELEASE_DIR}/dependencies ${RELEASE_DIR}/xcvb && \
 	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} && \

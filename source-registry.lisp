@@ -63,17 +63,16 @@ Initially populated with all build.xcvb files from the search path.")
                   :pathname pathname
                   :conflicts (remove-if #'same-truename-p (brc-pathnames build)))))))))
 
-(defun compute-source-registry (&optional parameter)
-  (let ((*default-pathname-defaults* *xcvb-lisp-directory*)
-	(esr (asdf::environment-source-registry)))
+(defun compute-xcvb-source-registry (&optional parameter)
+  (let ((*default-pathname-defaults* *xcvb-lisp-directory*))
     ;; Check to see that if this envar is defined to a non-empty
     ;; string, ensure that it is an absolute path to, not a relative
     ;; one.
-    (when (and (stringp esr)
-	       (not (string= esr ""))
-	       (not (absolute-pathname-p (pathname esr))))
-      (simply-error 'user-error "The environment variable CL_SOURCE_REGISTRY=~A must specify an absolute pathname" esr))
-    (asdf::flatten-source-registry parameter)))
+    (handler-case
+        (asdf::flatten-source-registry parameter)
+      (error (c)
+        (simply-error 'user-error
+                      "Could not properly parse the source registry:~%~A" c)))))
 
 (defparameter *sbcl-contribs*
   '(:asdf-install
@@ -102,10 +101,10 @@ Initially populated with all build.xcvb files from the search path.")
 		   n)
        (setf (registered-build `(:supersedes-asdf ,n)) (make-require-grain :name n)))))
 
-(defun initialize-source-registry (&optional parameter)
+(defun initialize-xcvb-source-registry (&optional parameter)
   (initialize-builds)
   (log-format 10  "Initializing source registry: ")
-  (let ((source-registry (compute-source-registry parameter)))
+  (let ((source-registry (compute-xcvb-source-registry parameter)))
     (setf *flattened-source-registry* (list source-registry))
     (log-format-pp 10 "~S~%" *flattened-source-registry*)
     *flattened-source-registry*))
@@ -341,9 +340,14 @@ for each of its registered names."
                         fullname (mapcar 'namestring (brc-pathnames entry))))))))
     (map () #'princ (sort (mapcar #'entry-string (hash-table->alist *builds*)) #'string<))))
 
-(defun show-source-registry-command (&key source-registry)
-  (handle-global-options :source-registry source-registry)
+(defun show-source-registry-command (&rest keys &key source-registry verbosity debugging)
+  (declare (ignore source-registry verbosity debugging))
+  (apply 'handle-global-options keys)
   (show-source-registry))
+
+(defparameter +show-source-registry-option-spec+
+  `(,@+source-registry-option-spec+
+    ,@+verbosity-option-spec+))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Find Module ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

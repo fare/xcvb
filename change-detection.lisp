@@ -135,3 +135,6 @@
 (defmethod update-change-information ((env digest-based-change-detection) (grain file-grain) &key)
   (setf (grain-build-timestamp grain) (file-digest (grain-namestring env grain))))
 |#
+
+(eval-when (:compile-toplevel :execute)
+  (named-readtables:in-readtable :standard))

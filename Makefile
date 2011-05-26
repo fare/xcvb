@@ -240,13 +240,7 @@ test-and-release-tarball: release-tarball test-release-directory
 fake-release-directory:
 	${MAKE} -f ${XCVB_DIR}/doc/Makefile.release fake-release-directory
 
-version-bumped-test:
-	@if git diff HEAD -- version.lisp | cmp --quiet - /dev/null ; then \
-	  echo "You need to bump up version.lisp" ; \
-	  echo "Hit Ctrl-C to cancel, Return to continue." ; read ; \
-	fi
-
-pre-release-test: version-bumped-test fake-release-directory test-release-directory
+pre-release-test: fake-release-directory test-release-directory
 	${MAKE} -C ${RELEASE_DIR} reset
 
 show-config:
