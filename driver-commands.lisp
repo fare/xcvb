@@ -1,5 +1,5 @@
 #+xcvb
-(module (:depends-on ("utilities" "specials" "grain-interface" #|"external-commands"|#)))
+(module (:depends-on ("utilities" "specials" "grain-interface" "external-commands")))
 
 (in-package :xcvb)
 

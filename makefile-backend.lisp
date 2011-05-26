@@ -22,8 +22,6 @@
   (fullname-enough-namestring env fullname))
 (defmethod pseudo-effective-namestring ((env makefile-traversal) fullname)
   (pseudo-fullname-enough-namestring env fullname))
-(defmethod grain-pathname-text ((env makefile-traversal) (grain file-grain))
-  (enough-namestring (call-next-method)))
 
 (defun computations-to-Makefile (env)
   (with-output-to-string (s)
@@ -133,7 +131,7 @@ xcvb-ensure-object-directories:
     namestring))
 
 (defmethod grain-pathname-text ((env makefile-traversal) (grain file-grain))
-  (let ((pathname (call-next-method)))
+  (let ((pathname (call-next-method))) ;; TODO: where do we call enough-namestring ?
     (values (escape-shell-token-for-Makefile pathname) pathname)))
 
 (defmethod grain-pathname-text :around ((env makefile-traversal) grain)

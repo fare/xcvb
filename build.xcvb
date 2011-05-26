@@ -24,6 +24,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                      (:build "/closer-mop")
                      (:build "/command-line-arguments")
                      (:build "/fare-utils") ;; utilities and data structures.
+                     (:build "/fare-matcher") ;; fare-matcher and fare-quasiquote
                      (:when (:featurep :xcvb-farmer)
                        (:build "/iolib") ;; I/O event loop
                        (:build "/quux/iolib")) ;; signalfd support (experimental)

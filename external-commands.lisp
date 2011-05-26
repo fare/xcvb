@@ -1,5 +1,5 @@
 ;;; Lisp implementations
-#+xcvb (module (:depends-on ("specials")))
+#+xcvb (module (:depends-on ("macros")))
 
 (in-package :xcvb)
 

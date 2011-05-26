@@ -32,6 +32,6 @@
                  `(progn
                     ,@(loop :for i :in +simple-target-lisps+ :collect
                         (defsb :implementation i))
-                    ,@(loop :for b :in +example-builds+ :collect
+                    ,@(loop :for b :in (append1 +example-builds+ "/xcvb") :collect
                         (defsb :build b)))))))
   (defs))

@@ -74,11 +74,16 @@ It can already replace ASDF for the better in many cases,
 but is not yet a universal replacement for it.
 
 The following Common Lisp implementations are supported as target systems:
-CLISP, CCL, CMUCL, SBCL (free); Allegro, Lispworks, SCL (proprietary).
+CCL, CLISP, CMUCL, SBCL (free);
+Allegro, Lispworks Professional, SCL (proprietary).
 The following Common Lisp implementations are NOT supported as target systems:
-ABCL, ECL, GCL, MCL, XCL (free); Cormanlisp, Genera (proprietary).
+ABCL, ECL, GCL, MCL, XCL (free);
+Cormanlisp, Genera, Lispworks Personal (proprietary).
 
-Only SBCL, CCL and CLISP are currently supported to compile XCVB itself.
+Only SBCL, CCL and CLISP are currently supported to compile XCVB itself
+(in decreasing order of how often we use and test them).
+The same implementations, on Unix only, also support
+XCVB's advanced "farmer" mode of compilation through incremental forking.
 
 The current version (in git master branch or the release tarball)
 can handle builds of very large and complex systems,
@@ -180,14 +185,14 @@ and to build and run the target software that you will build with XCVB:
 If you prefer to collect XCVB's dependencies manually into your system,
 you will need the following Lisp software libraries to get XCVB running:
 
-  * cl-launch 3.000 or later:
+  * cl-launch 3.009 or later:
 	- homepage: http://cliki.net/CL-Launch
 	- getting it:
 		``git clone git://common-lisp.net/projects/xcvb/cl-launch.git``
         - getting it, if you're an XCVB project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
-  * ASDF 2.000 or later, aka ASDF 2:
+  * ASDF 2.015 or later, aka ASDF 2:
 	- homepage: http://cliki.net/asdf
 	- getting it:
 		``git clone git://common-lisp.net/projects/asdf/asdf.git``
@@ -337,7 +342,7 @@ In late August 2009, we released XCVB 0.366
 which successfully compiled a large system at ITA.
 
 We are working hard towards making a 1.0 release
-usable by random Common Lisp programmer by Spring 2010.
+usable by random Common Lisp programmer by Spring (which year?).
 
 Subscribe to one of our mailing-lists
 if you're interested in learning about our progress
