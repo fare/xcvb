@@ -117,7 +117,7 @@ validate_xcvb_ssr () {
   # postconditions: xcvb ssr working
   local out=${BUILD_DIR}/xcvb-ssr.out
 
-  xcvb ssr --source-registry ${XCVB_DIR}//: | tee $out
+  xcvb ssr --verbosity 99 --source-registry ${XCVB_DIR}//: | tee $out
 
   grep -q "(:BUILD \"/xcvb\") in \".*/build.xcvb\"" $out ||
   abort "Can't find build for xcvb"
@@ -153,7 +153,7 @@ validate_hello () {
 
 validate_hello_build () {
   mkdir -p $INSTALL_BIN $INSTALL_IMAGE
-  cd $XCVB_DIR/hello
+  cd $XCVB_DIR/examples/hello
   rm -f $INSTALL_BIN/hello setup.lisp ; :
   $@
   rehash

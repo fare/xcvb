@@ -800,6 +800,7 @@ and extra finalization from calling FUN on the world."
 (defparameter +standalone-build-option-spec+
   `(,@+build-option-spec+
     ,@+setup-option-spec+
+    ,@+base-image-option-spec+
     ,@+source-registry-option-spec+
     ,@+object-directory-option-spec+
     ,@+lisp-implementation-option-spec+

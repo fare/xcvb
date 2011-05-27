@@ -29,6 +29,7 @@
    #:*default-source-registries*
    #:coerce-pathname
    #:inherit-source-registry
+   #:probe-file*
    #:user-homedir)
 
   (:import-from :xcvb-driver

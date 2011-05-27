@@ -51,7 +51,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :fare-matcher :fare-quasiquote-readtable
                  :ironclad :binascii :babel
                  #+xcvb-farmer :quux-iolib
-                 :rucksack)
+                 #-clisp :rucksack)
     :components
     ((:file "pkgdcl")
      (:file "conditions" :depends-on ("pkgdcl"))

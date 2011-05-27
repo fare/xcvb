@@ -83,7 +83,7 @@
                        ~3:*~:[~;:system-p t) ~
                        (c::build-fasl (merge-pathnames ~S) ~
                         :lisp-files (list ~2:*(merge-pathnames ~S))~]))~
-                  (if (or (not output) #-ecl warningp failurep) 1 0))"
+                  (if (or (not output) #-(or clisp ecl) warningp #-clisp failurep) 1 0))"
            (effective-namestring env name)
 	   (when lisp-object
 	     (tempname-target (effective-namestring env `(:lisp-object ,(second name)))))

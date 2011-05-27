@@ -23,3 +23,6 @@
 (defun simply-error (simple-error control &rest args)
   (error (or simple-error 'simple-error)
          :format-control control :format-arguments args))
+
+(defun user-error (control &rest args)
+  (apply 'simply-error 'user-error control args))

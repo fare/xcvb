@@ -29,7 +29,7 @@
            (append keys form-keys)))))
 
 (defun grain-from-file-declaration (path &key build-p)
-  (log-format 10 "    Creating grain from path ~S~%" path)
+  (log-format 10 "    Creating grain from declarations in file at ~S~%" path)
   (parse-module-declaration
    (let ((*features* (list :xcvb)))
      (read-first-file-form path :package :xcvb-user))
@@ -46,6 +46,7 @@
     ((grain lisp-module-grain) slot-names &rest initargs &key &allow-other-keys)
   (declare (ignore slot-names initargs))
   (compute-fullname grain)
+  (log-format 11 "Fullname is ~A" (fullname grain))
   (validate-fullname grain)
   (values))
 
@@ -440,17 +441,16 @@ Modeled after the asdf function coerce-name"
   (vp-for-name-extension name "manifest"))
 (define-default-vp-for-fullname :fasl (env name)
   (declare (ignore env))
+  ;; Note: at least ecl and lispworks recognize files based on the type,
+  ;; which at least on lispworks varies depending on the target platform.
   (vp-for-name-extension
    name
-   (case *lisp-implementation-type*
-     (:ecl "fas")
-     (:lispworks "ufasl") ;; if we don't use this extension, lispworks tries to load as source.
-     (t "fasl"))))
+   *fasl-type*))
 (define-default-vp-for-fullname :cfasl (env name)
   (declare (ignore env))
   (vp-for-name-extension
    name
-   "cfasl"))
+   (strcat "c" *fasl-type*)))
 (define-default-vp-for-fullname :lisp-object (env name)
   (declare (ignore env))
   (vp-for-name-extension

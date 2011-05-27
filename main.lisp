@@ -134,8 +134,10 @@ for this version of XCVB.")))
     (("debugging" #\Z) :type boolean :optional t :initial-value nil :documentation "debug")))
 
 (defparameter +setup-option-spec+
-  '((("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
-    (("use-base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")))
+  '((("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")))
+
+(defparameter +base-image-option-spec+
+  '((("use-base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")))
 
 (defparameter +profiling-option-spec+
   '((("profiling" #\P) :type boolean :optional t :documentation "profiling")))
@@ -144,7 +146,10 @@ for this version of XCVB.")))
   '((("object-directory" #\O) :type string :optional t :documentation "specify object directory")))
 
 (defparameter +build-option-spec+
-  '((("build" #\b) :type string :optional nil :documentation "specify what system to build")))
+  '((("build" #\b) :type string :optional nil :documentation "specify what build to process")))
+
+(defparameter +multi-build-option-spec+
+  '((("build" #\b) :type string :list t :optional nil :documentation "specify what builds to process")))
 
 
 ;; Lookup the command spec for the given command name, or return nil if the

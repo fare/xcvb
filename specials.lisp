@@ -101,6 +101,9 @@ nickname, or SEXP representing a computed entity.")
 (defvar *computations* ()
   "A list of all the computations created")
 
+(defvar *fasl-type* "fasl"
+  "What pathname type our target using for its FASL files? Some targets depend on our using it.")
+
 (defvar *target-can-dump-image-p* t
   "Some targets can't dump an image (using xcvb at least). Is our target one of them?")
 

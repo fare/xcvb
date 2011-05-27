@@ -352,6 +352,7 @@ with associated pathnames and tthsums.")
   (setf *debugging* debug
         *load-verbose* debug
         *load-print* debug
+        #+clisp custom:*compile-warnings* #+clisp debug
         *compile-verbose* debug
         *compile-print* debug)
   (cond
@@ -683,9 +684,13 @@ This is designed to abstract away the implementation specific quit forms."
                               (merge-pathnames fasl)
                               :lisp-files (list (merge-pathnames lisp-object)))
                         (die "Failed to build ~S from ~S" fasl lisp-object))))))))
-      (declare (ignore output-truename))
+      (declare (ignorable warnings-p failure-p))
+      (unless output-truename
+        (die "Compilation Failed for ~A, no fasl created" source))
+      #-clisp
       (when failure-p
         (die "Compilation Failed for ~A" source))
+      #-(or clisp ecl)
       (when warnings-p
         (die "Compilation Warned for ~A" source))))
   (values))

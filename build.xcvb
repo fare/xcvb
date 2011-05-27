@@ -30,6 +30,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
                        (:build "/quux/iolib")) ;; signalfd support (experimental)
                      (:asdf :ironclad) ;; unported magic asdf:perform methods...
                      (:asdf :binascii)
+                     (:when (:featurep (:not :clisp))
+                       (:build "/rucksack"))
                      (:when (:featurep :sbcl)
                        ;; Used by XCVB
                        (:require :sb-posix)
@@ -59,6 +61,6 @@ deterministic separate compilation and enforced locally-declared dependencies."
                "source-registry"
                "main"
                "cffi-grovel-support")
-  :supersedes-asdf ("xcvb" ("xcvb-driver" "driver") ("xcvb-master" "driver"))
+  :supersedes-asdf ("xcvb" ("xcvb-driver" "driver"))
   :pre-image t
   :build-image t))

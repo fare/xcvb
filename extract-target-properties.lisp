@@ -9,6 +9,8 @@
 (defparameter *target-properties-variables*
   '((*use-cfasls*
      . "(or #+sbcl (and (find-symbol \"*EMIT-CFASL*\" \"SB-C\") t))")
+    (*fasl-type*
+     . "(pathname-type (compile-file-pathname \"foo.lisp\"))")
     (*target-asdf-version* . "(when(member :asdf2 *features*) (funcall (find-symbol(string :asdf-version):asdf)))")
     (*implementation-identifier*
      . "(when(member :asdf2 *features*) (funcall(find-symbol(string :implementation-identifier):asdf)))")

@@ -31,17 +31,18 @@ Initially populated with all build.xcvb files from the search path.")
 
 (defun make-invalid-ancestor-build-file (&key fullname pathname ancestor root)
   (make-instance 'invalid-build-file
-                 :root root
-                 :fullname fullname
-                 :pathname pathname
-                 :reason (format nil "ancestor ~A is invalid because~%~A~&"
-                                 (fullname ancestor)
-                                 (make-invalid-build-reason ancestor))))
+    :root root
+    :fullname fullname
+    :pathname pathname
+    :reason (format nil "ancestor ~A at ~A is invalid because of~%~A~&"
+                    (fullname ancestor)
+                    pathname
+                    (make-invalid-build-reason ancestor))))
 
 (defgeneric make-invalid-build-reason (x &key &allow-other-keys))
 
-(defmethod make-invalid-build-reason ((x build-registry-conflict) &key &allow-other-keys)
-  (format nil "it conflicts with same-named builds at~%~{~S~&~}"
+(defmethod make-invalid-build-reason ((x build-registry-entry) &key &allow-other-keys)
+  (format nil "a conflict between same-named builds at~%~{~S~&~}"
           (brc-pathnames x)))
 
 (defmethod make-invalid-build-reason ((x invalid-build-file) &key &allow-other-keys)
@@ -75,12 +76,14 @@ Initially populated with all build.xcvb files from the search path.")
                       "Could not properly parse the source registry:~%~A" c)))))
 
 (defparameter *sbcl-contribs*
-  '(:asdf-install
+  '(;;:asdf-install
     :sb-aclrepl
     :sb-bsd-sockets
     :sb-cltl2
     :sb-concurrency
     :sb-cover
+    :sb-daemon
+    :sb-executable
     :sb-grovel
     :sb-introspect
     :sb-md5
@@ -88,7 +91,8 @@ Initially populated with all build.xcvb files from the search path.")
     :sb-queue
     :sb-rotate-byte
     :sb-rt
-    :sb-simple-streams)
+    :sb-simple-streams
+    :sb-sprof)
   "special systems that are part of SBCL")
 
 (defun initialize-builds ()
@@ -115,23 +119,24 @@ Initially populated with all build.xcvb files from the search path.")
 
 ;;; Now for actually searching the source registry!
 
-(defun verify-path-element (element)
-  (let* ((absolute-path (ensure-absolute-pathname element)))
-    (cond
-      ((ignore-errors (truename absolute-path))
-       (log-format 10 "  Verified path element: ~S~%" absolute-path)
-       absolute-path)
-      (t
-       (log-format 7 "  Discarding invalid path element ~S~%" element)
-       nil))))
-
 (defun finalize-source-registry ()
   (log-format 10 "Finalizing (verifying) source registry~%")
   (setf *flattened-source-registry*
         (list
-         (loop :for (path . flags) :in (car *flattened-source-registry*)
-           :for v = (verify-path-element path)
-           :when v :collect (cons v flags)))))
+         (while-collecting (c)
+           (loop :with visited = (make-hash-table :test 'equal)
+             :for (path . flags) :in (car *flattened-source-registry*)
+             :for tn = (probe-file* path)
+             :for ns = (and tn (namestring tn)) :do
+             (cond
+               ((not tn)
+                (log-format 7 "  Discarding invalid path element ~S" path))
+               ((gethash ns visited)
+                (log-format 7 "  Discarding duplicate path element ~S" path))
+               (t
+                (log-format 8 "  Verified path element: ~S ~S" path flags)
+                (setf (gethash ns visited) t)
+                (c (cons tn flags)))))))))
 
 (defvar +build-path+
   (make-pathname :directory nil
@@ -183,7 +188,7 @@ Initially populated with all build.xcvb files from the search path.")
   (log-format-pp
    10 "Processing all build.xcvb files in source registry root:~%    ~S~%"
    root)
-  
+
   (let* ((builds (find-build-files-under root))
          ;; depth first traversal
          (builds (sort (mapcar #'truename builds) #'<
@@ -191,13 +196,11 @@ Initially populated with all build.xcvb files from the search path.")
     (map () fn builds)))
 
 (defun search-source-registry ()
-  (log-format 10 "Searching for build files in source registry.~%")
+  (log-format 10 "Searching for build files in source registry")
   (finalize-source-registry)
   (dolist (root (car *flattened-source-registry*))
-    (map-build-files-under root
-			   #'(lambda (x)
-			       (log-format 10 "  Registering build file: ~S" x)
-			       (register-build-file x root)))
+    (log-format 10 " Searching for build files under ~S" root)
+    (map-build-files-under root #'(lambda (x) (register-build-file x root)))
     (confirm-builds-under root)))
 
 (defun ensure-source-registry-searched ()
@@ -236,7 +239,7 @@ Initially populated with all build.xcvb files from the search path.")
   "Registers build file build.xcvb (given as truename)
 as having found under root path ROOT (as pathname),
 for each of its registered names."
-  ;;(format *error-output* "~&Found build file ~S in ~S~%" build root)
+  (log-format 10 "  Registering build file ~S in ~S" build root)
   (let* ((build-module-grain
           (make-grain-from-file build :build-p t))
          (fullname (when build-module-grain (fullname build-module-grain))))
@@ -259,15 +262,17 @@ for each of its registered names."
     (values)))
 
 (defun confirm-builds-under (root)
-  (log-format 10 "Confirming discovered build files!~%")
+  (log-format 10 "Confirming build files discovered under ~S" root)
+  ;; This will try to register the secondary names of otherwise valid builds.
   (loop
     :with builds-under-root = (loop :for b :being :the :hash-values :of *builds*
                                 :when (and (build-module-grain-p b) (equal (bre-root b) root))
                                 :collect b)
+    ;; Making sure we confirm parents before children, based on fullname length.
     :for b :in (sort builds-under-root #'< :key (compose #'length #'fullname))
     :for p = (grain-parent b) :do
     (if (or (null p) (eq p (registered-build (fullname p))))
-        ;; The parent has already been visited and not been invalidated,
+        ;; The parent has already been visited and has not been invalidated,
         ;; so the current build is valid, and we register its secondary names.
         (dolist (name (append (mapcar #'canonicalize-fullname (nicknames b))
                               (mapcar #'supersedes-asdf-name (supersedes-asdf b))))
@@ -342,7 +347,7 @@ for each of its registered names."
 
 (defun show-source-registry-command (&rest keys &key source-registry verbosity debugging)
   (declare (ignore source-registry verbosity debugging))
-  (apply 'handle-global-options keys)
+  (apply 'handle-global-options :use-target-lisp nil keys)
   (show-source-registry))
 
 (defparameter +show-source-registry-option-spec+
@@ -351,9 +356,10 @@ for each of its registered names."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Find Module ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun find-module (&key source-registry name short)
+(defun find-module (&rest keys &key source-registry name short verbosity debugging)
   "find modules of given full name"
-  (handle-global-options :source-registry source-registry)
+  (declare (ignorable source-registry verbosity debugging))
+  (apply 'handle-global-options :use-target-lisp nil keys)
   (let ((all-good t))
     (dolist (fullname name)
       (let ((grain (resolve-absolute-module-name fullname)))

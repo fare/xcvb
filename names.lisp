@@ -89,19 +89,19 @@
 (defun inherited-fullname (grain &key build-p)
   (check-type grain lisp-module-grain)
   (let* ((pathname (ensure-absolute-pathname (grain-pathname grain)))
-         (host (pathname-host pathname))
-         (device (pathname-device pathname))
          (rdirectory (reverse (pathname-directory pathname))))
-    (labels ((err ()
-               (error "grain ~A is lacking an explicit or implicit fullname"
-                      (grain-pathname grain)))
-             (maybe-inherit-from (rdir subnames)
+    (log-format 10 "   ~:[~;build ~]grain at ~A is missing a fullname; computing it"
+                build-p pathname)
+    (labels ((maybe-inherit-from (rdir subnames)
+               (log-format 10 "     mif with rdir=~S subnames=~S" rdir subnames)
                (let ((ancestor (probe-file
-                                (make-pathname :host host :device device
+                                (make-pathname :defaults pathname
                                                :name "build" :type "xcvb"
                                                :directory (reverse rdir)))))
                  (if ancestor
                      (let ((ancestor-fullname (fullname-from-truename ancestor)))
+                       (log-format 10 "    found ancestor ~A~@[ with fullname ~A~]"
+                                   ancestor ancestor-fullname)
                        (if (null ancestor-fullname)
                            (error "grain ~A has unregistered ancestor at ~A"
                                   (grain-pathname grain) ancestor)
@@ -111,10 +111,12 @@
                                            :separator "/"))))
                      (recurse rdir subnames))))
              (recurse (rdir subnames)
+               (log-format 10 "     recursing with rdir=~S subnames=~S" rdir subnames)
                (let ((dir (car rdir)))
                  (if (stringp dir)
                    (maybe-inherit-from (cdr rdir) (cons dir subnames))
-                   (err)))))
+                   (error "grain ~A is lacking an explicit or implicit fullname"
+                          (grain-pathname grain))))))
       (if build-p
         (recurse rdirectory nil)
         (maybe-inherit-from rdirectory (list (pathname-name pathname)))))))
@@ -154,8 +156,8 @@ of decreasing fullname length"
       (build-module-grain
        (funcall build-handler build suffix))
       (invalid-build-registry-entry
-       (error "Trying to use invalid build name ~S while resolving ~A ~S"
-              prefix description suffix))))
+       (error "~:@<Trying to use invalid build name ~S while resolving ~A ~S (~A)~:>"
+              prefix description suffix (invalid-build-reason build)))))
   (values))
 
 (defun resolve-build-relative-name (name &optional (description "build-relative name"))
