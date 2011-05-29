@@ -8,4 +8,5 @@
   :build-image t)
  (:generate
   ((:lisp "version" :depends-on ("specials")))
-  :depends-on ((:lisp "generate-version"))))
+  :depends-on ((:source "doc/TODO.rest" :in "/xcvb") ; we don't really depend on it, do we?
+               (:lisp "generate-version"))))

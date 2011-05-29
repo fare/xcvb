@@ -98,7 +98,7 @@ checkout:
 
 fake-release-directory:
 	[ -n "${RELEASE_DIR}" ] || { echo "RELEASE_DIR not defined" ; exit 42 ;} ; \
-	mkdir -p "${RELEASE_DIR}" ] ; \
+	mkdir -p "${RELEASE_DIR}" ; \
 	[ -n "${RELEASE_EXCLUDE}" ] || { echo "RELEASE_EXCLUDE not defined" ; exit 42 ;} ; \
 	mkdir -p ${RELEASE_DIR}/dependencies ${RELEASE_DIR}/xcvb && \
 	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} && \

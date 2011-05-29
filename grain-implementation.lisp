@@ -28,11 +28,14 @@
            :computation nil
            (append keys form-keys)))))
 
+(defun read-module-declaration (path)
+  (let ((*features* (list :xcvb)))
+    (read-first-file-form path :package :xcvb-user)))
+
 (defun grain-from-file-declaration (path &key build-p)
   (log-format 10 "    Creating grain from declarations in file at ~S~%" path)
   (parse-module-declaration
-   (let ((*features* (list :xcvb)))
-     (read-first-file-form path :package :xcvb-user))
+   (read-module-declaration path)
    :keys `(:pathname ,path) :build-p build-p))
 
 (defun module-form-p (form)
@@ -46,7 +49,6 @@
     ((grain lisp-module-grain) slot-names &rest initargs &key &allow-other-keys)
   (declare (ignore slot-names initargs))
   (compute-fullname grain)
-  (log-format 11 "Fullname is ~A" (fullname grain))
   (validate-fullname grain)
   (values))
 

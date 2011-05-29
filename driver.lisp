@@ -257,23 +257,24 @@ that is neither Unix, nor Windows.~%Now you port it."))))
 ;;; These variables are shared with XCVB itself.
 (defvar *lisp-implementation-type*
   ;; TODO: test on all OS and implementation platform combinations!
-  #+abcl :abcl
-  #+allegro :allegro
-  #+clisp :clisp
-  #+clozure :ccl
-  #+cmu :cmucl
-  #+cormanlisp :corman
-  #+ecl :ecl
-  #+gcl :gcl
-  #+genera :genera
-  #+lispworks :lispworks
-  #+mcl :mcl
-  #+sbcl :sbcl
-  #+scl :scl
-  #+xcl :xcl
-  #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl genera lispworks mcl sbcl scl xcl)
-  (error "Your Lisp implementation is not supported by the XCVB driver (yet). Please help.")
-  "Type of Lisp implementation for the target system. A keyword.
+  (or
+   #+abcl :abcl
+   #+allegro :allegro
+   #+clisp :clisp
+   #+clozure :ccl
+   #+cmu :cmucl
+   #+cormanlisp :corman
+   #+ecl :ecl
+   #+gcl :gcl
+   #+genera :genera
+   #+lispworks-personal-edition :lispworks-personal
+   #+lispworks :lispworks
+   #+mcl :mcl
+   #+sbcl :sbcl
+   #+scl :scl
+   #+xcl :xcl
+   (error "Your Lisp implementation is not supported by the XCVB driver (yet). Please help."))
+   "Type of Lisp implementation for the target system. A keyword.
   Default: same as XCVB itself.")
 
 (defvar *lisp-executable-pathname* nil

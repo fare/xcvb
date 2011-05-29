@@ -124,3 +124,4 @@ nickname, or SEXP representing a computed entity.")
 
 (defparameter *module-classes*
   '((module . lisp-file-grain)))
+

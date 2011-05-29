@@ -90,17 +90,16 @@
   (check-type grain lisp-module-grain)
   (let* ((pathname (ensure-absolute-pathname (grain-pathname grain)))
          (rdirectory (reverse (pathname-directory pathname))))
-    (log-format 10 "   ~:[~;build ~]grain at ~A is missing a fullname; computing it"
+    (log-format 20 "   ~:[~;build ~]grain at ~A is missing a fullname; computing it"
                 build-p pathname)
     (labels ((maybe-inherit-from (rdir subnames)
-               (log-format 10 "     mif with rdir=~S subnames=~S" rdir subnames)
                (let ((ancestor (probe-file
                                 (make-pathname :defaults pathname
                                                :name "build" :type "xcvb"
                                                :directory (reverse rdir)))))
                  (if ancestor
                      (let ((ancestor-fullname (fullname-from-truename ancestor)))
-                       (log-format 10 "    found ancestor ~A~@[ with fullname ~A~]"
+                       (log-format 20 "    found ancestor ~A~@[ with fullname ~A~]"
                                    ancestor ancestor-fullname)
                        (if (null ancestor-fullname)
                            (error "grain ~A has unregistered ancestor at ~A"
@@ -111,7 +110,6 @@
                                            :separator "/"))))
                      (recurse rdir subnames))))
              (recurse (rdir subnames)
-               (log-format 10 "     recursing with rdir=~S subnames=~S" rdir subnames)
                (let ((dir (car rdir)))
                  (if (stringp dir)
                    (maybe-inherit-from (cdr rdir) (cons dir subnames))
@@ -208,4 +206,3 @@ of decreasing fullname length"
           (error "Specified name ~A isn't under build ~A but under build ~A"
                  name build-name (fullname actual-build))))))
   t)
-

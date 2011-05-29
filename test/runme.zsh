@@ -1,9 +1,9 @@
 #!/bin/zsh -fex
 
-# Q: what to do of this old broken test suite?
-# ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-test --restart xcvb::quit
+# Q: what to do of the new test suite?
+# ${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-unit-tests --main '(xcvb-unit-tests:test-xcvb)'
 
-XCVB_LISPS=(clisp ccl sbcl)
+XCVB_LISPS=(ccl sbcl) # clisp
 SIMPLE_TARGET_LISPS=(clisp ccl sbcl scl)
 FARMER_TARGET_LISPS=(clisp ccl sbcl)
 
@@ -125,7 +125,7 @@ validate_xcvb_ssr () {
   fgrep -q "(:ASDF \"xcvb\") superseded by (:BUILD \"/xcvb\")" $out ||
   abort "can't find superseded asdf for xcvb"
 
-  grep -q "CONFLICT for \"/xcvb/test/conflict/b\" between (\".*/test/conflict/b2\\?/build.xcvb\" \".*/test/conflict/b2\\?/build.xcvb\")" $out ||
+  grep -q "CONFLICT for \"/xcvb/test/conflict/b\" between (\".*/examples/conflict/b2\\?/build.xcvb\" \".*/examples/conflict/b2\\?/build.xcvb\")" $out ||
   abort "can't find conflict for /xcvb/test/conflict/b"
 }
 

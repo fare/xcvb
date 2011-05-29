@@ -2,17 +2,17 @@
 
 (in-package #:xcvb-unit-tests)
 
-(defsuite* (run-program/*
-            :in root-suite
+(defsuite* (test-run-program
+            :in test-xcvb
             :documentation "Test run-program/* and associated functions"))
 
 #|
-#:run-program/process-output-stream
-#:run-program/read-output-lines
-#:run-program/read-output-string
-#:run-program/read-output-form
-#:run-program/read-output-forms
-#:run-program/echo-output
+Testing run-program/process-output-stream through its derivatives:
+run-program/read-output-lines
+run-program/read-output-string
+run-program/read-output-form
+run-program/read-output-forms
+run-program/echo-output
 |#
 
 ;; Convert the input format to a string stream, read it into a string,
@@ -84,58 +84,50 @@
 (defun common-test/run-program/process-output-stream ()
   ;; Test that the 'echo' program can echo a single string.
   ;; Use the output-processor of slurp-stream-lines.
-  (let ((ret (run-program/process-output-stream
-              '("echo" "string") 'slurp-stream-lines)))
-    (is (equal ret '("string"))))
+  (is (equal '("string")
+             (run-program/read-output-lines '("echo" "string"))))
 
   ;; Test that the 'echo' program can echo a single string.
   ;; Use the output-processor of slurp-stream-string.
-  (let ((ret (run-program/process-output-stream
-              '("echo" "string") 'slurp-stream-string)))
-    (is (string= ret (nl "string"))))
+  (is (equal (nl "string")
+             (run-program/read-output-string '("echo" "string"))))
 
   ;; Test that the 'echo' program can echo an argument with a space.
   ;; Use the output-procesor of slurp-stream-lines.
-  (let ((ret (run-program/process-output-stream
-              '("echo" "Hello World") 'slurp-stream-lines)))
-    (is (equal ret '("Hello World"))))
+  (is (equal '("Hello World")
+             (run-program/read-output-lines '("echo" "Hello World"))))
 
   ;; Test that the 'echo' program can echo an argument with a space.
   ;; Use the output-processor of slurp-stream-string.
-  (let ((ret (run-program/process-output-stream
-              '("echo" "Hello World") 'slurp-stream-string)))
-    (is (string= ret (nl "Hello World"))))
+  (is (equal (nl "Hello World")
+               (run-program/read-output-string '("echo" "Hello World"))))
 
   ;; Test that the 'echo' program can echo an argument with a space.
   ;; Use the output-processor of slurp-stream-string. Also use the
   ;; command string form.
-  (let ((ret (run-program/process-output-stream
-              "echo Hello World" 'slurp-stream-string)))
-    (is (string= ret (nl "Hello World"))))
+  (is (equal (nl "Hello World")
+             (run-program/read-output-string "echo Hello World")))
 
   ;; Test that run-program/process-output-stream fails properly with an
   ;; empty program string
-  (signals error (run-program/process-output-stream '("")
-                                                    'slurp-stream-lines))
-  
+  (signals error (run-program/read-output-lines '("")))
+
   ;; An empty string itself is ok since it is passed to the shell.
-  (is (string= "" (run-program/process-output-stream "" 'slurp-stream-string)))
+  (is (equal "" (run-program/read-output-string "")))
 
   ;; Test that run-program/process-output-stream fails properly with an
   ;; program list containing a nil executable
-  (signals error (run-program/process-output-stream '(nil)
-                                                    'slurp-stream-lines))
+  (signals error (run-program/read-output-lines '(nil)))
 
   ;; Test that run-program/process-output-stream fails properly with a
   ;; nil program list
-  (signals error (run-program/process-output-stream nil 'slurp-stream-lines))
+  (signals error (run-program/read-output-lines nil))
 
   ;; Test that run-program/process-output-stream fails properly when the
   ;; executable doesn't exist.
-  (signals error (run-program/process-output-stream '("does-not-exist")
-                                                    'slurp-stream-lines))
-  (signals error (run-program/process-output-stream "does-not-exist"
-                                                    'slurp-stream-lines)))
+  (signals error (run-program/read-output-lines '("does-not-exist")))
+  (signals error (run-program/read-output-lines "does-not-exist")))
+
 
 (defun unix-only-test/run-program/process-output-stream ()
 
@@ -181,7 +173,5 @@
 
 (deftest test/run-program/process-output-stream ()
   (common-test/run-program/process-output-stream)
-  (using-unix
-    (unix-only-test/run-program/process-output-stream))
-  (using-windows
-    (windows-only-test/run/program/process/output-stream)))
+  #+os-unix (unix-only-test/run-program/process-output-stream)
+  #+os-windows (windows-only-test/run/program/process/output-stream))

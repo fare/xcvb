@@ -19,6 +19,7 @@
   standalone-executable
   argument-control
   disable-debugger
+  directory-variable
   ;; fasl-type cfasl-type
   quit-format
   dump-format)
@@ -79,6 +80,7 @@
   :arguments-end "--"
   :argument-control t ;; must be fixed now, but double-checking needed.
   :disable-debugger ("--batch")
+  :directory-variable "CCL_DEFAULT_DIRECTORY"
   :quit-format "(let ((x ~A)) (finish-output *standard-output*) (finish-output *error-output*) (ccl:quit x))"
   :dump-format "(save-application ~S :prepend-kernel t)")
 
@@ -112,22 +114,11 @@
   :quit-format "(unix:unix-exit ~A)"
   :dump-format "(extensions:save-lisp ~S)")
 
-#| ;; Maybe someone will add support for this?
-(define-lisp-implementation :corman ()
+(define-lisp-implementation :corman () ;; someone please add more complete support
   :fullname "Corman Lisp"
-  :name "clconsole"
+  :name () ;; There's a clconsole.exe, but what are the options?
   :feature :cormanlisp
-  :flags XXX
-  :eval-flag XXX
-  :load-flag XXX
-  :image-flag XXX
-  :image-executable-p XXX
-  :arguments-end XXX
-  :argument-control XXX
-  :disable-debugger XXX
-  :quit-format "(win:exitprocess ~A)"
-  :dump-format XXX)
-|#
+  :quit-format "(win:exitprocess ~A)")
 
 (define-lisp-implementation :ecl () ;; demand 10.4.2 or later.
   :fullname "Embeddable Common-Lisp"
@@ -175,6 +166,11 @@
   ;; when you dump, you may also have to (system::copy-file ".../lwlicense" (make-pathname :name "lwlicense" :type nil :defaults filename))
   :dump-format "(lispworks:deliver 'xcvb-driver:resume ~A 0 :interface nil)") ; "(hcl:save-image ~A :environment nil)"
 
+(define-lisp-implementation :lispworks-personal ()
+  :fullname "LispWorks Personal Edition"
+  :name () ;; In LispWorks Personal, the slave worker executes you!
+  :feature :lispworks-personal-edition)
+
 (define-lisp-implementation :sbcl ()
   :fullname "Steel Bank Common Lisp"
   :name "sbcl"
@@ -191,6 +187,7 @@
   :standalone-executable t ;; requires sbcl 1.0.21.24 or later.
   :argument-control t
   :disable-debugger ("--disable-debugger")
+  :directory-variable "SBCL_HOME"
   :quit-format "(sb-ext:quit :unix-status ~A)"
   :dump-format "(sb-ext:save-lisp-and-die ~S :executable t)")
 

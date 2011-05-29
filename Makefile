@@ -244,7 +244,7 @@ pre-release-test: fake-release-directory test-release-directory
 	${MAKE} -C ${RELEASE_DIR} reset
 
 show-config:
-	echo "LISP=${LISP}" ; \
+	@echo "LISP=${LISP}" ; \
 	echo "CL_LAUNCH=${CL_LAUNCH}" ; \
 	echo "CL_LAUNCH_FLAGS=${CL_LAUNCH_FLAGS}" ; \
 	echo "CL_LAUNCH_MODE=${CL_LAUNCH_MODE}" ; \

@@ -61,20 +61,23 @@
 (defun read-target-properties ()
   (let ((forms (extract-target-properties)))
     (unless forms
-      (error "Failed to extract properties from your Lisp implementation"))
+      (user-error "Failed to extract properties from your Lisp implementation"))
     (log-format-pp 7 "Information from target Lisp:~% ~S" forms)
     (unless (and (list-of-length-p 1 forms)
                  (consp (car forms)) (eq 'setf (caar forms)))
-      (error "Malformed target properties"))
+      (user-error "Malformed target properties"))
     (setf *target-properties* (cdar forms))
     (loop :for (var value) :on *target-properties* :by #'cddr :do
           (cond
             ((not (member var *target-properties-variables* :key #'car))
-             (error "Invalid target property ~S" var))
+             (user-error "Invalid target property ~S" var))
             ((not (and (list-of-length-p 2 value) (eq 'quote (car value))))
-             (error "Invalid target property value ~S" value))
+             (user-error "Invalid target property value ~S" value))
             (t
-             (set var (second value)))))))
+             (set var (second value)))))
+    #+sbcl
+    (case *lisp-implementation-type*
+      (:sbcl (sb-posix:setenv "SBCL_HOME" *lisp-implementation-directory* 1)))))
 
 (defun extract-target-properties-via-pipe ()
   (with-safe-io-syntax (:package :xcvb-user)

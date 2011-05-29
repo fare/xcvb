@@ -2,8 +2,8 @@
 
 (in-package #:xcvb-unit-tests)
 
-(defsuite* (run-program-backend/*
-            :in root-suite
+(defsuite* (test-run-program-backend
+            :in test-xcvb
             :documentation "Test the run-program-backend (simple-build)"))
 
 (defun test-simple-build (&key (build (first +example-builds+))
