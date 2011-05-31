@@ -2,6 +2,8 @@
 
 (in-package #:xcvb-unit-tests)
 
+(declaim (optimize (debug 3) (safety 3)))
+
 ;; We add a newline to the end of a string and return it.
 ;; We do it in this specific manner so that under unix, windows and macos,
 ;; format will choose the correct type of newline delimiters
@@ -23,17 +25,18 @@
 (defun run-cmd/lines (&rest args)
   (run-program/read-output-lines (cmdize* args)))
 
-(defun run-make (dir &rest args)
-  (apply 'run-cmd "make" "-C" dir args))
-
 (defun rm-rfv (x)
-  (let* ((p (pathname x)))
+  (let* ((p (pathname x))
+         (d (pathname-directory p))
+         (n (namestring p)))
     (assert (not (wild-pathname-p p)))
-    (assert (absolute-pathname-p p))
-    (assert (consp (pathname-directory p)))
-    (assert (<= 4 (length (pathname-directory p))))
+    (assert (consp d))
+    (assert (eq :absolute (first d)))
+    (assert (<= 4 (length d)))
+    (unless (search "xcvb" n)
+      (break "Do you really want to rm -rfv ~A ???" n))
     (run-program/echo-output
-     `("/bin/rm" "-rfv" (namestring p))
+     `("/bin/rm" "-rfv" ,n)
      :ignore-error-status t)))
 
 (defun rsync (&rest args)

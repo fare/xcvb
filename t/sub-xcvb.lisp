@@ -8,19 +8,19 @@
             :in test-xcvb
             :documentation "Test XCVB as a subprocess"))
 
+(defun run-make (dir target &rest keys)
+  (apply 'run-cmd "make" "-C" dir target (make-environment keys)))
+
 (defun normalize-environment-var (key)
   (substitute #\_ #\- (string-upcase key)))
-
-(defun environment-parallelize (val)
-  (or val "no"))
 
 (defun make-environment (keys)
   (loop :for xspec :in
     '(:install-bin :install-image :install-lisp :install-source :install-systems
-      (:object-dir "XCVB_OBJECT_DIRECTORY") :cl-source-registry
+      (:object-dir "XCVB_OBJECT_DIRECTORY") (:source-registry "CL_SOURCE_REGISTRY")
       (:implementation-type "LISP" string-downcase)
       :path :xdg-cache-home :cl-launch-flags
-      (:parallelize () environment-parallelize))
+      :parallelize)
     :for spec = (alexandria:ensure-list xspec)
     :for key = (first spec)
     :for var = (or (second spec) (normalize-environment-var key))
@@ -28,18 +28,24 @@
     :for val = (getf keys key)
     :when val :collect (format nil "~A=~A" var (funcall fun val))))
 
+(defun upkeywordp (x)
+  (find-symbol (string-upcase x) :keyword))
+
 (defun compute-makefile-configuration-variables (&rest keys)
   (loop :with config = (apply 'extract-makefile-configuration keys)
     :for xspec :in
-    '(:install-bin :install-image :install-lisp
-      :install-xcvb :install-source :install-systems
-      (:object-dir "XCVB_OBJECT_DIRECTORY") :cl-source-registry :implementation-type
+    '(;; :install-bin :install-image :install-lisp
+      ;; :install-xcvb :install-source :install-systems
+      ;; (:object-dir "XCVB_OBJECT_DIRECTORY")
+      ;; (:source-registry "CL_SOURCE_REGISTRY")
+      ;; (:implementation-type "LISP" upkeywordp)
       :cl-launch :cl-launch-flags :cl-launch-mode)
     :for spec = (alexandria:ensure-list xspec)
     :for key = (first spec)
     :for var = (or (second spec) (normalize-environment-var key))
+    :for fun = (or (third spec) 'identity)
     :for val = (association var config :test 'equal)
-    :when val :do (setf (getf keys key) val))
+    :when val :do (setf (getf keys key) (funcall fun val)))
   keys)
 
 (defun extract-makefile-configuration (&rest keys &key xcvb-dir &allow-other-keys)
@@ -50,7 +56,7 @@
     :for name = (subseq line 0 pos)
     :for value = (cond
                    ((null pos)
-                    (format *error-output* "Ignoring line ~S~%" line)
+                    ;;(format *error-output* "Ignoring line ~S~%" line)
                     nil)
                    ((= pos (1- (length line)))
                     "")
@@ -132,12 +138,12 @@
     (is (string-prefix-p (strcat "built on " (lisp-long-name implementation-type))
                          (second lines)))))
 
-(defun validate-xcvb-ssr (&key xcvb xcvb-dir cl-source-registry &allow-other-keys)
+(defun validate-xcvb-ssr (&key xcvb xcvb-dir source-registry &allow-other-keys)
   ;; preconditions: XCVB built from DIR into BUILD-DIR using ENV
   ;; postconditions: xcvb ssr working
   (let ((ssr (run-program/read-output-string
               (format nil "~S ssr --source-registry ~S"
-                      xcvb (strcat xcvb-dir "//:" cl-source-registry)))))
+                      xcvb (format nil "~A//:~@[~A~]" xcvb-dir source-registry)))))
     (is (cl-ppcre:scan "\\(:BUILD \"/xcvb\"\\) in \".*/build.xcvb\"" ssr)
         "Can't find build for xcvb")
     (is (search "(:ASDF \"xcvb\") superseded by (:BUILD \"/xcvb\")" ssr)
@@ -148,11 +154,11 @@
 (defun validate-xcvb (&rest keys &key implementation-type &allow-other-keys)
   ;; preconditions: env, xcvb built, PWD=.../xcvb/
   (apply 'validate-xcvb-version keys) ;; is the built xcvb what we think it is?
-  (apply 'validate_xcvb_ssr keys) ;; can it search its search path?
+  (apply 'validate-xcvb-ssr keys) ;; can it search its search path?
   (case implementation-type
     (:sbcl (apply 'validate-a2x keys))) ; can it migrate a2x-test from xcvb?
-  (apply 'validate_rmx keys) ; can it remove the xcvb annotations from a2x-test?
-  (apply 'validate_x2a keys) ; can it convert hello back to asdf?
+  (apply 'validate-rmx keys) ; can it remove the xcvb annotations from a2x-test?
+  (apply 'validate-x2a keys) ; can it convert hello back to asdf?
   ;; (apply 'validate-simple-build-backend) ; can it build hello with the standalone backend?
   ;; (validate-farmer-backend) ; can it build hello with the standalone backend?
   (apply 'validate-mk-backend keys) ; can it build hello with the Makefile backend?
@@ -163,14 +169,14 @@
 
 (defun validate-hello (&key install-bin &allow-other-keys)
   (is (equal '("hello, world")
-             (run-cmd/string (in-dir install-bin "hello") "-t"))
+             (run-cmd/lines (in-dir install-bin "hello") "-t"))
       "hello not working"))
 
 (defun ensure-file-deleted (file)
   (ignore-errors (delete-file file)))
 
 (defun validate-hello-build (build-target &rest keys
-                             &key install-bin install-image xcvb-dir environment
+                             &key install-bin install-image xcvb-dir
                              &allow-other-keys)
   (ensure-directories-exist install-bin)
   (ensure-directories-exist install-image)
@@ -178,7 +184,7 @@
            (ensure-file-deleted (in-dir xcvb-dir "examples/hello/setup.lisp"))
            (ensure-file-deleted (in-dir install-bin "hello"))))
     (clean)
-    (apply 'run-make (in-dir xcvb-dir "examples/hello/") build-target environment)
+    (apply 'run-make (in-dir xcvb-dir "examples/hello/") build-target keys)
     (apply 'validate-hello keys)
     (clean)))
 
@@ -193,30 +199,32 @@
 (defun validate-x2a (&rest keys)
   (apply 'validate-hello-build "hello-using-asdf" keys))
 
-(defun validate-rmx (&rest keys &key xcvb build-dir xcvb-dir cl-source-registry &allow-other-keys)
-  (ensure-directories-exist (in-dir build-dir "a2x_rmx/"))
-  (rsync "-a" (in-dir xcvb-dir "test/a2x/") (in-dir build-dir "a2x_rmx/"))
-  (let ((cl-source-registry (format nil "~A/a2x_rmx//:~A" build-dir cl-source-registry)))
-    (apply 'validate-xcvb-ssr :source-registry cl-source-registry keys)
+(defun validate-rmx (&rest keys &key xcvb build-dir xcvb-dir source-registry &allow-other-keys)
+  (let* ((test-dir (in-dir build-dir "a2x_rmx/"))
+         (source-registry (format nil "~A//:~A" test-dir source-registry)))
+    (ensure-directories-exist test-dir)
+    (rsync "-a" (in-dir xcvb-dir "examples/a2x/") test-dir)
+    (apply 'validate-xcvb-ssr :source-registry source-registry keys)
     (run-cmd xcvb 'rmx :build "/xcvb/test/a2x"
-             :verbosity 9 :source-registry cl-source-registry)
-    (is (not (probe-file* (in-dir build-dir "a2x_rmx/build.xcvb")))
+             :verbosity 9 :source-registry source-registry)
+    (is (not (probe-file* (in-dir test-dir "build.xcvb")))
         "xcvb rmx failed to remove build.xcvb")
-    (dolist (l (is (directory (merge-pathnames* #p"a2x_rmx/*.lisp" build-dir))))
+    (dolist (l (is (directory (merge-pathnames* #p"*.lisp" test-dir))))
       (is (not (module-form-p (read-module-declaration l)))
           "xcvb rmx failed to delete module form from ~A" l))))
 
 (defun validate-a2x (&key xcvb build-dir xcvb-dir &allow-other-keys)
-  (ensure-directories-exist (in-dir build-dir "a2x_a2x/"))
-  (rsync "-a" (in-dir xcvb-dir "test/a2x/") (in-dir build-dir "a2x_a2x/"))
-  (run-cmd xcvb 'a2x :system "a2x-test" :name "/xcvb/test/a2x")
-  (is (probe-file* (in-dir build-dir "a2x_a2x/build.xcvb"))
+  (let ((test-dir (in-dir build-dir "a2x_a2x/")))
+    (ensure-directories-exist test-dir)
+    (rsync "-a" (in-dir xcvb-dir "examples/a2x/") test-dir)
+    (run-cmd xcvb 'a2x :system "a2x-test" :name "/xcvb/test/a2x")
+    (is (probe-file* (in-dir test-dir "build.xcvb"))
       "xcvb a2x failed to create build.xcvb")
-  (dolist (l (is (directory (merge-pathnames* #p"a2x_a2x/*.lisp" build-dir))))
-    (is (module-form-p (read-module-declaration l))
-        "xcvb a2x failed to create module form for ~A" l)))
+    (dolist (l (is (directory (merge-pathnames* #p"*.lisp" test-dir))))
+      (is (module-form-p (read-module-declaration l))
+          "xcvb a2x failed to create module form for ~A" l))))
 
-(defun validate-master (&key xcvb build-dir object-dir cl-source-registry implementation-type
+(defun validate-master (&key xcvb build-dir object-dir source-registry implementation-type
                         &allow-other-keys)
   (let* ((driver
           (is (first
@@ -227,9 +235,9 @@
            (xcvb::lisp-invocation-arglist
             :implementation-type implementation-type :lisp-path nil :load driver
             :eval (format nil "'(#.(xcvb-driver:bnl \"xcvb/hello\" ~
-                     :output-path ~S :object-directory ~S :source-registry ~S :verbosity 9) ~
-                     #.(let ((*print-base* 30)) (xcvb-hello::hello :name 716822547 :traditional t)))"
-                          build-dir object-dir cl-source-registry)))))
+              :output-path ~S :object-directory ~S :source-registry ~S :verbosity 9) ~
+              #.(let ((*print-base* 30)) (xcvb-hello::hello :name 716822547 :traditional t)))"
+                          build-dir object-dir source-registry)))))
     (is (search "hello, tester" out)
         "Failed to use hello through the XCVB master")))
 
@@ -243,7 +251,7 @@
         "Failed to drive a slave ~(~A~) to build hello" implementation-type)))
 
 (defun do-xxx-build (target &rest keys &key xcvb-dir &allow-other-keys)
-  (apply 'run-make xcvb-dir target (make-environment keys)))
+  (apply 'run-make xcvb-dir target keys))
 
 (defun do-asdf-build (&rest keys)
   (apply 'do-xxx-build "xcvb-using-asdf" keys))
@@ -275,7 +283,7 @@
 
 (defun do-release-build (&rest keys &key release-dir build-dir &allow-other-keys)
   (rm-rfv (in-dir build-dir "obj/"))
-  (apply 'run-make release-dir "install" (make-environment keys)))
+  (apply 'run-make release-dir "install" keys))
 
 (defun ensure-build-directories (&key object-dir install-bin install-image
                                  &allow-other-keys)
@@ -292,17 +300,17 @@
   (compute-xcvb-dir-variables! keys :xcvb-dir (asdf:system-source-directory :xcvb))
   (apply 'validate-xcvb-dir keys)
   (apply 'clean-xcvb-dir keys)
-  (call-with-xcvb-build-dir 'validate_xcvb keys))
+  (call-with-xcvb-build-dir 'validate-xcvb keys))
 
 (defun validate-xcvb-dir (&rest keys)
   (compute-xcvb-dir-variables! keys)
   (apply 'validate-xcvb-checkout keys)
   (apply 'clean-xcvb-dir keys)
-  (call-with-xcvb-build-dir
+  (apply 'call-with-xcvb-build-dir
    (lambda (&rest keys)
-     (apply 'call-with-xcvb-build-dir 'validate_asdf_xcvb keys)
-     (apply 'call-with-xcvb-build-dir 'validate_mk_xcvb keys)
-     (apply 'call-with-xcvb-build-dir 'validate_nemk_xcvb keys))
+     (apply 'call-with-xcvb-build-dir 'validate-asdf-build keys)
+     (apply 'call-with-xcvb-build-dir 'validate-mk-build keys)
+     (apply 'call-with-xcvb-build-dir 'validate-nemk-build keys))
    keys))
 
 (defun validate-xcvb-dir-all-lisps (&rest keys)
@@ -310,8 +318,12 @@
   (dolist (implementation-type +xcvb-lisps+)
     (apply 'validate-xcvb-dir :implementation-type implementation-type keys)))
 
-(defun clean-release-dir (&key xcvb-dir release-dir &allow-other-keys)
-  (run-make xcvb-dir "clean")
+(defun clean-xcvb-dir (&rest keys &key xcvb-dir &allow-other-keys)
+  (apply 'run-make xcvb-dir "clean" keys)
+  (rm-rfv (in-dir xcvb-dir "build/")))
+
+(defun clean-release-dir (&rest keys &key xcvb-dir release-dir &allow-other-keys)
+  (apply 'run-make xcvb-dir "clean" keys)
   (rm-rfv (in-dir release-dir "build/")))
 
 (defun call-with-release-build-dir (thunk &rest keys)
@@ -346,44 +358,49 @@
 (defun finalize-variables (&rest keys &key
                            implementation-type object-dir build-dir
                            install-bin install-lisp install-image install-source install-systems
-                           cl-source-registry
+                           source-registry xcvb
                            (parallelize () parallelizep)
                            &allow-other-keys)
-  (letk* keys
-      ((implementation-type (or implementation-type *lisp-implementation-type*))
-       (build-dir (pathname build-dir))
-       (object-dir (or object-dir (in-dir build-dir "obj/")))
-       (install-bin (or install-bin (in-dir build-dir "bin/")))
-       (install-lisp (or install-lisp (in-dir build-dir "common-lisp/")))
-       (install-image (or install-image (in-dir build-dir "images/")))
-       (install-source (or install-source (in-dir build-dir "source/")))
-       (install-systems (or install-systems (in-dir build-dir "systems/")))
-       (parallelize (if parallelizep parallelize
-                        (let ((ncpus (parse-integer
-                                      (run-program/read-output-string
-                                       "cat /proc/cpuinfo|grep '^processor' | wc -l")
-                                      :junk-allowed t)))
-                          (format nil "-l~A" (1+ ncpus)))))
-       (path (format nil "~A:~@[~A~]" install-bin (getenv "PATH")))
-       (cl-launch-flags (format nil "--lisp ~(~A~) --source-registry ~S"
-                                implementation-type cl-source-registry))
-       (asdf-output-translations (format nil "/:~A/cache/" build-dir)))
-    keys))
+  (macrolet ((dir (x &optional (default `(error "~A not provided" ',x)))
+               `(or (when ,x (ensure-directory-pathname ,x)) ,default)))
+    (letk* keys
+        ((implementation-type (or implementation-type *lisp-implementation-type*))
+         (build-dir (dir build-dir))
+         (object-dir (dir object-dir (in-dir build-dir "obj/")))
+         (install-bin (dir install-bin (in-dir build-dir "bin/")))
+         (install-lisp (dir install-lisp (in-dir build-dir "common-lisp/")))
+         (install-image (dir install-image (in-dir build-dir "images/")))
+         (install-source (dir install-source (in-dir build-dir "source/")))
+         (install-systems (dir install-systems (in-dir build-dir "systems/")))
+         (parallelize (if parallelizep parallelize
+                          (let ((ncpus (parse-integer
+                                        (run-program/read-output-string
+                                         "cat /proc/cpuinfo|grep '^processor' | wc -l")
+                                        :junk-allowed t)))
+                            (format nil "-l~A" (1+ ncpus)))))
+         (xcvb (or xcvb "xcvb"))
+         (path (format nil "~A:~@[~A~]" install-bin (getenv "PATH")))
+         (cl-launch-flags (format nil "--lisp ~(~A~) --source-registry ~S"
+                                  implementation-type source-registry))
+         (asdf-output-translations (format nil "/:~A" (in-dir build-dir "cache/"))))
+      keys)))
 
 (defun compute-release-dir-variables (&rest keys &key release-dir &allow-other-keys)
   (letk* keys
-      ((release-dir (pathname release-dir))
+      ((release-dir (ensure-directory-pathname release-dir))
        (xcvb-dir (in-dir release-dir "xcvb/"))
        (build-dir (in-dir release-dir "build/"))
-       (cl-source-registry
-        (format nil "~A//:~A//:~A/dependencies//"
-                build-dir xcvb-dir release-dir)))
+       (source-registry
+        (format nil "~A//:~A//:~A//"
+                build-dir xcvb-dir (in-dir release-dir "dependencies/"))))
+    (compute-makefile-configuration-variables! keys)
     (apply 'finalize-variables keys)))
 
 (defun compute-xcvb-dir-variables (&rest keys &key xcvb-dir &allow-other-keys)
   (letk* keys
-      ((build-dir (in-dir xcvb-dir "build/"))
-       (cl-source-registry
+      ((xcvb-dir (ensure-directory-pathname xcvb-dir))
+       (build-dir (in-dir xcvb-dir "build/"))
+       (source-registry
         (format nil "~A//:~A//:~@[~A~]"
                 build-dir xcvb-dir (getenv "CL_SOURCE_REGISTRY"))))
     (apply 'finalize-variables keys)))
