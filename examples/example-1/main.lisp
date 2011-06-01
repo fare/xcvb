@@ -2,5 +2,6 @@
 
 (in-package :xcvb-example-1)
 
-(defun main ()
+(defun main (&rest arguments)
+  (declare (ignore arguments))
   (format t "Hello World~%"))

@@ -77,6 +77,7 @@
   :load-flag "--load"
   :image-flag "--image-name" ; -I
   :image-executable-p t
+  :standalone-executable t
   :arguments-end "--"
   :argument-control t ;; must be fixed now, but double-checking needed.
   :disable-debugger ("--batch")

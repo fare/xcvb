@@ -761,7 +761,7 @@ This is designed to abstract away the implementation specific quit forms."
     (when pre-image-dump (load-string pre-image-dump))
     ;; TODO: Handle #. nicely.
     (when post-image-restart (setf *post-image-restart* post-image-restart)))
-  #-(or clisp lispworks sbcl)
+  #-(or clisp clozure lispworks sbcl)
   (when executable
     (error "dumping an executable is not supported on this implementation"))
   #+allegro
@@ -782,13 +782,15 @@ This is designed to abstract away the implementation specific quit forms."
       ;; :parse-options nil ;--- requires a non-standard patch to clisp.
       )))
   #+clozure
-  (ccl:save-application filename :prepend-kernel t)
+  (ccl:save-application filename :prepend-kernel t
+                        :toplevel-function (when executable #'resume))
   #+(or cmu scl)
   (progn
    (ext:gc :full t)
    (setf ext:*batch-mode* nil)
    (setf ext::*gc-run-time* 0)
-   (ext:save-lisp filename))
+   (apply 'ext:save-lisp filename
+          (when executable '(:init-function resume :process-command-line nil))))
   #+gcl
   (progn
    (si::set-hole-size 500) (si::gbc nil) (si::sgc-on t)
