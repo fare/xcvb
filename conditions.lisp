@@ -20,6 +20,13 @@
   ;; Condition is signaled if there is some syntax error in some user-specified data
   ())
 
+;; This dumps a backtrace
 (defun simply-error (simple-error control &rest args)
   (error (or simple-error 'simple-error)
          :format-control control :format-arguments args))
+
+;; User errors don't cause a backtrace.
+(defun signal-user-error (control &rest args)
+  (apply #'simply-error 'user-error control args))
+
+
