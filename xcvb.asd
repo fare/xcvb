@@ -14,7 +14,7 @@
 
 (let ((old-ver (asdf-version)))
   (load-system :asdf)
-  (let ((min "2.015.3")
+  (let ((min "2.015")
 	(ver (asdf-version)))
     (unless (or (version-satisfies old-ver "2.014.8") ; first version to do magic upgrade
 		(equal ver old-ver))
@@ -51,7 +51,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :fare-matcher :fare-quasiquote-readtable
                  :ironclad :binascii :babel
                  #+xcvb-farmer :quux-iolib
-                 :rucksack)
+                 #-clisp :rucksack)
     :components
     ((:file "pkgdcl")
      (:file "conditions" :depends-on ("pkgdcl"))
@@ -96,4 +96,4 @@ deterministic separate compilation and enforced locally-declared dependencies."
                                   "grain-interface" "dependencies-interpreter"))
      (:file "cffi-grovel-support" :depends-on
             ("makefile-backend" "static-traversal" "computations" "driver-commands"
-                                "grain-implementation" "asdf-backend"))))
+                                "grain-implementation" "asdf-backend" "dependencies-interpreter"))))

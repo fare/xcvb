@@ -2,7 +2,7 @@
 (module
   (:author ("Francois-Rene Rideau" "Peter Keller")
    :maintainer "Francois-Rene Rideau"
-   :depends-on ("static-traversal" "change-detection" "main")))
+   :depends-on ("static-traversal" "change-detection" "main" "profiling")))
 
 (in-package :xcvb)
 
@@ -58,6 +58,7 @@
 (defparameter +simple-build-option-spec+
   `(,@+build-option-spec+
     ,@+setup-option-spec+
+    ,@+base-image-option-spec+
     ,@+source-registry-option-spec+
     ,@+object-directory-option-spec+
     ,@+lisp-implementation-option-spec+

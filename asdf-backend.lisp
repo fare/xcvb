@@ -127,7 +127,7 @@ Declare asd system as ASDF-NAME."
          (noext (asdf-dependency-grovel::strip-extension enough "lisp")))
     `(:file ,noext
             ,@(when (or (absolute-pathname-p (pathname enough))
-                        (not (equal (asdf::merge-component-name-type
+                        (not (equal (coerce-pathname
                                      noext :type "lisp" :defaults *default-pathname-defaults*)
                                     pathname)))
                     `(:pathname ,pathname)))))
@@ -170,7 +170,7 @@ Declare asd system as ASDF-NAME."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XCVB to ASDF ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +xcvb-to-asdf-option-spec+
-  `((("build" #\b) :type string :optional nil :list t :documentation "Specify a build to convert (can be repeated)")
+  `(,@+multi-build-option-spec+
     (("name" #\n) :type string :optional t :documentation "name of the new ASDF system")
     (("output-path" #\o) :type string :optional t :documentation "pathname for the new ASDF system")
     ,@+source-registry-option-spec+

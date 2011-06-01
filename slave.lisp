@@ -5,8 +5,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; slave builder ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +slave-builder-option-spec+
-  `((("build" #\b) :type string :optional nil :documentation "specify a (series of) system(s) to build")
+  `(,@+build-option-spec+
     ,@+setup-option-spec+
+    ,@+base-image-option-spec+
     ,@+source-registry-option-spec+
     (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
     ,@+object-directory-option-spec+

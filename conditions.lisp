@@ -25,8 +25,5 @@
   (error (or simple-error 'simple-error)
          :format-control control :format-arguments args))
 
-;; User errors don't cause a backtrace.
-(defun signal-user-error (control &rest args)
-  (apply #'simply-error 'user-error control args))
-
-
+(defun user-error (control &rest args)
+  (apply 'simply-error 'user-error control args))

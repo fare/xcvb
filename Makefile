@@ -220,9 +220,9 @@ release-directory:
 	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;}
 
 release-tarball:
-	cd ${RELEASE_DIR} && \
-	VERSION=$$(cat xcvb/version.lisp | grep '^ *".*")' | cut -d\" -f2) && \
-	cd .. && rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
+	cd ${RELEASE_DIR}/xcvb && \
+	VERSION=$$(git describe --tags) && \
+	cd ../.. && rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
 	tar ${RELEASE_EXCLUDE} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2
 
@@ -231,8 +231,8 @@ test-release-directory:
 	./test/runme.zsh validate_release_dir_all_lisps
 
 test-and-release-tarball: release-tarball test-release-directory
-	cd ${RELEASE_DIR} && \
-	VERSION=$$(cat xcvb/version.lisp | grep '^ *".*")' | cut -d\" -f2) && \
+	cd ${RELEASE_DIR}/xcvb && \
+	VERSION=$$(git describe --tags) && \
 	cd ${TMP} && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/
@@ -240,17 +240,11 @@ test-and-release-tarball: release-tarball test-release-directory
 fake-release-directory:
 	${MAKE} -f ${XCVB_DIR}/doc/Makefile.release fake-release-directory
 
-version-bumped-test:
-	@if git diff HEAD -- version.lisp | cmp --quiet - /dev/null ; then \
-	  echo "You need to bump up version.lisp" ; \
-	  echo "Hit Ctrl-C to cancel, Return to continue." ; read ; \
-	fi
-
-pre-release-test: version-bumped-test fake-release-directory test-release-directory
+pre-release-test: fake-release-directory test-release-directory
 	${MAKE} -C ${RELEASE_DIR} reset
 
 show-config:
-	echo "LISP=${LISP}" ; \
+	@echo "LISP=${LISP}" ; \
 	echo "CL_LAUNCH=${CL_LAUNCH}" ; \
 	echo "CL_LAUNCH_FLAGS=${CL_LAUNCH_FLAGS}" ; \
 	echo "CL_LAUNCH_MODE=${CL_LAUNCH_MODE}" ; \

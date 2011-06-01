@@ -1,5 +1,5 @@
 (module
  (:build-depends-on ((:build "/xcvb") (:asdf "hu.dwim.stefil"))
-  :depends-on ("master" "run-program-backend")
+  :depends-on ("run-program" "run-program-backend" "sub-xcvb")
   :supersedes-asdf ("xcvb-unit-tests")
   :pre-image t))

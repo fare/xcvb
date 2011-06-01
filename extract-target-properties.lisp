@@ -9,6 +9,8 @@
 (defparameter *target-properties-variables*
   '((*use-cfasls*
      . "(or #+sbcl (and (find-symbol \"*EMIT-CFASL*\" \"SB-C\") t))")
+    (*fasl-type*
+     . "(pathname-type (compile-file-pathname \"foo.lisp\"))")
     (*target-asdf-version* . "(when(member :asdf2 *features*) (funcall (find-symbol(string :asdf-version):asdf)))")
     (*implementation-identifier*
      . "(when(member :asdf2 *features*) (funcall(find-symbol(string :implementation-identifier):asdf)))")
@@ -16,7 +18,7 @@
      ;; lispworks 6.0 on linux/386 has HARP::PC386 HARP::PC386-X, so remove bad features
      . "(remove-if-not 'keywordp *features*)")
     (*target-can-dump-image-p*
-     . "(and (or #+(or allegro ccl clisp cmu gcl lispworks sbcl scl) t) #+(or abcl cormanlisp ecl lispworks-personal-edition mcl xcl) nil)")
+     . "(and (or #+(or allegro ccl clisp cmu gcl lispworks sbcl scl) t #+(or abcl cormanlisp ecl lispworks-personal-edition mcl xcl) nil))")
     (*lisp-implementation-directory*
      . "(or #+sbcl (namestring(sb-int:sbcl-homedir-pathname)) #+ccl (namestring(ccl::ccl-directory)))")
     (*target-lisp-image-pathname*
@@ -57,51 +59,54 @@
       eval))
 
 (defun read-target-properties ()
-  (let ((forms (extract-target-properties)))
-    (unless forms
-      (error "Failed to extract properties from your Lisp implementation"))
-    (log-format-pp 7 "Information from target Lisp:~% ~S" forms)
-    (unless (and (list-of-length-p 1 forms)
-                 (consp (car forms)) (eq 'setf (caar forms)))
-      (error "Malformed target properties"))
-    (setf *target-properties* (cdar forms))
+  (let ((string (extract-target-properties)))
+    (log-format-pp 7 "Information from target Lisp:~%~A" string)
+    (with-safe-io-syntax (:package :xcvb-user)
+      (let ((forms (with-input-from-string (s string) (read-many s))))
+        (unless forms
+          (user-error "Failed to extract properties from your Lisp implementation"))
+        (unless (and (list-of-length-p 1 forms)
+                     (consp (car forms)) (eq 'setf (caar forms)))
+          (user-error "Malformed target properties:~%~A" string))
+        (setf *target-properties* (cdar forms))))
     (loop :for (var value) :on *target-properties* :by #'cddr :do
-          (cond
-            ((not (member var *target-properties-variables* :key #'car))
-             (error "Invalid target property ~S" var))
-            ((not (and (list-of-length-p 2 value) (eq 'quote (car value))))
-             (error "Invalid target property value ~S" value))
-            (t
-             (set var (second value)))))))
+      (cond
+        ((not (member var *target-properties-variables* :key #'car))
+         (user-error "Invalid target property ~S" var))
+        ((not (and (list-of-length-p 2 value) (eq 'quote (car value))))
+         (user-error "Invalid target property value ~S" value))
+        (t
+         (set var (second value)))))
+    (case *lisp-implementation-type*
+      (:sbcl (setenv "SBCL_HOME" *lisp-implementation-directory*)))))
 
 (defun extract-target-properties-via-pipe ()
   (with-safe-io-syntax (:package :xcvb-user)
     (let ((command (query-target-lisp-command (target-properties-form))))
       (log-format-pp 8 "Extract information from target Lisp:~% ~S" command)
       (handler-case
-          (let ((output (run-program/read-output-string command)))
-            (handler-case (with-input-from-string (s output) (read-many s))
-              (t () (error "Failed to extract properties from target Lisp:~%~
-			Command:~S~%Output:~%~A~%" command output))))
+          (run-program/read-output-string command)
         (t (c) (error "Failed to extract properties from target Lisp:~%~
-			Command:~S~%Error:~%~A~%" command c))))))
+		       Command:~S~%Error:~%~A~%" command c))))))
 
 (defun extract-target-properties-via-tmpfile ()
   (with-temporary-file (:pathname pn :prefix (format nil "~Axtp" *tmp-directory-pathname*))
     (with-safe-io-syntax (:package :xcvb-user)
-      (let* ((command (query-target-lisp-command
-                       (format nil "(with-open-file (*standard-output* ~S :direction :output :if-exists :overwrite :if-does-not-exist :error) ~A)"
-                               pn (target-properties-form)))))
+      (let ((command (query-target-lisp-command
+                      (format nil "(with-open-file (*standard-output* ~S :direction :output :if-exists :overwrite :if-does-not-exist :error) ~A)"
+                              pn (target-properties-form))))
+            (stdout nil))
         (log-format-pp 8 "Extract information from target Lisp:~% ~S" command)
-        (let ((stdout (run-program/read-output-string command)))
+        (flet ((slurp (&key if-does-not-exist)
+                 (with-open-file (s pn :direction :input :if-does-not-exist if-does-not-exist)
+                   (when s (slurp-stream-string s)))))
           (handler-case
-              (with-open-file (s pn :direction :input :if-does-not-exist :error)
-                (read-many s))
+              (progn
+                (setf stdout (run-program/read-output-string command))
+                (slurp :if-does-not-exist :error))
             (t (c) (error "Failed to extract properties from target Lisp:~%~
-			  Condition: ~A~%Command:~S~%stdout:~%~A~%Output:~%~A~%"
-                         c command stdout
-                         (with-open-file (s pn :direction :input)
-                           (slurp-stream-string s))))))))))
+			   Condition: ~A~%Command:~S~%~@[stdout:~%~A~%~]~@[Output:~%~A~%~]"
+                          c command stdout (slurp)))))))))
 
 (defun extract-target-properties ()
   (case *lisp-implementation-type*

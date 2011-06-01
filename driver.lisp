@@ -257,22 +257,24 @@ that is neither Unix, nor Windows.~%Now you port it."))))
 ;;; These variables are shared with XCVB itself.
 (defvar *lisp-implementation-type*
   ;; TODO: test on all OS and implementation platform combinations!
-  ;; PROBABLY NOT: mcl genera
-  #+abcl :abcl
-  #+allegro :allegro
-  #+clisp :clisp
-  #+clozure :ccl
-  #+cmu :cmucl
-  #+cormanlisp :corman
-  #+ecl :ecl
-  #+gcl :gcl
-  #+lispworks :lispworks ;; run-program currently only available on UNIX
-  #+sbcl :sbcl
-  #+scl :scl
-  #+xcl :xcl
-  #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl lispworks sbcl scl xcl)
-  (error "Your Lisp implementation is not supported by XCVB master (yet). Please help.")
-  "Type of Lisp implementation for the target system. A keyword.
+  (or
+   #+abcl :abcl
+   #+allegro :allegro
+   #+clisp :clisp
+   #+clozure :ccl
+   #+cmu :cmucl
+   #+cormanlisp :corman
+   #+ecl :ecl
+   #+gcl :gcl
+   #+genera :genera
+   #+lispworks-personal-edition :lispworks-personal
+   #+lispworks :lispworks
+   #+mcl :mcl
+   #+sbcl :sbcl
+   #+scl :scl
+   #+xcl :xcl
+   (error "Your Lisp implementation is not supported by the XCVB driver (yet). Please help."))
+   "Type of Lisp implementation for the target system. A keyword.
   Default: same as XCVB itself.")
 
 (defvar *lisp-executable-pathname* nil
@@ -351,6 +353,7 @@ with associated pathnames and tthsums.")
   (setf *debugging* debug
         *load-verbose* debug
         *load-print* debug
+        #+clisp custom:*compile-warnings* #+clisp debug
         *compile-verbose* debug
         *compile-print* debug)
   (cond
@@ -682,9 +685,13 @@ This is designed to abstract away the implementation specific quit forms."
                               (merge-pathnames fasl)
                               :lisp-files (list (merge-pathnames lisp-object)))
                         (die "Failed to build ~S from ~S" fasl lisp-object))))))))
-      (declare (ignore output-truename))
+      (declare (ignorable warnings-p failure-p))
+      (unless output-truename
+        (die "Compilation Failed for ~A, no fasl created" source))
+      #-clisp
       (when failure-p
         (die "Compilation Failed for ~A" source))
+      #-(or clisp ecl)
       (when warnings-p
         (die "Compilation Warned for ~A" source))))
   (values))

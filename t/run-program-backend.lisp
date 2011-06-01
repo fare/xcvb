@@ -2,8 +2,8 @@
 
 (in-package #:xcvb-unit-tests)
 
-(defsuite* (run-program-backend/*
-            :in root-suite
+(defsuite* (test-run-program-backend
+            :in test-xcvb
             :documentation "Test the run-program-backend (simple-build)"))
 
 (defun test-simple-build (&key (build (first +example-builds+))
@@ -32,6 +32,6 @@
                  `(progn
                     ,@(loop :for i :in +simple-target-lisps+ :collect
                         (defsb :implementation i))
-                    ,@(loop :for b :in +example-builds+ :collect
+                    ,@(loop :for b :in (append1 +example-builds+ "/xcvb") :collect
                         (defsb :build b)))))))
   (defs))

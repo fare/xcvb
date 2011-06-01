@@ -104,19 +104,17 @@ in a fast way that doesn't enforce dependencies."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; non-enforcing makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +non-enforcing-makefile-option-spec+
-  `(,@+build-option-spec+
+  `(,@+multi-build-option-spec+
     ,@+setup-option-spec+
+    ,@+base-image-option-spec+
     ,@+source-registry-option-spec+
     (("name" #\n) :type string :optional t :initial-value "xcvb-tmp" :documentation "ASDF name for the target")
-    ,@+setup-option-spec+
-    ,@+source-registry-option-spec+
     (("output-path" #\o) :type string :initial-value "xcvb-ne.mk" :documentation "specify output path")
     ,@+object-directory-option-spec+
     ,@+lisp-implementation-option-spec+
     (("parallel" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")
-    ,@+verbosity-option-spec+
     ;; ,@+profiling-option-spec+
-    ))
+    ,@+verbosity-option-spec+))
 
 (defun non-enforcing-makefile (&rest keys &key
                                build use-base-image setup source-registry name

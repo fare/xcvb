@@ -44,6 +44,7 @@
   (simple-build-command-for
    env `(:link-file (:lisp-object ,name)) `(:lisp-object ,name)))
 (define-build-command-for :asdf (env name)
+  (build-command-for env `(:build "/asdf"))
   (simple-build-command-for env `(:load-asdf ,name) `(:asdf ,name)))
 (define-build-command-for :require (env name)
   (simple-build-command-for env `(:require ,name) `(:require ,name)))

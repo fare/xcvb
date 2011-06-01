@@ -63,8 +63,19 @@
         (oldest-timestamp env outputs))))
 
 (defmethod grain-change-information ((env timestamp-based-change-detection) grain &key error)
+  (declare (ignorable env))
   (or (grain-build-timestamp grain)
       (error-behaviour error)))
+
+(defmethod grain-change-information ((env timestamp-based-change-detection)
+                                     (grain require-grain) &key error)
+  (declare (ignorable env grain error))
+  *oldest-time*)
+
+(defmethod grain-change-information ((env timestamp-based-change-detection)
+                                     (grain asdf-grain) &key error)
+  (declare (ignorable env grain error))
+  *oldest-time*)
 
 (defmethod grain-change-information ((env timestamp-based-change-detection) (grain file-grain)
                                      &key error)
@@ -75,9 +86,9 @@
 (defmethod update-change-information ((env timestamp-based-change-detection) grain &key)
   (declare (ignorable env))
   (setf (grain-build-timestamp grain)
-        (newest-time* (mapcar #'grain-change-information
-                              (let ((computation (grain-computation grain)))
-                                (when computation (computation-inputs computation)))))))
+        (newest-time* (mapcar/ #'grain-change-information env
+                               (when-bind (computation) (grain-computation grain)
+                                 (computation-inputs computation))))))
 
 (defmethod update-change-information ((env timestamp-based-change-detection) (grain file-grain)
                                       &key)
@@ -124,3 +135,6 @@
 (defmethod update-change-information ((env digest-based-change-detection) (grain file-grain) &key)
   (setf (grain-build-timestamp grain) (file-digest (grain-namestring env grain))))
 |#
+
+(eval-when (:compile-toplevel :execute)
+  (named-readtables:in-readtable :standard))

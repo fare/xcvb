@@ -38,8 +38,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Remove XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter +remove-xcvb-option-spec+
-  `((("build" #\b) :type string :optional nil
-     :documentation "Specify XCVB build to remove modules from")
+  `(,@+build-option-spec+
     ,@+source-registry-option-spec+
     ,@+verbosity-option-spec+))
 

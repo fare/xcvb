@@ -70,7 +70,7 @@ a chance to load and/or configure ASDF itself and any extension thereof.")
 that will use ASDF or POIU to create one or a series of images each containing
 the previous image, a build and its dependencies.")
     (("show-source-registry" "source-registry" "ssr")
-     show-source-registry-command +source-registry-option-spec+
+     show-source-registry-command +show-source-registry-option-spec+
      "Show builds in the configured source registry"
      "Show builds in the implicitly or explicitly configured source registry.
 For debugging your XCVB configuration.")
@@ -134,8 +134,10 @@ for this version of XCVB.")))
     (("debugging" #\Z) :type boolean :optional t :initial-value nil :documentation "debug")))
 
 (defparameter +setup-option-spec+
-  '((("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")
-    (("use-base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")))
+  '((("setup" #\s) :type string :optional t :documentation "specify a Lisp setup file")))
+
+(defparameter +base-image-option-spec+
+  '((("use-base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")))
 
 (defparameter +profiling-option-spec+
   '((("profiling" #\P) :type boolean :optional t :documentation "profiling")))
@@ -144,7 +146,10 @@ for this version of XCVB.")))
   '((("object-directory" #\O) :type string :optional t :documentation "specify object directory")))
 
 (defparameter +build-option-spec+
-  '((("build" #\b) :type string :optional nil :documentation "specify what system to build")))
+  '((("build" #\b) :type string :optional nil :documentation "specify what build to process")))
+
+(defparameter +multi-build-option-spec+
+  '((("build" #\b) :type string :list t :optional nil :documentation "specify what builds to process")))
 
 
 ;; Lookup the command spec for the given command name, or return nil if the
@@ -309,7 +314,7 @@ using ~A~%"
     (when verbosity
       (setf *xcvb-verbosity* verbosity))
     (log-format-pp 9 "xcvb options: ~S" keys)
-    (initialize-source-registry source-registry)
+    (initialize-xcvb-source-registry source-registry)
     (search-source-registry)
     (when lisp-implementation
       (let ((type (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
