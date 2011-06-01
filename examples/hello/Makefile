@@ -56,11 +56,9 @@ ${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello.image: xcvb.mk
 # With SBCL and CLISP, you could use "--dump !" to create a standalone executable instead
 # IN THE FUTURE,
 # xcvb may have builtin option to specify such executables.
-hello-using-mk: ${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello.image
+hello-using-mk: ${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello/hello
 	mkdir -p ${INSTALL_BIN}
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $< --no-include \
-		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
-		--init '(xcvb-hello::main)'
+	cp $< ${INSTALL_BIN}/hello
 
 hello: hello-using-mk
 

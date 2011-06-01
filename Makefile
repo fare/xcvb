@@ -149,6 +149,7 @@ lisp-install:
 tidy:
 	rm -f *.*fasl *.*fsl *.lib *.fas *.amd64f *.x86f *.o *.a *.xcl *.abcl
 	cd doc ; rm -f *.aux *.out *.bbl *.dvi *.log *.blg
+	rm -f xcvb.mk xcvb-ne.mk examples/*/xcvb*.mk examples/hello/xcvb-hello.asd
 
 clean: tidy
 	rm -rf xcvb xcvb-bootstrapped obj tmp

@@ -60,6 +60,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  "farmer")
                "source-registry"
                "main"
+               "version"
                "cffi-grovel-support")
   :supersedes-asdf ("xcvb" ("xcvb-driver" "driver"))
   :pre-image t

@@ -181,7 +181,15 @@ Only currently support :generate and :executable extension form."
     (dolist (target targets)
       (slot-makunbound target 'computation))
     (pre-image-for env grain)
-    (build-command-for* env dependencies)))
+    (build-command-for* env dependencies)
+    (make-computation
+     env
+     :outputs targets
+     :inputs (traversed-dependencies env)
+     :command
+     `(:xcvb-driver-command
+       ,(image-setup env)
+       ,@(traversed-build-commands env)))))
 
 (define-handle-extension-form :executable (build name &key depends-on pre-image-dump post-image-restart entry-point)
   (let* ((target (make-instance 'executable-grain

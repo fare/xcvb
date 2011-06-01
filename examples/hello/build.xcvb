@@ -9,4 +9,7 @@
  (:generate
   ((:lisp "version" :depends-on ("specials")))
   :depends-on ((:source "doc/TODO.rest" :in "/xcvb") ; we don't really depend on it, do we?
-               (:lisp "generate-version"))))
+               (:lisp "generate-version")))
+ (:executable "hello"
+  :depends-on :build
+  :post-image-restart "(xcvb-hello::main)"))

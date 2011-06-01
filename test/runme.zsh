@@ -179,7 +179,7 @@ validate_rmx () {
   rsync -a $XCVB_DIR/examples/a2x/ $BUILD_DIR/a2x_rmx/
   cd $BUILD_DIR/a2x_rmx
   xcvb ssr --source-registry "$BUILD_DIR/a2x_rmx//:"
-  xcvb rmx --build /xcvb/examples/a2x --verbosity 9 --source-registry "$BUILD_DIR/a2x_rmx//:"
+  xcvb rmx --build /xcvb/test/a2x --verbosity 9 --source-registry "$BUILD_DIR/a2x_rmx//:"
   [ ! -f $BUILD_DIR/a2x_rmx/build.xcvb ] ||
   abort "xcvb rmx failed to remove build.xcvb"
   grep '(module' $BUILD_DIR/a2x_rmx/*.lisp &&
@@ -190,7 +190,7 @@ validate_a2x () {
   mkdir -p $BUILD_DIR/a2x_a2x/
   rsync -a $XCVB_DIR/examples/a2x/ $BUILD_DIR/a2x_a2x/
   cd $BUILD_DIR/a2x_a2x
-  xcvb a2x --system a2x-test --name /xcvb/test/a2x
+  xcvb a2x --system a2x-test --name /xcvb/test/a2x --source-registry  "$BUILD_DIR/a2x_a2x//:"
   [ -f $BUILD_DIR/a2x_a2x/build.xcvb ] ||
   abort "xcvb a2x failed to create build.xcvb"
   for i in $BUILD_DIR/a2x_a2x/*.lisp ; do

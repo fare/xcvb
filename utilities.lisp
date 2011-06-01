@@ -74,14 +74,5 @@
 (defun setenv (name value &optional (overwrite t))
   (or #+sbcl (sb-posix:setenv name value (if overwrite 1 0))
       #+clozure (ccl:setenv name value overwrite)
-      #+clisp (unless (and (not overwrite) (system:getenv name)) (system::setenv name value))
+      #+clisp (unless (and (not overwrite) (ext:getenv name)) (system::setenv name value))
       (error "~S not supported in your implementation" 'setenv)))
-
-;;; Versioning
-(defun get-xcvb-directory ()
-  (asdf:system-source-directory :xcvb))
-
-(defun get-xcvb-version ()
-  (first
-   (run-program/read-output-lines
-    (format nil "cd ~A ; git describe --tags" (get-xcvb-directory)))))
