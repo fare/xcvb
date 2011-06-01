@@ -64,6 +64,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
   :supersedes-asdf ("xcvb" ("xcvb-driver" "driver"))
   :pre-image t
   :build-image t)
-#| (:executable "xcvb"
+ (:executable "xcvb"
   :depends-on :build
-  :entry-point "xcvb::main")|#)
+  :pre-image-dump "(setf xcvb::*xcvb-version* \#.(xcvb::get-xcvb-version))"
+  :entry-point "xcvb::main"))

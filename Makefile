@@ -86,25 +86,25 @@ XCVB_IMPLEMENTATION_OPTIONS := \
 mk: ${XCVB_MK}
 ${XCVB_MK}: force
 	xcvb make-makefile \
-	     --build /xcvb \
+	     --build /xcvb/xcvb \
 	     --output-path $@ \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY} \
 	     ${XCVB_IMPLEMENTATION_OPTIONS}
 
-
 PARALLELIZE := -j
 
-${XCVB_OBJECT_DIRECTORY}/xcvb.image: ${XCVB_MK}
+${XCVB_OBJECT_DIRECTORY}/xcvb/xcvb: ${XCVB_MK}
 	${MK_XCVB} ${PARALLELIZE} || XCVB_DEBUGGING=t ${MK_XCVB}
 
 xcvb-using-xcvb: ${INSTALL_BIN}/xcvb
 
-${INSTALL_BIN}/xcvb: ${XCVB_OBJECT_DIRECTORY}/xcvb.image
-	${MAKE} xcvb-bootstrapped-install
+${INSTALL_BIN}/xcvb: ${XCVB_OBJECT_DIRECTORY}/xcvb/xcvb
+	mkdir -p ${INSTALL_BIN}
+	cp -f $< $@
 
 XCVB_INIT :=	--final "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCVB}/\"))" \
 		--final "(setf xcvb::*xcvb-version* \#.(xcvb::get-xcvb-version))" \
-		--restart 'xcvb::main'
+		--init '(apply (function xcvb::main) cl-launch::*arguments*)'
 
 xcvb-bootstrapped-install:
 	mkdir -p ${INSTALL_BIN}

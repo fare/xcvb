@@ -194,31 +194,29 @@ Only currently support :generate and :executable extension form."
 	    :pre-image-dump pre-image-dump
 	    :post-image-restart post-image-restart
 	    :entry-point entry-point
-	    :dependencies
-	    (if (eq depends-on :build)
-		(load-dependencies build)
-		(normalize-dependencies build depends-on :depends-on)))))
+	    :depends-on depends-on)))
     (setf (registered-grain (fullname target)) target)
     (setf (grain-generator target) generator))
   (values))
 
 (defmethod run-generator (env (generator executable-generator))
-  (let* ((dependencies (generator-dependencies generator))
-         (build (generator-build generator))
+  (let* ((build (generator-build generator))
          (target (generator-target generator))
 	 (fullname (fullname target))
 	 (name (progn
 		 (assert (single-arg-form-p :executable fullname))
-		 (second fullname))))
-    (assert (stringp name))
-    (slot-makunbound target 'computation)
+		 (second fullname)))
+         (depends-on (generator-depends-on generator))
+         (dependencies
+          (if (eq depends-on :build)
+              (load-dependencies build)
+              (normalize-dependencies build depends-on :depends-on))))
     (graph-for-image-grain
      env name (build-pre-image-name build) dependencies
      :executable t
      :pre-image-dump (pre-image-dump generator)
      :post-image-restart (post-image-restart generator)
      :entry-point (entry-point generator))))
-
 
 ;;(define-handle-extension-form :in-package (grain files &key package) ...)
 

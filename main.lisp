@@ -350,7 +350,7 @@ using ~A~%"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun main ()
+(defun main (&rest arguments)
   (with-coded-exit ()
     (flet ((quit (&optional (code 0))
              (log-format 9 "quitting with code ~A" code)
@@ -361,8 +361,7 @@ using ~A~%"
 	      ;; restarts are available from the repl.
 	      (restart-case
 		  (progn
-		    (interpret-command-line
-		     (command-line-arguments:get-command-line-arguments))
+		    (interpret-command-line arguments)
 		    (quit 0))
 		(revert-to-repl ()
 		  :report (lambda (stream)
