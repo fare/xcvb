@@ -33,6 +33,7 @@
     (assert (consp d))
     (assert (eq :absolute (first d)))
     (assert (<= 4 (length d)))
+    (assert (directory-pathname-p p))
     (unless (search "xcvb" n)
       (break "Do you really want to rm -rfv ~A ???" n))
     (run-program/echo-output

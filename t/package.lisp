@@ -6,7 +6,8 @@
   (:use :hu.dwim.stefil :xcvb :xcvb-driver :closer-common-lisp
         :fare-utils)
   (:import-from :asdf
-                #:coerce-pathname #:probe-file* #:ensure-directory-pathname)
+                #:coerce-pathname #:probe-file*
+                #:ensure-directory-pathname #:directory-pathname-p)
   (:import-from :xcvb
                 #:module-form-p #:read-module-declaration #:cmdize*)
   (:export

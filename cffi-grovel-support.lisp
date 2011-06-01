@@ -1,7 +1,7 @@
 #+xcvb
 (module
   (:depends-on ("makefile-backend" "static-traversal" "computations" "driver-commands"
-                                   "grain-implementation" "asdf-backend")))
+                                   "grain-implementation" "asdf-backend" "dependencies-interpreter")))
 
 (in-package :xcvb)
 

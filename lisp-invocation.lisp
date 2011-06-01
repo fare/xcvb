@@ -72,7 +72,7 @@
   ;; unlike the other lisp implementations tested.
   :name "ccl"
   :feature :clozure
-  :flags ("--no-init")
+  :flags ("--no-init" "--quiet")
   :eval-flag "--eval" ; -e
   :load-flag "--load"
   :image-flag "--image-name" ; -I

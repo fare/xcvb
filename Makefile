@@ -220,9 +220,9 @@ release-directory:
 	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;}
 
 release-tarball:
-	cd ${RELEASE_DIR} && \
-	VERSION=$$(cat xcvb/version.lisp | grep '^ *".*")' | cut -d\" -f2) && \
-	cd .. && rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
+	cd ${RELEASE_DIR}/xcvb && \
+	VERSION=$$(git describe --tags) && \
+	cd ../.. && rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
 	tar ${RELEASE_EXCLUDE} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2
 
@@ -231,8 +231,8 @@ test-release-directory:
 	./test/runme.zsh validate_release_dir_all_lisps
 
 test-and-release-tarball: release-tarball test-release-directory
-	cd ${RELEASE_DIR} && \
-	VERSION=$$(cat xcvb/version.lisp | grep '^ *".*")' | cut -d\" -f2) && \
+	cd ${RELEASE_DIR}/xcvb && \
+	VERSION=$$(git describe --tags) && \
 	cd ${TMP} && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/

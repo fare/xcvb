@@ -88,7 +88,7 @@ checkout:
 	clone git://common-lisp.net/users/frideau/fare-matcher.git && \
 	clone git://common-lisp.net/projects/xcvb/iolib.git && \
 	clone git://github.com/froydnj/ironclad.git && \
-	clone git://common-lisp.net/projects/xcvb/rucksack.git && \
+	clone -b xcvb git://common-lisp.net/projects/xcvb/rucksack.git && \
 	clone git://common-lisp.net/projects/qitab/poiu.git && \
 	clone git://common-lisp.net/projects/xcvb/quux-iolib.git && \
 	get http://common-lisp.net/project/xcvb/darcs/closer-mop && \

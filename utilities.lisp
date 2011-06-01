@@ -69,6 +69,14 @@
         (write x :stream s :readably t :escape t :pretty nil)
         (terpri s)))))
 
+;;; Environment control
+;;; This better be moved to some portability package...
+(defun setenv (name value &optional (overwrite t))
+  (or #+sbcl (sb-posix:setenv name value (if overwrite 1 0))
+      #+clozure (ccl:setenv name value overwrite)
+      #+clisp (unless (and (not overwrite) (system:getenv name)) (system::setenv name value))
+      (error "~S not supported in your implementation" 'setenv)))
+
 ;;; Versioning
 (defun get-xcvb-directory ()
   (asdf:system-source-directory :xcvb))
