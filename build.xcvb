@@ -63,4 +63,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                "cffi-grovel-support")
   :supersedes-asdf ("xcvb" ("xcvb-driver" "driver"))
   :pre-image t
-  :build-image t))
+  :build-image t)
+#| (:executable "xcvb"
+  :depends-on :build
+  :entry-point "xcvb::main")|#)

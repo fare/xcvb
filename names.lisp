@@ -184,8 +184,10 @@ of decreasing fullname length"
   (if (null suffix)
       build
       (let ((fullname (strcat (fullname build) "/" suffix)))
+	(finalize-grain build)
         (or (registered-grain fullname)
             (registered-grain `(:lisp ,fullname))
+            (registered-grain `(:executable ,fullname))
             (probe-file-grain
              (module-subpathname (grain-pathname build) suffix))))))
 

@@ -101,10 +101,4 @@ and the non-enforcing Makefile backend.
              (mapcar #'fullname targets)))
     (dolist (target targets)
       (slot-makunbound target 'computation))
-    (build-command-for* env dependencies)
-    (setf (generator-computation generator)
-          (make-computation
-           ()
-           :outputs targets
-           :inputs (reverse (traversed-dependencies env))
-           :command nil))))
+    (build-command-for* env dependencies)))

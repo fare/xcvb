@@ -57,12 +57,12 @@
        (tempname-target (effective-namestring env `(:lisp-object ,basename)))))))
 
 (define-text-for-xcvb-driver-command :create-image (env spec &rest dependencies)
-  (destructuring-bind (&key image standalone package) spec
+  (destructuring-bind (&key image executable pre-image-dump post-image-restart entry-point) spec
     (text-for-xcvb-driver-helper
      env dependencies
-     ":create-image (~S~@[~* :standalone t~]~@[ :package ~S~])"
-     (tempname-target (effective-namestring env `(:image ,image)))
-     standalone package)))
+     ":create-image (~S~:[~; :executable t~]~@[ :pre-image-dump ~S~]~@[ :post-image-restart ~S~]~@[ :entry-point ~S~])"
+     (tempname-target (effective-namestring env image))
+     executable pre-image-dump post-image-restart entry-point)))
 
 (defun lisp-invocation-for (env keys eval)
   (destructuring-bind (&key image load) keys

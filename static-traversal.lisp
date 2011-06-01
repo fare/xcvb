@@ -124,6 +124,9 @@
        (graph-for-image-grain
         env name (build-pre-image-name build) (load-dependencies build))))))
 
+(define-graph-for :executable ((env static-traversal) name)
+  (registered-grain `(:executable ,name)))
+
 (defun pre-image-for (env grain)
   (issue-image-named env (build-pre-image-name grain)))
 
@@ -192,7 +195,8 @@
         (when build-commands
           `((:load-manifest (:manifest ,name)))))))))
 
-(defmethod graph-for-image-grain ((env static-traversal) name pre-image-name dependencies)
+(defmethod graph-for-image-grain ((env static-traversal) name pre-image-name dependencies
+				  &key executable pre-image-dump post-image-restart entry-point)
   (setf (dependency-tweaker env) #'linkable-dependency
         (linking-traversal-p env) (and (target-ecl-p) t))
   (let ((pre-image (issue-image-named env pre-image-name)))
@@ -216,19 +220,27 @@
                                  :set (when pre-image (included-dependencies pre-image))
                                  :list traversed)))
            (grain
-            (make-grain 'image-grain
-                        :fullname `(:image ,name)
-                        :world world)))
+	    (if executable
+		(registered-grain `(:executable ,name))
+		(make-grain 'image-grain
+			    :fullname `(:image ,name)
+			    :world world)))
+	   (fullname (fullname grain)))
       (make-computation env
-       :outputs (list grain)
-       :inputs traversed
-       :command
-       `(:progn
-          ,@manifest-maker
-          (:xcvb-driver-command
-           ,image-setup
-           (:create-image
-            (:image ,name) ,@build-commands-spec))))
+	:outputs (list grain)
+	:inputs traversed
+	:command
+	`(:progn
+	   ,@manifest-maker
+	   (:xcvb-driver-command
+	    ,image-setup
+	    (:create-image
+	     (:image ,fullname
+	      ,@(when executable
+		  `(:executable t :pre-image-dump ,pre-image-dump
+		    :post-image-restart ,post-image-restart
+		    :entry-point ,entry-point)))
+	     ,@build-commands-spec))))
       grain)))
 
 (define-graph-for :source (env name &key in)

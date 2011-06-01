@@ -17,6 +17,9 @@
 
 (defgeneric brc-pathnames (brc))
 
+(defgeneric build-module-grain-for (grain)
+  (:documentation "in which build module is this grain being defined"))
+
 ;;; Define grains.
 
 ;; Unit of build: a file, a process, etc.
@@ -102,6 +105,13 @@
   ((fullname :initarg :fullname)
    (world :accessor image-world :initarg :world))
   (:documentation "Dumped Image"))
+
+(defclass executable-grain (image-grain)
+  ((parent
+    :initarg :parent
+    :accessor grain-parent
+    :type build-module-grain))
+  (:documentation "Executable Image, or script around image???"))
 
 (defclass documented-grain (grain)
   ((author
@@ -258,8 +268,24 @@ into an image that will be used for all future compile/load operations")
 (defclass lisp-generator ()
   ((build :initarg :build :reader generator-build)
    (targets :initarg :targets :reader generator-targets)
-   (dependencies :initarg :dependencies :reader generator-dependencies)
-   (computation :accessor generator-computation)))
+   (dependencies :initarg :dependencies :reader generator-dependencies)))
+
+(defclass executable-generator ()
+  ((build :initarg :build :reader generator-build)
+   (target :initarg :target :reader generator-target)
+   (pre-image-dump
+    :initarg :pre-image-dump
+    :reader pre-image-dump
+    :documentation "string to read and evaluate before dumping an image")
+   (post-image-restart
+    :initarg :post-image-restart
+    :reader post-image-restart
+    :documentation "string to read and evaluate after image is started, before the main function")
+   (entry-point
+    :initarg :entry-point
+    :reader entry-point
+    :documentation "string specifying the nullary main function for the application")
+   (dependencies :initarg :dependencies :reader generator-dependencies)))
 
 ;;; For build registry
 

@@ -38,6 +38,7 @@ a reference to the system was superseded by a build.xcvb file.")
     (etypecase g
       (null (error "~@<Failed to resolve name ~S from grain ~S~@[ pathname ~S~]~:>"
 		   name (fullname grain) (grain-pathname grain)))
+      (executable-grain `(:executable ,(fullname g)))
       (build-module-grain `(:build ,(fullname g)))
       (lisp-file-grain `(:fasl ,(second (fullname g)))))))
 
@@ -148,6 +149,7 @@ a reference to the system was superseded by a build.xcvb file.")
     (:fasl . fasl-grain)
     (:cfasl . cfasl-grain)
     (:lisp-object . lisp-object-grain)
+    (:executable . executable-grain)
     (:asdf . asdf-grain)
     (:require . t)
     (:build . t)

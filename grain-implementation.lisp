@@ -131,18 +131,17 @@
 
 (defun handle-extension-form-atom (grain extension-form)
   (declare (ignore grain))
-  (error "handle-extension-form-atom: Extension form ~a is invalid.  Only currently support :generate extension form."
+  (error "handle-extension-form-atom: Extension form ~a is invalid.
+Only currently support :generate and :executable extension form."
 	 extension-form))
 
 (defmethod print-object ((g lisp-generator) stream)
   (with-output (stream)
     (print-unreadable-object (g stream :type t)
-      (format stream ":build ~A :targets ~A :dependencies ~A ~@[:computation ~S~]"
+      (format stream ":build ~A :targets ~A :dependencies ~A"
               (fullname (generator-build g))
               (mapcar #'fullname (generator-targets g))
-              (generator-dependencies g)
-              (when (slot-boundp g 'computation)
-                (generator-computation g))))))
+              (generator-dependencies g)))))
 
 (define-handle-extension-form :generate (build generate &key depends-on)
   (unless generate
@@ -182,16 +181,44 @@
     (dolist (target targets)
       (slot-makunbound target 'computation))
     (pre-image-for env grain)
-    (build-command-for* env dependencies)
-    (setf (generator-computation generator)
-          (make-computation
-           env
-           :outputs targets
-           :inputs (traversed-dependencies env)
-           :command
-           `(:xcvb-driver-command
-             ,(image-setup env)
-             ,@(traversed-build-commands env))))))
+    (build-command-for* env dependencies)))
+
+(define-handle-extension-form :executable (build name &key depends-on pre-image-dump post-image-restart entry-point)
+  (let* ((target (make-instance 'executable-grain
+		   :parent build
+		   :fullname `(:executable ,(strcat (fullname build) "/" name))))
+	 (generator
+	  (make-instance 'executable-generator
+	    :build build
+            :target target
+	    :pre-image-dump pre-image-dump
+	    :post-image-restart post-image-restart
+	    :entry-point entry-point
+	    :dependencies
+	    (if (eq depends-on :build)
+		(load-dependencies build)
+		(normalize-dependencies build depends-on :depends-on)))))
+    (setf (registered-grain (fullname target)) target)
+    (setf (grain-generator target) generator))
+  (values))
+
+(defmethod run-generator (env (generator executable-generator))
+  (let* ((dependencies (generator-dependencies generator))
+         (build (generator-build generator))
+         (target (generator-target generator))
+	 (fullname (fullname target))
+	 (name (progn
+		 (assert (single-arg-form-p :executable fullname))
+		 (second fullname))))
+    (assert (stringp name))
+    (slot-makunbound target 'computation)
+    (graph-for-image-grain
+     env name (build-pre-image-name build) dependencies
+     :executable t
+     :pre-image-dump (pre-image-dump generator)
+     :post-image-restart (post-image-restart generator)
+     :entry-point (entry-point generator))))
+
 
 ;;(define-handle-extension-form :in-package (grain files &key package) ...)
 
@@ -204,10 +231,15 @@
   "Takes a PATH to a lisp file, and returns the corresponding grain."
   (grain-from-file-declaration path :build-p build-p))
 
-(defun build-module-grain-for (grain)
-  (etypecase grain
-    (build-module-grain grain)
-    (lisp-module-grain (grain-parent grain))))
+
+(defmethod build-module-grain-for ((grain build-module-grain))
+  grain)
+
+(defmethod build-module-grain-for ((grain executable-grain))
+  (grain-parent grain))
+
+(defmethod build-module-grain-for ((grain lisp-module-grain))
+  (grain-parent grain))
 
 (defmethod load-dependencies :before ((grain lisp-module-grain))
   (finalize-grain grain))
@@ -337,6 +369,9 @@
 (defun image-grain-p (x)
   (typep x 'image-grain))
 
+(defun executable-grain-p (x)
+  (typep x 'executable-grain))
+
 (defun world-grain-p (x)
   (typep x 'world-grain))
 
@@ -438,6 +473,10 @@ Modeled after the asdf function coerce-name"
 (define-default-vp-for-fullname :image (env name)
   (declare (ignore env))
   (vp-for-name-extension name "image"))
+(define-default-vp-for-fullname :executable (env name)
+  (declare (ignore env))
+  #+os-unix (make-vp :obj name) ;; TODO: create a zone :install for end products?
+  #+os-windows (vp-for-name-extension name "exe"))
 (define-default-vp-for-fullname :manifest (env name)
   (declare (ignore env))
   (vp-for-name-extension name "manifest"))

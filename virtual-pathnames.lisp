@@ -69,6 +69,7 @@
              (apply 'strcat
                     (but-last-char
                      (namestring (pathname-directory-pathname (grain-pathname build)))) sub)))
+	  ;; TODO: define a zone :install for end-products like executables?
           (:obj
            (apply 'strcat *object-directory* subpath))))))
 

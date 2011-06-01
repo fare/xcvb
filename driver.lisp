@@ -2,7 +2,7 @@
 
 #+xcvb
 (module
- (:description "XCVB Preamble"
+ (:description "XCVB Driver"
   :author ("Francois-Rene Rideau")
   :maintainer "Francois-Rene Rideau"
   :licence "MIT" ;; MIT-style license. See LICENSE
@@ -78,7 +78,8 @@
    ;;; Build-time variables
    #:*optimization-settings*
    #:*uninteresting-conditions* #:*fatal-conditions* #:*deferred-warnings*
-   #:*goal* #:*stderr* #:*debugging* #:*restart*
+   #:*goal* #:*stderr* #:*debugging*
+   #:*post-image-restart* #:*entry-point*
 
    ;;; Environment support
    #:getenv #:emptyp #:setenvp #:setup-environment
@@ -140,7 +141,10 @@ that is neither Unix, nor Windows.~%Now you port it."))))
   (pushnew :xcvb-driver *features*))
 
 ;; Variables that define the current system
-(defvar *restart* nil
+(defvar *post-image-restart* nil
+  "a string containing forms to read and evaluate when the image is restarted,
+but before the entry point is called.")
+(defvar *entry-point* nil
   "a function with which to restart the dumped image when execution is resumed from it.")
 (defvar *debugging* nil
   "boolean: should we enter the debugger on failure?")
@@ -699,28 +703,78 @@ This is designed to abstract away the implementation specific quit forms."
 (defun compile-lisp (spec &rest dependencies)
   (apply 'do-compile-lisp dependencies spec))
 
+(defparameter *arguments* nil
+  "Command-line arguments")
+
+(defparameter *dumped* nil
+  "Is this a dumped image? As a standalone executable?")
+
+(defun raw-command-line-arguments ()
+  #+abcl (cdr ext:*command-line-argument-list*) ; abcl adds a "--" to our "--"
+  #+allegro (sys:command-line-arguments) ; default: :application t
+  #+clisp (coerce (ext:argv) 'list)
+  #+clozure (ccl::command-line-arguments)
+  #+(or cmu scl) extensions:*command-line-strings*
+  #+ecl (loop :for i :from 0 :below (si:argc) :collect (si:argv i))
+  #+gcl si:*command-args*
+  #+lispworks sys:*line-arguments-list*
+  #+sbcl sb-ext:*posix-argv*
+  #+xcl system:*argv*
+  #-(or abcl allegro clisp clozure cmu ecl gcl lispworks sbcl scl xcl)
+  (error "raw-command-line-arguments not implemented yet"))
+
+(defun command-line-arguments ()
+  (let* ((raw (raw-command-line-arguments))
+	 (cooked
+	  #+(or sbcl allegro) raw
+	  #-(or sbcl allegro)
+	  (if (eq *dumped* :executable)
+	      raw
+	      (member "--" raw :test 'string-equal))))
+    (cdr cooked)))
+
 ;;; Dumping and resuming an image
-(defun do-resume (&key (restart *restart*))
-  (when restart (funcall restart))
-  (quit 0))
-(defun resume (&key restart)
-  (do-resume :restart restart))
+(defun do-resume (&key (post-image-restart *post-image-restart*) (entry-point *entry-point*))
+  (with-standard-io-syntax
+    (when post-image-restart (load-string post-image-restart)))
+  (with-coded-exit ()
+    (when entry-point
+      (let ((ret (apply entry-point *arguments*)))
+	(if (typep ret 'integer)
+	    (quit ret)
+	    (quit 99))))))
+
+(defun resume ()
+  (setf *arguments* (command-line-arguments))
+  (do-resume))
+
+(defun read-function (string)
+  (eval `(function ,(read-from-string string))))
 
 #-ecl
-(defun dump-image (filename &key standalone package)
-  (declare (ignorable filename standalone))
+(defun dump-image (filename &key executable pre-image-dump post-image-restart entry-point package)
+  (declare (ignorable filename executable pre-image-dump post-image-restart entry-point))
+  (setf *dumped* (if executable :executable t))
   (setf *package* (find-package (or package :cl-user)))
+  (with-standard-io-syntax
+    (setf *entry-point* (when entry-point (read-function entry-point)))
+    (when pre-image-dump (load-string pre-image-dump))
+    ;; TODO: Handle #. nicely.
+    (when post-image-restart (setf *post-image-restart* post-image-restart)))
+  #-(or clisp lispworks sbcl)
+  (when executable
+    (error "dumping an executable is not supported on this implementation"))
   #+allegro
   (progn
-   (sys:resize-areas :global-gc t :pack-heap t :sift-old-areas t :tenure t) ; :new 5000000
-   (excl:dumplisp :name filename :suppress-allegro-cl-banner t))
+    (sys:resize-areas :global-gc t :pack-heap t :sift-old-areas t :tenure t) ; :new 5000000
+    (excl:dumplisp :name filename :suppress-allegro-cl-banner t))
   #+clisp
   (apply #'ext:saveinitmem filename
    :quiet t
    :start-package *package*
    :keep-global-handlers nil
-   :executable (if standalone 0 t) ;--- requires clisp 2.48 or later, still catches --clisp-x
-   (when standalone
+   :executable (if executable 0 t) ;--- requires clisp 2.48 or later, still catches --clisp-x
+   (when executable
      (list
       :norc t
       :script nil
@@ -742,7 +796,7 @@ This is designed to abstract away the implementation specific quit forms."
   #+lispworks
   (progn
     ;;(system::copy-file (getenv "LWLICENSE") (make-pathname :name "lwlicense" :type nil :defaults filename))
-    (if standalone
+    (if executable
         (lispworks:deliver 'resume filename 0 :interface nil)
         (hcl:save-image filename :environment nil)))
   #+sbcl
@@ -751,7 +805,7 @@ This is designed to abstract away the implementation specific quit forms."
    (setf sb-ext::*gc-run-time* 0)
    (apply 'sb-ext:save-lisp-and-die filename
     :executable t ;--- always include the runtime that goes with the core
-    (when standalone (list :toplevel #'resume :save-runtime-options t)))) ;--- only save runtime-options for standalone executables
+    (when executable (list :toplevel #'resume :save-runtime-options t)))) ;--- only save runtime-options for standalone executables
   #-(or allegro clisp clozure cmu gcl lispworks sbcl scl)
   (die "Can't dump ~S: xcvb-driver doesn't support image dumping with this Lisp implementation.~%" filename))
 
@@ -770,16 +824,20 @@ This is designed to abstract away the implementation specific quit forms."
     (read s)))
 
 #+ecl ;; wholly untested and probably buggy.
-(defun do-create-image (image dependencies &key standalone package prologue-code epilogue-code)
+(defun do-create-image (image dependencies &key
+			executable pre-image-dump post-image-restart entry-point)
   (create-bundle image dependencies
-                 :type (if standalone :program :dll)
-                 :package package
-                 :prologue-code prologue-code
-                 :epilogue-code epilogue-code))
+                 :type (if executable :program :dll)
+                 :executable executable
+		 :pre-image-dump pre-image-dump
+		 :post-image-restart post-image-restart
+		 :entry-point entry-point))
 
 #+ecl
 (defun create-bundle (bundle dependencies
-                      &rest keys &key type package prologue-code epilogue-code)
+                      &rest keys
+		      &key type pre-image-dump post-image-restart entry-point)
+  ;; TODO! This is borked.
   (let ((*goal* `(create-bundle ,bundle ,dependencies ,@keys)))
     (require :cmp)
     (multiple-value-bind (object-files manifest)
@@ -819,9 +877,8 @@ This is designed to abstract away the implementation specific quit forms."
 
 #-ecl
 (defun create-image (spec &rest dependencies)
-  (destructuring-bind (image &key standalone package) spec
-    (do-create-image image dependencies
-                     :standalone standalone :package package)))
+  (destructuring-bind (image &rest keys) spec
+    (apply 'do-create-image image dependencies keys)))
 
 (defvar *pathname-mappings* (make-hash-table :test 'equal)
   "Mappings from xcvb fullname to pathname")
@@ -1384,3 +1441,4 @@ Otherwise, signal an error.")
   "Short hand for build-and-load"
   (declare (ignore . #.*bnl-keys*))
   (apply 'build-and-load build keys))
+

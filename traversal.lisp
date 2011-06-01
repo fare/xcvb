@@ -27,7 +27,7 @@
 (defgeneric graph-for-compile-build (env name))
 (defgeneric graph-for-build-named (env name))
 (defgeneric graph-for-image (env name))
-(defgeneric graph-for-image-grain (env name pre-image-name dependencies))
+(defgeneric graph-for-image-grain (env name pre-image-name dependencies &key))
 (defgeneric graph-for-source (env name &key in))
 (defgeneric graph-for-asdf (env name))
 (defgeneric graph-for-require (env name))
@@ -151,5 +151,6 @@
          (name (fullname target))
          (dep (etypecase target
                 (build-module-grain `(:build ,name))
-                (lisp-module-grain `(:fasl ,(second name))))))
+                (lisp-module-grain `(:fasl ,(second name)))
+		(executable-grain name))))
     (values dep build)))

@@ -51,7 +51,9 @@ will create the desired content. An atomic rename() will have to be performed af
 
 (defun external-commands-for-computation-atom (env computation-command)
   (declare (ignore env))
-  (error "Invalid computation ~S" computation-command))
+  (if (null computation-command)
+      nil ;; nothing to do!
+      (error "Invalid computation ~S" computation-command)))
 
 (defun external-commands-for-computation (env computation-command)
   ;; We rename secondary targets first, according to the theory that
