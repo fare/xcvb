@@ -67,9 +67,9 @@ install-using-asdf: install-source
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
 
 checkout:
-	clone () { x=$$(basename $$1 .git) ; \
+	clone () { url=$$1 ; x=$$(basename $$url .git) ; shift ; \
 	  if [ -d $$x ] ; then echo "Already got $$x" ; \
-	  else git clone $$1 ; fi } ; \
+	  else git clone $$@ $$url ; fi } ; \
 	get () { x=$$(basename $$1) ; \
 	  if [ -d $$x ] ; then echo "Already got $$x" ; \
 	  else darcs get $$1 ; fi ; } ; \
@@ -88,7 +88,7 @@ checkout:
 	clone git://common-lisp.net/users/frideau/fare-matcher.git && \
 	clone git://common-lisp.net/projects/xcvb/iolib.git && \
 	clone git://github.com/froydnj/ironclad.git && \
-	clone -b xcvb git://common-lisp.net/projects/xcvb/rucksack.git && \
+	clone git://common-lisp.net/projects/xcvb/rucksack.git -b xcvb && \
 	clone git://common-lisp.net/projects/qitab/poiu.git && \
 	clone git://common-lisp.net/projects/xcvb/quux-iolib.git && \
 	get http://common-lisp.net/project/xcvb/darcs/closer-mop && \

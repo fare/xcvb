@@ -42,6 +42,7 @@ enforced locally-declared dependencies.
       5.3  Conditional Dependencies
       5.4  Warning Control
       5.5  CL:REQUIRE
+      5.6  Creating Executables
     6  Troubleshooting an XCVB build
       6.1  Debugging the built system
       6.2  Debugging the build
@@ -1069,6 +1070,33 @@ anything defined by the required feature::
 
 	(eval-when (:compile-toplevel :load-toplevel :execute)
           #+sbcl (require :sb-posix))
+
+
+Creating Executables
+--------------------
+
+You may create executables with extension form ``:executable``.
+
+Supported implementations are: CCL, CLISP, SBCL, LispWorks.
+
+You may specify forms to run before the image is dumped using
+``:pre-image-dump "(some (string to be read and evaluated))"``
+and forms to run before after image is resumed using
+``:post-image-restart "(some (string to be read and evaluated))"``,
+and a function to be run after those forms are evaluated using
+``:entry-point "package:function-name"``,
+the entry-point function
+(the name of which will be read when everything is compiled),
+if provided, will be ``apply``'ed with ``xcvb-driver:*arguments*``
+as a rest parameter.
+No ``ARGV0`` is available,
+since it is not provided by all implementations,
+but some libraries might be able to extract it for you.
+
+See examples in XCVB itself and the hello world application in
+``xcvb/examples/hello``.
+
+More here soon (bug me about it).
 
 
 Troubleshooting an XCVB build
