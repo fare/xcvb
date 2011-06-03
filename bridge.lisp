@@ -1,29 +1,17 @@
 ;;; XCVB bridge: call XCVB from ASDF
 
-(in-package :cl)
+(in-package :asdf)
 
-(defpackage :xcvb-bridge
-  (:nicknames :xcvbb)
-  (:use :cl :asdf :xcvb-driver)
-  (:export #:build))
-
-(in-package :xcvb-bridge)
-
-(defclass build (system)
-  ((name :initarg :build :reader %build-name :initform nil)))
+(defclass xcvb-build (system)
+  ((build-name :initarg :build :reader %build-name :initform nil)))
 
 (defgeneric build-name (b)
-  (:method ((b build))
-    (or (%build-name b) (component-name b))))
-
-(defun object-directory ()
-  (if (absolute-pathname-p *object-directory*)
-      *object-directory*
-      (asdf::resolve-location (list *user-cache* "xcvb-obj"))))
+  (:method ((b xcvb-build))
+    (or (%build-name b) (string-downcase (component-name b)))))
 
 (defgeneric build-and-load-system (b)
-  (:method ((b build))
-    (build-and-load (build-name b) :object-directory (object-directory))))
+  (:method ((b xcvb-build))
+    (xcvb-driver:build-and-load (build-name b))))
 
 (defmethod perform ((op compile-op) (b build))
   (declare (ignorable op))

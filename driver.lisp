@@ -757,9 +757,8 @@ This is designed to abstract away the implementation specific quit forms."
   (setf *dumped* (if executable :executable t))
   (setf *package* (find-package (or package :cl-user)))
   (with-standard-io-syntax
-    (setf *entry-point* (when entry-point (read-function entry-point)))
     (when pre-image-dump (load-string pre-image-dump))
-    ;; TODO: Handle #. nicely.
+    (setf *entry-point* (when entry-point (read-function entry-point)))
     (when post-image-restart (setf *post-image-restart* post-image-restart)))
   #-(or clisp clozure lispworks sbcl)
   (when executable
@@ -796,11 +795,9 @@ This is designed to abstract away the implementation specific quit forms."
    (si::set-hole-size 500) (si::gbc nil) (si::sgc-on t)
    (si::save-system filename))
   #+lispworks
-  (progn
-    ;;(system::copy-file (getenv "LWLICENSE") (make-pathname :name "lwlicense" :type nil :defaults filename))
-    (if executable
-        (lispworks:deliver 'resume filename 0 :interface nil)
-        (hcl:save-image filename :environment nil)))
+  (if executable
+      (lispworks:deliver 'resume filename 0 :interface nil)
+      (hcl:save-image filename :environment nil))
   #+sbcl
   (progn
     ;;(sb-pcl::precompile-random-code-segments) ;--- it is ugly slow at compile-time (!) when the initial core is a big CLOS program. If you want it, do it yourself

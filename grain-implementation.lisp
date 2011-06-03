@@ -240,12 +240,12 @@ Only currently support :generate and :executable extension form."
 
 (defmethod build-module-grain-for ((grain build-module-grain))
   grain)
-
 (defmethod build-module-grain-for ((grain executable-grain))
   (grain-parent grain))
-
 (defmethod build-module-grain-for ((grain lisp-module-grain))
   (grain-parent grain))
+(defmethod build-module-grain-for ((grain source-grain))
+  (registered-build (source-grain-in grain)))
 
 (defmethod load-dependencies :before ((grain lisp-module-grain))
   (finalize-grain grain))

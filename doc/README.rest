@@ -1036,8 +1036,9 @@ discriminate the conditions you're looking to keep or eliminate.
 CL:REQUIRE
 ----------
 
-Any dependency of the form ``(:require :foo)`` will be interpreted as
-the need to call ``CL:REQUIRE`` to load the implementation-dependent feature ``:foo``.
+Any dependency of the form ``(:require :foo)``
+will be interpreted as the need to call ``CL:REQUIRE``
+to load the implementation-dependent feature ``:foo``.
 The argument can be a string or a keyword, and is usually written
 as an upper-case string or a lower-case keyword (which will be case-converted).
 
@@ -1055,7 +1056,8 @@ and specify in your ``defsystem`` form::
 
 	:depends-on (... #+sbcl :sb-posix ...)
 
-In this case, the same trick of depending on ``(:asdf :sb-posix)`` in your ``build.xcvb`` may work.
+In this case, the same trick of
+depending on ``(:asdf :sb-posix)`` in your ``build.xcvb`` may work.
 
 If you need some magic side-effects before or after requiring the feature,
 you are better off doing it in your `Lisp setup`_ file.
@@ -1079,22 +1081,60 @@ You may create executables with extension form ``:executable``.
 
 Supported implementations are: CCL, CLISP, SBCL, LispWorks.
 
-You may specify forms to run before the image is dumped using
+Amongst the extensions forms of your module declaration,
+you may include any number of ``:executable`` specifications.
+The syntax is a list beginning with ``:executable``
+followed by the name of the executable
+(which is relative to the name of the build),
+followed by keyword arguments.
+
+Accepted keyword arguments are ``:depends-on``, ``:pre-image-dump``,
+``:post-image-restart`` and ``:entry-point``.
+``:depends-on`` followed by a list of dependencies specifies
+the modules to load into the executable image;
+followed by the special keyword ``:build`` instead of such a list,
+it specifies that the executable shall have
+the same dependencies as the build.
+Equivalently you could use
+``((:build "/foo"))`` where ``/foo`` is the name of your build.
+You may specify forms to read and evaluate before the image is dumped using
 ``:pre-image-dump "(some (string to be read and evaluated))"``
-and forms to run before after image is resumed using
+and forms to read and evaluate before after image is resumed using
 ``:post-image-restart "(some (string to be read and evaluated))"``,
 and a function to be run after those forms are evaluated using
-``:entry-point "package:function-name"``,
-the entry-point function
-(the name of which will be read when everything is compiled),
-if provided, will be ``apply``'ed with ``xcvb-driver:*arguments*``
-as a rest parameter.
+``:entry-point "package:function-name"``
+(the name of which will be read just
+after the ``:pre-image-dump`` forms are evaluated).
+
+The entry-point function, if provided, will be ``apply``'ed
+with ``xcvb-driver:*arguments*`` as a parameter.
 No ``ARGV0`` is available,
 since it is not provided by all implementations,
 but some libraries might be able to extract it for you.
+See for instance the ``command-line-arguments`` library,
+or ``CLON``.
 
 See examples in XCVB itself and the hello world application in
-``xcvb/examples/hello``.
+``xcvb/examples/hello``, that includes something like this::
+
+	(module
+	 (:fullname "/xcvb/hello" ...)
+         ...
+	 (:executable "hello"
+	  :depends-on :build
+          :post-image-restart "(xcvb-hello::main)"))
+
+Note that instead of a list of dependencies,
+this executable depends-on ``:build``, a special keyword
+meaning that this executable's dependencies are the same as
+the dependencies from the build.
+
+The fullname of the dependency is
+``(:executable "/xcvb/hello/hello)``
+but from the command line, you can name it just ``/xcvb/hello/hello``
+as in::
+
+	xcvb simple-build --build /xcvb/hello/hello --lisp-implementation ccl
 
 More here soon (bug me about it).
 
@@ -1166,47 +1206,19 @@ XCVB and ASDF
 XCVB builds depending on ASDF systems
 -------------------------------------
 
-You may in some ``(module ...)`` declaration include a dependency on ``(:asdf "foo")``
-which XCVB will interpret as requiring the loading of such an ASDF
-with ``(asdf:oos 'asdf:load-op "foo")``.
+You may in some ``(module ...)`` declaration
+include a dependency on ``(:asdf "foo")``.
+XCVB will ensure that the proper ASDF system
+is loaded with ``(asdf:load-system "foo")``
+in any target that depends on such.
 
-However, if amongst your dependencies there are any ASDF systems
-that haven't yet been converted to XCVB,
-then you'll probably need a setup file (as per `Lisp Setup`_)
-to load ASDF and configure its ``*central-registry*``.
+XCVB shares its source-registry mechanism with ASDF 2.
+If you properly configure your `Source Registry`_ for XCVB,
+it will also work with ASDF.
 
-In simple cases, your personal ``setup.lisp`` may be as simple as the following::
+If you insist on using ASDF 1 or its legacy ``*central-registry*`` mechanism,
+you will probably need a setup file (as per `Lisp Setup`_) to configure it.
 
-	#+xcvb (module (:build-depends-on ()))
-	(in-package :cl-user)
-	(require :asdf)
-        (push "/path/to/my/asdf/systems/" asdf:*central-registry*)
-
-In slightly harder cases, you may call ``cl-launch`` to the rescue::
-
-	cl-launch --lisp clisp --source-registry /path/to/my/asdf/systems -B print_lisp_setup > setup.lisp
-
-XCVB's own ``Makefile`` includes a target to build a ``setup.lisp``
-using the same principle, but additionally leveraging the pre-existing
-``cl-launch`` configuration that was used for compiling XCVB itself
-(when bootstrapped with ASDF).
-
-In yet harder cases, a robust semi-portable ``setup.lisp``
-may contain the usual ASDF hackery, including such snippets as::
-
-	#+xcvb (module (:build-depends-on ()))
-	(in-package :cl-user)
-        (eval-when (:compile-toplevel :load-toplevel :execute)
-          (defparameter *l* (make-pathname :name nil :type nil :defaults *load-pathname*)))
-        (ignore-errors (require :asdf))
-        (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) "1.655"))
-           (load (merge-pathnames "libs/asdf/asdf.lisp" *l*)))
-        (asdf:initialize-source-registry
-         `(:source-registry (:tree *l*) :ignore-inherited-configuration))
-        (let ((use-poiu (asdf-utilities:getenv "USE_POIU")))
-          (when (and use-poiu (not (equal use-poiu "")))
-            (pushnew :parallel-build *features*))
-            (asdf:load-system :poiu))))
 
 
 ASDF systems depending on XCVB builds
@@ -1217,16 +1229,18 @@ by wrapping said build with a trivial ``.asd`` file::
 
    (defsystem :foo
      :defsystem-depends-on (:xcvb-bridge)
-     :class :xcvb-bridge:build)
+     :class :xcvb-build)
 
-Or if your asdf system name doesn't match your xcvb build name::
+By default, the ASDF system name with be downcased and a ``/``  prepended
+to deduce the XCVB fullname for the corresponding build.
+You may override this default with the ``:build`` keyword::
 
    (defsystem :foo-bar
      :defsystem-depends-on (:xcvb-bridge)
-     :class :xcvb-bridge:build
+     :class :xcvb-build
      :build "/foo/bar")
 
-However, XCVB must be present on the system
+Of course, XCVB must be present on the system
 and support your Lisp implementation
 for such a construction to work.
 
@@ -1246,7 +1260,7 @@ the same software a second time after it has been loaded by ASDF.
 Apart from the slight performance penalty, things should be alright.
 But if your ASDF central registry and your XCVB search path
 are configured to compile slightly different and incompatible versions,
-you may experience bugs. So make sure there is no conflict there.
+you may experience bugs. You need to ensure there is no conflict there.
 Finally, if some kind of deep conflict bites you because somehow
 ASDF and XCVB compile your software incompatible, it won't be loaded twice,
 the best solution will be to fix your software,

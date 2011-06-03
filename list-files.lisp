@@ -2,36 +2,36 @@
 
 (in-package :xcvb)
 
-;;; LIST-FILES
-(defparameter *files-list* ())
-(defparameter *files-table* (make-hash-table :test 'equal))
+;;; LIST-GRAINS
+(defparameter *grains-list* ())
+(defparameter *grains-table* (make-hash-table :test 'equal))
 
-(defclass file-listing-traversal (simplifying-traversal)
+(defclass grain-listing-traversal (simplifying-traversal)
   ())
 
-(defmethod graph-for :around ((env file-listing-traversal) spec)
-  (multiple-value-bind (v foundp) (gethash spec *files-table*)
+(defmethod graph-for :around ((env grain-listing-traversal) spec)
+  (multiple-value-bind (v foundp) (gethash spec *grains-table*)
     (if foundp
         v
         (progn
-          (setf (gethash spec *files-table*) nil)
+          (setf (gethash spec *grains-table*) nil)
           (let ((v (call-next-method)))
-            (setf (gethash spec *files-table*) v)
-            (pushnew v *files-list*)
+            (setf (gethash spec *grains-table*) v)
+            (pushnew v *grains-list*)
             v)))))
 
-(defun list-files (spec)
-  (let ((env (make-instance 'file-listing-traversal))
-        (*files-list* ())
-        (*files-table* (make-hash-table :test 'equal)))
+(defun list-grains (spec)
+  (let ((env (make-instance 'grain-listing-traversal))
+        (*grains-list* ())
+        (*grains-table* (make-hash-table :test 'equal)))
     (build-command-for env spec)
-    (reverse *files-list*)))
+    (reverse *grains-list*)))
 
 ;;; TODO: some magic to break circularities that are due to flattening conditionals.
-(define-build-command-for :when ((env file-listing-traversal) expression &rest dependencies)
+(define-build-command-for :when ((env grain-listing-traversal) expression &rest dependencies)
   (declare (ignore expression))
   (build-command-for* env dependencies))
-(define-build-command-for :cond ((env file-listing-traversal) &rest cond-expressions)
+(define-build-command-for :cond ((env grain-listing-traversal) &rest cond-expressions)
   (dolist (cond-expression cond-expressions)
     (build-command-for* env (cdr cond-expression))))
 
@@ -47,6 +47,30 @@
   (apply 'handle-global-options keys)
   (setf *use-cfasls* nil)
   (remove-xcvb-from-build build))
+
+(defparameter +list-files-option-spec+
+  `(,@+remove-xcvb-option-spec+
+    (("long" #\l) :type boolean :optional t :documentation "long format")))
+
+(defun listable-grain-fun (build)
+  (lambda (grain)
+    (and (typep grain '(or lisp-module-grain source-grain))
+         (eq build (build-module-grain-for grain)))))
+
+(defun list-files-command (&rest keys &key source-registry verbosity build debugging long)
+  (declare (ignore source-registry verbosity debugging))
+  (apply 'handle-global-options keys)
+  (setf *use-cfasls* nil)
+  (multiple-value-bind (target-dependency build-grain) (handle-target build)
+    (log-format 7 "Listing files from XCVB build ~A~% (path ~S)"
+                build-grain (grain-pathname build-grain))
+    (let* ((all-grains (list-grains target-dependency))
+           (grains (remove-if-not (listable-grain-fun build-grain)
+                                  (remove-duplicates all-grains)))
+           (files (mapcar 'grain-pathname grains)))
+      (if long
+          (format t "(~{~S~^~%~})~%" files)
+          (format t "(~{~A~%~}" files)))))
 
 (defun purge-xcvb-command (files)
   (initialize-environment)
@@ -76,7 +100,7 @@
                            (eq build (build-module-grain-for grain))
                            (equal (fullname build) (fullname (build-module-grain-for grain))))
                (equal (fullname build) (fullname (build-module-grain-for grain))))))
-      (dolist (grain (remove-if-not #'source-lisp-grain-p (list-files target-dependency)))
+      (dolist (grain (remove-if-not #'source-lisp-grain-p (list-grains target-dependency)))
         (log-format 5 "Removing module declaration from ~A" (grain-pathname grain))
         (remove-module-from-file (grain-pathname grain))))
     (log-format 5 "Deleting build file for ~A" (grain-pathname build))

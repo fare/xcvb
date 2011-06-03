@@ -5,7 +5,9 @@
 (in-package :xcvb)
 
 (defun get-xcvb-directory ()
-  (asdf:system-source-directory :xcvb))
+  (with-standard-io-syntax
+    (let ((*print-readably* nil))
+      (asdf:system-source-directory :xcvb))))
 
 (defun get-xcvb-version ()
   (first

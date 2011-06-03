@@ -67,5 +67,5 @@ deterministic separate compilation and enforced locally-declared dependencies."
   :build-image t)
  (:executable "xcvb"
   :depends-on :build
-  :pre-image-dump "(setf xcvb::*xcvb-version* \#.(xcvb::get-xcvb-version))"
+  :pre-image-dump "(setf xcvb::*xcvb-version* \#.(xcvb::get-xcvb-version))(asdf:clear-configuration)"
   :entry-point "xcvb::main"))

@@ -68,7 +68,7 @@ endif
 setup.lisp:
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_setup > $@
 
-xcvb: xcvb-using-asdf # Broken for now? xcvb-using-xcvb
+xcvb: xcvb-using-xvcb # If broken, fall back to xcvb-using-asdf
 
 # Below you may use either of these setups, or none at all.
 # --setup /xcvb/no-asdf   ## This will be made obsolete by newer ASDF (>= 1.371).

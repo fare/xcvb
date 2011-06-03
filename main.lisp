@@ -55,6 +55,10 @@ a chance to load and/or configure ASDF itself and any extension thereof.")
      remove-xcvb-command +remove-xcvb-option-spec+
      "Remove XCVB modules from files in build"
      "Given an XCVB build file, removes the XCVB modules from each of the files listed in the build file.")
+    (("list-files" "lf")
+     list-files-command +list-files-option-spec+
+     "List files in a XCVB build"
+     "Given an XCVB build file, list all files that are directly part of that build.")
     (("purge-xcvb" "pux" "px")
      purge-xcvb-command ()
      "Remove XCVB module statements from explicitly listed files"
