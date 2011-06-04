@@ -20,11 +20,12 @@
             (pushnew v *grains-list*)
             v)))))
 
-(defun list-grains (spec)
+(defun list-grains (specs)
   (let ((env (make-instance 'grain-listing-traversal))
         (*grains-list* ())
         (*grains-table* (make-hash-table :test 'equal)))
-    (build-command-for env spec)
+    (dolist (spec specs)
+      (build-command-for env spec))
     (reverse *grains-list*)))
 
 ;;; TODO: some magic to break circularities that are due to flattening conditionals.
@@ -49,28 +50,28 @@
   (remove-xcvb-from-build build))
 
 (defparameter +list-files-option-spec+
-  `(,@+remove-xcvb-option-spec+
+  `(,@+multi-build-option-spec+
+    ,@+source-registry-option-spec+
+    ,@+verbosity-option-spec+
     (("long" #\l) :type boolean :optional t :documentation "long format")))
-
-(defun listable-grain-fun (build)
-  (lambda (grain)
-    (and (typep grain '(or lisp-module-grain source-grain))
-         (eq build (build-module-grain-for grain)))))
 
 (defun list-files-command (&rest keys &key source-registry verbosity build debugging long)
   (declare (ignore source-registry verbosity debugging))
   (apply 'handle-global-options keys)
   (setf *use-cfasls* nil)
-  (multiple-value-bind (target-dependency build-grain) (handle-target build)
-    (log-format 7 "Listing files from XCVB build ~A~% (path ~S)"
-                build-grain (grain-pathname build-grain))
-    (let* ((all-grains (list-grains target-dependency))
-           (grains (remove-if-not (listable-grain-fun build-grain)
-                                  (remove-duplicates all-grains)))
+  (loop :for spec :in build
+    :for (target bgrain) = (multiple-value-list (handle-target spec))
+    :collect target :into targets
+    :collect bgrain :into builds
+    :finally
+    (let* ((all-grains (list-grains targets))
+           (grains (remove-if-not
+                    (lambda (grain)
+                      (and (typep grain '(or lisp-module-grain source-grain))
+                           (member (build-module-grain-for grain) builds)))
+                    (remove-duplicates all-grains)))
            (files (mapcar 'grain-pathname grains)))
-      (if long
-          (format t "(~{~S~^~%~})~%" files)
-          (format t "(~{~A~%~}" files)))))
+      (format t (if long "(~{~S~^~%~})~%" "~{~A~%~}") files))))
 
 (defun purge-xcvb-command (files)
   (initialize-environment)
