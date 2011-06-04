@@ -38,7 +38,7 @@ $(shell ( echo export CL_SOURCE_REGISTRY=${CL_SOURCE_REGISTRY} ) >&2)
 #
 xcvb.mk: force
 	xcvb make-makefile \
-	     --build /xcvb/hello \
+	     --build /xcvb/hello/hello \
 	     --lisp-implementation ${LISP} \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello
 
@@ -48,7 +48,7 @@ xcvb.mk: force
 PARALLELIZE ?= -j
 PARALLEL := $(if $(findstring -,${PARALLELIZE}),--parallel)
 
-${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello.image: xcvb.mk
+${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello/hello: xcvb.mk
 	${MAKE} -f xcvb.mk ${PARALLELIZE} || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk
 
 # This uses cl-launch to build an executable from the image created by xcvb.
@@ -61,27 +61,6 @@ hello-using-mk: ${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello/hello
 	cp $< ${INSTALL_BIN}/hello
 
 hello: hello-using-mk
-
-# If your project has ASDF dependencies that haven't been converted,
-# or if you are building with ASDF, or using our ASDF or POIU backend,
-# you will have to have a setup file that ensures ASDF is present and configured.
-# The setup.lisp better have at the start a declaration such as
-# #+xcvb (module (:build-depends-on ()))
-# then somehow load ASDF, configure its *central-registry*,
-# and otherwise setup optimization proclamations.
-# Note that the configuration of the central registry is redundant with ASDF 2.
-#
-# If your source registry is properly configured and your implementation comes with ASDF 2,
-# all you need is
-# --setup /xcvb/require-asdf
-#
-# If your source registry is properly configured and contains ASDF 2, you may use
-# --setup /asdf/asdf
-#
-# If you want to work with a legacy ASDF 1 style configuration, try this
-# --setup /xcvb/hello/setup
-setup.lisp:
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_setup > $@
 
 # This builds hello directly with ASDF, using cl-launch, using a generated xcvb-hello.asd
 hello-using-asdf: xcvb-hello.asd

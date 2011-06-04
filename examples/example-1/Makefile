@@ -1,7 +1,6 @@
 LISP ?= sbcl
 XCVB_ROOT := $(shell readlink -f ../..)
 XCVB_OBJECT_DIRECTORY := $(shell xcvb show --lisp-implementation ${LISP} object-directory)
-EXAMPLE_1_IMAGE=${XCVB_OBJECT_DIRECTORY}/xcvb/example-1.image
 EXAMPLE_1_EXE=${XCVB_OBJECT_DIRECTORY}/xcvb/example-1/example-1
 
 # Required for xcvb to find the source registry
@@ -18,7 +17,7 @@ build:
 # Build by creating the xcvb.mk file and running it. 
 all: example-1
 
-${XCVB_IMAGE}: xcvb.mk
+${EXAMPLE_1_EXE}: xcvb.mk
 	make -f xcvb.mk 
 
 xcvb.mk: build.xcvb $(wildcard *.lisp)
