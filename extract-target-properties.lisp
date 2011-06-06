@@ -86,7 +86,7 @@
       (log-format-pp 8 "Extract information from target Lisp:~% ~S" command)
       (handler-case
           (run-program/read-output-string command)
-        (t (c) (error "Failed to extract properties from target Lisp:~%~
+        (t (c) (user-error "Failed to extract properties from target Lisp:~%~
 		       Command:~S~%Error:~%~A~%" command c))))))
 
 (defun extract-target-properties-via-tmpfile ()
@@ -104,7 +104,7 @@
               (progn
                 (setf stdout (run-program/read-output-string command))
                 (slurp :if-does-not-exist :error))
-            (t (c) (error "Failed to extract properties from target Lisp:~%~
+            (t (c) (user-error "Failed to extract properties from target Lisp:~%~
 			   Condition: ~A~%Command:~S~%~@[stdout:~%~A~%~]~@[Output:~%~A~%~]"
                           c command stdout (slurp)))))))))
 

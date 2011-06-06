@@ -26,4 +26,6 @@
          :format-control control :format-arguments args))
 
 (defun user-error (control &rest args)
-  (apply 'simply-error 'user-error control args))
+  (apply 'simply-error 'user-error
+	 (concatenate 'string "Error: " control)
+	 args))

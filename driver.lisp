@@ -762,7 +762,7 @@ This is designed to abstract away the implementation specific quit forms."
     (when post-image-restart (setf *post-image-restart* post-image-restart)))
   #-(or clisp clozure lispworks sbcl)
   (when executable
-    (error "dumping an executable is not supported on this implementation"))
+    (user-error "Dumping an executable is not supported on this implementation! Aborting."))
   #+allegro
   (progn
     (sys:resize-areas :global-gc t :pack-heap t :sift-old-areas t :tenure t) ; :new 5000000
