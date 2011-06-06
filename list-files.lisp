@@ -22,6 +22,7 @@
 
 (defun list-grains (specs)
   (let ((env (make-instance 'grain-listing-traversal))
+        (*use-cfasls* nil)
         (*grains-list* ())
         (*grains-table* (make-hash-table :test 'equal)))
     (dolist (spec specs)
@@ -46,7 +47,6 @@
 (defun remove-xcvb-command (&rest keys &key source-registry verbosity build debugging)
   (declare (ignore source-registry verbosity debugging))
   (apply 'handle-global-options keys)
-  (setf *use-cfasls* nil)
   (remove-xcvb-from-build build))
 
 (defparameter +list-files-option-spec+
@@ -58,7 +58,6 @@
 (defun list-files-command (&rest keys &key source-registry verbosity build debugging long)
   (declare (ignore source-registry verbosity debugging))
   (apply 'handle-global-options keys)
-  (setf *use-cfasls* nil)
   (loop :for spec :in build
     :for (target bgrain) = (multiple-value-list (handle-target spec))
     :collect target :into targets
