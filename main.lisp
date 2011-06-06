@@ -158,26 +158,26 @@ for this version of XCVB.")))
 
 ;; Lookup the command spec for the given command name, or return nil if the
 ;; given command name is invalid.
-(defun lookup-command (command-name)
+(defun lookup-command (command-name &key (commands +xcvb-commands+))
   (flet ((member-equalp (x l) (member x l :test #'equalp)))
-    (assoc command-name +xcvb-commands+ :test #'member-equalp)))
+    (assoc command-name commands :test #'member-equalp)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Simple Commands ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Command to print out more detailed help.
-(defun program-help (args)
+(defun program-help (args &key (commands +xcvb-commands+) (name "xcvb"))
   (if (null args)
       ;; If user typed "xcvb help", give general help, summarizing commands.
-      (format t "~&Usage: xcvb COMMAND ARGS~%  ~
+      (format t "~&Usage: ~A COMMAND ARGS~%  ~
        where COMMAND is one of the following:~%~%~
        ~:{    ~1{~22A~} ~*~*~A~%~}~%~
        See 'xcvb help COMMAND' for more information on a specific command.~%"
-              +xcvb-commands+)
+              name commands)
       ;; Else if user typed "xcvb help COMMAND", give specific help on that
       ;; command.
       (let* ((command (car args))
-             (command-spec (lookup-command command))
+             (command-spec (lookup-command command :commands commands))
              (command-options (symbol-value (third command-spec))))
         (unless (null (cdr args))
           (errexit 2 "Too many arguments -- try 'xcvb help'."))
@@ -355,6 +355,10 @@ using ~A~%"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun main (&rest arguments)
+  (main* :name "xcvb" :commands +xcvb-commands+ :arguments arguments))
+
+(defun main* (&rest keys &key name commands arguments)
+  (declare (ignore name commands arguments))
   (with-coded-exit ()
     (flet ((quit (&optional (code 0))
              (log-format 9 "quitting with code ~A" code)
@@ -365,7 +369,7 @@ using ~A~%"
 	      ;; restarts are available from the repl.
 	      (restart-case
 		  (progn
-		    (interpret-command-line arguments)
+		    (apply 'interpret-command-line keys)
 		    (quit 0))
 		(revert-to-repl ()
 		  :report (lambda (stream)
@@ -406,12 +410,12 @@ using ~A~%"
   (setf *print-pretty* nil
         *print-readably* nil))
 
-(defun interpret-command-line (args)
-  (setf *arguments* args)
+(defun interpret-command-line (&key name commands arguments)
+  (setf *arguments* arguments)
   (initialize-environment)
   (let* ((*package* (find-package :xcvb-user))
-         (command (pop args))
-         (command-spec (lookup-command command))
+         (command (pop arguments))
+         (command-spec (lookup-command command :commands commands))
          (fun (second command-spec))
          (option-spec-var (third command-spec)))
     (multiple-value-bind (fun keys)
@@ -420,14 +424,14 @@ using ~A~%"
 	(option-spec-var
 	 (apply 'handle-command-line
 		(symbol-value option-spec-var) fun
-		:command-line args :name command
+		:command-line arguments :name command
 		keys))
 	(fun
-	 (funcall fun args))
+	 (funcall fun arguments))
 	((not command)
-	 (errexit 2 "XCVB requires a command -- try 'xcvb help'."))
+	 (errexit 2 "~:@(~A~) requires a command -- try '~A help'." name name))
 	(t
-	 (errexit 2 "Invalid XCVB command ~S -- try 'xcvb help'." command))))))
+	 (errexit 2 "Invalid ~:@(~A~) command ~S -- try '~A help'." name command name))))))
 
 (defun cmdize/1 (x)
   (typecase x
@@ -446,7 +450,7 @@ using ~A~%"
 
 (defun cmd* (&rest args)
   "For debugging purposes, let the user try a command from the REPL"
-  (interpret-command-line (cmdize* args)))
+  (interpret-command-line :arguments (cmdize* args) :name "xcvb" :commands +xcvb-commands+))
 
 (defun cmd (&rest args)
   "For debugging purposes, let the user try a command from the REPL, in a local context"

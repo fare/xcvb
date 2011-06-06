@@ -2,6 +2,8 @@
 
 (in-package #:xcvb-unit-tests)
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+
 ;; These are the only supported so far -- please add support for more!
 (defparameter +xcvb-lisps+ '(:clisp :ccl :sbcl)
   "Lisp implementations that can compile XCVB itself")
@@ -69,3 +71,5 @@ forking processes to share state between build steps.")
      :repo (:darcs "http://common-lisp.net/project/xcvb/darcs/trivial-features"))
     ("/trivial-garbage" :systems (:trivial-garbage)
      :repo (:darcs "http://common-lisp.net/project/xcvb/darcs/trivial-garbage"))))
+
+); eval-when

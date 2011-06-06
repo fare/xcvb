@@ -1,5 +1,10 @@
 (module
- (:build-depends-on ((:build "/xcvb") (:asdf "hu.dwim.stefil"))
-  :depends-on ("run-program" "run-program-backend" "sub-xcvb")
+ (:build-depends-on ((:build "/xcvb") (:asdf "hu.dwim.stefil") (:asdf "cl-ppcre"))
+  :depends-on ("run-program" "run-program-backend" "sub-xcvb" "main")
   :supersedes-asdf ("xcvb-unit-tests")
-  :pre-image t))
+  :pre-image t
+  :build-image nil)
+ (:executable "xcvb-test"
+  :depends-on :build
+  :pre-image-dump "(setf xcvb::*xcvb-version* \#.(xcvb::get-xcvb-version))(asdf:clear-configuration)"
+  :entry-point "xcvb-unit-tests::main"))

@@ -75,14 +75,18 @@
   (quit-form
    :code
    (format nil "(multiple-value-bind (output warningp failurep) ~
-                    (let ((*default-pathname-defaults* ~
-                           (truename *default-pathname-defaults*))) ~
+                  (let ((*default-pathname-defaults* ~
+                         (truename *default-pathname-defaults*))) ~
+                    (handler-bind ~
+                        (((or #+sbcl sb-c::simple-compiler-note #+ecl c:compiler-note ~
+                             #+ecl c::compiler-debug-note #+ecl c:compiler-warning) ~
+		          #'muffle-warning)) ~
                       (compile-file ~S :verbose nil :print nil ~
                        :output-file (merge-pathnames ~:[~S~;~:*~S~*~]) ~
                        ~@[:emit-cfasl (merge-pathnames ~S)~] ~
                        ~3:*~:[~;:system-p t) ~
                        (c::build-fasl (merge-pathnames ~S) ~
-                        :lisp-files (list ~2:*(merge-pathnames ~S))~]))~
+                        :lisp-files (list ~2:*(merge-pathnames ~S))~])))~
                   (if (or (not output) #-(or clisp ecl) warningp #-clisp failurep) 1 0))"
            (effective-namestring env name)
 	   (when lisp-object

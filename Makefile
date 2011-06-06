@@ -68,7 +68,7 @@ endif
 setup.lisp:
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_setup > $@
 
-xcvb: xcvb-using-xvcb # If broken, fall back to xcvb-using-asdf
+xcvb: xcvb-using-xcvb # If broken, fall back to xcvb-using-asdf
 
 # Below you may use either of these setups, or none at all.
 # --setup /xcvb/no-asdf   ## This will be made obsolete by newer ASDF (>= 1.371).
@@ -162,6 +162,9 @@ mrproper: clean
 
 wc:
 	wc *.lisp | sort -nr | less
+
+hello:
+	${MAKE} -C examples/hello
 
 ## For use on common-lisp.net
 %.html: %.rest
