@@ -13,10 +13,16 @@
   (:method ((b xcvb-build))
     (xcvb-driver:build-and-load (build-name b))))
 
-(defmethod perform ((op compile-op) (b build))
+(defmethod perform ((op compile-op) (b xcvb-build))
   (declare (ignorable op))
   (build-and-load-system b))
 
-(defmethod perform ((op load-op) (b build))
+(defmethod perform ((op load-op) (b xcvb-build))
   (declare (ignorable op))
   (build-and-load-system b))
+
+(defmethod traverse ((op compile-op) (b xcvb-build))
+  (list (cons op b)))
+
+(defmethod traverse ((op load-op) (b xcvb-build))
+  (list (cons op b)))
