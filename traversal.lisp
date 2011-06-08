@@ -58,10 +58,11 @@
 (defmethod graph-for ((env traversal) spec)
   (log-format 10 "Producing graph-for ~S" spec)
   (let ((current-grains-r (reverse (traversed-grain-names-r env))))
-    (alexandria:when-let ((mem (member spec current-grains-r :test 'equal)))
-      (user-error
-       "There is a circularity in the dependencies:~%~{ ~S~%  includes~%~} ~S~%"
-       mem (first mem))))
+    (let ((mem (member spec current-grains-r :test 'equal)))
+      (when mem
+	(user-error
+	 "There is a circularity in the dependencies:~%~{ ~S~%  includes~%~} ~S~%"
+	 mem (first mem)))))
   
   (let ((grain (do-graph-for (next-traversal env spec) spec)))
     (if (typep grain 'buildable-grain)
