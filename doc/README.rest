@@ -13,20 +13,22 @@ enforced locally-declared dependencies.
 .. Contents::
 ..
     1  About XCVB
-      1.1  Status
-      1.2  Home page
-      1.3  Getting Help
-      1.4  Downloading the Code
-      1.5  Dependencies
-      1.6  Documentation
-      1.7  Examples
-      1.8  Timeline
+      1.1  Home page
+      1.2  Status
+      1.3  Supported Implementations
+      1.4  Getting Help
+      1.5  Downloading the Code
+      1.6  Dependencies
+      1.7  Documentation
+      1.8  Examples
+      1.9  Timeline
     2  Using XCVB
       2.1  Building XCVB
       2.2  Starting a new XCVB project
       2.3  Compiling with XCVB
       2.4  Lisp Setup
       2.5  Interactive update of a running image with XCVB driver
+      2.6  Makefile backend
     3  Restrictions on your Lisp Code
       3.1  Compile-time side-effects
       3.2  Full library needed at compile-time
@@ -66,47 +68,6 @@ enforced locally-declared dependencies.
 About XCVB
 ==========
 
-Status
-------
-
-Bottom line:
-XCVB is available as a working deterministic build system for Common Lisp.
-It can already replace ASDF for the better in many cases,
-but is not yet a universal replacement for it.
-
-The following Common Lisp implementations are supported as target systems:
-CCL, CLISP, CMUCL, SBCL (free);
-Allegro, Lispworks Professional, SCL (proprietary).
-The following Common Lisp implementations are NOT supported as target systems:
-ABCL, ECL, GCL, MCL, XCL (free);
-Cormanlisp, Genera, Lispworks Personal (proprietary).
-
-Only SBCL, CCL and CLISP are currently supported to compile XCVB itself
-(in decreasing order of how often we use and test them).
-The same implementations, on Unix only, also support
-XCVB's advanced "farmer" mode of compilation through incremental forking.
-
-The current version (in git master branch or the release tarball)
-can handle builds of very large and complex systems,
-though it is not very user-friendly in its failure modes
-(though arguably better than ASDF).
-
-You can either write your project directly as an XCVB build
-or automatically convert an existing ASDF project
-(manual work required if ASDF extensions are used).
-XCVB will then help you create a ``Makefile`` for your project,
-whereby it can be compiled in a way that enforces declared dependencies.
-You may even compile in parallel with ``make -j``
-which on a SMP machine may end up being faster than ASDF.
-
-XCVB builds can depend on other builds and/or on ASDF systems.
-ASDF systems can be superseded by incrementally migrated XCVB builds when available,
-for better dependency management.
-
-Hopefully a version 1.0 will be released at the end of this year (which?)
-that can seriously replace ASDF and provide a migration path.
-
-
 Home page
 ---------
 
@@ -115,11 +76,92 @@ The home page of the project is at:
 	http://common-lisp.net/project/xcvb/
 
 
+Status
+------
+
+Bottom line:
+XCVB is available as a working deterministic build system for Common Lisp.
+It can already replace ASDF for the better
+in many cases and on most implementations that matter.
+But is not yet a universal replacement for it.
+
+The current version (in git master branch or the release tarball)
+can handle builds of very large and complex systems.
+It is not very user-friendly in its failure modes,
+though arguably still better than ASDF.
+
+You can either write your project directly as an XCVB build
+or automatically convert an existing ASDF project
+(manual work required if ASDF extensions are used).
+XCVB can then build your project directly (and sequentially),
+or you can use it in conjunction with ``make -j``
+to build your project in parallel,
+which on a SMP machine may end up being faster than ASDF.
+
+XCVB builds can depend on other builds and/or on ASDF systems.
+ASDF systems can be wholly migrated to XCVB and still work on ASDF
+(on implementations supported by XCVB above).
+Or a same piece of software can have both an XCVB build and an ASDF system,
+though you'll then have to manually maintain the coherence
+between the two system definitions.
+
+Hopefully a version 1.0 will be released at the end of this year (which?)
+that can seriously replace ASDF and provide a migration path.
+
+
+Supported Implementations
+-------------------------
+
+Here's a grid summarizing which Common Lisp implementations are supported,
+in decreasing order of how much we support them and how often we test them.
+
+============== ======= === ==== =========================
+Implementation support exe free Notes
+============== ======= === ==== =========================
+SBCL           full    Y   Y    Our main platform
+CCL            full    Y   Y    Well supported
+CLISP          full    Y   Y    most portable
+ECL            Y       Y   Y    has per-build .so
+CMUCL          Y       Y   Y
+LispWorks Pro  Y       Y   N
+Allegro        Y       N   N
+SCL            Y       N   N
+ABCL           limited N   Y    slow; no bundling yet
+XCL            limited N   Y    slow; no bundling yet
+MCL            N       N   Y    it's obsolete, quaint
+Genera         N       N   N    it's obsolete, quainter
+GCL            N       N   Y    it's obsolete, incomplete
+Cormanlisp     N       N   N    it's obsolete, incomplete
+LispWorks Per  N       N   N    it's crippled
+============== ======= === ==== =========================
+
+Note that only SBCL, CCL and CLISP
+are currently supported to compile XCVB itself.
+The same implementations, on Unix only, also support
+XCVB's advanced "farmer" mode of compilation through incremental forking.
+
+On the same implementations and also on
+ECL, CMUCL, and LispWorks Professional,
+you can create executables from your Lisp builds
+(column "exe" above).
+
+On Allegro and SCL, you can create images that can then
+be used by CL-Launch to wrap into an application,
+but XCVB cannot create an application at this point.
+
+While experimental support exists for ABCL and XCL,
+it is slow, and we cannot create images or bundles.
+
+Some implementations are just not supported, and probably will never be,
+but do they really matter? They are obsolete or crippled.
+Yet if the demand is there, we can add some fallback support for them.
+
+
 Getting Help
 ------------
 
 We have two mailing-lists, one reserved for announcements,
-``xcvb-announce`` http://www.common-lisp.net/mailman/listinfo/XCVB-announce
+``xcvb-announce`` http://www.common-lisp.net/mailman/listinfo/xcvb-announce
 and one open to general discussions,
 ``xcvb-devel`` http://www.common-lisp.net/mailman/listinfo/xcvb-devel
 
@@ -327,10 +369,7 @@ Francois-Rene Rideau restarted work on it
 and released in mid December 2008
 a version of the prototype where the above hacks were automated away.
 A paper about the prototype was presented at ILC'09.
-The prototype can be retrieved in the git branch ``v0.1-prototype``::
-
-	git pull http://common-lisp.net/project/xcvb/git/xcvb.git v0.1-prototype:v0.1-prototype
-	git checkout v0.1-prototype
+The prototype can be retrieved in the git branch ``v0.1-prototype``.
 
 Francois-Rene Rideau then undertook a complete rewrite of XCVB
 to make its architecture more general and actually extensible
@@ -341,6 +380,11 @@ with notable contributions from Joyce Chen and Matthew Steele.
 
 In late August 2009, we released XCVB 0.366
 which successfully compiled a large system at ITA.
+
+In 2011 Q2, Francois-Rene Rideau and Peter Keller have worked
+on making XCVB more usable on more implementations,
+so that it may be a valid replacement to ASDF,
+and notably added support for building executable files.
 
 We are working hard towards making a 1.0 release
 usable by random Common Lisp programmer by Spring (which year?).
@@ -435,92 +479,80 @@ since the load dependencies will be automatically identified and loaded.
 Compiling with XCVB
 -------------------
 
-To compile with XCVB,
-you first need to have XCVB generate a ``Makefile`` for your project
-with the ``make-makefile`` command,
-then to invoke ``make(1)`` with this ``Makefile``.
+The most portable way to compile with XCVB is
+to use its ``simple-build`` backend::
 
-A simple example would be::
+	xcvb simple-build --build /foo/bar
 
-	xcvb make-makefile --build /foo/bar --lisp-implementation sbcl
+Where ``/foo/bar`` is the fullname of your target.
+The target is usually a build, but
+it can be a single Lisp module or an executable.
+If you do not specify a build name,
+XCVB will attempt to use the build in the current working directory.
 
-Where ``/foo/bar`` is the fullname of your target
-(usually a build, but can be a single Lisp module).
-If you do not specify a build name, XCVB will attempt to use the build
-in the current working directory.
+Note that you need to properly setup your `Source Registry`_
+which can be overridden with ``CL_SOURCE_REGISTRY``
+or by specifying option ``--source-registry``::
 
-Note that you need to properly setup your `Source Registry`_ with ``CL_SOURCE_REGISTRY``,
-or specify it with option ``--source-registry``.
-Also, XCVB will assume that the specified implementation,
-``sbcl`` or otherwise, is in your ``PATH``, though you may override with
-``--lisp-binary-path``.
+	--source-registry /home/luser/my/project//:
+
+Also, by default, XCVB will use the same implementation
+that it was compiled with. You can override this default with::
+
+        --lisp-implementation sbcl
+
+If the implementation is not in your ``PATH`` or has a non-standard name,
+you may override with::
+
+        --lisp-binary-path /home/luser/hacks/bin/sbcl
+
 If needed, make sure you export the proper
 ``SBCL_HOME`` or ``CCL_DEFAULT_DIRECTORY``, etc.,
-or that some wrapper script to your Lisp binary does.
+or that you use some wrapper script that does
+before it invokes your actual Lisp binary.
 
-The default name for said generated ``Makefile``
-is actually ``xcvb.mk`` in the current directory,
-but you can override either or both of this name and that directory
-with the ``--output-path`` option to ``make-makefile``.
+Finally, object files by default will be stored
+in a directory under ``~/.cache/xcvb/`` such as
+``/home/luser/.cache/xcvb/sbcl-1.0.49-linux-x64/``,
+but you can override it with::
 
-For a correct build, it is recommended that you should run
-the ``xcvb make-makefile`` command before every time you build,
-in case any dependency has changed due to some modification.
-XCVB should be fast and this shouldn't be a problem.
-If making the ``Makefile`` takes more than a few seconds,
-there's probably a performance bug and you should contact us.
+	--object-directory /tmp/luser/xcvb-obj/
 
-After obtaining your ``xcvb.mk``, you may invoke ``make(1)``
-using this output file in the following way::
+Once you've build a target, say the executable ``/xcvb/example-1/example-1``
+you can install it somewhere you like::
 
-	make -f xcvb.mk -j obj/foo/bar.image
+	cp $(xcvb show object-directory)/xcvb/example-1/example-1 /my/install/bin/
 
-Where ``obj`` is the object directory
-(which can be overridden with option ``--object-directory`` of ``make-makefile``),
-``-j`` specifies a parallel build (also see ``make`` option ``-l``),
-and ``foo/bar.image`` would be the name of the image for your project
-(assuming its build has fullname ``/foo/bar`` and declares ``:build-image t``.)
-Note that you don't *have* to specify ``obj/foo/bar.image``
-as XCVB will make it the first (and hence default) target in its generated ``Makefile``.
-However, when writing a ``Makefile``, it might still be good practice
-to specify it explicitly, as a safety check that XCVB is doing what you think you're doing.
-
-From the image, you can create an executable with such a command as::
-
-	cl-launch --lisp sbcl --image obj/foo/bar.image \
-		--output bar --dump ! --restart 'bar::main'
-
-As an example of how to put it all together, see
-XCVB's own ``Makefile``,
-or the ``Makefile`` of exscribe_.
-
-.. _exscribe: http://www.cliki.net/exscribe
+As an example of how to put it all together, see the ``Makefile``
+of one of the XCVB examples or of XCVB itself.
 
 
 Lisp Setup
 ----------
 
-It is often useful or necessary to setup your target Lisp system
+It is often useful to setup your target Lisp system
 before you start to compile files and build images with it.
 
 Such setup may include
 proclaiming optimization settings, (see below `Optimization Settings`_),
-loading and configuring ASDF (see below `XCVB builds depending on ASDF systems`_),
 configuring variables that control your Lisp implementation,
 selecting compiler warnings you want to silence (see below `Warning Control`_),
-pushing ``*features*`` for conditional compilation based on some environment variables,
+pushing ``*features*`` for conditional compilation
+based on e.g. some environment variables,
 initializing some pathname translation layer such as logical pathnames,
 loading specialized handlers for ASDF-DEPENDENCY-GROVEL when it is used,
 configuring or extending the XCVB driver itself,
 etc.,
 to name a few things that have been done as part of ITA Software's build.
+(Also, loading and configuring ASDF 1 was one major such thing,
+that's happily not needed anymore.)
 
-The setup file is specified with option ``--setup`` to ``xcvb make-makefile``,
+The setup file is specified with option ``--setup`` to ``xcvb simple-build``,
 followed by the fullname of an XCVB Lisp module,
 following usual XCVB naming conventions.
 For instance, assuming your project has fullname ``/foo/bar``,
 you may create an XCVB module called ``setup.lisp`` under your build directory,
-and specify ``--setup /foo/bar/setup`` as arguments to ``xcvb make-makefile``.
+and specify ``--setup /foo/bar/setup`` as arguments to ``xcvb simple-build``.
 
 By default, XCVB will start the build by dumping an image
 starting from the specified implementation binary and image,
@@ -531,21 +563,11 @@ if there will be a large number of files being compiled from the initial setup
 (because their respective builds do not otherwise specify or inherit a pre-image).
 There are cases however, for instance in a small project with a trivial setup,
 where you will prefer to eschew the automated dumping of this initial base image
-(especially on implementations where dumping is much slower than loading FASLs,
-such as CCL).
-In these cases, you pass to ``xcvb make-makefile`` the option
+(especially on implementations such as CCL
+where dumping is much slower than loading FASLs).
+In these cases, you pass to ``xcvb simple-build`` the option
 ``--no-base-image``.
 
-If you are into sophisticated automation rather than manual configuration,
-XCVB's own ``Makefile`` comes with a target ``setup.lisp``
-that uses ``cl-launch`` to automatically create a ``/xcvb/setup`` module
-to the specifications of your ``configure.mk``.
-You are welcome to reuse the technology.
-Another setup that XCVB uses is the ``/xcvb/no-asdf`` module,
-that cancels any previous copy of ASDF in the Lisp image,
-so that you may replace it with a more recent,
-new and incompatible version of ASDF.
-(This is made redundant by ASDF 2, that can now properly upgrade itself.)
 
 
 Interactive update of a running image with XCVB driver
@@ -556,19 +578,22 @@ It allows you to build some Lisp software cleanly in a subprocess
 then load the results into the current image.
 
 When you call ``xcvb-driver:build-and-load``
-(which also has the short-hand ``xcvbm:bnl``),
+(which also has the short-hand ``xcvbd:bnl``),
 it will use ``run-program`` to invoke a slave XCVB process
 that will drive all the compilation out-of-image
 then reply to the master with a specification of files to load.
 The function takes as arguments the name of a build and a flurry of options.
 The build specifies what you want to update;
-the options precisely match those of ``xcvb make-makefile``.
+the options precisely match those of ``xcvb simple-build``
+(or more precisely, those of ``xcvb make-makefile`` --- see below).
 
 The slave will complete the build then reply with a list of files to load,
-including a TTH_ checksum of each file (currently using the external utility ``tthsum``)
-so the master can skip the files of which the very same version has already been loaded.
+including a TTH_ digest of each file
+(currently using the external utility ``tthsum``)
+so the master can skip the files
+of which the very same version has already been loaded.
 The slave will do all the cryptographic hashing on its side,
-so you don't have to include crypto libraries in your image --
+so you don't have to include crypto libraries in your image ---
 or anything beside the simple and short ``xcvb-driver``.
 
 .. _TTH: http://en.wikipedia.org/wiki/Hash_tree#Tiger_tree_hash
@@ -577,10 +602,12 @@ The XCVB driver includes the interface and initial configuration,
 so your Lisp process may call XCVB to build software,
 and load this software in its current image.
 
-You can also include the XCVB driver in an ASDF build as system ``xcvb-driver``
-or load it as a Lisp file from a bare image with
+If you're using ASDF, you can load the XCVB driver with
+with ``(asdf:load-system :xcvb-driver)``.
+Or you can load it from a bare Lisp image with
 ``(load "/path/to/xcvb/driver.lisp")``
-as an alternative to using ``asdf.lisp`` to drive further compilations.
+as an alternative to using ``asdf.lisp`` itself
+to drive further compilations.
 
 The XCVB driver can advantageously replace ASDF,
 as it has a noticeably smaller footprint,
@@ -590,19 +617,15 @@ doesn't have as many multithreading concurrency issues
 as compiling in-process can raise,
 and preserves determinism and reusability in the FASL files being built.
 
-Note that if you built your Lisp image using ASDF,
-either directly with ADSF (possibly with files from our ASDF backend),
-or with our current non-dependency-enforcing build,
-then XCVB master will basically rebuild and reload everything
-using our enforcing backend.
-However you can use the usual ASDF mechanisms to update your system as usual.
-If you used our non-enforcing backend, you currently have to regenerate
-a new image from the command-line, then use ASDF to reload the system
-in your current image
-(TODO item: we hope to provide automation for that
-in a further version of XCVB).
+Note that if you built your Lisp image using ASDF
+or one of our ASDF-based backends (such as our non-enforcing parallel build),
+then XCVB master will not be able to assess
+which version of which files have already been loaded,
+and will basically rebuild and reload everything using our enforcing backend.
+However it you used ASDF, you can still use
+the usual ASDF mechanisms to update your system.
 
-Note that the usual restrictions apply
+Also note that the usual restrictions apply
 as to any update of a running Common Lisp image:
 
   * errors may happen if you change a symbol's nature
@@ -629,10 +652,57 @@ manually uninterning specific symbols,
 clearing and rebuilding dictionaries or twiddling specific entries,
 unregistering and re-registering specific hooks,
 deleting and re-creating specific packages, etc.
-(see for instance the ``/xcvb/no-asdf`` used with ASDF 1).
+(see for instance the ``/xcvb/no-asdf`` used with ASDF 1,
+or the many hot-upgrade mechanisms used by ASDF 2).
 Unhappily, there is no general solution to this problem,
 and that we know, no declarative meta-level protocol
 was devised to help alleviate it.
+
+
+Makefile backend
+----------------
+
+If you have a multicore machine (most machines are today),
+XCVB allows you to compile your project in parallel
+with its Makefile backend.
+
+You first need to have XCVB generate a ``Makefile`` for your project
+with the ``make-makefile`` command,
+then to invoke ``make(1)`` with this ``Makefile``.
+
+A simple example would be::
+
+	xcvb make-makefile --build /foo/bar
+
+Where ``/foo/bar`` is the fullname of your target as usual:
+a build, or a single Lisp module, or an executable.
+As for the ``simple-build`` backend, you may have to specify various
+arguments such as ``--source-registry``, ``--lisp-implementation``,
+``--lisp-binary-path``, ``--object-directory``, etc.
+
+The default name for said generated ``Makefile``
+is actually ``xcvb.mk`` in the current directory,
+but you can override either or both of this name and that directory
+with the ``--output-path`` option to ``make-makefile``.
+
+For a correct build, it is recommended that you should run
+the ``xcvb make-makefile`` command before every time you build,
+in case any dependency has changed due to some modification.
+XCVB should be fast and this shouldn't be a problem.
+If making the ``Makefile`` takes more than a few seconds,
+there's probably a performance bug and you should contact us.
+
+After obtaining your ``xcvb.mk``, you may invoke ``make(1)``
+using this output file in the following way::
+
+	make -f xcvb.mk -j
+
+``-j`` specifies a parallel build (also see ``make`` option ``-l``).
+
+As an example of how to put it all together, see
+the ``Makefile`` of the XCVB examples, of XCVB itself, or of exscribe_.
+
+.. _exscribe: http://www.cliki.net/exscribe
 
 
 Restrictions on your Lisp Code
@@ -1599,7 +1669,7 @@ See section `Compile-time side-effects`_ above.
 If you want to be able to do interactive compilation and debugging
 in the target run-time environment, you probably want any
 ``:compile-toplevel`` side-effect to *also* be a ``:load-toplevel``
-side-effect -- and for good measure you should also include
+side-effect --- and for good measure you should also include
 the ``:execute`` option to ``eval-when``.
 See my blog post on `eval-when`_.
 

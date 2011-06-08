@@ -8,8 +8,7 @@
   :licence "MIT" ;; MIT-style license. See LICENSE
   :build-depends-on nil))
 
-
-;#.(setf *load-verbose* () *load-print* () *compile-verbose* () *compile-print* ()) ;; Hush!
+;; #.(setf *load-verbose* () *load-print* () *compile-verbose* () *compile-print* ()) ;; Hush!
 
 (cl:in-package :cl-user)
 
@@ -128,7 +127,7 @@
           compiler::*lsp-ext* ""))
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
-  #+ecl (require :cmp)
+  #+ecl (let ((*load-verbose* nil)) (require :cmp))
   (let* ((unix #+(or unix cygwin) t)
          (windows #+(and (or win32 windows mswindows mingw32) (not unix)) t))
     (cond
@@ -752,8 +751,8 @@ This is designed to abstract away the implementation specific quit forms."
   (eval `(function ,(read-from-string string))))
 
 #-ecl
-(defun dump-image (filename &key executable pre-image-dump post-image-restart entry-point package)
-  (declare (ignorable filename executable pre-image-dump post-image-restart entry-point))
+(defun dump-image (filename &key output-name executable pre-image-dump post-image-restart entry-point package)
+  (declare (ignorable filename output-name executable pre-image-dump post-image-restart entry-point))
   (setf *dumped* (if executable :executable t))
   (setf *package* (find-package (or package :cl-user)))
   (with-standard-io-syntax
@@ -788,7 +787,7 @@ This is designed to abstract away the implementation specific quit forms."
    (ext:gc :full t)
    (setf ext:*batch-mode* nil)
    (setf ext::*gc-run-time* 0)
-   (apply 'ext:save-lisp filename
+   (apply 'ext:save-lisp filename #+cmu :executable #+cmu t
           (when executable '(:init-function resume :process-command-line nil))))
   #+gcl
   (progn
@@ -824,55 +823,55 @@ This is designed to abstract away the implementation specific quit forms."
 
 #+ecl ;; wholly untested and probably buggy.
 (defun do-create-image (image dependencies &key
-			executable pre-image-dump post-image-restart entry-point)
+			executable output-name pre-image-dump post-image-restart entry-point)
   (do-create-bundle image dependencies
-		    :type (if executable :program :dll)
-		    :executable executable
-		    :pre-image-dump pre-image-dump
+		    :kind (if executable :program :shared-library)
+                    :output-name output-name
+                    :pre-image-dump pre-image-dump
 		    :post-image-restart post-image-restart
 		    :entry-point entry-point))
 
 #+ecl
 (defun do-create-bundle (bundle dependencies
 			 &rest keys
-			 &key type pre-image-dump post-image-restart entry-point)
+			 &key kind output-name pre-image-dump post-image-restart entry-point)
   (let ((*goal* `(create-bundle ,bundle ,dependencies ,@keys))
 	(first-dep (car dependencies)))
     (require :cmp)
     (multiple-value-bind (object-files manifest)
-      (case (first first-dep)
-        ((:link-manifest)
-         (assert (null (rest dependencies)))
-         (let ((manifest (read-first-form (second first-dep))))
-           (values
-            (loop :for l :in manifest :collect
-              (destructuring-bind (&key command parent pathname
-                                        tthsum source-pathname source-tthsum) l
-                (declare (ignore tthsum source-pathname source-tthsum))
-                (assert (eq (car command) :link-file))
-                pathname))
-            manifest)))
-        (:link-file
-         (loop :for l :in dependencies :collect
+        (case (first first-dep)
+          ((:load-manifest)
+           (assert (null (rest dependencies)))
+           (let ((manifest (read-first-form (second first-dep))))
+             (values
+              (loop :for l :in manifest :collect
+                (destructuring-bind (&key command parent pathname
+                                     tthsum source-pathname source-tthsum) l
+                  (declare (ignore tthsum source-pathname source-tthsum))
+                  (assert (eq (car command) :load-file))
+                  pathname))
+              manifest)))
+          (:load-file
+           (loop :for l :in dependencies :collect
            (destructuring-bind (link-file pathname) l
-             (assert (eq link-file :link-file))
+             (assert (eq link-file :load-file))
              pathname)))
-        (t
-         (assert (null dependencies))))
-        (apply
-	 'c::builder type (parse-namestring bundle) :lisp-files object-files
-	 (when (eq type :program)
-	   `(:epilogue-code
-	     (progn
-	      ,(when manifest
-		     `(let ((msym (find-symbol* :*manifest* :xcvb-driver)))
-			(setf (symbol-value msym)
-			      (append ',manifest (symbol-value msym)))))
-	      ,(when pre-image-dump
-		     `(load-string ,pre-image-dump))
-	      (setf *entry-point* ,(when entry-point `(read-function ,entry-point)))
-	      (setf *post-image-restart* ,post-image-restart)
-	      (resume)))))))) ;; default behavior would be (si::top-level)
+          (t
+           (assert (null dependencies))))
+      (c::builder
+       kind (parse-namestring bundle)
+       :lisp-files object-files
+       :init-name (c::compute-init-name (or output-name bundle) :kind kind)
+       :epilogue-code
+       (when (eq kind :program)
+         `(progn
+            (setf xcvb-driver:*manifest*
+                  ',(reverse manifest))
+            ,(when pre-image-dump
+                   `(load-string ,pre-image-dump))
+            (setf *entry-point* ,(when entry-point `(read-function ,entry-point)))
+            (setf *post-image-restart* ,post-image-restart)
+            (resume))))))) ;; default behavior would be (si::top-level)
 
 #+ecl
 (defun create-bundle (spec &rest dependencies)
@@ -1450,3 +1449,5 @@ Otherwise, signal an error.")
   "Short hand for build-and-load"
   (declare (ignore . #.*bnl-keys*))
   (apply 'build-and-load build keys))
+
+#+ecl (trace c::builder c::compute-init-name)

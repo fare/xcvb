@@ -61,19 +61,21 @@
 
 (define-text-for-xcvb-driver-command :create-image (env spec &rest dependencies)
   (destructuring-bind (&key image executable pre-image-dump post-image-restart entry-point) spec
-    (text-for-xcvb-driver-helper
-     env dependencies
-     ":create-image (~S~:[~; :executable t~]~@[ :pre-image-dump ~S~]~@[ :post-image-restart ~S~]~@[ :entry-point ~S~])"
-     (tempname-target (effective-namestring env image))
-     executable pre-image-dump post-image-restart entry-point)))
+    (let ((namestring (effective-namestring env image)))
+      (text-for-xcvb-driver-helper
+       env dependencies
+       ":create-image (~S :output-name ~S ~:[~; :executable t~]~@[ :pre-image-dump ~S~]~@[ :post-image-restart ~S~]~@[ :entry-point ~S~])"
+       (tempname-target namestring)
+       (pathname-name namestring)
+       executable pre-image-dump post-image-restart entry-point))))
 
 (define-text-for-xcvb-driver-command :create-bundle (env spec &rest dependencies)
-  (destructuring-bind (&key bundle type) spec
-    (text-for-xcvb-driver-helper
-     env dependencies
-     ":create-bundle (~S :type ~S)"
-     (tempname-target (effective-namestring env bundle))
-     type)))
+  (destructuring-bind (&key bundle kind) spec
+    (let ((namestring (effective-namestring env bundle)))
+      (text-for-xcvb-driver-helper
+       env dependencies
+       ":create-bundle (~S :output-name ~S :kind ~S)"
+       (tempname-target namestring) (pathname-name namestring) kind))))
 
 (defun lisp-invocation-for (env keys eval)
   (destructuring-bind (&key image load) keys

@@ -10,6 +10,10 @@ and the non-enforcing Makefile backend.
 (defclass simplifying-traversal (traversal)
   ())
 
+(defmethod linking-traversal-p ((env simplifying-traversal))
+  (declare (ignorable env))
+  nil)
+
 (defmethod issue-build-command ((env simplifying-traversal) command)
   (declare (ignorable env command))
   (values))
@@ -28,7 +32,11 @@ and the non-enforcing Makefile backend.
 
 (defmethod tweak-dependency ((env simplifying-traversal) dep)
   (declare (ignorable env))
-  dep)
+  (if (not (consp dep))
+      dep
+      (case (first dep)
+        ((:lisp) dep)
+        ((:fasl :cfasl :link-object) `(:lisp ,(second dep))))))
 
 (defmethod graph-for-build-module-grain ((env simplifying-traversal) grain)
   (build-command-for* env (build-dependencies grain))

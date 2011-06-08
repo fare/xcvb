@@ -37,6 +37,7 @@
 (defgeneric graph-for-require (env name))
 (defgeneric ensure-grain-generated (env grain))
 (defgeneric tweak-dependency (env dep))
+(defgeneric linking-traversal-p (env))
 
 (defclass traversal (simple-print-object-mixin)
   ((image-setup

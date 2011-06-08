@@ -218,27 +218,7 @@ in the normalized dependency mini-language"
   `(:cond ,@(loop :for (c . deps) :in clauses
               :collect (cons c (mapcar #'compiled-dependency deps)))))
 
-(defun loadable-dependency (dep)
-  "Go from a compile-time dependency to the corresponding run-time loadable dependency
-in the normalized dependency mini-language"
-  (if (target-ecl-p)
-      (compiled-dependency dep)
-      dep))
-
-(defun loadable-dependencies (deps)
-  (mapcar 'loadable-dependency deps))
-
 (defun linkable-dependency (dep)
-  "Go from a compile-time dependency to the corresponding run-time loadable dependency
-in the normalized dependency mini-language"
-  (if (target-ecl-p)
-      (linkable-dependency* dep)
-      dep))
-
-(defun linkable-dependencies (deps)
-  (mapcar 'linkable-dependency deps))
-
-(defun linkable-dependency* (dep)
   "Go from a load-time dependency to the corresponding compile-time dependency,
 in the normalized dependency mini-language"
   (linkable-dependency-dispatcher dep))

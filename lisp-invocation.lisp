@@ -109,11 +109,12 @@
   :eval-flag "-eval"
   :load-flag "-load"
   :arguments-end "--"
+  :image-executable-p t
   :image-flag "-core"
-  :argument-control nil ;; cmucl will always scan all the arguments for -eval... EVIL!
+  :argument-control t
   :disable-debugger ("-batch")
   :quit-format "(unix:unix-exit ~A)"
-  :dump-format "(extensions:save-lisp ~S)")
+  :dump-format "(extensions:save-lisp ~S :executable t)")
 
 (define-lisp-implementation :corman () ;; someone please add more complete support
   :fullname "Corman Lisp"

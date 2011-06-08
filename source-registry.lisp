@@ -54,9 +54,11 @@ Initially populated with all build.xcvb files from the search path.")
     (flet ((same-truename-p (pathname)
              (equal (truename pathname) truename)))
       (etypecase build
-        (pathname
+        (build-module-grain
          (when (same-truename-p (grain-pathname build))
            (return build)))
+        (require-grain
+         nil)
         (build-registry-conflict
          (when (find-if #'same-truename-p (brc-pathnames build))
            (error 'build-conflict

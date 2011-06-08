@@ -44,13 +44,13 @@
    env `(:load-file (:cfasl ,name)) `(:cfasl ,name)))
 (define-build-command-for :lisp-object (env name)
   (simple-build-command-for
-   env `(:link-file (:lisp-object ,name)) `(:lisp-object ,name)))
+   env `(:load-file (:lisp-object ,name)) `(:lisp-object ,name)))
 (define-build-command-for :dynamic-library (env name)
   (simple-build-command-for
    env `(:load-file `(:dynamic-library ,name)) `(:dynamic-library ,name)))
 (define-build-command-for :static-library (env name)
   (simple-build-command-for
-   env `(:link-file (:static-library ,name)) `(:static-library ,name)))
+   env `(:load-file (:static-library ,name)) `(:static-library ,name)))
 (define-build-command-for :asdf (env name)
   (build-command-for env `(:build "/asdf"))
   (simple-build-command-for env `(:load-asdf ,name) `(:asdf ,name)))
