@@ -434,13 +434,14 @@ using ~A~%"
 	 (errexit 2 "Invalid ~:@(~A~) command ~S -- try '~A help'." name command name))))))
 
 (defun cmdize/1 (x)
-  (typecase x
-    (character (format nil "--~A" x))
-    (keyword (format nil "--~(~A~)" x))
-    (symbol (string-downcase x))
-    (string x)
-    (list (with-safe-io-syntax () (write-to-string x)))
-    (t (princ-to-string x))))
+  (with-safe-io-syntax ()
+    (typecase x
+      (character (format nil "-~A" x))
+      (keyword (format nil "--~(~A~)" x))
+      (symbol (string-downcase x))
+      (string x)
+      (list (write-to-string x))
+      (t (princ-to-string x)))))
 
 (defun cmdize* (args)
   (mapcar #'cmdize/1 args))
@@ -469,3 +470,7 @@ using ~A~%"
 (defun errexit (code fmt &rest args)
   (apply #'errformat fmt args)
   (exit code))
+
+(defun prepare-image (version)
+  (setf xcvb::*xcvb-version* version)
+  (asdf:clear-configuration))

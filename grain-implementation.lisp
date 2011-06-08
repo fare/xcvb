@@ -53,19 +53,7 @@
   (values))
 
 (defmethod shared-initialize :after
-    ((grain fasl-grain) slot-names &rest initargs &key &allow-other-keys)
-  (declare (ignore slot-names initargs))
-  (validate-fullname grain)
-  (values))
-
-(defmethod shared-initialize :after
-    ((grain cfasl-grain) slot-names &rest initargs &key &allow-other-keys)
-  (declare (ignore slot-names initargs))
-  (validate-fullname grain)
-  (values))
-
-(defmethod shared-initialize :after
-    ((grain lisp-object-grain) slot-names &rest initargs &key &allow-other-keys)
+    ((grain loadable-file-grain) slot-names &rest initargs &key &allow-other-keys)
   (declare (ignore slot-names initargs))
   (validate-fullname grain)
   (values))
@@ -346,12 +334,8 @@ Only currently support :generate and :executable extension form."
 (defmethod grain-computation ((grain require-grain))
   nil)
 
-;;
-(defmethod build-dependencies ((grain fasl-grain))
-  nil)
-(defmethod build-dependencies ((grain cfasl-grain))
-  nil)
-(defmethod build-dependencies ((grain lisp-object-grain))
+(defmethod build-dependencies ((grain loadable-file-grain))
+  (declare (ignorable grain))
   nil)
 
 (defun lisp-module-grain-p (x)
@@ -483,6 +467,13 @@ Modeled after the asdf function coerce-name"
   (declare (ignore env))
   #+os-unix (make-vp :obj name) ;; TODO: create a zone :install for end products?
   #+os-windows (vp-for-name-extension name "exe"))
+(define-default-vp-for-fullname :static-library (env name)
+  (declare (ignore env))
+  (vp-for-name-extension name "a"))
+(define-default-vp-for-fullname :dynamic-library (env name)
+  (declare (ignore env))
+  #+os-unix (vp-for-name-extension name "so") ; or should we use "fas" at the risk of clashes?
+  #+os-windows (vp-for-name-extension name "dll"))
 (define-default-vp-for-fullname :manifest (env name)
   (declare (ignore env))
   (vp-for-name-extension name "manifest"))
@@ -490,19 +481,13 @@ Modeled after the asdf function coerce-name"
   (declare (ignore env))
   ;; Note: at least ecl and lispworks recognize files based on the type,
   ;; which at least on lispworks varies depending on the target platform.
-  (vp-for-name-extension
-   name
-   *fasl-type*))
+  (vp-for-name-extension name *fasl-type*))
 (define-default-vp-for-fullname :cfasl (env name)
   (declare (ignore env))
-  (vp-for-name-extension
-   name
-   (strcat "c" *fasl-type*)))
+  (vp-for-name-extension name (strcat "c" *fasl-type*)))
 (define-default-vp-for-fullname :lisp-object (env name)
   (declare (ignore env))
-  (vp-for-name-extension
-   name
-   "o"))
+  (vp-for-name-extension name "o"))
 (define-default-vp-for-fullname :source (env sub &key in)
   (declare (ignore env))
   (assert (equal in (fullname (registered-build in :ensure-build t))))

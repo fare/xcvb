@@ -825,27 +825,27 @@ This is designed to abstract away the implementation specific quit forms."
 #+ecl ;; wholly untested and probably buggy.
 (defun do-create-image (image dependencies &key
 			executable pre-image-dump post-image-restart entry-point)
-  (create-bundle image dependencies
-                 :type (if executable :program :dll)
-                 :executable executable
-		 :pre-image-dump pre-image-dump
-		 :post-image-restart post-image-restart
-		 :entry-point entry-point))
+  (do-create-bundle image dependencies
+		    :type (if executable :program :dll)
+		    :executable executable
+		    :pre-image-dump pre-image-dump
+		    :post-image-restart post-image-restart
+		    :entry-point entry-point))
 
 #+ecl
-(defun create-bundle (bundle dependencies
-                      &rest keys
-		      &key type pre-image-dump post-image-restart entry-point)
-  ;; TODO! This is borked.
-  (let ((*goal* `(create-bundle ,bundle ,dependencies ,@keys)))
+(defun do-create-bundle (bundle dependencies
+			 &rest keys
+			 &key type pre-image-dump post-image-restart entry-point)
+  (let ((*goal* `(create-bundle ,bundle ,dependencies ,@keys))
+	(first-dep (car dependencies)))
     (require :cmp)
     (multiple-value-bind (object-files manifest)
-      (case (caar dependencies)
+      (case (first first-dep)
         ((:link-manifest)
-         (assert (null (cdr dependencies)))
-         (let ((manifest (read-first-form (cadar dependencies))))
+         (assert (null (rest dependencies)))
+         (let ((manifest (read-first-form (second first-dep))))
            (values
-            (loop :for l :in (read-first-form (cadar dependencies)) :collect
+            (loop :for l :in manifest :collect
               (destructuring-bind (&key command parent pathname
                                         tthsum source-pathname source-tthsum) l
                 (declare (ignore tthsum source-pathname source-tthsum))
@@ -859,22 +859,26 @@ This is designed to abstract away the implementation specific quit forms."
              pathname)))
         (t
          (assert (null dependencies))))
-      (let ((epilogue-code
-             `(progn
-                ,(when manifest
-                   `(let ((msym (find-symbol* :*manifest* :xcvb-driver)))
-                      (setf (symbol-value msym)
-                            (append ',manifest (symbol-value msym)))))
-                ,(when package
-                   `(setf *package* (find-package ,package)))
-                ,(if (eq type :program) '(resume) '(si::top-level))
-		,epilogue-code)))
-        (c::builder type (parse-namestring bundle)
-                    :lisp-files object-files
-		    :prologue-code prologue-code
-                    :epilogue-code epilogue-code)))))
+        (apply
+	 'c::builder type (parse-namestring bundle) :lisp-files object-files
+	 (when (eq type :program)
+	   `(:epilogue-code
+	     (progn
+	      ,(when manifest
+		     `(let ((msym (find-symbol* :*manifest* :xcvb-driver)))
+			(setf (symbol-value msym)
+			      (append ',manifest (symbol-value msym)))))
+	      ,(when pre-image-dump
+		     `(load-string ,pre-image-dump))
+	      (setf *entry-point* ,(when entry-point `(read-function ,entry-point)))
+	      (setf *post-image-restart* ,post-image-restart)
+	      (resume)))))))) ;; default behavior would be (si::top-level)
 
-#-ecl
+#+ecl
+(defun create-bundle (spec &rest dependencies)
+  (destructuring-bind (bundle &rest keys) spec
+    (apply 'do-create-bundle bundle dependencies keys)))
+
 (defun create-image (spec &rest dependencies)
   (destructuring-bind (image &rest keys) spec
     (apply 'do-create-image image dependencies keys)))
@@ -1146,9 +1150,11 @@ Otherwise, signal an error.")
                                 (pathname (gensym "PATHNAME") pathnamep)
                                 prefix keep element-type external-format)
                                &body body)
+  (check-type stream symbol)
+  (check-type pathname symbol)
   `(flet ((think (,stream ,pathname)
             ,@(unless pathnamep `((declare (ignore ,pathname))))
-            ,@(unless streamp `((close ,stream)))
+            ,@(unless streamp `((when ,stream (close ,stream))))
             ,@body))
      #-gcl (declare (dynamic-extent #'think))
      (call-with-temporary-file
@@ -1273,7 +1279,7 @@ Otherwise, signal an error.")
                  (run-program command :pipe t)
                (unwind-protect
                     (funcall output-processor stream)
-                 (close stream)
+                 (when stream (close stream))
                  (check-result (process-result process)))))
            (use-system ()
              (with-temporary-file (:pathname tmp)
@@ -1440,4 +1446,3 @@ Otherwise, signal an error.")
   "Short hand for build-and-load"
   (declare (ignore . #.*bnl-keys*))
   (apply 'build-and-load build keys))
-

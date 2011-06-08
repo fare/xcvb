@@ -70,6 +70,10 @@
   (ensure-valid-fullname (fullname grain) :cfasl))
 (defmethod validate-fullname ((grain lisp-object-grain))
   (ensure-valid-fullname (fullname grain) :lisp-object))
+(defmethod validate-fullname ((grain static-library-grain))
+  (ensure-valid-fullname (fullname grain) :static-library))
+(defmethod validate-fullname ((grain dynamic-library-grain))
+  (ensure-valid-fullname (fullname grain) :dynamic-library))
 (defmethod validate-fullname ((grain build-module-grain))
   (ensure-valid-fullname (fullname grain)))
 

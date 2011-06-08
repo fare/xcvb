@@ -15,6 +15,9 @@
 (define-text-for-xcvb-driver-command :load-file (env dep)
   (format nil "(:load-file ~S)" (effective-namestring env dep)))
 
+(define-text-for-xcvb-driver-command :link-file (env dep)
+  (format nil "(:link-file ~S)" (effective-namestring env dep)))
+
 (define-text-for-xcvb-driver-command :require (env name)
   (declare (ignore env))
   (format nil "(:cl-require ~(~S~))" name))
@@ -64,6 +67,14 @@
      (tempname-target (effective-namestring env image))
      executable pre-image-dump post-image-restart entry-point)))
 
+(define-text-for-xcvb-driver-command :create-bundle (env spec &rest dependencies)
+  (destructuring-bind (&key bundle type) spec
+    (text-for-xcvb-driver-helper
+     env dependencies
+     ":create-bundle (~S :type ~S)"
+     (tempname-target (effective-namestring env bundle))
+     type)))
+
 (defun lisp-invocation-for (env keys eval)
   (destructuring-bind (&key image load) keys
     (lisp-invocation-arglist
@@ -78,8 +89,8 @@
                   (let ((*default-pathname-defaults* ~
                          (truename *default-pathname-defaults*))) ~
                     (handler-bind ~
-                        (((or #+sbcl sb-c::simple-compiler-note #+ecl c:compiler-note ~
-                             #+ecl c::compiler-debug-note #+ecl c:compiler-warning) ~
+                        (((or #+sbcl sb-c::simple-compiler-note #+ecl c::compiler-note ~
+                             #+ecl c::compiler-debug-note #+ecl c::compiler-warning) ~
 		          #'muffle-warning)) ~
                       (compile-file ~S :verbose nil :print nil ~
                        :output-file (merge-pathnames ~:[~S~;~:*~S~*~]) ~

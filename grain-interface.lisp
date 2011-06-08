@@ -73,18 +73,24 @@
 (defclass explicitly-named-grain (named-grain)
   ((fullname :initarg :fullname)))
 
-(defclass world-grain (transient-grain explicitly-named-grain)
-  ;; the fullname a plist of the form
-  ;; (:world :setup ,setup :commands-r ,commands-r)
-  ((hash
-    :documentation "precomputed hash of the fullname"
-    :reader world-hash :initarg :hash)
-   (issued-build-commands
+(defclass loaded-grain ()
+  ((issued-build-commands
     :documentation "hashset of load commands issued in this world"
     :reader issued-build-commands :initarg :issued-build-commands)
    (included-dependencies
     :documentation "hashset of grains included in this world"
-    :reader included-dependencies :initarg :included-dependencies)))
+    :reader included-dependencies :initarg :included-dependencies))
+  (:documentation "grain in which other grains are loaded"))
+
+(defclass world-grain (transient-grain explicitly-named-grain loaded-grain)
+  ;; The fullname is a plist of the following form,
+  ;; with keywords always present and in that order:
+  ;; `(:world :setup ,setup :commands-r ,commands-r)
+  ((hash
+    :documentation "precomputed hash of the fullname"
+    :reader world-hash :initarg :hash))
+  ;; used by the farmer
+  (:documentation "state of a running Lisp process in which grains are loaded"))
 
 (defclass phony-grain (transient-grain explicitly-named-grain)
   ()
@@ -101,10 +107,31 @@
     :documentation "The truepath to the file that the module was declared in"))
   (:documentation "File grain"))
 
-(defclass image-grain (file-grain)
-  ((fullname :initarg :fullname)
-   (world :accessor image-world :initarg :world))
+(defclass explicitly-named-file-grain (file-grain explicitly-named-grain)
+  ()
+  (:documentation "File grains with an explicit name"))
+
+(defclass loadable-grain ()
+  ((load-dependencies :reader load-dependencies)))
+
+(defclass loadable-file-grain (explicitly-named-grain loadable-grain file-grain)
+  ((load-dependencies :initarg :load-dependencies)))
+
+(defclass image-grain (explicitly-named-file-grain)
+  ((world :accessor image-world :initarg :world))
   (:documentation "Dumped Image"))
+
+(defclass library-grain (loadable-file-grain loaded-grain)
+  ()
+  (:documentation "any kind of library for a build under ECL"))
+
+(defclass dynamic-library-grain (library-grain)
+  ()
+  (:documentation "dynamic library for a build under ECL"))
+
+(defclass static-library-grain (library-grain)
+  ()
+  (:documentation "static library for a build under ECL"))
 
 (defclass executable-grain (image-grain)
   ((parent
@@ -157,21 +184,20 @@
     :documentation "A detailed description of the file"))
   (:documentation "Documented grain"))
   
-(defclass source-grain (file-grain)
+(defclass source-grain (explicitly-named-file-grain)
   ((name
     :initarg :name
     :accessor source-grain-name)
    (in
     :initarg :in
-    :accessor source-grain-in)
-   (fullname :initarg :fullname))
+    :accessor source-grain-in))
   (:documentation "Data file (source) grain."))
 
 (defclass documented-file-grain (file-grain documented-grain)
   ()
   (:documentation "documented file grain"))
 
-(defclass lisp-module-grain (documented-file-grain)
+(defclass lisp-module-grain (documented-file-grain loadable-grain)
   ((parent
     :accessor grain-parent
     :type (or null build-registry-entry)
@@ -197,8 +223,6 @@ into an image that will be used for all future compile/load operations")
     :reader compile-dependencies)
    (cload-dependencies
     :reader cload-dependencies)
-   (load-dependencies
-    :reader load-dependencies)
    (build-dependencies
     :reader build-dependencies
     :documentation "A normalized version of the above")
@@ -248,24 +272,17 @@ into an image that will be used for all future compile/load operations")
     :documentation "Should we build a Lisp image with that build loaded?"))
   (:documentation "build.xcvb file grain"))
 
-(defclass fasl-grain (file-grain explicitly-named-grain)
-  ((load-dependencies
-    :initarg :load-dependencies
-    :reader load-dependencies))
+(defclass fasl-grain (loadable-file-grain)
+  ()
   (:documentation "Lisp FASL file grain"))
 
-(defclass cfasl-grain (file-grain explicitly-named-grain)
-  ((load-dependencies
-    :initarg :load-dependencies
-    :reader load-dependencies))
+(defclass cfasl-grain (loadable-file-grain)
+  ()
   (:documentation "Lisp CFASL file grain"))
 
-(defclass lisp-object-grain (file-grain explicitly-named-grain)
-  ;; notably used by ECL
-  ((load-dependencies
-    :initarg :load-dependencies
-    :reader load-dependencies))
-  (:documentation "Linkable compiled Lisp object file grain"))
+(defclass lisp-object-grain (loadable-file-grain)
+  ()
+  (:documentation "Linkable compiled Lisp object file grain for ECL"))
 
 (defclass asdf-grain (transient-grain explicitly-named-grain)
   ((name
@@ -295,19 +312,16 @@ into an image that will be used for all future compile/load operations")
     :documentation "root path under which the entry was found")))
 
 (defclass invalid-build-registry-entry (build-registry-entry simple-print-object-mixin)
-  ())
+  ((fullname
+    :initarg :fullname :reader fullname)))
 
 (defclass build-registry-conflict (invalid-build-registry-entry)
-  ((fullname
-    :initarg :fullname :reader fullname)
-   (pathnames
+  ((pathnames
     :initarg :pathnames :reader brc-pathnames
     :documentation "pathnames of conflicting build files with the same name")))
 
 (defclass invalid-build-file (invalid-build-registry-entry)
-  ((fullname
-    :initarg :fullname :reader fullname)
-   (pathname
+  ((pathname
     :initarg :pathname :reader grain-pathname
     :documentation "pathname of build file with conflicting ancestor")
    (reason

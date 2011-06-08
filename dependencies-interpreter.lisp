@@ -10,6 +10,8 @@
 (defgeneric build-command-for-lisp-object (env name)) ;; XXX or should have link-commands instead ?
 (defgeneric build-command-for-asdf (env name))
 (defgeneric build-command-for-require (env name))
+(defgeneric build-command-for-static-library (env name))
+(defgeneric build-command-for-dynamic-library (env name))
 (defgeneric build-command-for-source (env name &key in))
 (defgeneric build-command-for-build (env name))
 (defgeneric build-command-for-compile-build (env name))
@@ -43,6 +45,12 @@
 (define-build-command-for :lisp-object (env name)
   (simple-build-command-for
    env `(:link-file (:lisp-object ,name)) `(:lisp-object ,name)))
+(define-build-command-for :dynamic-library (env name)
+  (simple-build-command-for
+   env `(:load-file `(:dynamic-library ,name)) `(:dynamic-library ,name)))
+(define-build-command-for :static-library (env name)
+  (simple-build-command-for
+   env `(:link-file (:static-library ,name)) `(:static-library ,name)))
 (define-build-command-for :asdf (env name)
   (build-command-for env `(:build "/asdf"))
   (simple-build-command-for env `(:load-asdf ,name) `(:asdf ,name)))
@@ -79,9 +87,10 @@
 (define-build-command-for :build (env name)
   (let ((build (registered-build name :ensure-build t)))
     (finalize-grain build)
-    (with-dependency-loading (env build)
-      (build-commands-for-build-dependencies env build)
-      (build-commands-for-load-dependencies env build))))
+    (if (target-ecl-p)
+	(build-command-for env `(:dynamic-library ,name))
+	(with-dependency-loading (env build)
+	  (build-commands-for-load-dependencies env build)))))
 
 (define-build-command-for :compile-build (env name)
   (let ((build (registered-build name :ensure-build t)))

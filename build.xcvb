@@ -18,7 +18,8 @@
   :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-  :build-depends-on ((:build "/asdf")
+  :build-depends-on ((:fasl "/xcvb/driver")
+		     (:build "/asdf")
                      (:build "/cl-launch")
                      (:build "/asdf-dependency-grovel")
                      (:build "/closer-mop")
@@ -41,8 +42,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                        (:require :sb-cltl2)
                        (:require :sb-introspect)
                        (:require :sb-bsd-sockets)))
-  :depends-on ("driver"
-               "conditions"
+  :depends-on ("conditions"
                "manifest"
                "grain-implementation"
                "grain-sets"
@@ -67,5 +67,5 @@ deterministic separate compilation and enforced locally-declared dependencies."
   :build-image t)
  (:executable "xcvb"
   :depends-on :build
-  :pre-image-dump "(setf xcvb::*xcvb-version* \#.(xcvb::get-xcvb-version))(asdf:clear-configuration)"
+  :pre-image-dump "(xcvb::prepare-image #.(xcvb::get-xcvb-version))"
   :entry-point "xcvb::main"))

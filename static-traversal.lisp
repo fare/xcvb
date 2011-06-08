@@ -89,18 +89,78 @@
   (declare (ignore env))
   (finalize-grain grain))
 
-(defmethod graph-for-build-module-grain ((env enforcing-traversal) (grain build-module-grain))
-  (let ((post-image-name (build-image-name grain)))
-    (if (and *target-can-dump-image-p* post-image-name)
-        (graph-for env `(:image ,post-image-name))
-        (make-phony-grain
-         :name `(:build ,(fullname grain))
-	 :dependencies
-	 (progn
-           ;;(build-command-for* env (compile-dependencies grain))
-           ;;(build-command-for* env (cload-dependencies grain))
-           (build-command-for* env (load-dependencies grain))
-           (traversed-dependencies env))))))
+(defmethod graph-for-build-module-grain ((env enforcing-traversal) (build build-module-grain))
+  (cond
+    ((target-ecl-p)
+     (graph-for env `(:dynamic-library ,(fullname build))))
+    ((and *target-can-dump-image-p*
+	  (let ((post-image-name (build-image-name build)))
+	    (and post-image-name
+		 (graph-for env `(:image ,post-image-name))))))
+    (t
+     (make-phony-grain
+      :name `(:build ,(fullname build))
+      :dependencies
+      (progn
+	(build-command-for* env (load-dependencies build))
+	(traversed-dependencies env))))))
+
+(define-graph-for :dynamic-library ((env enforcing-traversal) name)
+  (assert (target-ecl-p))
+  (second (graph-for-build-libraries env name)))
+
+(define-graph-for :static-library ((env enforcing-traversal) name)
+  (assert (target-ecl-p))
+  (first (graph-for-build-libraries env name)))
+
+(defmethod graph-for-build-libraries ((env static-traversal) name)
+  (check-type name string)
+  (assert (target-ecl-p))
+  (setf (dependency-tweaker env) #'linkable-dependency
+        (linking-traversal-p env) t)
+  ;; We want to compute the *difference* between the build-commands-for
+  ;; the build dependencies of the library and build-commands-for the library and its dependencies.
+  ;; i.e. what does the build include that's new?
+  ;; then we package that into a nice static library (for linking) and dynamic library (for loading)
+  (let* ((build (registered-build name :ensure-build t))
+	 (build-dependencies
+	  (progn
+	    (pre-image-for env build)
+	    (build-dependencies build)))
+	 (traversed
+	  (progn
+	    (build-command-for* env build-dependencies)
+	    (setf (traversed-build-commands-r env) nil) ;; but keep issued-build-commands as it is!
+	    (build-command-for* env (load-dependencies build))
+	    (traversed-dependencies env)))
+	 (image-setup (image-setup env))
+	 (build-commands (traversed-build-commands env)) ;; only the new ones!
+	 (issued-build-commands (issued-build-commands env)) ;; including the old ones!
+	 (included-dependencies (included-dependencies env))) ;; including the old ones!
+    (flet ((make-library (class keyword)
+	     (make-grain
+	      class :fullname `(,keyword ,name)
+	      :load-dependencies build-dependencies
+	      :issued-build-commands issued-build-commands
+	      :included-dependencies included-dependencies)))
+      (let* ((static-library-grain
+	      (make-library 'static-library-grain :static-library))
+	     (dynamic-library-grain
+	      (make-library 'dynamic-library-grain :dynamic-library))
+	     (grains (list static-library-grain dynamic-library-grain)))
+	(make-computation env
+	  :outputs grains
+	  :inputs traversed
+	  :command
+	  `(:xcvb-driver-command
+	    ,image-setup
+	    (:create-bundle
+	     (:bundle (:static-library ,name) :type :lib)
+	     ,@build-commands)
+	    (:create-bundle
+	     (:bundle (:dynamic-library ,name) :type :dll)
+	     ,@build-commands)))
+	grains))))
 
 (define-graph-for :image ((env static-traversal) name)
   (cond
