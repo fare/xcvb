@@ -9,17 +9,13 @@
   (:method ((b xcvb-build))
     (or (%build-name b) (string-downcase (component-name b)))))
 
-(defgeneric build-and-load-system (b)
-  (:method ((b xcvb-build))
-    (xcvb-driver:build-and-load (build-name b))))
-
 (defmethod perform ((op compile-op) (b xcvb-build))
   (declare (ignorable op))
-  (build-and-load-system b))
+  (xcvb-driver:build-in-slave (build-name b)))
 
 (defmethod perform ((op load-op) (b xcvb-build))
   (declare (ignorable op))
-  (build-and-load-system b))
+  (xcvb-driver:build-and-load (build-name b)))
 
 (defmethod traverse ((op compile-op) (b xcvb-build))
   (list (cons op b)))

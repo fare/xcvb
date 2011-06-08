@@ -1415,7 +1415,7 @@ Otherwise, signal an error.")
        (list-option-arguments "undefine-feature" features-undefined)
        (boolean-options disable-cfasl use-base-image debugging profiling)))))
 
-(defun build-and-load (build &rest args &key . #.*bnl-keys*)
+(defun build-in-slave (build &rest args &key . #.*bnl-keys*)
   (declare (ignore . #.(remove 'verbosity *bnl-keys*)))
   (let* ((slave-command (apply 'build-slave-command-line build args))
          (slave-output
@@ -1440,7 +1440,11 @@ Otherwise, signal an error.")
          (*xcvb-verbosity* (+ (or verbosity *xcvb-verbosity*) 2)))
     (when (>= *xcvb-verbosity* 9)
       (format! *error-output* "~&Slave XCVB returned following manifest:~%~S~%" manifest))
-    (process-manifest manifest)))
+    manifest))
+
+(defun build-and-load (build &rest args &key . #.*bnl-keys*)
+  (declare (ignore . #.*bnl-keys*))
+  (process-manifest (apply 'build-in-slave build args)))
 
 (defun bnl (build &rest keys &key . #.*bnl-keys*)
   "Short hand for build-and-load"

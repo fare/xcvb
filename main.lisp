@@ -357,8 +357,7 @@ using ~A~%"
 (defun main (&rest arguments)
   (main* :name "xcvb" :commands +xcvb-commands+ :arguments arguments))
 
-(defun main* (&rest keys &key name commands arguments)
-  (declare (ignore name commands arguments))
+(defun main* (&key name commands arguments)
   (with-coded-exit ()
     (flet ((quit (&optional (code 0))
              (log-format 9 "quitting with code ~A" code)
@@ -369,7 +368,7 @@ using ~A~%"
 	      ;; restarts are available from the repl.
 	      (restart-case
 		  (progn
-		    (apply 'interpret-command-line keys)
+		    (interpret-command-line :name name :commands commands :arguments arguments)
 		    (quit 0))
 		(revert-to-repl ()
 		  :report (lambda (stream)
