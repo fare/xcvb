@@ -54,8 +54,7 @@ Until then, let's rely on the external utility tthsum.
       :for source-tthsum :in source-tthsums
       :collect
       (destructuring-bind (&key command pathname source-pathname) spec
-        `(:command
-          ,command
+        `(:command ,command ;; TODO :build-command ,spec :driver-command ,command
           ,@(when pathname `(:pathname ,(namestring (truename pathname)) :tthsum ,tthsum))
           ,@(when source-pathname
               `(:source-pathname ,(namestring (truename source-pathname)) :source-tthsum ,source-tthsum)))))))
@@ -78,7 +77,7 @@ Until then, let's rely on the external utility tthsum.
 (defun command-to-manifest-spec (env command)
   (let* ((fullname (unwrap-load-file-command command))
          (source-fullname (fullname-source fullname)))
-    `(:command ,command
+    `(:command ,command ;; TODO: :build-command ,command ....
       ,@(when fullname `(:pathname ,(fullname-namestring env fullname)))
       ,@(when source-fullname `(:source-pathname ,(fullname-namestring env source-fullname))))))
 

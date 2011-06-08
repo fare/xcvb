@@ -221,7 +221,7 @@
 (defun make-load-file-command (fullname)
   `(:load-file ,fullname))
 (defun unwrap-load-file-command (x)
-  (when (and (list-of-length-p 2 x) (eq (first x) :load-file))
+  (when (single-arg-form-p :load-file x)
     (second x)))
 (defun remove-load-file (x)
   (or (unwrap-load-file-command x)

@@ -1,8 +1,8 @@
 ;;; -*- mode: lisp -*-
 (in-package :asdf)
 
-(unless (or #+asdf2 (version-satisfies (asdf-version) "2.015"))
-  (error "ASDF 2.015 or later required for XCVB bridge"))
+(unless (or #+asdf2 (version-satisfies (asdf-version) "2.016"))
+  (error "ASDF 2.016 or later required for XCVB bridge"))
 
 (defsystem :xcvb-bridge
     :author ("Francois-Rene Rideau")
