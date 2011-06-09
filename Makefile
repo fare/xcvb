@@ -103,7 +103,7 @@ ${INSTALL_BIN}/xcvb: ${XCVB_OBJECT_DIRECTORY}/xcvb/xcvb
 	cp -f $< $@
 
 XCVB_INIT :=	--final "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XCVB}/\"))" \
-		--final "(xcvb::prepare-image \#.(xcvb::get-xcvb-version))" \
+		--final "(xcvb::prepare-image \#.(xcvbd::get-xcvb-version))" \
 		--init '(apply (function xcvb::main) cl-launch::*arguments*)'
 
 xcvb-bootstrapped-install:

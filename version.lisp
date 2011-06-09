@@ -1,8 +1,11 @@
-#+xcvb (module (:depends-on ("pkgdcl")))
+#+xcvb
+(module
+ (:build-depends-on ("driver")
+  :depends-on ("/asdf")))
 
 ;;; Versioning
 
-(in-package :xcvb)
+(in-package :xcvb-driver)
 
 (defun get-xcvb-directory ()
   (with-standard-io-syntax

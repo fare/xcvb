@@ -10,11 +10,10 @@
 
 ;; These are missing for the following reason:
 ;; :abcl :xcl are missing create-image
-;; :cmucl is not on my system, but should work - hopefully :scl is good approximation
-;; :gcl (gclcvs from debian) has compiler bugs and is not able to compile driver.lisp
+;; :gcl (gclcvs from debian) has compiler bugs and is not even able to compile driver.lisp
 ;; :lispworks and :allegro work, but
 ;; being proprietary are not part of the regular testing regime
-(defparameter +simple-target-lisps+ '(:clisp :ccl :sbcl :scl)
+(defparameter +simple-target-lisps+ '(:clisp :ccl :sbcl :scl :ecl :cmucl)
   "Lisp implementations that can be targetted by the simple backend,
 spawning a new process for each build step.")
 

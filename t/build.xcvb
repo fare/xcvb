@@ -6,5 +6,5 @@
   :build-image nil)
  (:executable "xcvb-test"
   :depends-on :build
-  :pre-image-dump "(setf xcvb::*xcvb-version* \#.(xcvb::get-xcvb-version))(asdf:clear-configuration)"
+  :pre-image-dump "(xcvb::prepare-image #.(xcvbd::get-xcvb-version))"
   :entry-point "xcvb-unit-tests::main"))

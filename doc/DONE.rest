@@ -6,10 +6,8 @@ DONE for XCVB
 
 Items dumped from TODO that were done.
 
- * 2011-03-29:
-   Provide a way out of ASDF that doesn't require maintenance
-   of two files, foo/foo.asd AND foo/build.xcvb.
-   DONE: the xcvb-bridge.
+ * 2011-06-08:
+   Add ECL support.
 
  * 2011-04-27:
    Have a mostly portable version of XCVB
@@ -22,11 +20,16 @@ Items dumped from TODO that were done.
 
  * 2011-04-27:
    Modify default location so that /example-1/foo.lisp compiles into
-     ~/.cache/xcvb/common-lisp/sbcl-1.0.43-x86/example-1/foo.fasl
+   ``~/.cache/xcvb/common-lisp/sbcl-1.0.43-x86/example-1/foo.fasl``
 
  * 2011-04-27:
    xcvb show-settings shows all the settings used, notably regarding
    target compiler, paths, etc.
+
+ * 2011-03-29:
+   Provide a way out of ASDF that doesn't require maintenance
+   of two files, foo/foo.asd AND foo/build.xcvb.
+   DONE: the xcvb-bridge. (Debugged 2011-06-07)
 
  * 2010-11-10:
    Finer-grain ASDF supersession [V2]:

@@ -232,8 +232,6 @@ I propose our next steps should be as follows:
 
  * Make XCVB a universally applicable alternative or complement to ASDF.
 
-   + Add ECL support.
-
    + Fix the output format of the manifest, to distinguish between
      "intended" command to be search for with :test 'equal,
      and "actual" xcvb-driver command to execute.
@@ -274,8 +272,6 @@ I propose our next steps should be as follows:
     + Make sure xcvb ssr works and is robust
 
     + Make sure xcvb passes all tests
-
- * Fix the interface between the manifest and the driver.
 
  * Add more examples. keep them _simple_
 

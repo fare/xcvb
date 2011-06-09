@@ -73,13 +73,14 @@ xcvb-hello.asd: force
 	xcvb x2a --build /xcvb/hello --build /xcvb/hello/lib --name xcvb-hello
 
 # This builds hello using our non-enforcing Makefile backend
-hello-using-nemk:  ${XCVB_OBJECT_DIRECTORY}/hello_ne/xcvb-tmp.image
+NE_IMAGE := ${XCVB_OBJECT_DIRECTORY}/hello_ne/xcvb-tmp.image
+hello-using-nemk:  ${NE_IMAGE}
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $< --no-include \
 		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
 		--init '(xcvb-hello::main*)'
 
-${XCVB_OBJECT_DIRECTORY}/hello_ne/xcvb-tmp.image: xcvb-ne.mk
+${NE_IMAGE}: xcvb-ne.mk
 	${MAKE} -f xcvb-ne.mk
 
 xcvb-ne.mk: force

@@ -29,11 +29,11 @@
          (asd-vp (make-vp :obj "/" asdf-name "." "asd"))
          (_w (do-write-asd-file env :output-path (vp-namestring env asd-vp)
                                 :asdf-name asdf-name))
-         (image-name `(:image ,(strcat (fullname build) "/" asdf-name)))
+         (image-name `(:image ,(strcat "/" asdf-name)))
          (image (setf (registered-grain image-name)
                       (make-grain 'image-grain :fullname image-name)))
          (previous-spec (if previous
-                            `(:image (:image ,(strcat (fullname build) "/" previous)))
+                            `(:image (:image ,(strcat "/" previous)))
                             (progn
                               (setf inputs
                                     (append (mapcar #'registered-grain *lisp-setup-dependencies*)

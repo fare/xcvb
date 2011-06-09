@@ -332,10 +332,10 @@
 
 (defun validate-release-dir (&rest keys)
   (compute-release-dir-variables! keys)
-  (call-with-release-build-dir 'validate-bootstrapped-xcvb keys)
-  (call-with-release-build-dir 'validate-asdf-xcvb keys)
-  (call-with-release-build-dir 'validate-mk-xcvb keys)
-  (call-with-release-build-dir 'validate-nemk-xcvb keys))
+  (apply 'call-with-release-build-dir 'validate-bootstrapped-xcvb keys)
+  (apply 'call-with-release-build-dir 'validate-asdf-xcvb keys)
+  (apply 'call-with-release-build-dir 'validate-mk-xcvb keys)
+  (apply 'call-with-release-build-dir 'validate-nemk-xcvb keys))
 
 (defun validate-release-dir-all-lisps (&rest keys)
   (compute-xcvb-dir-variables! keys)
