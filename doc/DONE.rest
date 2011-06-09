@@ -35,3 +35,6 @@ Items dumped from TODO that were done.
    Finer-grain ASDF supersession [V2]:
    Allow XCVB to supersede ``xcvb-driver``
    by redirecting to just ``/xcvb/driver``.
+
+ * 2010-08-08:
+   add supersession of asdf systems by require dependencies, e.g. for sb-bsd-sockets.

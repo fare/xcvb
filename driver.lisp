@@ -81,7 +81,7 @@
    #:*post-image-restart* #:*entry-point*
 
    ;;; Environment support
-   #:getenv #:emptyp #:setenvp #:setup-environment
+   #:getenv #:emptyp #:getenvp #:setup-environment
    #:debugging #:with-profiling
    #:format! #:finish-outputs #:quit #:shell-boolean
    #:print-backtrace #:die #:bork #:with-coded-exit
@@ -231,14 +231,6 @@ but before the entry point is called.")
   #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl genera lispworks mcl sbcl scl xcl)
   (error "~S is not supported on your implementation" 'getenv))
 
-(defun emptyp (x)
-  (or (null x) (and (vectorp x) (zerop (length x)))))
-(defun setenvp (x)
-  (not (emptyp (getenv x))))
-(defun setup-environment ()
-  (debugging (setenvp "XCVB_DEBUGGING"))
-  (setf *profiling* (setenvp "XCVB_PROFILING"))
-  (tweak-implementation))
 (defvar *previous-optimization-settings* nil)
 (defun get-optimization-settings ()
   #+clozure
@@ -371,21 +363,6 @@ with associated pathnames and tthsums.")
      #+clisp (ext:set-global-handler 'error #'bork)))
   (values))
 
-;;; Profiling
-(defun call-with-maybe-profiling (thunk what goal)
-  (when *debugging*
-    (format! *trace-output* "~&Now ~S~&" what))
-  (if *profiling*
-    (let* ((start-time (get-internal-real-time))
-           (values (multiple-value-list (funcall thunk)))
-           (end-time (get-internal-real-time))
-           (duration (coerce (/ (- end-time start-time) internal-time-units-per-second) 'double-float)))
-      (format! *trace-output* "~&~S~&" `(:profiling ,what :from ,goal :duration ,duration))
-      (apply #'values values))
-    (funcall thunk)))
-(defmacro with-profiling (what &body body)
-  `(call-with-maybe-profiling #'(lambda () ,@body) ,what *goal*))
-
 ;;; Tweak implementation
 (defun tweak-implementation ()
   #+sbcl
@@ -402,6 +379,33 @@ with associated pathnames and tthsums.")
     (ccl::use-lisp-heap-gc-threshold)
     #|(ccl:gc)|#)
   nil)
+
+
+;;; environment
+(defun emptyp (x)
+  (or (null x) (and (vectorp x) (zerop (length x)))))
+(defun getenvp (x)
+  (not (emptyp (getenv x))))
+
+(defun setup-environment ()
+  (debugging (getenvp "XCVB_DEBUGGING"))
+  (setf *profiling* (getenvp "XCVB_PROFILING"))
+  (tweak-implementation))
+
+;;; Profiling
+(defun call-with-maybe-profiling (thunk what goal)
+  (when *debugging*
+    (format! *trace-output* "~&Now ~S~&" what))
+  (if *profiling*
+    (let* ((start-time (get-internal-real-time))
+           (values (multiple-value-list (funcall thunk)))
+           (end-time (get-internal-real-time))
+           (duration (coerce (/ (- end-time start-time) internal-time-units-per-second) 'double-float)))
+      (format! *trace-output* "~&~S~&" `(:profiling ,what :from ,goal :duration ,duration))
+      (apply #'values values))
+    (funcall thunk)))
+(defmacro with-profiling (what &body body)
+  `(call-with-maybe-profiling #'(lambda () ,@body) ,what *goal*))
 
 ;;; Exiting properly or im-
 (defun quit (&optional (code 0) (finish-output t))
@@ -552,12 +556,12 @@ This is designed to abstract away the implementation specific quit forms."
         (symbol (values command nil))
         (cons (values (car command) (cdr command))))
     (apply (function-for-command head) args)))
+(defun run-commands (commands)
+  (map () #'run-command commands))
 (defun do-run (commands)
   (let ((*stderr* *error-output*))
     (setup-environment)
     (run-commands commands)))
-(defun run-commands (commands)
-  (map () #'run-command commands))
 (defmacro run (&rest commands)
   `(with-coded-exit ()
     (do-run ',commands)))
@@ -888,6 +892,8 @@ This is designed to abstract away the implementation specific quit forms."
 (defvar *pathname-mappings* (make-hash-table :test 'equal)
   "Mappings from xcvb fullname to pathname")
 
+(defun pathname-directory-pathname (pn)
+  (make-pathname :name nil :type nil :version nil :defaults pn))
 (defun register-pathname-mapping (&key name path #|logical|#)
   ;; should we add a logical pathname translation?
   (setf (gethash name *pathname-mappings*) (truename path))
@@ -900,8 +906,6 @@ This is designed to abstract away the implementation specific quit forms."
       (apply 'register-pathname-mapping m))))
 (defun pathname-mapping (name)
   (gethash name *pathname-mappings*))
-(defun pathname-directory-pathname (pn)
-  (make-pathname :name nil :type nil :version nil :defaults pn))
 (defun load-pathname-mappings (file)
   (let ((tn (truename file)))
     (register-pathname-mappings (read-first-form tn) :defaults tn)))
@@ -1453,4 +1457,3 @@ Otherwise, signal an error.")
   (declare (ignore . #.*bnl-keys*))
   (apply 'build-and-load build keys))
 
-#+ecl (trace c::builder c::compute-init-name)
