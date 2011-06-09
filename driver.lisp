@@ -759,9 +759,9 @@ This is designed to abstract away the implementation specific quit forms."
     (when pre-image-dump (load-string pre-image-dump))
     (setf *entry-point* (when entry-point (read-function entry-point)))
     (when post-image-restart (setf *post-image-restart* post-image-restart)))
-  #-(or clisp clozure lispworks sbcl)
+  #-(or clisp clozure cmu lispworks sbcl)
   (when executable
-    (user-error "Dumping an executable is not supported on this implementation! Aborting."))
+    (error "Dumping an executable is not supported on this implementation! Aborting."))
   #+allegro
   (progn
     (sys:resize-areas :global-gc t :pack-heap t :sift-old-areas t :tenure t) ; :new 5000000
