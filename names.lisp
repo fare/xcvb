@@ -57,7 +57,7 @@
               (and (consp name) (eq type (car name))
                    (consp (cdr name)) (valid-fullname-p (cadr name))
                    (null (cddr name))))
-    (error "Invalid ~@[~(~A~) ~]grain fullname ~A" type name))
+    (error "Invalid ~@[~(~A~) ~]grain fullname ~S" type name))
   name)
 
 (defgeneric validate-fullname (grain))
@@ -170,6 +170,7 @@ of decreasing fullname length"
      (lambda (build suffix)
        (return (values build suffix))))))
 
+;; TODO: say if we resolve as a build, lisp, executable, image, etc. ?
 (defun resolve-absolute-module-name (name &key error-p)
   "Resolve absolute NAME into an appropriate grain, if any"
   (multiple-value-bind (build suffix)

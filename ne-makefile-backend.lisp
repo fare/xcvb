@@ -29,10 +29,11 @@
          (asd-vp (make-vp :obj "/" asdf-name "." "asd"))
          (_w (do-write-asd-file env :output-path (vp-namestring env asd-vp)
                                 :asdf-name asdf-name))
-         (image-name `(:image ,(strcat "/" asdf-name)))
-         (image (make-grain 'image-grain :fullname image-name))
+         (image-name `(:image ,(strcat (fullname build) "/" asdf-name)))
+         (image (setf (registered-grain image-name)
+                      (make-grain 'image-grain :fullname image-name)))
          (previous-spec (if previous
-                            `(:image (:image ,(strcat "/" previous)))
+                            `(:image (:image ,(strcat (fullname build) "/" previous)))
                             (progn
                               (setf inputs
                                     (append (mapcar #'registered-grain *lisp-setup-dependencies*)
@@ -45,7 +46,7 @@
             :command
             `(:xcvb-driver-command ,previous-spec
               (:create-image
-               ,image-name
+               (:image ,image-name)
                (:register-asdf-directory ,(merge-pathnames (strcat *object-directory* "/")))
                ,@(when parallel
                        `((:register-asdf-directory
@@ -67,7 +68,9 @@ in a fast way that doesn't enforce dependencies."
           (mapcar (lambda (n) (registered-build n :ensure-build t)) build-names))
          (last-build (first (last builds)))
          (asdf-names (loop :for (build . rest) :on build-names :for i :from 1
-                       :collect (if rest (format nil "~A-stage~D-~A" asdf-name i build) asdf-name)))
+                       :collect (if rest
+                                    (format nil "~A-stage~D-~A" asdf-name i build)
+                                    asdf-name)))
          (default-output-path (merge-pathnames "xcvb-ne.mk" (grain-pathname last-build)))
          (output-path (merge-pathnames output-path default-output-path))
          (makefile-path (ensure-absolute-pathname output-path))

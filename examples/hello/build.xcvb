@@ -12,4 +12,4 @@
                (:lisp "generate-version")))
  (:executable "hello"
   :depends-on :build
-  :post-image-restart "(xcvb-hello::main)"))
+  :entry-point "xcvb-hello::main"))

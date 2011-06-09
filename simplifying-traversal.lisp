@@ -36,7 +36,9 @@ and the non-enforcing Makefile backend.
       dep
       (case (first dep)
         ((:lisp) dep)
-        ((:fasl :cfasl :link-object) `(:lisp ,(second dep))))))
+        ((:fasl) dep) ;; somehow we depend on that. TODO: simplify further
+        ((:cfasl :link-object) `(:fasl ,(second dep)))
+        (t dep))))
 
 (defmethod graph-for-build-module-grain ((env simplifying-traversal) grain)
   (build-command-for* env (build-dependencies grain))
@@ -73,7 +75,7 @@ and the non-enforcing Makefile backend.
       fasl)))
 
 (define-graph-for :lisp ((env simplifying-traversal) name)
-  (resolve-absolute-module-name name))
+  (finalize-grain (resolve-absolute-module-name name)))
 
 (defvar *asdf-system-dependencies* nil
   "A list of asdf system we depend upon")
@@ -107,6 +109,4 @@ and the non-enforcing Makefile backend.
     (unless dependencies
       (error "run-generator: Need dependencies to generate files ~S.~%"
              (mapcar #'fullname targets)))
-    (dolist (target targets)
-      (slot-makunbound target 'computation))
     (build-command-for* env dependencies)))

@@ -232,7 +232,7 @@ into an image that will be used for all future compile/load operations")
     :documentation "extension forms to the build specification"))
   (:documentation "Lisp source or build file"))
 
-(defclass lisp-file-grain (lisp-module-grain source-grain)
+(defclass lisp-file-grain (lisp-module-grain source-grain explicitly-named-grain)
   ((parent
     :initarg :parent
     :type build-module-grain))

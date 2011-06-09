@@ -67,7 +67,7 @@ hello-using-asdf: xcvb-hello.asd
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --system xcvb-hello \
 		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
-		--init '(xcvb-hello::main)'
+		--init '(xcvb-hello::main*)'
 
 xcvb-hello.asd: force
 	xcvb x2a --build /xcvb/hello --build /xcvb/hello/lib --name xcvb-hello
@@ -77,7 +77,7 @@ hello-using-nemk:  ${XCVB_OBJECT_DIRECTORY}/hello_ne/xcvb-tmp.image
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $< --no-include \
 		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
-		--init '(xcvb-hello::main)'
+		--init '(xcvb-hello::main*)'
 
 ${XCVB_OBJECT_DIRECTORY}/hello_ne/xcvb-tmp.image: xcvb-ne.mk
 	${MAKE} -f xcvb-ne.mk

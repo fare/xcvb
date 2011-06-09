@@ -99,13 +99,14 @@
 
 ;;; Optimization settings
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *optimization-settings*
-    '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 2)
-      ;; These should ensure all tail calls are optimized, says jsnell:
+  (defvar *implementation-settings*
+    `(;; These should ensure all tail calls are optimized, says jsnell:
       #+sbcl (sb-c::merge-tail-calls 3) #+sbcl (sb-c::insert-debug-catch 0)
       #+(or cmu scl) (ext:inhibit-warnings 3)))
-  (proclaim *optimization-settings*))
-
+  (defvar *optimization-settings*
+    `((speed 2) (safety 3) (compilation-speed 0) (debug 2)
+      ,@*implementation-settings*))
+  (proclaim `(optimize ,@*optimization-settings*)))
 
 ;;; Initial implementation-dependent setup
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -249,7 +250,7 @@ but before the entry point is called.")
   #+sbcl sb-c::*policy*
   #-(or clozure sbcl) nil)
 (defun proclaim-optimization-settings ()
-  (proclaim *optimization-settings*)
+  (proclaim `(optimize ,@*optimization-settings*))
   (when *debugging*
     (let ((settings (get-optimization-settings)))
       (unless (equal *previous-optimization-settings* settings)
@@ -358,7 +359,9 @@ with associated pathnames and tthsums.")
         *load-print* debug
         #+clisp custom:*compile-warnings* #+clisp debug
         *compile-verbose* debug
-        *compile-print* debug)
+        *compile-print* debug
+        *optimization-settings* '((speed 2) (safety 3) (compilation-speed 0) (debug 3)))
+  (proclaim-optimization-settings)
   (cond
     (debug
      #+sbcl (sb-ext:enable-debugger)

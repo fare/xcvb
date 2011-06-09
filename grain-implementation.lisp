@@ -4,29 +4,38 @@
 
 (declaim (optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
 
+(defun create-module-from-declaration (form &key keys build-p)
+  "Takes a module declaration FORM and returns a grain object for that module."
+  (apply #'make-instance (parse-module-declaration form :keys keys :build-p build-p)))
+
 (defun parse-module-declaration (form &key keys build-p)
   "Takes a module declaration FORM and returns a grain object for that module."
-  (let ((class (module-form-p form)))
+  (let ((class (module-form-p form))
+        (pathname (getf keys :pathname)))
     (unless class
-      (error "Invalid or missing module declaration~@[ in ~S~]" (getf keys :pathname)))
+      (error "Invalid or missing module declaration~@[ in ~S~]" pathname))
     (when build-p
       (unless (eq class 'lisp-file-grain)
-        (error "Invalid build module declaration~@[ in ~S~]" (getf keys :pathname)))
+        (error "Invalid build module declaration~@[ in ~S~]" pathname))
       (setf class 'build-module-grain))
     (destructuring-bind ((&rest form-keys &key &allow-other-keys) &rest extension-forms)
         (cdr form)
-      (loop :for (key nil) :on form-keys :by #'cddr
-        :when (getf keys key) :do
-        (error "While parsing module form ~S, invalid key ~S provided"
-               form key))
+      (loop :for (key nil rest-keys) :on form-keys :by #'cddr :do
+        (cond
+          ((getf keys key)
+           (error "While parsing module form ~S~@[ in ~S~], invalid key ~S provided"
+                  form pathname key))
+          ((getf keys rest-keys)
+           (error "While parsing module form ~S~@[ in ~S~], duplicate key ~S provided"
+                  form pathname key))))
       (log-format-pp 10
 		     "      Constructing grain of class ~A with~%        ~S~%" class
 		  `(:extension-forms ,extension-forms :computation nil
 				     ,(append keys form-keys)))
-      (apply #'make-instance class
-           :extension-forms extension-forms
-           :computation nil
-           (append keys form-keys)))))
+      (list* class
+             :extension-forms extension-forms
+             :computation nil
+             (append keys form-keys)))))
 
 (defun read-module-declaration (path)
   (let ((*features* (list :xcvb)))
@@ -34,7 +43,7 @@
 
 (defun grain-from-file-declaration (path &key build-p)
   (log-format 10 "    Creating grain from declarations in file at ~S~%" path)
-  (parse-module-declaration
+  (create-module-from-declaration
    (read-module-declaration path)
    :keys `(:pathname ,path) :build-p build-p))
 
@@ -141,7 +150,7 @@ Only currently support :generate and :executable extension form."
 		    (destructuring-bind (type name &rest keys &key &allow-other-keys) target
 		      (unless (eq type :lisp)
 			(error "Only know how to generate lisp modules."))
-		      (parse-module-declaration
+		      (create-module-from-declaration
                        `(module ,keys)
                        :keys `(:fullname (:lisp ,(strcat (fullname build) "/" name))
                                :parent ,build

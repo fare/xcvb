@@ -6,13 +6,15 @@
 
 (in-package :xcvb-hello-lib)
 
-(defun main ()
+(defun main* ()
+  (apply 'main (get-command-line-arguments)))
+
+(defun main (&rest arguments)
   (quit
    (catch :exit
      (handler-bind
          ((error (lambda (error) (format *error-output* "~A~%" error) (exit 10))))
-       (interpret-command-line
-        (get-command-line-arguments))
+       (interpret-command-line arguments)
        0))))
 
 (defun exit (&optional (code 0) &rest r)

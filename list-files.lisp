@@ -100,7 +100,7 @@
                            (eq build (build-module-grain-for grain))
                            (equal (fullname build) (fullname (build-module-grain-for grain))))
                (equal (fullname build) (fullname (build-module-grain-for grain))))))
-      (dolist (grain (remove-if-not #'source-lisp-grain-p (list-grains target-dependency)))
+      (dolist (grain (remove-if-not #'source-lisp-grain-p (list-grains (list target-dependency))))
         (log-format 5 "Removing module declaration from ~A" (grain-pathname grain))
         (remove-module-from-file (grain-pathname grain))))
     (log-format 5 "Deleting build file for ~A" (grain-pathname build))

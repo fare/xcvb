@@ -2,10 +2,13 @@
 (module
  (:description "package for XCVB"))
 
-(in-package :cl)
+(in-package :xcvb-driver)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (proclaim '(optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3))))
+  (setf *optimization-settings*
+        `((speed 2) (safety 3) (compilation-speed 0) (debug 3)
+          ,@*implementation-settings*))
+  (proclaim-optimization-settings))
 
 (defpackage :xcvb
   (:use :closer-common-lisp

@@ -111,7 +111,7 @@ For debugging your XCVB configuration.")
     (("repl")
      repl-command ()
      "Start a REPL"
-     "The 'repl' command takes no additional arguments.
+     "The 'repl' evaluates each of its arguments.
 Using 'xcvb repl' launches a Lisp REPL.
 For XCVB developers only (notably for use with SLIME).")
     (("version" "-V" "--version")
@@ -219,11 +219,10 @@ using ~A~%"
 
 ;; Command to start a REPL.
 (defun repl-command (args)
-  (unless (null args)
-    (errexit 2 "repl doesn't take any argument"))
   (initialize-environment)
   (xcvb-driver:debugging)
   #+clisp (setf *standard-input* *terminal-io*)
+  (map () 'load-string args)
   (invoke-restart 'revert-to-repl))
 
 (defun repl ()
@@ -413,7 +412,8 @@ using ~A~%"
   (setf *arguments* arguments)
   (initialize-environment)
   (let* ((*package* (find-package :xcvb-user))
-         (command (pop arguments))
+         (command (first arguments))
+         (args (rest arguments))
          (command-spec (lookup-command command :commands commands))
          (fun (second command-spec))
          (option-spec-var (third command-spec)))
@@ -423,10 +423,10 @@ using ~A~%"
 	(option-spec-var
 	 (apply 'handle-command-line
 		(symbol-value option-spec-var) fun
-		:command-line arguments :name command
+		:command-line args :name command
 		keys))
 	(fun
-	 (funcall fun arguments))
+	 (funcall fun args))
 	((not command)
 	 (errexit 2 "~:@(~A~) requires a command -- try '~A help'." name name))
 	(t

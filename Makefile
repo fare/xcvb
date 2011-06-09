@@ -128,8 +128,7 @@ xcvb-ne.mk: setup.lisp force
 	     --build /xcvb \
 	     --setup /xcvb/setup \
 	     --object-directory ${XCVB_OBJECT_DIRECTORY}/_ne \
-	     --lisp-implementation ${LISP_IMPL} \
-	     --lisp-binary-path ${LISP_BIN}
+	     ${XCVB_IMPLEMENTATION_OPTIONS}
 
 ${XCVB_OBJECT_DIRECTORY}/_ne/xcvb-tmp.image: xcvb-ne.mk
 	${MAKE} -f xcvb-ne.mk
@@ -204,15 +203,20 @@ export RELEASE_EXCLUDE := \
 	--exclude "*~" --exclude ".\#*" --exclude "xcvb*.mk" \
 # To exclude revision information: --exclude .git --exclude _darcs
 
-test:
-	./test/runme.zsh \
-		XCVB_DIR=${XCVB_DIR} \
-		validate_xcvb_dir
+XCVB_TEST := ${INSTALL_BIN}/xcvb-test
+xcvb-test: ${XCVB_TEST}
 
-fulltest:
-	./test/runme.zsh \
-		XCVB_DIR=${XCVB_DIR} \
-		validate_xcvb_dir_all_lisps
+${XCVB_TEST}: ${INSTALL_BIN}/xcvb $(wildcard t/*.lisp t/build.xcvb)
+	xcvb simple-build --build /xcvb/t/xcvb-test \
+		${XCVB_IMPLEMENTATION_OPTIONS} \
+		--object-directory ${XCVB_OBJECT_DIRECTORY}
+	cp -f ${XCVB_OBJECT_DIRECTORY}/xcvb/t/xcvb-test $@
+
+test:	${XCVB_TEST}
+	${XCVB_TEST} validate-xcvb-dir --xcvb-dir ${XCVB_DIR}
+
+fulltest:	${XCVB_TEST}
+	${XCVB_TEST} validate-xcvb-dir-all-lisps --xcvb-dir ${XCVB_DIR}
 
 export RELEASE_DIR := ${TMP}/xcvb-release
 
@@ -232,9 +236,8 @@ release-tarball:
 	tar ${RELEASE_EXCLUDE} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
 	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2
 
-test-release-directory:
-	cd ${RELEASE_DIR}/xcvb && \
-	./test/runme.zsh validate_release_dir_all_lisps
+test-release-directory: ${XCVB_TEST}
+	${XCVB_TEST} validate-release-dir-all-lisps --release-dir ${RELEASE_DIR}
 
 test-and-release-tarball: release-tarball test-release-directory
 	cd ${RELEASE_DIR}/xcvb && \

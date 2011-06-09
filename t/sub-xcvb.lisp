@@ -213,16 +213,19 @@
       (is (not (module-form-p (read-module-declaration l)))
           "xcvb rmx failed to delete module form from ~A" l))))
 
-(defun validate-a2x (&key xcvb build-dir xcvb-dir &allow-other-keys)
-  (let ((test-dir (in-dir build-dir "a2x_a2x/")))
+(defun validate-a2x (&key xcvb build-dir xcvb-dir source-registry &allow-other-keys)
+  (let* ((test-dir (in-dir build-dir "a2x_a2x/"))
+         (source-registry (format nil "~A//:~A" test-dir source-registry)))
     (ensure-directories-exist test-dir)
     (rsync "-a" (in-dir xcvb-dir "examples/a2x/") test-dir)
-    (run-cmd xcvb 'a2x :system "a2x-test" :name "/xcvb/test/a2x")
+    (run-cmd xcvb 'a2x :system "a2x-test" :name "/xcvb/test/a2x"
+             :source-registry source-registry)
     (is (probe-file* (in-dir test-dir "build.xcvb"))
       "xcvb a2x failed to create build.xcvb")
     (dolist (l (is (directory (merge-pathnames* #p"*.lisp" test-dir))))
       (is (module-form-p (read-module-declaration l))
-          "xcvb a2x failed to create module form for ~A" l))))
+          "xcvb a2x failed to create module form for ~A" l))
+    (rm-rfv test-dir)))
 
 (defun validate-master (&key xcvb build-dir object-dir source-registry implementation-type
                         &allow-other-keys)
@@ -257,13 +260,13 @@
   (apply 'do-xxx-build "xcvb-using-asdf" keys))
 
 (defun do-self-mk-build (&rest keys)
-  (apply 'do-xxx-build "xcvb-using-asdf" keys))
+  (apply 'do-xxx-build "xcvb-using-xcvb" keys))
 
 (defun do-self-nemk-build (&rest keys)
   (apply 'do-xxx-build "xcvb-using-nemk" keys))
 
-(defun do-bootstrapped-build (&rest keys)
-  (apply 'do-xxx-build "xcvb-using-xcvb" keys))
+(defun do-bootstrapped-build (&rest keys &key release-dir &allow-other-keys)
+  (apply 'run-make release-dir "install" keys))
 
 (defun validate-xxx-build (fun &rest keys)
   (apply fun keys)
@@ -291,21 +294,14 @@
        (list object-dir install-bin install-image)))
 
 (defun call-with-xcvb-build-dir (thunk &rest keys)
+  (apply 'validate-xcvb-checkout keys)
+  (apply 'clean-xcvb-dir keys)
   (apply 'ensure-build-directories keys)
   (apply thunk keys)
   (apply 'clean-xcvb-dir keys))
 
-(defun validate-current-xcvb (&rest keys)
-  (asdf:find-system :xcvb)
-  (compute-xcvb-dir-variables! keys :xcvb-dir (asdf:system-source-directory :xcvb))
-  (apply 'validate-xcvb-dir keys)
-  (apply 'clean-xcvb-dir keys)
-  (call-with-xcvb-build-dir 'validate-xcvb keys))
-
 (defun validate-xcvb-dir (&rest keys)
   (compute-xcvb-dir-variables! keys)
-  (apply 'validate-xcvb-checkout keys)
-  (apply 'clean-xcvb-dir keys)
   (apply 'call-with-xcvb-build-dir
    (lambda (&rest keys)
      (apply 'call-with-xcvb-build-dir 'validate-asdf-build keys)
@@ -328,6 +324,7 @@
 
 (defun call-with-release-build-dir (thunk &rest keys)
   (compute-release-dir-variables! keys)
+  (apply 'validate-release-checkout keys)
   (apply 'clean-release-dir keys)
   (apply 'ensure-build-directories keys)
   (apply thunk keys)
@@ -335,7 +332,6 @@
 
 (defun validate-release-dir (&rest keys)
   (compute-release-dir-variables! keys)
-  (apply 'validate-release-checkout keys)
   (call-with-release-build-dir 'validate-bootstrapped-xcvb keys)
   (call-with-release-build-dir 'validate-asdf-xcvb keys)
   (call-with-release-build-dir 'validate-mk-xcvb keys)
@@ -398,7 +394,10 @@
 
 (defun compute-xcvb-dir-variables (&rest keys &key xcvb-dir &allow-other-keys)
   (letk* keys
-      ((xcvb-dir (ensure-directory-pathname xcvb-dir))
+      ((xcvb-dir (ensure-directory-pathname
+                  (or xcvb-dir
+                      (and (asdf:find-system :xcvb)
+                           (asdf:system-source-directory :xcvb)))))
        (build-dir (in-dir xcvb-dir "build/"))
        (source-registry
         (format nil "~A//:~A//:~@[~A~]"

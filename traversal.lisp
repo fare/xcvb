@@ -71,7 +71,7 @@
   (let ((grain (do-graph-for (next-traversal env spec) spec)))
     (if (typep grain 'buildable-grain)
 	(ensure-grain-generated env grain)
-	(user-error "Grain for ~S is not buildable. The grain: ~S" spec grain))
+	(user-error "Grain ~S for ~S is not buildable" grain spec))
     grain))
 
 (defmethod ensure-grain-generated (env (grain buildable-grain))

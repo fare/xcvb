@@ -232,10 +232,10 @@ in the normalized dependency mini-language"
            (self-linkable-dependency (&rest r) `(progn ,@(loop :for k :in r :collect `(d ,k)))))
   (self-linkable-dependency :asdf :require :build :static-library))
 (define-linkable-dependency :when (c &rest deps)
-  `(:when ,c ,@(mapcar #'linkable-dependency* deps)))
+  `(:when ,c ,@(mapcar #'linkable-dependency deps)))
 (define-linkable-dependency :cond (&rest clauses)
   `(:cond ,@(loop :for (c . deps) :in clauses
-              :collect (cons c (mapcar #'linkable-dependency* deps)))))
+              :collect (cons c (mapcar #'linkable-dependency deps)))))
 
 (defun compile-time-fasl-type ()
   (if *use-cfasls* :cfasl :fasl))

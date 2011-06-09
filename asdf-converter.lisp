@@ -87,12 +87,13 @@ until something else is found, then return that header as a string"
   (loop :while (member (peek-char nil in nil) '(#\space #\tab #\newline #-clisp #\linefeed))
         :do (read-char in)))
 
-;; If the file does not have an existing XCVB module, a module is
-;; created and inserted into the file.  If the file already has an
-;; XCVB module, the file's module is replaced with new XCVB module,
-;; keeping the old module's extension forms.  If 'module' argument is
-;; NIL, then the file's XCVB module is removed.
 (defun replace-module-in-file (filename module)
+  "If the file does not have an existing XCVB module,
+   a module is created and inserted into the file.
+   If the file already has an XCVB module,
+   the file's module is replaced with new XCVB module,
+   keeping the old module's extension forms.
+   If 'module' argument is NIL, then the file's XCVB module is removed."
   (cond
     ((probe-file filename)
      (let* ((tmppath (make-pathname
@@ -114,11 +115,12 @@ until something else is found, then return that header as a string"
                  (file-position in first-form-position)
                  (when module
                    (setf (grain-extension-forms module)
-                         (grain-extension-forms
-                          (parse-module-declaration
-                           first-form
-                           :keys `(:pathname ,filename)
-                           :build-p (build-module-grain-p module))))))
+                         (getf (rest
+                                (parse-module-declaration
+                                 first-form
+                                 :keys `(:pathname ,filename)
+                                 :build-p (build-module-grain-p module)))
+                               :grain-extension-forms))))
              (when module (format out "~a~%~%" (module-string module))))
            (skip-whitespace in)
            ;; Copy rest of file to tmppath file.
@@ -258,24 +260,23 @@ until something else is found, then return that header as a string"
               (mapcar (lambda (dep) `(:compile ,dep)) dependencies)
               dependencies))
          (filepath (component-truename asdf-component))
-         (fullname (strcat
-                    (fullname build-module-grain)
-                    "/"
-                    (portable-pathname-output
-                     (asdf-dependency-grovel::strip-extension
-                      (enough-namestring
-                       filepath
-                       (grain-pathname build-module-grain))
-                      "lisp")
-                     :allow-absolute nil)))
-         (lisp-grain
-          (make-instance 'lisp-file-grain
-                         :pathname filepath
-                         :computation nil
-                         :compile-depends-on compile-dependencies
-                         :load-depends-on dependencies)))
-    (setf (fullname lisp-grain) fullname)
-    lisp-grain))
+         (name (strcat
+                (fullname build-module-grain)
+                "/"
+                (portable-pathname-output
+                 (asdf-dependency-grovel::strip-extension
+                  (enough-namestring
+                   filepath
+                   (grain-pathname build-module-grain))
+                  "lisp")
+                 :allow-absolute nil))))
+    (make-instance 'lisp-file-grain
+                   :fullname `(:lisp ,name)
+                   :parent build-module-grain
+                   :pathname filepath
+                   :computation nil
+                   :compile-depends-on compile-dependencies
+                   :load-depends-on dependencies)))
 
 (defvar *components-path* #p"simplified-system-components.lisp-expr")
 
@@ -368,6 +369,7 @@ so that the system can now be compiled with XCVB."
           (add-module-to-file (get-module-for-component
                                component build-module-grain
                                name-component-map original-traverse-order-map)))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ASDF to XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
