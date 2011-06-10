@@ -148,13 +148,13 @@
                        (build-module-grain
                         build-module-grain)
                        (null
-                        (error "No build specified, and no build.xcvb in the current directory"))
+                        (user-error "No build specified, and no build.xcvb in the current directory"))
                        (invalid-build-registry-entry
-                        (error "Implicitly specified build.xcvb in current directory ~
+                        (user-error "Implicitly specified build.xcvb in current directory ~
                                 but it is invalid:~%~A~&"
                                 (invalid-build-reason build-module-grain)))))))
          (build (if target (build-module-grain-for target)
-                    (error "User requested build ~S but it can't be found.~%~
+                    (user-error "User requested build ~S but it can't be found.~%~
 			    You may check available builds with xcvb ssr.~%" fullname)))
          (name (fullname target))
          (dep (etypecase target

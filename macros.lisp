@@ -19,22 +19,23 @@
 
 ;;; Simple Dispatcher
 
-(defun simple-dispatcher (atom-processor function-hash environment expression)
+(defun simple-dispatcher (debug-name atom-processor function-hash environment expression)
   (if (consp expression)
     (let* ((head (car expression))
            (arguments (cdr expression))
            (function (or (gethash head function-hash)
-                         (error "undefined function in ~S" expression))))
+                         (error "Simple Dispatcher[~A]: Error: No associated dispatch function for the keyword in car position of expression ~S" debug-name expression))))
       (apply function environment arguments))
     (if atom-processor
         (funcall atom-processor environment expression)
-        (error "invalid atom ~S" expression))))
+        (error "Simple Dispatcher[~A]: Error: Invalid atom ~S" debug-name expression))))
 
 (defmacro define-simple-dispatcher (name atom-interpreter &key generic (environment t))
   (let ((hash-name (fintern t "*~A-FUNCTIONS*" name))
         (registrar-name (fintern t "REGISTER-~A" name))
         (definer-name (fintern t "DEFINE-~A" name))
         (dispatcher-name (fintern t "~A-DISPATCHER" name))
+	(debug-name (format nil "~(~S~)" name))
         (env (gensym "ENVIRONMENT")))
     `(progn
        (defvar ,hash-name (make-hash-table :test 'eql))
@@ -51,6 +52,7 @@
               (,',registrar-name ',symbol ',fname))))
        (defun ,dispatcher-name (,@(when environment `(,env)) expression)
          (simple-dispatcher
+	  ,debug-name
           ,atom-interpreter
           ,hash-name
           ,(if environment env nil) expression)))))

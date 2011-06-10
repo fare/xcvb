@@ -31,7 +31,7 @@
 
 (defun build-command-for-atom (env spec)
   (declare (ignore env))
-  (error "Invalid dependency ~S" spec))
+  (error "Cannot produce a build command for the invalid dependency ~S" spec))
 
 (define-build-command-for :lisp (env name)
   (simple-build-command-for

@@ -58,19 +58,20 @@
 (defun list-files-command (&rest keys &key source-registry verbosity build debugging long)
   (declare (ignore source-registry verbosity debugging))
   (apply 'handle-global-options keys)
+  (log-format 10 "Listing files for build ~S~%" build)
   (loop :for spec :in build
-    :for (target bgrain) = (multiple-value-list (handle-target spec))
-    :collect target :into targets
-    :collect bgrain :into builds
-    :finally
-    (let* ((all-grains (list-grains targets))
-           (grains (remove-if-not
-                    (lambda (grain)
-                      (and (typep grain '(or lisp-module-grain source-grain))
-                           (member (build-module-grain-for grain) builds)))
-                    (remove-duplicates all-grains)))
-           (files (mapcar 'grain-pathname grains)))
-      (format t (if long "(~{~S~^~%~})~%" "~{~A~%~}") files))))
+     :for (target bgrain) = (multiple-value-list (handle-target spec))
+     :collect target :into targets
+     :collect bgrain :into builds
+     :finally
+     (let* ((all-grains (list-grains targets))
+	    (grains (remove-if-not
+		     (lambda (grain)
+		       (and (typep grain '(or lisp-module-grain source-grain))
+			    (member (build-module-grain-for grain) builds)))
+		     (remove-duplicates all-grains)))
+	    (files (mapcar 'grain-pathname grains)))
+       (format t (if long "(~{~S~^~%~})~%" "~{~A~%~}") files))))
 
 (defun purge-xcvb-command (files)
   (initialize-environment)

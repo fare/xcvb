@@ -55,6 +55,7 @@
       (graph-for env target-dependency)
       ;; Pass 2: Build a Makefile out of the *computations*
       (log-format 8 "T=~A computing makefile body" (get-universal-time))
+      (log-format 8 "All *computations*=~%~S" (reverse *computations*))
       (let ((body (computations-to-Makefile env)))
         (log-format 8 "T=~A creating makefile" (get-universal-time))
         (ensure-directories-exist makefile-path)
