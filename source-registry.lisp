@@ -336,7 +336,7 @@ for each of its registered names."
 	      fullname (namestring (grain-pathname entry)))))
 
 (defmethod build-string-description ((entry invalid-build-file) fullname)
-  (format nil "(:INVALID-BUILD :INVALID-BUILD-FILE ~S :IN ~S)"
+  (format nil "(:INVALID-BUILD :INVALID-BUILD-FILE ~S :SPECIFIED-IN ~S)"
 	  fullname (grain-pathname entry)))
 
 (defmethod build-string-description ((entry build-registry-conflict) fullname)
