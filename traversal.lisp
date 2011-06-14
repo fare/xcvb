@@ -135,6 +135,9 @@
   (make-require-grain :name name))
 
 (defun handle-target (fullname)
+  (unless (absolute-pathname-p fullname)
+    (user-error "The pathname of ~S must be absolute!" fullname))
+  
   (let* ((target (if fullname
                    (resolve-absolute-module-name fullname)
                    (let* ((build-file (probe-file "build.xcvb"))

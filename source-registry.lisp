@@ -316,36 +316,45 @@ for each of its registered names."
   (funcallf (registered-build name) #'merge-build build-module-grain name root))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Show Search Path ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defgeneric build-string-description (entry fullname)
+  (:documentation "A human readable description of this grain"))
 
+(defmethod build-string-description ((entry require-grain) fullname)
+  (assert (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf)))
+  (format nil "(:ASDF ~S :SUPERSEDED-BY ~S)"
+	  (second fullname) (fullname entry)))
+
+(defmethod build-string-description ((entry build-module-grain) fullname)
+  (if (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf))
+      (let* ((nn (second (assoc (second fullname)
+				(asdf-supersessions (finalize-grain entry))
+				:test 'equal)))
+	     (b (registered-build nn)))
+	(format nil "(:ASDF ~S :SUPERSEDED-BY ~S)"
+		(second fullname) (if b `(:BUILD ,nn) `(:FASL ,nn))))
+      (format nil "(:BUILD ~S :SPECIFIED-IN ~S)"
+	      fullname (namestring (grain-pathname entry)))))
+
+(defmethod build-string-description ((entry invalid-build-file) fullname)
+  (format nil "(:INVALID-BUILD :INVALID-BUILD-FILE ~S :IN ~S)"
+	  fullname (grain-pathname entry)))
+
+(defmethod build-string-description ((entry build-registry-conflict) fullname)
+  (format nil "(:INVALID-BUILD :REGISTRY-CONFLICT ~S :AMONG ~S)"
+	  fullname (mapcar 'namestring (brc-pathnames entry))))
+    
 (defun show-source-registry ()
   "Show registered builds"
-  (format t "~&Registered search paths:~{~% ~S~}~%" (car *flattened-source-registry*))
-  (format t "~%Builds found in the search paths:~%")
+  (format t "~&;; Registered search paths:~%(:SEARCH-PATHS ~{~% ~S~})~%~%"
+	  (car *flattened-source-registry*))
+  (format t ";; Builds found in the search paths:~%(:BUILDS ")
   (flet ((entry-string (x)
-           (destructuring-bind (fullname . entry) x
-             (etypecase entry
-               (require-grain
-                (assert (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf)))
-                (format nil " (:ASDF ~S) superseded by ~S~%"
-                            (second fullname) (fullname entry)))
-               (build-module-grain
-                (if (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf))
-                    (let* ((nn (second (assoc (second fullname)
-                                              (asdf-supersessions (finalize-grain entry))
-                                              :test 'equal)))
-                           (b (registered-build nn)))
-                      (format nil " (:ASDF ~S) superseded by ~S~%"
-                              (second fullname) (if b `(:BUILD ,nn) `(:FASL ,nn))))
-                    (format nil " (:BUILD ~S) in ~S~%"
-                            fullname (namestring (grain-pathname entry)))))
-               (invalid-build-file
-                (format nil " INVALID for ~S at ~S (ancestor conflict)~%"
-                        fullname (grain-pathname entry)))
-               (build-registry-conflict
-                (format nil " CONFLICT for ~S between ~S~%"
-                        fullname (mapcar 'namestring (brc-pathnames entry))))))))
-    (map () #'princ (sort (mapcar #'entry-string (hash-table->alist *builds*)) #'string<))))
-
+	   (destructuring-bind (fullname . entry) x
+	     (build-string-description entry fullname))))
+    (format t "~{~% ~A~})~%"
+	    (sort (mapcar #'entry-string
+			  (hash-table->alist *builds*)) #'string<))))
+  
 (defun show-source-registry-command (&rest keys &key source-registry verbosity debugging)
   (declare (ignore source-registry verbosity debugging))
   (apply 'handle-global-options :use-target-lisp nil keys)
