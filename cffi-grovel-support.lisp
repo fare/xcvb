@@ -106,7 +106,7 @@
             spec-path c-path exe-path lisp-path cc-flags)))
 
 (defmethod validate-fullname ((grain cffi-grovel-specification-grain))
-  (ensure-valid-fullname (fullname grain) :cffi-grovel))
+  (ensure-valid-fullname (fullname grain) :type :cffi-grovel))
 (define-normalize-dependency :cffi-grovel (grain name)
   (normalize-dependency-lisp* :cffi-grovel grain name))
 
@@ -237,7 +237,7 @@ This will need to be extended as we test on more OSes."
             spec-path c-path so-path lisp-path cc-flags)))
 
 (defmethod validate-fullname ((grain cffi-wrapper-specification-grain))
-  (ensure-valid-fullname (fullname grain) :cffi-wrapper))
+  (ensure-valid-fullname (fullname grain) :type :cffi-wrapper))
 (define-normalize-dependency :cffi-wrapper (grain name)
   (normalize-dependency-lisp* :cffi-wrapper grain name))
 

@@ -29,6 +29,15 @@
 
 (defgeneric compute-fullname (grain))
 
+(defun ensure-valid-fullname (name &key type (original-name name))
+  (unless (or (and (null type) (valid-fullname-p name))
+              (and (consp name) (eq type (car name))
+                   (consp (cdr name)) (valid-fullname-p (cadr name))
+                   (null (cddr name))))
+    (error "~S is not a valid XCVB fullname~@[ for grain type ~A~]"
+		original-name type))
+  name)
+
 (defun canonicalize-fullname (name)
   "This function makes sure the fullname is canonical:
 * prepends a #\/ to the beginning of the module's fullname if there isn't one there already
@@ -36,44 +45,35 @@
   ;; should also:
   ;; * bork if it isn't a portable-pathname
   ;; * remove extraneous #\/'s
-  (when (eql #\/ (last-char name))
-    (setf name (subseq name 0 (1- (length name)))))
-  (unless (eql #\/ (first-char name))
-    (setf name (strcat "/" name)))
-  (ensure-valid-fullname name)
-  name)
-
-#|
-(defun canonicalize-fullname (name)
-  "This function *removes* any #\/ from the beginning of the module's fullname."
-  (subseq name (position-if-not (lambda (x) (eql x #\/)) name) (length name)))
-|#
+  (let* ((name-no/
+	  (if (eql #\/ (last-char name))
+	      (subseq name 0 (1- (length name)))
+	      name))
+	 (/name-no/
+	  (if (eql #\/ (first-char name-no/))
+	      name-no/
+	      (strcat "/" name-no/))))
+    (ensure-valid-fullname /name-no/ :original-name name)
+    /name-no/))
 
 (defun valid-fullname-p (name)
   (ignore-errors (equal name (portable-pathname-output (portable-pathname-from-string name)))))
 
-(defun ensure-valid-fullname (name &optional type)
-  (unless (or (and (null type) (valid-fullname-p name))
-              (and (consp name) (eq type (car name))
-                   (consp (cdr name)) (valid-fullname-p (cadr name))
-                   (null (cddr name))))
-    (error "Invalid ~@[~(~A~) ~]grain fullname ~S" type name))
-  name)
 
 (defgeneric validate-fullname (grain))
 
 (defmethod validate-fullname ((grain lisp-module-grain))
-  (ensure-valid-fullname (fullname grain) :lisp))
+  (ensure-valid-fullname (fullname grain) :type :lisp))
 (defmethod validate-fullname ((grain fasl-grain))
-  (ensure-valid-fullname (fullname grain) :fasl))
+  (ensure-valid-fullname (fullname grain) :type :fasl))
 (defmethod validate-fullname ((grain cfasl-grain))
-  (ensure-valid-fullname (fullname grain) :cfasl))
+  (ensure-valid-fullname (fullname grain) :type :cfasl))
 (defmethod validate-fullname ((grain lisp-object-grain))
-  (ensure-valid-fullname (fullname grain) :lisp-object))
+  (ensure-valid-fullname (fullname grain) :type :lisp-object))
 (defmethod validate-fullname ((grain static-library-grain))
-  (ensure-valid-fullname (fullname grain) :static-library))
+  (ensure-valid-fullname (fullname grain) :type :static-library))
 (defmethod validate-fullname ((grain dynamic-library-grain))
-  (ensure-valid-fullname (fullname grain) :dynamic-library))
+  (ensure-valid-fullname (fullname grain) :type :dynamic-library))
 (defmethod validate-fullname ((grain build-module-grain))
   (ensure-valid-fullname (fullname grain)))
 

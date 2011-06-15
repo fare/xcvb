@@ -321,7 +321,7 @@ for each of its registered names."
 
 (defmethod build-string-description ((entry require-grain) fullname)
   (assert (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf)))
-  (format nil "(:ASDF ~S :SUPERSEDED-BY ~S)"
+  (format nil "(:asdf ~S :superseded-by ~S)"
 	  (second fullname) (fullname entry)))
 
 (defmethod build-string-description ((entry build-module-grain) fullname)
@@ -330,30 +330,31 @@ for each of its registered names."
 				(asdf-supersessions (finalize-grain entry))
 				:test 'equal)))
 	     (b (registered-build nn)))
-	(format nil "(:ASDF ~S :SUPERSEDED-BY ~S)"
+	(format nil "(:asdf ~S :superseded-by ~S)"
 		(second fullname) (if b `(:BUILD ,nn) `(:FASL ,nn))))
-      (format nil "(:BUILD ~S :SPECIFIED-IN ~S)"
+      (format nil "(:build ~S :in-file ~S)"
 	      fullname (namestring (grain-pathname entry)))))
 
 (defmethod build-string-description ((entry invalid-build-file) fullname)
-  (format nil "(:INVALID-BUILD :INVALID-BUILD-FILE ~S :SPECIFIED-IN ~S)"
+  (format nil "(:invalid-build :with-fullname ~S :in-file ~S)"
 	  fullname (grain-pathname entry)))
 
 (defmethod build-string-description ((entry build-registry-conflict) fullname)
-  (format nil "(:INVALID-BUILD :REGISTRY-CONFLICT ~S :AMONG ~S)"
+  (format nil "(:invalid-build :registry-conflict ~S :among ~S)"
 	  fullname (mapcar 'namestring (brc-pathnames entry))))
 
 (defun show-source-registry ()
   "Show registered builds"
-  (format t "~&;; Registered search paths:~%(:SEARCH-PATHS ~{~% ~S~})~%~%"
-	  (car *flattened-source-registry*))
-  (format t ";; Builds found in the search paths:~%(:BUILDS ")
-  (flet ((entry-string (x)
-	   (destructuring-bind (fullname . entry) x
-	     (build-string-description entry fullname))))
-    (format t "~{~% ~A~})~%"
-	    (sort (mapcar #'entry-string
-			  (hash-table->alist *builds*)) #'string<))))
+  (let ((*print-case* :downcase))
+    (format t "~&;; Registered search paths:~%(:search-paths ~{~% ~S~})~%~%"
+	    (car *flattened-source-registry*))
+    (format t ";; Builds found in the search paths:~%(:builds ")
+    (flet ((entry-string (x)
+	     (destructuring-bind (fullname . entry) x
+	       (build-string-description entry fullname))))
+      (format t "~{~% ~A~})~%"
+	      (sort (mapcar #'entry-string
+			    (hash-table->alist *builds*)) #'string<)))))
 
 (defun show-source-registry-command (&rest keys &key source-registry verbosity debugging)
   (declare (ignore source-registry verbosity debugging))

@@ -59,6 +59,8 @@
   (declare (ignore source-registry verbosity debugging))
   (apply 'handle-global-options keys)
   (log-format 10 "Listing files for build ~S~%" build)
+  ;; TODO: Put handle-case here to trap the error for a noncanonical fullname
+  ;; the the user is likely to type one day by accident.
   (loop :for spec :in build
      :for (target bgrain) = (multiple-value-list (handle-target spec))
      :collect target :into targets
