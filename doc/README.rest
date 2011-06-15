@@ -150,11 +150,15 @@ be used by CL-Launch to wrap into an application,
 but XCVB cannot create an application at this point.
 
 While experimental support exists for ABCL and XCL,
-it is slow, and we cannot create images or bundles.
+it is slow due to long lisp startup time;
+moreover, we cannot create images or bundles at this point.
 
-Some implementations are just not supported, and probably will never be,
-but do they really matter? They are obsolete or crippled.
-Yet if the demand is there, we can add some fallback support for them.
+Some implementations are just not supported;
+they might never be, but do they really matter?
+They are obsolete or crippled.
+If one of them does matter to you, you may contact us to add support,
+or you can add the support yourself.
+Or then again, you can switch to a better implementation.
 
 
 Getting Help
@@ -585,7 +589,7 @@ then reply to the master with a specification of files to load.
 The function takes as arguments the name of a build and a flurry of options.
 The build specifies what you want to update;
 the options precisely match those of ``xcvb simple-build``
-(or more precisely, those of ``xcvb make-makefile`` --- see below).
+(or more precisely, those of ``xcvb make-makefile`` — see below).
 
 The slave will complete the build then reply with a list of files to load,
 including a TTH_ digest of each file
@@ -1669,7 +1673,7 @@ See section `Compile-time side-effects`_ above.
 If you want to be able to do interactive compilation and debugging
 in the target run-time environment, you probably want any
 ``:compile-toplevel`` side-effect to *also* be a ``:load-toplevel``
-side-effect --- and for good measure you should also include
+side-effect — and for good measure you should also include
 the ``:execute`` option to ``eval-when``.
 See my blog post on `eval-when`_.
 
@@ -1749,4 +1753,4 @@ a Makefile backend, cross-compilation, eager error checking, warning control,
 an extensive command-line interface (also at the Lisp REPL),
 plus plenty of new features that are still in the works.
 Yet, XCVB (not counting library dependencies) is only twice the size of ASDF
---- and importantly, you don't have to load any of it into your current image.
+— and importantly, you don't have to load any of it into your current image.

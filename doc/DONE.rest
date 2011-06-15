@@ -6,10 +6,38 @@ DONE for XCVB
 
 Items dumped from TODO that were done.
 
- * 2011-06-08:
-   Add ECL support.
+(2011-06-09) Convert tests from shell to Lisp
+---------------------------------------------
 
- * 2011-04-27:
+Finished the conversion of the ``runme.zsh`` script to ``t/sub-xcvb.lisp``.
+
+
+(2011-06-08) ECL support [V1]
+-----------------------------
+
+ECL is a very useful implementation to support because it is very different
+from most other implementations and thus extends the niche of XCVB applicability.
+For precisely the same reason, its supports requires notable differences from other Lisps.
+
+To support it, we may need to
+
+  * create a variant or subclass of ``static-traversal``
+    to handle the linking model of ECL instead of the dumping model of other Lisps.
+    Probably duplicate or refine a lot of module ``static-traversal``.
+
+  * add new types of files ``:linker-object`` and ``:linker-archive`` for ``.o`` and ``.a``
+    files respectively. Add support for these in modules ``normalize-dependency``,
+    ``dependencies-interpreter``, ``makefile-backend`` at least.
+
+  * make simple changes in the ``driver``, the ``forker``, etc., and
+    probably less simple changes in the ``farmer`` when it's ready.
+
+As usual, the test suite is your friend.
+
+
+(2011-04-27) Port it to Windows
+-------------------------------
+
    Have a mostly portable version of XCVB
    that runs standalone on both Windows and Unix,
    have a backend that doesn't go through Make,
@@ -18,13 +46,22 @@ Items dumped from TODO that were done.
    ccl sbcl clisp ecl abcl cmucl scl allegro lispworks allegromodern xcl.
    No need to support corman, gcl, genera, mcl.
 
- * 2011-04-27:
+(2011-04-27) Put default location into per-user cache
+-----------------------------------------------------
+
    Modify default location so that /example-1/foo.lisp compiles into
    ``~/.cache/xcvb/common-lisp/sbcl-1.0.43-x86/example-1/foo.fasl``
 
- * 2011-04-27:
-   xcvb show-settings shows all the settings used, notably regarding
-   target compiler, paths, etc.
+
+(2011-04-27) Command to show settings
+-------------------------------------
+
+xcvb show-settings shows all the settings used, notably regarding
+target compiler, paths, etc.
+
+
+More
+----
 
  * 2011-03-29:
    Provide a way out of ASDF that doesn't require maintenance

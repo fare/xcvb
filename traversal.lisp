@@ -67,7 +67,7 @@
 	(user-error
 	 "There is a circularity in the dependencies:~%~{ ~S~%  includes~%~} ~S~%"
 	 mem (first mem)))))
-  
+
   (let ((grain (do-graph-for (next-traversal env spec) spec)))
     (if (typep grain 'buildable-grain)
 	(ensure-grain-generated env grain)
@@ -137,7 +137,7 @@
 (defun handle-target (fullname)
   (unless (absolute-pathname-p fullname)
     (user-error "The pathname of ~S must be absolute!" fullname))
-  
+
   (let* ((target (if fullname
                    (resolve-absolute-module-name fullname)
                    (let* ((build-file (probe-file "build.xcvb"))

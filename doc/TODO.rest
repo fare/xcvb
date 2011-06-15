@@ -654,9 +654,12 @@ XCVB Self-Test [V2]
 
 We should maintain a comprehensive test suite for XCVB.
 
-There is now test/runme.zsh, and enhancing it would be
-a good way for a hacker to start without knowing much about how XCVB works:
-collect a list of things it does, write a Makefile to test them all, etc.
+There is now a unit test system in ``t/``, and enhancing it
+would be a good way for a hacker to start
+without knowing much about how XCVB works:
+collect a list of things it does, and exercise them,
+either from inside the current Lisp image,
+or by invoking XCVB as a sub-process.
 As failures are detected and fixed, knowledge will seep in.
 
 An XCVB self-test suite would include:
@@ -713,6 +716,11 @@ Map actual paths to and from variablized strings, i.e. have
 ``${FOO}/bar/${GAH}`` in your path; it will search for files there,
 and output ``${FOO}/bar/${GAH}/xcvb/build.xcvb``
 in the ``Makefile`` (instead of the full expansion).
+
+Use logical-pathnames so that implementations should remember
+appropriate debugging information???
+That's optimization way down the line [V3].
+
 
 
 Initialization and Finalization [V2]
@@ -1095,29 +1103,6 @@ To correctly handle more complex cases,
 Note that the conversion can be tested with::
 
 	xcvb x2a -b /xcvb -o /tmp/blah.asd
-
-
-ECL support [V1]
-----------------
-
-ECL is a very useful implementation to support because it is very different
-from most other implementations and thus extends the niche of XCVB applicability.
-For precisely the same reason, its supports requires notable differences from other Lisps.
-
-To support it, we may need to
-
-  * create a variant or subclass of ``static-traversal``
-    to handle the linking model of ECL instead of the dumping model of other Lisps.
-    Probably duplicate or refine a lot of module ``static-traversal``.
-
-  * add new types of files ``:linker-object`` and ``:linker-archive`` for ``.o`` and ``.a``
-    files respectively. Add support for these in modules ``normalize-dependency``,
-    ``dependencies-interpreter``, ``makefile-backend`` at least.
-
-  * make simple changes in the ``driver``, the ``forker``, etc., and
-    probably less simple changes in the ``farmer`` when it's ready.
-
-As usual, the test suite is your friend.
 
 
 Better Debugging [V3]

@@ -342,7 +342,7 @@ for each of its registered names."
 (defmethod build-string-description ((entry build-registry-conflict) fullname)
   (format nil "(:INVALID-BUILD :REGISTRY-CONFLICT ~S :AMONG ~S)"
 	  fullname (mapcar 'namestring (brc-pathnames entry))))
-    
+
 (defun show-source-registry ()
   "Show registered builds"
   (format t "~&;; Registered search paths:~%(:SEARCH-PATHS ~{~% ~S~})~%~%"
@@ -354,7 +354,7 @@ for each of its registered names."
     (format t "~{~% ~A~})~%"
 	    (sort (mapcar #'entry-string
 			  (hash-table->alist *builds*)) #'string<))))
-  
+
 (defun show-source-registry-command (&rest keys &key source-registry verbosity debugging)
   (declare (ignore source-registry verbosity debugging))
   (apply 'handle-global-options :use-target-lisp nil keys)

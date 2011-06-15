@@ -296,9 +296,11 @@
 (defun call-with-xcvb-build-dir (thunk &rest keys)
   (apply 'validate-xcvb-checkout keys)
   (apply 'clean-xcvb-dir keys)
-  (apply 'ensure-build-directories keys)
-  (apply thunk keys)
-  (apply 'clean-xcvb-dir keys))
+  (unwind-protect
+       (progn
+         (apply 'ensure-build-directories keys)
+         (apply thunk keys))
+    (apply 'clean-xcvb-dir keys)))
 
 (defun validate-xcvb-dir (&rest keys)
   (compute-xcvb-dir-variables! keys)
@@ -326,9 +328,11 @@
   (compute-release-dir-variables! keys)
   (apply 'validate-release-checkout keys)
   (apply 'clean-release-dir keys)
-  (apply 'ensure-build-directories keys)
-  (apply thunk keys)
-  (apply 'clean-release-dir keys))
+  (unwind-protect
+       (progn
+         (apply 'ensure-build-directories keys)
+         (apply thunk keys))
+    (apply 'clean-release-dir keys)))
 
 (defun validate-release-dir (&rest keys)
   (compute-release-dir-variables! keys)
