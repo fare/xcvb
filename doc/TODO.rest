@@ -49,9 +49,8 @@ and background on the design and ultimate goals of XCVB.
       4.16  XCVB configuration [V2]
       4.17  Configuration Management [V2]
       4.18  Better ASDF backend [V2]
-      4.19  ECL support [V1]
-      4.20  Better Debugging [V3]
-      4.21  Support common ASDF Extensions [V1]
+      4.19  Better Debugging [V3]
+      4.20  Support common ASDF Extensions [V1]
     5  Internals [V4]
       5.1  Type-Checking [V4]
       5.2  Error handling [V4]
@@ -754,8 +753,13 @@ After a whole system is compiled,
 but before a bundle (library or executable) is created,
 it might be useful to run some code to finalize internal datastructures,
 grab a version number from git, etc.
-In some targets (e.g. ECL), this might mean compiling a temporary file
-with appropriate commands in it, the result of which is to be linked in.
+
+On ECL and other linking targets (if any; ABCL maybe),
+this might mean compiling a temporary file with appropriate commands in it,
+the result of which is to be linked in;
+additionally, the code may have to be loaded as well as linked
+so as to evaluate the functions and macros used in creating the final bit.
+
 
 
 Tests [V2]

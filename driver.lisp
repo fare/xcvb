@@ -97,7 +97,7 @@
 
 (in-package :xcvb-driver)
 
-;;; Optimization settings
+;;; Initial implementation-dependent setup
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *implementation-settings*
     `(;; These should ensure all tail calls are optimized, says jsnell:
@@ -106,10 +106,7 @@
   (defvar *optimization-settings*
     `((speed 2) (safety 3) (compilation-speed 0) (debug 2)
       ,@*implementation-settings*))
-  (proclaim `(optimize ,@*optimization-settings*)))
-
-;;; Initial implementation-dependent setup
-(eval-when (:compile-toplevel :load-toplevel :execute)
+  (proclaim `(optimize ,@*optimization-settings*))
   ;; otherwise ACL 5.0 may crap out on ASDF dependencies,
   ;; but even other implementations may have "fun" debugging.
   (setf *print-readably* nil)
@@ -128,9 +125,10 @@
           compiler::*lsp-ext* ""))
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
-  #+ecl (let ((*load-verbose* nil)) (require :cmp))
+  #+(and ecl (not bytecmp)) (let ((*load-verbose* nil)) (require :cmp))
+  #+sbcl (require :sb-posix)
   (let* ((unix #+(or unix cygwin) t)
-         (windows #+(and (or win32 windows mswindows mingw32) (not unix)) t))
+         (windows #+(and (or win32 windows mswindows mingw32) (not cygwin)) t))
     (cond
       ((and unix windows) (error "Your operating system is simultaneously Unix and Windows?~%~
 Congratulations. Now fix XCVB for it assumes that's impossible"))
@@ -161,6 +159,12 @@ but before the entry point is called.")
      "&OPTIONAL and &KEY found in the same lambda list: ~S"
      sb-int:package-at-variance
      sb-kernel:uninteresting-redefinition
+     ;; the below four are controversial to include here;
+     ;; however there are issues with the asdf upgrade if they are not present
+     sb-kernel:redefinition-with-defun
+     sb-kernel:redefinition-with-defgeneric
+     sb-kernel:redefinition-with-defmethod
+     sb-kernel:redefinition-with-defmacro
      sb-kernel:undefined-alien-style-warning
      sb-ext:implicit-generic-function-warning
      sb-kernel:lexical-environment-too-complex
@@ -494,9 +498,6 @@ This is designed to abstract away the implementation specific quit forms."
 (defun call-with-controlled-loader-conditions (thunk)
   (let ((*uninteresting-conditions*
          (append
-          #+sbcl '(sb-kernel:redefinition-with-defun
-                   sb-kernel:redefinition-with-defgeneric
-                   sb-kernel:redefinition-with-defmethod)
           #+clisp '(clos::simple-gf-replacing-method-warning)
           *uninteresting-conditions*)))
     (call-with-controlled-compiler-conditions thunk)))
@@ -676,7 +677,6 @@ This is designed to abstract away the implementation specific quit forms."
                         &key #+sbcl cfasl #+ecl lisp-object)
   (let ((*goal* `(:compile-lisp ,source))
         (*default-pathname-defaults* (truename *default-pathname-defaults*)))
-    #+ecl (require :cmp)
     (multiple-value-bind (output-truename warnings-p failure-p)
         (with-profiling `(:preparing-and-compiling ,source)
           (with-xcvb-compilation-unit ()
@@ -844,7 +844,6 @@ This is designed to abstract away the implementation specific quit forms."
 			 &key kind output-name pre-image-dump post-image-restart entry-point)
   (let ((*goal* `(create-bundle ,bundle ,dependencies ,@keys))
 	(first-dep (car dependencies)))
-    (require :cmp)
     (multiple-value-bind (object-files manifest)
         (case (first first-dep)
           ((:load-manifest)
@@ -890,33 +889,60 @@ This is designed to abstract away the implementation specific quit forms."
     (apply 'do-create-image image dependencies keys)))
 
 (defvar *pathname-mappings* (make-hash-table :test 'equal)
-  "Mappings from xcvb fullname to pathname")
+  "Mappings from xcvb fullname to plist of
+ (physical) :pathname, :logical-pathname, :tthsum digest, etc.")
 
 (defun pathname-directory-pathname (pn)
   (make-pathname :name nil :type nil :version nil :defaults pn))
-(defun register-pathname-mapping (&key name path #|logical|#)
-  ;; should we add a logical pathname translation?
-  (setf (gethash name *pathname-mappings*) (truename path))
+
+(defun register-fullname (&key fullname pathname tthsum logical-pathname)
+  (setf (gethash fullname *pathname-mappings*)
+        (list :truename (truename (merge-pathnames pathname))
+              :pathname pathname :logical-pathname logical-pathname
+              :tthsum tthsum))
   (values))
-(defun register-pathname-mappings (mappings &key (defaults *load-truename*))
+(defun register-fullnames (mappings &key (defaults *load-truename*))
   (let ((*default-pathname-defaults*
          (or (and defaults (truename (pathname-directory-pathname defaults)))
              *default-pathname-defaults*)))
     (dolist (m mappings)
-      (apply 'register-pathname-mapping m))))
-(defun pathname-mapping (name)
-  (gethash name *pathname-mappings*))
-(defun load-pathname-mappings (file)
+      (apply 'register-fullname-mapping m))))
+(defun fullname-pathname (fullname)
+  (let ((plist (gethash fullname *pathname-mappings*)))
+    (or (getf plist :logical-pathname) (getf plist :truename))))
+(defun load-fullname-mappings (file)
   (let ((tn (truename file)))
-    (register-pathname-mappings (read-first-form tn) :defaults tn)))
+    (register-fullnames (read-first-form tn) :defaults tn)))
+
+(defun getcwd ()
+  (or #+ccl (ccl:current-directory)
+      #+clisp (ext:default-directory)
+      #+sbcl (sb-posix:getcwd)
+      (error "getcwd not supported on your implementation")))
+
+(defun chdir (x)
+  (when (pathnamep x) (setf x (#-scl namestring #+scl posix-namestring x)))
+  (or #+ccl (setf (ccl:current-directory) x)
+      #+clisp (ext:cd x)
+      #+sbcl (sb-posix:chdir x)
+      (error "getcwd not supported on your implementation")))
+
+(defun call-with-current-directory (dir thunk)
+  (let* ((dir (truename (merge-pathnames (pathname-directory-pathname dir))))
+         (*default-pathname-defaults* dir)
+         (cwd (getcwd)))
+    (chdir dir)
+    (unwind-protect
+         (funcall thunk)
+      (chdir cwd))))
+
+(defmacro with-current-directory ((dir) &body body)
+  `(call-with-current-directory ,dir #'(lambda () ,@body)))
 
 (defun process-cffi-grovel-file (input c exe output &key cc-flags)
-  (flet ((f (x) (namestring (merge-pathnames x))))
-    (let* ((input (f input))
-           (c (f c))
-           (exe (f exe))
-           (output (f output))
-           (*default-pathname-defaults* (pathname-directory-pathname exe)))
+  (destructuring-bind (input c exe output)
+      (mapcar 'fullname-pathname (list input c exe output))
+    (with-current-directory (exe)
       (progv (list (find-symbol* :*cc-flags* :cffi-grovel)) (list cc-flags)
         (call :cffi-grovel :generate-c-file input c)
         (call :cffi-grovel :cc-compile-and-link c exe)
