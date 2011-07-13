@@ -68,4 +68,12 @@ flags) for the different targets.
  * Distributed build
    many machines in parallel
 
-
+9. XCVB doesn't do something I need like: supporting a target
+compiler, reading a dependency language, or evaluating the computations
+in a certain manner, so I want to follow a published API which tells
+me how to write a plugin/extension which performs what I need. Then,
+there should be a place I can go to contribute the extension. All
+extensions should be written under MIT License and if so, the XCVB
+developers will be very amenable to accepting it for distribution.
+XCVB should understand how to use xcvb extensions gotten from Quicklisp
+for people who want to circumvent our official distribution mechanism.
