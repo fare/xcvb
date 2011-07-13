@@ -1,0 +1,71 @@
+Tutorial Outline / Roadmap of incremental functionality.
+
+I'm a new user to Common Lisp, and I hear about xcvb to build my software, what are the
+first things I'll expect to work?
+
+0. How do I get and install XCVB if it is not already on my distro?
+[We should ensure that fedora, rhel, debian, ubuntu, gentoo have xcvb as a distro package.
+And binary distributions for MacOSX, Windows.
+Make sure it is buildable from source with one of 4 lisp environments: SBCL, CLOZURE, CLISP, ECL.]
+
+1. The first thing I'll do is write a hello world project. I expect a binary as an output.
+[XCVB should support two styles of authoring: the REPL, and at the shell command line.]
+
+[in the shell command environment]
+I expect to write these files:
+hello-world.lisp
+build.xcvb
+
+Then I expect to 'xcvb' to automatically read build.xcvb in the current working directory
+and produce the finished binary is the result. Without me specifying it, the simple-build
+backend is the one that should be chosen by xcvb.
+
+[in the REPL]
+?
+
+2. I want to expand my hello-world example by including some other libraries in common lisp.
+I add the "Alexandria" library as a dependency.
+Now:
+  What if it isn't installed on my machine?
+  How do I get it if it isn't?
+  How do I tell xcvb where to find it? What do I do in the build.xcvb?
+  How does this dependency get built? [It is an asdf project, xcvb builds it for me or quicklisp?]
+  I'll likely use Quicklisp to get it, should xcvb understand Quicklisp somehow?
+
+3. Now, my application is getting bigger, I want to separate the
+source into a couple of libraries internal to my application.How do I
+do that with xcvb? [This is the first time I'll really have to
+understand the notion of the namespace of libraries, the "fullname"
+and the "root repository". Should those concepts have an overhaul or
+are they ok the way they stand?]
+
+app/
+    main.lisp
+    stuff.lisp
+    lib1/
+         foo.lisp
+	 bar.lisp
+    lib2/
+         stuff.lisp
+	 bar.lisp [different source file]
+
+4. Now, I find that I need to write a small C library in order to implement some funcitonality,
+so how do I specify the c/c++ files, the compiler flags, etc, in order to compile those files.
+Plus I need to use CFFI, so how do I ensure the dependency of the C fle and library production
+occur in the right location to the loading of the CFFI lisp files? I need to intermix the
+lisp and C/C++/Fortran compilation into the whole dependency graph.
+
+5. Testing
+
+6. Generated source files for later compilation into the application dependency graph.
+
+7. So my application is now bigger and I want to generate multiple executables or targets.
+Some of the SAME source files may be compiled differently (with different debugging or optimization
+flags) for the different targets.
+
+8. Parallel build.
+ many process in parallel
+ * Distributed build
+   many machines in parallel
+
+

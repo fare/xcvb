@@ -1,0 +1,42 @@
+Peter's homework.
+* add documentation to run-program/* and friends, document things in general as I learn them...
+* [IN PROGRESS] Keep converting ERROR to USER-ERROR
+* [IN PROGRESS] Robustify ssr: give a nice english sentence about what went wrong and no bt.
+  - missing files in various contexts
+  - incorrect stuff in build.xcvb
+  - use handler-case as appropriate
+* fix list-files [show all files in a build, either recursively or not, pruning unused files or not]
+  - use handler-case for list-files in handle-target
+  - xcvb lf --build \n produces error in command-line library.
+  - Fails to resolve partial dependency dags, maybe make it a warning in this
+    case? [harder than I think to fix]
+* [IN PROGRESS] write up the DSL and extension idea, write mockup code for what it looks like.
+* Clean up the internals file.
+* Write a document stating what I, as a user, would want out of XCVB right away. Also, how important
+is it to have timestamp or content based dependency updates?
+
+Fare's homework.
+1- Fix manifest format:
+ * store primitives in the build-command-for languages.
+ * use some generic mechanism to extract grain/vp/filenames from build commands!
+ * pass not a pathname, but a command in the xcvb-driver language.
+ * optionally pass a list with a digest for each input grain.
+
+2- always pass some file mapping, as either a file to load
+ or a form passed before the driver is invoked.
+
+ * Test and debug run-program/* on Windows.
+
+ * Have a "build" backend dispatcher that automatically choose an appropriate actual backend
+ * Have slave-builder use "build"
+
+ * Build test infrastructure into XCVB ?
+ * Testing:
+  * add support for executables to nemk backend.
+  * ask Java guys how they do testing...
+
+General Homework
+
+1. Add linkkit to SBCL.
+https://bugs.launchpad.net/sbcl/+bug/794713
+
