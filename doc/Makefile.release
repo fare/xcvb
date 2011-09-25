@@ -27,14 +27,31 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 		XCVB_OBJECT_DIRECTORY=${XCVB_OBJECT_DIRECTORY} \
 		RELEASE_DIR=${RELEASE_DIR} XCVB_DIR=${XCVB_DIR}
 
-GIT_DEPENDENCIES := \
-	alexandria asdf asdf-dependency-grovel babel binascii bordeaux-threads \
-	cffi cl-launch command-line-arguments fare-utils fare-matcher \
-	iolib ironclad poiu quux-iolib rucksack
 
-DARCS_DEPENDENCIES := closer-mop trivial-garbage trivial-features named-readtables
+### The dependencies, in case you want them.
 
-DEPENDENCIES := ${GIT_DEPENDENCIES} ${DARCS_DEPENDENCIES}
+DEPENDENCIES := \
+	GIT git://common-lisp.net/projects/xcvb/alexandria.git ; \
+	GIT git://common-lisp.net/projects/asdf/asdf.git ; \
+	GIT git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git ; \
+	GIT git://common-lisp.net/projects/xcvb/babel.git ; \
+	GIT git://github.com/froydnj/binascii.git ; \
+	GIT git://common-lisp.net/projects/xcvb/bordeaux-threads.git ; \
+	GIT git://common-lisp.net/projects/xcvb/cffi.git ; \
+	GIT git://common-lisp.net/projects/xcvb/cl-launch.git ; \
+	GIT git://common-lisp.net/projects/qitab/command-line-arguments.git ; \
+	GIT git://common-lisp.net/users/frideau/fare-utils.git ; \
+	GIT git://common-lisp.net/users/frideau/fare-matcher.git ; \
+	GIT git://common-lisp.net/users/frideau/fare-mop.git ; \
+	GIT git://common-lisp.net/projects/xcvb/iolib.git ; \
+	GIT git://github.com/froydnj/ironclad.git ; \
+	GIT git://common-lisp.net/projects/xcvb/rucksack.git -b xcvb ; \
+	GIT git://common-lisp.net/projects/qitab/poiu.git ; \
+	GIT git://common-lisp.net/projects/xcvb/quux-iolib.git ; \
+	DARCS http://common-lisp.net/project/xcvb/darcs/closer-mop ; \
+	DARCS http://common-lisp.net/project/editor-hints/darcs/named-readtables ; \
+	DARCS http://common-lisp.net/project/xcvb/darcs/trivial-features ; \
+	DARCS http://common-lisp.net/project/xcvb/darcs/trivial-garbage ;
 
 
 install-cl-launch:
@@ -67,45 +84,29 @@ install-using-asdf: install-source
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
 
 checkout:
-	clone () { url=$$1 ; x=$$(basename $$url .git) ; shift ; \
+	GIT () { url=$$1 ; x=$$(basename $$url .git) ; shift ; \
 	  if [ -d $$x ] ; then echo "Already got $$x" ; \
 	  else git clone $$@ $$url ; fi } ; \
-	get () { x=$$(basename $$1) ; \
+	DARCS () { x=$$(basename $$1) ; \
 	  if [ -d $$x ] ; then echo "Already got $$x" ; \
 	  else darcs get $$1 ; fi ; } ; \
-	clone git://common-lisp.net/projects/xcvb/xcvb.git && \
-	mkdir -p dependencies && cd dependencies && \
-	clone git://common-lisp.net/projects/xcvb/alexandria.git && \
-	clone git://common-lisp.net/projects/asdf/asdf.git && \
-	clone git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git && \
-	clone git://common-lisp.net/projects/xcvb/babel.git && \
-	clone git://github.com/froydnj/binascii.git && \
-	clone git://common-lisp.net/projects/xcvb/bordeaux-threads.git && \
-	clone git://common-lisp.net/projects/xcvb/cffi.git && \
-	clone git://common-lisp.net/projects/xcvb/cl-launch.git && \
-	clone git://common-lisp.net/projects/qitab/command-line-arguments.git && \
-	clone git://common-lisp.net/users/frideau/fare-utils.git && \
-	clone git://common-lisp.net/users/frideau/fare-matcher.git && \
-	clone git://common-lisp.net/projects/xcvb/iolib.git && \
-	clone git://github.com/froydnj/ironclad.git && \
-	clone git://common-lisp.net/projects/xcvb/rucksack.git -b xcvb && \
-	clone git://common-lisp.net/projects/qitab/poiu.git && \
-	clone git://common-lisp.net/projects/xcvb/quux-iolib.git && \
-	get http://common-lisp.net/project/xcvb/darcs/closer-mop && \
-	get http://common-lisp.net/project/editor-hints/darcs/named-readtables && \
-	get http://common-lisp.net/project/xcvb/darcs/trivial-features && \
-	get http://common-lisp.net/project/xcvb/darcs/trivial-garbage
+	set -e ; \
+	GIT git://common-lisp.net/projects/xcvb/xcvb.git ; \
+	mkdir -p dependencies ; cd dependencies ; \
+	${DEPENDENCIES}
 
 fake-release-directory:
 	[ -n "${RELEASE_DIR}" ] || { echo "RELEASE_DIR not defined" ; exit 42 ;} ; \
 	mkdir -p "${RELEASE_DIR}" ; \
 	[ -n "${RELEASE_EXCLUDE}" ] || { echo "RELEASE_EXCLUDE not defined" ; exit 42 ;} ; \
-	mkdir -p ${RELEASE_DIR}/dependencies ${RELEASE_DIR}/xcvb && \
-	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} && \
-	rsync -av ${RELEASE_EXCLUDE} ./ ${RELEASE_DIR}/xcvb/ && \
-	for i in ${DEPENDENCIES} ; do \
-	  rsync -av ${RELEASE_EXCLUDE} ../$$i ${RELEASE_DIR}/dependencies/ ; \
-	done
+	set -e ; \
+	mkdir -p ${RELEASE_DIR}/dependencies ${RELEASE_DIR}/xcvb ; \
+	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} ; \
+	rsync -av ${RELEASE_EXCLUDE} ./ ${RELEASE_DIR}/xcvb/ ; \
+	DEPENDENCIES= ; \
+	R () { rsync -av ${RELEASE_EXCLUDE} ../$$1 ${RELEASE_DIR}/dependencies/ ; } ; \
+	GIT () { R $$(basename $$1 .git) ;} ; \
+	DARCS () { R $$(basename $$1) ;} ; \
 	${MAKE} -C ${RELEASE_DIR} -f xcvb/doc/Makefile.release prepare-release
 
 gc:
@@ -114,20 +115,20 @@ gc:
 	  (echo -n "Packing $$i..." ; cd dependencies/$$i ; git gc ; git repack -Ad) ; done
 
 update:
-	echo -n "Updating xcvb..." ; cd xcvb ; git pull -a
-	for i in ${GIT_DEPENDENCIES} ; do \
-	  (echo -n "Updating $$i... " ; cd dependencies/$$i ; git pull origin master:master) ; \
-	done
-	(echo -n "Updating dependencies/closer-mop... " ; cd dependencies/closer-mop ; \
-	darcs pull -a )
+	set -e ; echo -n "Updating xcvb..." ; cd xcvb ; git pull -a ; \
+	GIT () { (i=$$(basename $$1 .git) ; echo -n "Updating $$i... " ; \
+		cd dependencies/$$i ; git pull origin master:master); } ; \
+	DARCS () { (i=$$(basename $$1) ; echo -n "Updating $$i... " ; \
+		cd dependencies/$$i ; darcs pull -a ); } ; \
+	${DEPENDENCIES}
 
 reset:
-	echo -n "Resetting xcvb..." ; cd xcvb ; git reset --hard
-	for i in ${GIT_DEPENDENCIES} ; do \
-	  (echo -n "Resetting $$i... " ; cd dependencies/$$i ; git reset --hard) ; \
-	done
-	(echo -n "Updating dependencies/closer-mop... " ; cd dependencies/closer-mop ; \
-	darcs revert -a )
+	set -e ; echo -n "Resetting xcvb..." ; cd xcvb ; git reset --hard ; \
+	GIT () { (i=$$(basename $$1 .git) ; echo -n "Resetting $$i... " ; \
+		cd dependencies/$$i ; git reset --hard); } ; \
+	DARCS () { (i=$$(basename $$1) ; echo -n "Resetting $$i... " ; \
+		cd dependencies/$$i ; darcs revert -a ); } ; \
+	${DEPENDENCIES}
 
 prepare-release:
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \

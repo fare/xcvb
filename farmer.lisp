@@ -188,7 +188,7 @@ and extra finalization from calling FUN on the world."
                              &key inputs outputs command &allow-other-keys)
   (cond
     ((or (eq :compile-file-directly (first command))
-        (equal '(:fasl "/xcvb/forker") (fullname (first outputs))))
+         (equal '(:fasl "/xcvb/forker") (fullname (first outputs))))
      (call-next-method))
     (t
      (multiple-value-bind (setup commands)

@@ -1095,7 +1095,7 @@ Otherwise, signal an error.")
      (with-output (stream)
        (princ token stream)))))
 
-(defun escape-command (command s &optional
+(defun escape-command (command &optional s
                        (escaper #+os-unix 'escape-sh-token
                                 #+os-windows 'escape-windows-token))
   (with-output (s)

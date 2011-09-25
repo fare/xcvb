@@ -181,10 +181,12 @@ and a few generated files sufficient to bootstrap the whole thing in:
 
            http://common-lisp.net/project/xcvb/releases/
 
-From the toplevel directory of the expanded release tarball, you can afterwards ``make update``
+From the toplevel directory of the expanded release tarball,
+you can afterwards ``make update``
 and it will update XCVB and its dependencies to the latest version.
 
-If you want instead to download XCVB as part of your pre-existing Lisp development environment,
+If you want instead to download XCVB as part of
+your pre-existing Lisp development environment,
 you will have to also download all our `dependencies`_.
 You can checkout our public repository with::
 
@@ -212,12 +214,14 @@ sufficient to bootstrap XCVB at:
 You will still need a Lisp implementation to build and run XCVB itself,
 and to build and run the target software that you will build with XCVB:
 
-  * We develop mainly with SBCL (CFASL support is included in SBCL 1.0.30.4 or later):
+  * We develop mainly with SBCL
+    (CFASL support is included in SBCL 1.0.30.4 or later):
 	- homepage: http://sbcl.sourceforge.net/
 	- CLiki page: http://cliki.net/SBCL
         - get it from: http://sbcl.sourceforge.net/platform-table.html
 
-  * We also make our best to keep it running with the following other Lisp implementations:
+  * We also make our best to keep it running with
+    the following other Lisp implementations:
 	- Clozure CL: http://ccl.clozure.com/
 	- GNU CLISP: http://clisp.cons.org/
 
@@ -229,8 +233,15 @@ and to build and run the target software that you will build with XCVB:
     We will assist you, and may even do it for you if we have access
     to the implementation on top of which you are interested in using XCVB.
 
+If you want to automatically download all of XCVB's dependencies,
+you may run this command from the ``xcvb/`` directory::
+
+	make -f doc/Makefile.release checkout
+
 If you prefer to collect XCVB's dependencies manually into your system,
-you will need the following Lisp software libraries to get XCVB running:
+you should consult the above file, as it is the authoritative source
+for the list of XCVB dependencies. These dependencies include
+the following Lisp software libraries:
 
   * cl-launch 3.011 or later:
 	- homepage: http://cliki.net/CL-Launch
@@ -239,7 +250,7 @@ you will need the following Lisp software libraries to get XCVB running:
         - getting it, if you're an XCVB project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
-  * ASDF 2.016 or later, aka ASDF 2:
+  * ASDF 2.017 or later, aka ASDF 2:
 	- homepage: http://cliki.net/asdf
 	- getting it:
 		``git clone git://common-lisp.net/projects/asdf/asdf.git``
