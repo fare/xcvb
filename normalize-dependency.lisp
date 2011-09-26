@@ -34,6 +34,8 @@ a reference to the system was superseded by a build.xcvb file.")
 (define-simple-dispatcher normalize-dependency #'normalize-dependency-atom)
 
 (defun normalize-dependency-atom (grain name)
+  (check-type grain grain)
+  (check-type name string)
   (let ((g (resolve-module-name name grain)))
     (etypecase g
       (null (error "~@<Failed to resolve name ~S from grain ~S~@[ pathname ~S~]~:>"
@@ -91,7 +93,7 @@ a reference to the system was superseded by a build.xcvb file.")
        `(:asdf ,n))
       (build-module-grain
        (finalize-grain superseding)
-       (let ((nn (second (assoc name (asdf-supersessions superseding) :test 'equal))))
+       (let ((nn (second (assoc n (asdf-supersessions superseding) :test 'equal))))
          (unless (member n *asdf-systems-warned* :test 'equal)
            (push n *asdf-systems-warned*))
          (normalize-dependency-atom superseding nn)))

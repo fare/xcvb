@@ -26,11 +26,14 @@ deterministic separate compilation and enforced locally-declared dependencies."
                      (:build "/command-line-arguments")
                      (:build "/fare-utils") ;; utilities and data structures.
                      (:build "/fare-matcher") ;; fare-matcher and fare-quasiquote
+                     (:build "/fare-matcher") ;; fare-matcher and fare-quasiquote
+                     (:build "/fare-mop") ;; fare-matcher and fare-quasiquote
                      (:when (:featurep :xcvb-farmer)
                        (:build "/iolib") ;; I/O event loop
                        (:build "/quux/iolib")) ;; signalfd support (experimental)
-                     (:asdf :ironclad) ;; unported magic asdf:perform methods...
-                     (:asdf :binascii)
+                     (:asdf "babel")
+                     (:asdf "ironclad") ;; unported magic asdf:perform methods...
+                     (:asdf "binascii")
                      (:when (:featurep (:not :clisp))
                        (:build "/rucksack"))
                      (:when (:featurep :sbcl)

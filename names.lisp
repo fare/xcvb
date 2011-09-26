@@ -125,6 +125,7 @@
 
 (defun resolve-module-name (name grain)
   "Resolve module NAME in the context of build into an appropriate grain, if any"
+  (check-type name string)
   (if (portable-pathname-absolute-p name)
     (resolve-absolute-module-name name)
     (loop
