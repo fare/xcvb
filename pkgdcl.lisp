@@ -13,7 +13,7 @@
 (defpackage :xcvb
   (:use :closer-common-lisp
         :xcvb-driver :command-line-arguments :asdf
-        :fare-matcher :fare-utils :interface :pure
+        :fare-matcher :fare-utils :interface :pure :fare-mop
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
   #+xcvb-farmer

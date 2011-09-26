@@ -43,6 +43,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                        (:require :sb-introspect)
                        (:require :sb-bsd-sockets)))
   :depends-on ("conditions"
+               "digest"
                "manifest"
                "grain-implementation"
                "grain-sets"

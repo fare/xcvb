@@ -58,6 +58,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "specials" :depends-on ("pkgdcl"))
      (:file "macros" :depends-on ("pkgdcl"))
      (:file "profiling" :depends-on ("pkgdcl"))
+     (:file "digest" :depends-on ("pkgdcl"))
      (:file "utilities" :depends-on ("macros"))
      (:file "logging" :depends-on ("specials"))
      (:file "lisp-invocation" :depends-on ("specials"))
