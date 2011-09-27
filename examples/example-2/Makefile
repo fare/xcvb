@@ -1,6 +1,5 @@
-
 TARGET=example-2
-XCVB_ROOT := $(shell readlink -f ../..)
+XCVB_ROOT := $(shell cd ../.. ; /bin/pwd)
 XCVB_OBJECT_DIRECTORY=$(XCVB_ROOT)/examples/${TARGET}/obj
 XCVB_IMAGE=${XCVB_OBJECT_DIRECTORY}/${TARGET}.image
 

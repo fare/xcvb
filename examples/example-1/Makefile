@@ -1,5 +1,5 @@
 LISP ?= sbcl
-XCVB_ROOT := $(shell readlink -f ../..)
+XCVB_ROOT := $(shell cd ../.. ; /bin/pwd)
 XCVB_OBJECT_DIRECTORY := $(shell xcvb show --lisp-implementation ${LISP} object-directory)
 EXAMPLE_1_EXE=${XCVB_OBJECT_DIRECTORY}/xcvb/example-1/example-1
 

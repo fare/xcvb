@@ -144,11 +144,11 @@
   (let ((ssr (run-program/read-output-string
               (format nil "~S ssr --source-registry ~S"
                       xcvb (format nil "~A//:~@[~A~]" xcvb-dir source-registry)))))
-    (is (cl-ppcre:scan "\\(:BUILD \"/xcvb\"\\) in \".*/build.xcvb\"" ssr)
+    (is (cl-ppcre:scan "\\(:build \"/xcvb\" :in-file \".*/build.xcvb\"\\)" ssr)
         "Can't find build for xcvb")
-    (is (search "(:ASDF \"xcvb\") superseded by (:BUILD \"/xcvb\")" ssr)
+    (is (search "(:asdf \"xcvb\" :superseded-by (:build \"/xcvb\"))" ssr)
         "can't find superseded asdf for xcvb")
-    (is (cl-ppcre:scan "CONFLICT for \"/xcvb/test/conflict/b\" between \\(\".*/examples/conflict/b2?/build.xcvb\" \".*/examples/conflict/b2?/build.xcvb\"\\)" ssr)
+    (is (cl-ppcre:scan "\\(:invalid-build :registry-conflict \"/xcvb/test/conflict/b\" :among \\(\".*/examples/conflict/b2?/build.xcvb\" \".*/examples/conflict/b2?/build.xcvb\"\\)\\)" ssr)
         "can't find conflict for /xcvb/test/conflict/b")))
 
 (defun validate-xcvb (&rest keys &key implementation-type &allow-other-keys)
