@@ -31,9 +31,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
                      (:when (:featurep :xcvb-farmer)
                        (:build "/iolib") ;; I/O event loop
                        (:build "/quux/iolib")) ;; signalfd support (experimental)
-                     (:asdf "babel")
-                     (:asdf "ironclad") ;; unported magic asdf:perform methods...
-                     (:asdf "binascii")
+                     (:build "babel")
+                     (:build "ironclad")
+                     (:build "binascii")
                      (:when (:featurep (:not :clisp))
                        (:build "/rucksack"))
                      (:when (:featurep :sbcl)

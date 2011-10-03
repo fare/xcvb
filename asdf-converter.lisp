@@ -2,6 +2,8 @@
 
 (in-package :xcvb)
 
+(declaim (optimize (safety 3) (debug 3) (speed 1)))
+
 (defun equivalent-deps-p (module)
   "This function takes a module and returns whether or not
 its compile and load dependencies are in such a form that
@@ -161,9 +163,11 @@ until something else is found, then return that header as a string"
   (get-dependencies-from-components (list component)))
 
 
-(defun get-build-module-grain-for-asdf-system (asdf-system original-systems asdf-deps
-                                        original-traverse-order-map &key name)
-  "Returns a build-module-grain with information from the given asdf system"
+(defun get-build-module-grain-for-asdf-system
+    (asdf-system original-systems asdf-deps
+     original-traverse-order-map &key name)
+  "Returns a build-module-grain with information from the given asdf system,
+assuming said system is a simplified system as created by"
   (flet ((maybe-slot-value (object slot)
            (if (slot-boundp object slot)
              (slot-value object slot))))
@@ -232,16 +236,20 @@ until something else is found, then return that header as a string"
 
 (defun dependency-sort (components component-order-map)
   "Sorts a list of asdf components according to their dependencies."
-  (sort components #'< :key (lambda (x) (or (component-position x component-order-map) -1))))
+  (sort components #'< :key
+        (lambda (x) (or (component-position x component-order-map) -1))))
 
 (defun get-module-for-component (asdf-component build-module-grain
                                  name-component-map original-traverse-order-map)
   "Returns a module object for the file represented by the given asdf-component"
-  (let* ((comp-position (component-position asdf-component original-traverse-order-map))
-         (component-dependencies (get-dependencies-from-component asdf-component))
+  (let* ((comp-position
+          (component-position asdf-component original-traverse-order-map))
+         (component-dependencies
+          (get-dependencies-from-component asdf-component))
          (backward-deps
           (labels ((forward-dep-p (dep)
-                     (> (component-position dep original-traverse-order-map) comp-position))
+                     (> (component-position dep original-traverse-order-map)
+                        comp-position))
                    (forward-dep-p* (dep)
                      (and (forward-dep-p dep)
                           (progn
@@ -322,16 +330,17 @@ so that the system can now be compiled with XCVB."
     (log-format 6 "Clear the system cache *again* because we'll re-define thing transformed.")
     (dolist (sys systems) (remhash sys asdf::*defined-systems*))
     (asdf:initialize-output-translations "/:")
-    (eval
-     `(asdf:defsystem ,simplified-system
-       :components ((asdf-dependency-grovel:component-file
+    (asdf::do-defsystem simplified-system
+      :pathname base-pathname
+      :source-file base-pathname
+      :components `((asdf-dependency-grovel:component-file
                      "simplified-system-components"
                      :output-file ,components-path
                      :base-asd-file ,base-pathname
                      :load-systems ,systems
                      :merge-systems ,systems
                      :base-pathname ,base-pathname
-                     :verbose ,verbose))))
+                     :verbose ,verbose)))
     (log-format 6 "Starting the dependency grovelling")
     (let ((asdf-dependency-grovel::*system-base-dir*
            (asdf:apply-output-translations base-pathname))
@@ -347,18 +356,18 @@ so that the system can now be compiled with XCVB."
            (asdf-system
             (progn
               (log-format 6 "Creating a system with simplified dependencies")
-              (remhash system asdf::*defined-systems*)
-              (eval
-               `(asdf:defsystem ,system
-                 :pathname ,base-pathname
-                 :components
-                  ,(mapcan (lambda (x) (getf (cdr x) :components)) system-components)))
-              (asdf:find-system system)))
+              (asdf:clear-system :a2x-simplified-system)
+              (asdf::do-defsystem :a2x-simplified-system
+                :pathname base-pathname
+                :source-file base-pathname
+                :components
+                (mapcan (lambda (x) (getf (cdr x) :components))
+                        system-components))))
            (*default-pathname-defaults* base-pathname)
            (build-module-grain
             (get-build-module-grain-for-asdf-system
              asdf-system systems original-asdf-deps
-             original-traverse-order-map :name name))
+             original-traverse-order-map :name (or name system)))
            (name-component-map (name-component-map asdf-system))) ; Precompute to ensure O(n) behavior
       (log-format 6 "Adding module to build.xcvb")
       (add-module-to-file build-module-grain)

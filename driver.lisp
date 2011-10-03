@@ -673,22 +673,31 @@ This is designed to abstract away the implementation specific quit forms."
          (*random-state* (seed-random-state hash)))
     (funcall thunk)))
 
+(defun read-function (string)
+  (eval `(function ,(read-from-string string))))
+
 (defun do-compile-lisp (dependencies source fasl
-                        &key #+sbcl cfasl #+ecl lisp-object)
+                        &key #+sbcl cfasl #+ecl lisp-object around-compile)
   (let ((*goal* `(:compile-lisp ,source))
         (*default-pathname-defaults* (truename *default-pathname-defaults*)))
     (multiple-value-bind (output-truename warnings-p failure-p)
         (with-profiling `(:preparing-and-compiling ,source)
           (with-xcvb-compilation-unit ()
-            (run-commands dependencies)
+            (with-profiling `(:preparing-compilation-of ,source)
+              (run-commands dependencies))
             (with-profiling `(:compiling ,source)
               (with-determinism `(:compiling ,source)
                 (multiple-value-prog1
-                    (apply #'compile-file source
+                    ((lambda (thunk)
+                       (if around-compile
+                           (funcall (read-function around-compile) thunk)
+                           (funcall thunk)))
+                     (lambda ()
+                       (apply #'compile-file source
                            :output-file (merge-pathnames (or #+ecl lisp-object fasl))
                            (append
                             #+sbcl (when cfasl `(:emit-cfasl ,(merge-pathnames cfasl)))
-                            #+ecl (when lisp-object '(:system-p t))))
+                            #+ecl (when lisp-object '(:system-p t))))))
                   #+ecl
                   (when lisp-object
                     (or (call :c :build-fasl
@@ -753,9 +762,6 @@ This is designed to abstract away the implementation specific quit forms."
 (defun resume ()
   (setf *arguments* (command-line-arguments))
   (do-resume))
-
-(defun read-function (string)
-  (eval `(function ,(read-from-string string))))
 
 #-ecl
 (defun dump-image (filename &key output-name executable pre-image-dump post-image-restart entry-point package)

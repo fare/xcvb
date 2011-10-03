@@ -239,7 +239,7 @@ Only currently support :generate and :executable extension form."
   grain)
 (defmethod build-module-grain-for ((grain executable-grain))
   (grain-parent grain))
-(defmethod build-module-grain-for ((grain lisp-module-grain))
+(defmethod build-module-grain-for ((grain lisp-file-grain))
   (grain-parent grain))
 (defmethod build-module-grain-for ((grain source-grain))
   (registered-build (source-grain-in grain)))

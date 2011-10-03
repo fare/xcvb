@@ -339,20 +339,29 @@
 (defmethod make-computation ((env static-traversal) &rest keys &key &allow-other-keys)
   (apply #'make-computation () keys))
 
+(defmethod effective-around-compile ((lisp lisp-file-grain))
+  (if (slot-boundp lisp 'around-compile)
+      (around-compile lisp)
+      (let ((build (build-module-grain-for lisp)))
+        (if (slot-boundp build 'around-compile)
+            (around-compile build)
+            nil))))
+
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
   (let* ((lisp (graph-for env fullname))
          (fullname (fullname lisp)) ;; canonicalize the fullname
          (driverp (equal fullname '(:lisp "/xcvb/driver")))
          (specialp (member `(:fasl ,(second fullname)) *lisp-setup-dependencies* :test #'equal)))
-    (check-type lisp lisp-module-grain)
+    (check-type lisp lisp-file-grain)
     (finalize-grain lisp)
     (let ((build-dependencies (if specialp
                                   (setup-dependencies-before-fasl fullname)
                                   (build-dependencies lisp)))
           (compile-dependencies (compile-dependencies lisp))
           (cload-dependencies (cload-dependencies lisp))
-          (load-dependencies (load-dependencies lisp)))
+          (load-dependencies (load-dependencies lisp))
+          (around-compile (effective-around-compile lisp)))
       (issue-dependency env lisp)
       (unless specialp
         (pre-image-for env lisp))
@@ -374,5 +383,8 @@
            `(:xcvb-driver-command
              ,(if specialp `(:load '(:fasl "/xcvb/driver"))
                   (image-setup env))
-             (:compile-lisp (,fullname) ,@(traversed-build-commands env)))))
+             (:compile-lisp
+              (,fullname
+               ,@(when around-compile `(:around-compile ,around-compile)))
+              ,@(traversed-build-commands env)))))
         outputs))))

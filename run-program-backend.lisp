@@ -35,7 +35,9 @@
   (when (and (not force) (already-computed-p env computation))
     ;; first, check the outputs are newew than the inputs, if so, bail.
     ;; same checking as with make
-    (log-format 5 "Nothing to regenerate!~%")
+    (log-format 5 "No need to regenerate~{ ~A~}!~%"
+                (mapcar/ #'grain-pathname-text env
+                         (computation-outputs computation)))
     (return-from run-computation t))
   (let* ((outputs (computation-outputs computation))
          (output-pathnames (loop :for o :in outputs :when (file-grain-p o)

@@ -226,6 +226,10 @@ into an image that will be used for all future compile/load operations")
    (build-dependencies
     :reader build-dependencies
     :documentation "A normalized version of the above")
+   (around-compile
+    :initarg :around-compile
+    :reader around-compile
+    :documentation "a string that, if read after reading the compile dependencies, evaluates in function context to either NIL or a function taking a thunk and returning the values of calling the thunk in a proper some context")
    (extension-forms
     :initarg :extension-forms
     :accessor grain-extension-forms

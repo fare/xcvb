@@ -302,14 +302,17 @@
          (apply thunk keys))
     (apply 'clean-xcvb-dir keys)))
 
+(defun validate-regular-xcvb-builds (wrapper &rest keys)
+  (apply wrapper 'validate-asdf-build keys)
+  (apply wrapper 'validate-mk-build keys)
+  ;; The following doesn't work due to missing translation of
+  ;; :around-compile to asdf... will have to think about it...
+  #|(apply wrapper 'validate-nemk-build keys)|#
+  (values))
+
 (defun validate-xcvb-dir (&rest keys)
   (compute-xcvb-dir-variables! keys)
-  (apply 'call-with-xcvb-build-dir
-   (lambda (&rest keys)
-     (apply 'call-with-xcvb-build-dir 'validate-asdf-build keys)
-     (apply 'call-with-xcvb-build-dir 'validate-mk-build keys)
-     (apply 'call-with-xcvb-build-dir 'validate-nemk-build keys))
-   keys))
+  (apply 'validate-regular-xcvb-builds 'call-with-xcvb-build-dir keys))
 
 (defun validate-xcvb-dir-all-lisps (&rest keys)
   (compute-xcvb-dir-variables! keys)
@@ -337,9 +340,7 @@
 (defun validate-release-dir (&rest keys)
   (compute-release-dir-variables! keys)
   (apply 'call-with-release-build-dir 'validate-bootstrapped-xcvb keys)
-  (apply 'call-with-release-build-dir 'validate-asdf-xcvb keys)
-  (apply 'call-with-release-build-dir 'validate-mk-xcvb keys)
-  (apply 'call-with-release-build-dir 'validate-nemk-xcvb keys))
+  (apply 'validate-regular-xcvb-builds 'call-with-release-build-dir keys))
 
 (defun validate-release-dir-all-lisps (&rest keys)
   (compute-xcvb-dir-variables! keys)

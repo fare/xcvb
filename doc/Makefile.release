@@ -45,13 +45,14 @@ DEPENDENCIES := \
 	GIT git://common-lisp.net/users/frideau/fare-mop.git ; \
 	GIT git://common-lisp.net/projects/xcvb/iolib.git ; \
 	GIT git://github.com/froydnj/ironclad.git ; \
-	GIT git://common-lisp.net/projects/xcvb/rucksack.git -b xcvb ; \
+	GIT git://common-lisp.net/projects/xcvb/named-readtables.git ; \
 	GIT git://common-lisp.net/projects/qitab/poiu.git ; \
+	GIT git://common-lisp.net/projects/xcvb/rucksack.git xcvb ; \
 	GIT git://common-lisp.net/projects/xcvb/quux-iolib.git ; \
 	DARCS http://common-lisp.net/project/xcvb/darcs/closer-mop ; \
-	DARCS http://common-lisp.net/project/editor-hints/darcs/named-readtables ; \
 	DARCS http://common-lisp.net/project/xcvb/darcs/trivial-features ; \
 	DARCS http://common-lisp.net/project/xcvb/darcs/trivial-garbage ;
+
 
 
 install-cl-launch:
