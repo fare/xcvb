@@ -1752,8 +1752,11 @@ Why is XCVB so much bigger and more complex than ASDF?
 ------------------------------------------------------
 
 It isn't really.
-You should be comparing ASDF to XCVB-Driver, not to XCVB.
-XCVB-Driver is three times smaller than ASDF.
+If you care about size of code included in your software's memory,
+you should be comparing ASDF to XCVB-Driver, not to XCVB.
+XCVB-Driver is three times smaller than ASDF,
+and provides more everyday functionality to your software,
+including a portable run-program.
 It is all you need to load in your Lisp image, and
 it provides all you need to do incremental development.
 

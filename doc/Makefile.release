@@ -31,28 +31,31 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 ### The dependencies, in case you want them.
 
 DEPENDENCIES := \
-	GIT git://common-lisp.net/projects/xcvb/alexandria.git ; \
+	: Dependencies that include XCVB support ; \
 	GIT git://common-lisp.net/projects/asdf/asdf.git ; \
 	GIT git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git ; \
-	GIT git://common-lisp.net/projects/xcvb/babel.git ; \
-	GIT git://github.com/froydnj/binascii.git ; \
-	GIT git://common-lisp.net/projects/xcvb/bordeaux-threads.git ; \
-	GIT git://common-lisp.net/projects/xcvb/cffi.git ; \
 	GIT git://common-lisp.net/projects/xcvb/cl-launch.git ; \
 	GIT git://common-lisp.net/projects/qitab/command-line-arguments.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-utils.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-matcher.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-mop.git ; \
-	GIT git://common-lisp.net/projects/xcvb/iolib.git ; \
-	GIT git://github.com/froydnj/ironclad.git ; \
-	GIT git://common-lisp.net/projects/xcvb/named-readtables.git ; \
+	GIT git://gitorious.org/libfixposix/libfixposix.git ; \
 	GIT git://common-lisp.net/projects/qitab/poiu.git ; \
-	GIT git://common-lisp.net/projects/xcvb/rucksack.git xcvb ; \
 	GIT git://common-lisp.net/projects/xcvb/quux-iolib.git ; \
-	DARCS http://common-lisp.net/project/xcvb/darcs/closer-mop ; \
-	DARCS http://common-lisp.net/project/xcvb/darcs/trivial-features ; \
-	DARCS http://common-lisp.net/project/xcvb/darcs/trivial-garbage ;
-
+	: Dependencies that need be patched to run with XCVB. \
+	  Their XCVB repo is under git://common-lisp.net/projects/xcvb/FOO ; \
+	XGIT git://common-lisp.net/projects/alexandria/alexandria.git ; \
+	XDARCS http://common-lisp.net/project/babel/darcs/babel ; \
+	XGIT git://github.com/froydnj/binascii.git ; \
+	XGIT git://common-lisp.net/projects/bordeaux-threads/bordeaux-threads.git ; \
+	XDARCS http://common-lisp.net/project/closer/repos/closer-mop ; \
+	XGIT git://common-lisp.net/projects/cffi/cffi.git ; \
+	XGIT git://gitorious.org/iolib/iolib.git ; \
+	XGIT git://github.com/froydnj/ironclad.git ; \
+	XGIT http://common-lisp.net/project/editor-hints/darcs/named-readtables/ ; \
+	XCVS rucksack :pserver:anonymous:anonymous@common-lisp.net:/project/rucksack/cvsroot ; \
+	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-features ; \
+	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-garbage/ ;
 
 
 install-cl-launch:
@@ -85,12 +88,15 @@ install-using-asdf: install-source
 	${MAKE} -C xcvb xcvb-using-asdf ${OPTIONS}
 
 checkout:
-	GIT () { url=$$1 ; x=$$(basename $$url .git) ; shift ; \
+	GIT () { url=$$1 ; x=$$(basename $$url .git) ; \
 	  if [ -d $$x ] ; then echo "Already got $$x" ; \
-	  else git clone $$@ $$url ; fi } ; \
-	DARCS () { x=$$(basename $$1) ; \
+	  else git clone $$url ; fi } ; \
+	XGIT () { x=$$(basename $$1 .git) ; \
+	  url=git://common-lisp.net/projects/xcvb/$$x.git ; \
 	  if [ -d $$x ] ; then echo "Already got $$x" ; \
-	  else darcs get $$1 ; fi ; } ; \
+	  else git clone $$url ; git checkout xcvb ; fi } ; \
+	XCVS () { XGIT "$$1" ; } ; \
+	XDARCS () { XGIT "$$2" ; } ; \
 	set -e ; \
 	GIT git://common-lisp.net/projects/xcvb/xcvb.git ; \
 	mkdir -p dependencies ; cd dependencies ; \
@@ -117,18 +123,24 @@ gc:
 
 update:
 	set -e ; echo -n "Updating xcvb..." ; cd xcvb ; git pull -a ; \
-	GIT () { (i=$$(basename $$1 .git) ; echo -n "Updating $$i... " ; \
-		cd dependencies/$$i ; git pull origin master:master); } ; \
-	DARCS () { (i=$$(basename $$1) ; echo -n "Updating $$i... " ; \
-		cd dependencies/$$i ; darcs pull -a ); } ; \
+	GIT () { (x=$$(basename $$1 .git) ; echo -n "Updating $$x... " ; \
+		cd dependencies/$$x ; git pull origin master:master); } ; \
+	XGIT () { x=$$(basename $$1 .git) ; echo -n "Updating $$x... " ; \
+		cd dependencies/$$i ; git pull origin xcvb:xcvb); } ; \
+	XCVS () { XGIT "$$1" ; } ; \
+	XDARCS () { XGIT "$$2" ; } ; \
 	${DEPENDENCIES}
 
 reset:
 	set -e ; echo -n "Resetting xcvb..." ; cd xcvb ; git reset --hard ; \
-	GIT () { (i=$$(basename $$1 .git) ; echo -n "Resetting $$i... " ; \
-		cd dependencies/$$i ; git reset --hard); } ; \
-	DARCS () { (i=$$(basename $$1) ; echo -n "Resetting $$i... " ; \
-		cd dependencies/$$i ; darcs revert -a ); } ; \
+	GIT () { (x=$$(basename $$1 .git) ; echo -n "Resetting $$x... " ; \
+		cd dependencies/$$i ; git reset --hard ; \
+		git checkout master); } ; \
+	XGIT () { (x=$$(basename $$1 .git) ; echo -n "Resetting $$x... " ; \
+		cd dependencies/$$i ; git reset --hard ; \
+		git checkout xcvb); } ; \
+	XCVS () { XGIT "$$1" ; } ; \
+	XDARCS () { XGIT "$$2" ; } ; \
 	${DEPENDENCIES}
 
 prepare-release:
