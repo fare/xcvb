@@ -9,7 +9,7 @@
 
 (defun xcvb-driver-commands-to-shell-token (env commands)
   (with-output-to-string (s)
-    (write-string "(xcvb-driver:run " s)
+    (write-string "(xcvb-driver::run " s)
     (dolist (c commands)
       (write-string (text-for-xcvb-driver-command env c) s))
     (write-string ")" s)))

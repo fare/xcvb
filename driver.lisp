@@ -44,9 +44,13 @@
    ;;#:with-output ; copied from fare-utils
    #:slurp-stream-string
    #:slurp-stream-lines
+   #:slurp-stream-forms
+   #:call-with-input-file
+   #:slurp-file-string
+   #:slurp-file-lines
+   #:slurp-file-forms
    #:copy-stream-to-stream
    #:copy-stream-to-stream-line-by-line
-   #:read-many
    #:with-safe-io-syntax
    #:read-first-file-form
    #:with-temporary-file
@@ -89,8 +93,7 @@
    #:with-controlled-compiler-conditions #:with-controlled-loader-conditions
    #:with-xcvb-compilation-unit
    #:find-symbol* #:call #:eval-string #:load-string #:load-stream
-   #:run #:do-run #:run-commands #:run-command
-   #:asdf-symbol #:asdf-call
+   ;; #:run #:do-run #:run-commands #:run-command ; used by XCVB, not end-users.
    #:resume #-ecl #:dump-image #+ecl #:create-bundle
    #:register-pathname-mapping #:register-pathname-mappings #:load-pathname-mappings
    #:pathname-mapping))
@@ -104,7 +107,7 @@
       #+sbcl (sb-c::merge-tail-calls 3) #+sbcl (sb-c::insert-debug-catch 0)
       #+(or cmu scl) (ext:inhibit-warnings 3)))
   (defvar *optimization-settings*
-    `((speed 2) (safety 3) (compilation-speed 0) (debug 2)
+    `((speed 2) (space 2) (safety 3) (debug 2) (compilation-speed 0)
       ,@*implementation-settings*))
   (proclaim `(optimize ,@*optimization-settings*))
   ;; otherwise ACL 5.0 may crap out on ASDF dependencies,
@@ -125,10 +128,10 @@
           compiler::*lsp-ext* ""))
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
-  #+(and ecl (not bytecmp)) (let ((*load-verbose* nil)) (require :cmp))
+  #+(and ecl (not ecl-bytecmp)) (let ((*load-verbose* nil)) (require :cmp))
   #+sbcl (require :sb-posix)
-  (let* ((unix #+(or unix cygwin) t)
-         (windows #+(and (or win32 windows mswindows mingw32) (not cygwin)) t))
+  (let ((unix #+(or unix cygwin darwin) t)
+        (windows #+(and (or win32 windows mswindows mingw32) (not cygwin)) t))
     (cond
       ((and unix windows) (error "Your operating system is simultaneously Unix and Windows?~%~
 Congratulations. Now fix XCVB for it assumes that's impossible"))
@@ -184,6 +187,12 @@ but before the entry point is called.")
 ;;; Basic helpers
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun find-symbol* (name package-name &optional (error t))
+    "Find a symbol in a package of given string'ified NAME;
+unless CL:FIND-SYMBOL, work well with 'modern' case sensitive syntax
+by letting you supply a symbol or keyword for the name;
+also works well when the package is not present.
+If optional ERROR argument is NIL, return NIL instead of an error
+when the symbol is not found."
     (let ((package (find-package (string package-name))))
       (if package
           (let ((symbol (find-symbol (string name) package)))
@@ -193,11 +202,21 @@ but before the entry point is called.")
           (when error
             (error "There is no package ~A" package-name))))))
 
+(defun call (package name &rest args)
+  "Call a function associated with symbol of given name in given package,
+with given ARGS. Useful when the call is read before the package is loaded,
+or when loading the package is optional."
+  (apply (find-symbol* name package) args))
+
 (defun finish-outputs ()
+  "Finish output on the main output streams.
+Useful for portably flushing I/O before user input or program exit."
   (dolist (s (list *stderr* *error-output* *standard-output* *trace-output*))
-    (ignore-errors (finish-output s))))
+    (ignore-errors (finish-output s)))
+  (values))
 
 (defun format! (stream format &rest args)
+  "Just like format, but call finish-outputs before and after the output."
   (finish-outputs)
   (apply 'format stream format args)
   (finish-output stream))
@@ -208,6 +227,7 @@ but before the entry point is called.")
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (ccl:define-entry-point (_getenv "getenv") ((name :string)) :string))
 (defun getenv (x)
+  "Query the libc runtime environment. See getenv(3)."
   (declare (ignorable x))
   #+(or abcl clisp xcl) (ext:getenv x)
   #+allegro (sys:getenv x)
@@ -237,15 +257,16 @@ but before the entry point is called.")
 
 (defvar *previous-optimization-settings* nil)
 (defun get-optimization-settings ()
-  #+clozure
-  `((speed . ,ccl::*nx-speed*)
-    (space . ,ccl::*nx-space*)
-    (safety . ,ccl::*nx-safety*)
-    (debug . ,ccl::*nx-debug*)
-    (compilation-speed . ,ccl::*nx-cspeed*))
-  #+sbcl sb-c::*policy*
-  #-(or clozure sbcl) nil)
+  "Get current compiler optimization settings, ready to PROCLAIM again"
+  (let ((settings '(speed space safety debug compilation-speed)))
+    #.`(loop :for x :in settings
+         ,@(or #+clozure '(:for v :in '(ccl::*nx-speed* ccl::*nx-space* ccl::*nx-safety* ccl::*nx-debug* ccl::*nx-cspeed*)))
+         :for y = (or #+clisp (gethash x system::*optimize*)
+                      #+clozure (symbol-value v)
+                      #+sbcl (cdr (assoc x sb-c::*policy*)))
+         :when y :collect (list x y))))
 (defun proclaim-optimization-settings ()
+  "Proclaim the optimization settings in *OPTIMIZATION-SETTINGS*"
   (proclaim `(optimize ,@*optimization-settings*))
   (when *debugging*
     (let ((settings (get-optimization-settings)))
@@ -350,6 +371,7 @@ with associated pathnames and tthsums.")
 
 ;;; Debugging
 (defun debugging (&optional (debug t))
+  "Enable (or with NIL argument, disable) verbose debugging output from XCVB"
   (setf *debugging* debug
         *load-verbose* debug
         *load-print* debug
@@ -369,6 +391,7 @@ with associated pathnames and tthsums.")
 
 ;;; Tweak implementation
 (defun tweak-implementation ()
+  "Common performance tweaks for various CL implementations."
   #+sbcl
   (progn
     ;; add ample margin between GC's: 400 MiB
@@ -387,11 +410,14 @@ with associated pathnames and tthsums.")
 
 ;;; environment
 (defun emptyp (x)
+  "Predicate that is true for an empty sequence"
   (or (null x) (and (vectorp x) (zerop (length x)))))
 (defun getenvp (x)
+  "Predicate that is true if the named variable is present in the libc environment"
   (not (emptyp (getenv x))))
 
 (defun setup-environment ()
+  "Setup the XCVB environment with respect to debugging, profiling, performance"
   (debugging (getenvp "XCVB_DEBUGGING"))
   (setf *profiling* (getenvp "XCVB_PROFILING"))
   (tweak-implementation))
@@ -409,6 +435,8 @@ with associated pathnames and tthsums.")
       (apply #'values values))
     (funcall thunk)))
 (defmacro with-profiling (what &body body)
+  "Macro to run a BODY of code, and
+profile it under some profiling name when *PROFILING* is enabled."
   `(call-with-maybe-profiling #'(lambda () ,@body) ,what *goal*))
 
 ;;; Exiting properly or im-
@@ -432,8 +460,10 @@ This is designed to abstract away the implementation specific quit forms."
   #-(or abcl allegro clisp clozure cmu ecl gcl lispworks sbcl scl xcl)
   (error "xcvb driver: Quitting not implemented"))
 (defun shell-boolean (x)
+  "Quit with a return code that is 0 iff argument X is true"
   (quit (if x 0 1)))
 (defun print-backtrace (out)
+  "Print a backtrace (implementation-defined)"
   (declare (ignorable out))
   #+clozure (let ((*debug-io* out))
 	      (ccl:print-call-history :count 100 :start-frame-number 1)
@@ -443,11 +473,13 @@ This is designed to abstract away the implementation specific quit forms."
    #.(if (find-symbol* "*VERBOSITY*" "SB-DEBUG" nil) :stream 'most-positive-fixnum)
    out))
 (defun die (format &rest arguments)
+  "Die in error with some error message"
   (format! *stderr* "~&")
   (apply #'format! *stderr* format arguments)
   (format! *stderr* "~&")
   (quit 99))
 (defun bork (condition)
+  "Depending on whether *DEBUGGING* is set, enter debugger or die"
   (format! *stderr* "~&BORK:~%~A~%" condition)
   (cond
     (*debugging*
@@ -460,11 +492,13 @@ This is designed to abstract away the implementation specific quit forms."
     (funcall thunk)
     (quit 0)))
 (defmacro with-coded-exit (() &body body)
+  "Run BODY, BORKing on error and otherwise exiting with a success status"
   `(call-with-coded-exit #'(lambda () ,@body)))
 
 
 ;;; Filtering conditions during the build.
 (defun match-condition-p (x condition)
+  "Compare received CONDITION to some pattern X"
   (etypecase x
     (symbol (typep condition x))
     (function (funcall x condition))
@@ -476,10 +510,13 @@ This is designed to abstract away the implementation specific quit forms."
 			      #+sbcl 'sb-kernel:format-control)
                  (ignore-errors (equal (simple-condition-format-control condition) x))))))
 (defun match-any-condition-p (condition conditions)
+  "match CONDITION against any of the patterns of CONDITIONS supplied"
   (loop :for x :in conditions :thereis (match-condition-p x condition)))
 (defun uninteresting-condition-p (condition)
+  "match CONDITION against any of the patterns of *UNINTERESTING-CONDITIONS*"
   (match-any-condition-p condition *uninteresting-conditions*))
 (defun fatal-condition-p (condition)
+  "match CONDITION against any of the patterns of *FATAL-CONDITIONS*"
   (match-any-condition-p condition *fatal-conditions*))
 (defun call-with-controlled-compiler-conditions (thunk)
   (handler-bind
@@ -494,6 +531,7 @@ This is designed to abstract away the implementation specific quit forms."
                (bork condition))))))
     (funcall thunk)))
 (defmacro with-controlled-compiler-conditions (() &body body)
+  "Run BODY while suppressing conditions patterned after *UNINTERESTING-CONDITIONS*"
   `(call-with-controlled-compiler-conditions #'(lambda () ,@body)))
 (defun call-with-controlled-loader-conditions (thunk)
   (let ((*uninteresting-conditions*
@@ -502,8 +540,11 @@ This is designed to abstract away the implementation specific quit forms."
           *uninteresting-conditions*)))
     (call-with-controlled-compiler-conditions thunk)))
 (defmacro with-controlled-loader-conditions (() &body body)
+  "Run BODY while suppressing conditions patterned after *UNINTERESTING-CONDITIONS* plus a few others that don't matter at load-time."
   `(call-with-controlled-loader-conditions #'(lambda () ,@body)))
 (defun save-forward-references (forward-references)
+  "Save forward reference conditions so they may be issued at a latter time,
+possibly in a different process."
   #+sbcl
   (loop :for w :in sb-c::*undefined-warnings*
     :for kind = (sb-c::undefined-warning-kind w) ; :function :variable :type
@@ -544,6 +585,8 @@ This is designed to abstract away the implementation specific quit forms."
             (funcall thunk))
         (save-forward-references forward-references)))))
 (defmacro with-xcvb-compilation-unit ((&key forward-references) &body body)
+  "Like WITH-COMPILATION-UNIT, but saving forward-reference issues
+for processing later (possibly in a different process)."
   `(call-with-xcvb-compilation-unit #'(lambda () ,@body) :forward-references ,forward-references))
 
 
@@ -551,6 +594,8 @@ This is designed to abstract away the implementation specific quit forms."
 (defun function-for-command (designator)
   (fdefinition (find-symbol* designator :xcvb-driver)))
 (defun run-command (command)
+  "Run a single command.
+Entry point for XCVB-DRIVER when used by XCVB's farmer"
   (proclaim-optimization-settings)
   (multiple-value-bind (head args)
       (etypecase command
@@ -564,6 +609,8 @@ This is designed to abstract away the implementation specific quit forms."
     (setup-environment)
     (run-commands commands)))
 (defmacro run (&rest commands)
+  "Run a series of XCVB-DRIVER commands, then exit.
+Entry point for XCVB-DRIVER when used by XCVB"
   `(with-coded-exit ()
     (do-run ',commands)))
 
@@ -576,37 +623,38 @@ This is designed to abstract away the implementation specific quit forms."
   (with-profiling `(:load-file ,x)
     (unless (do-load x)
       (error "Failed to load ~A" (list x)))))
-(defun call (package symbol &rest args)
-  (apply (find-symbol* symbol package) args))
 (defun eval-string (string)
+  "Evaluate a form read from a string"
   (eval (read-from-string string)))
 (defun cl-require (x)
   (with-profiling `(:require ,x)
     (require x)))
 
-(defun load-stream (&optional (s *standard-input*))
+(defun load-stream (&optional (stream *standard-input*))
+  "Portably read and evaluate forms from a STREAM."
   ;; GCL 2.6 can't load from a string-input-stream
   ;; ClozureCL 1.6 can only load from file input
   ;; Allegro 5, I don't remember but it must have been broken when I tested.
   #+(or gcl-pre2.7 clozure allegro)
-  (do ((eof '#:eof) (x t (read s nil eof))) ((eq x eof)) (eval x))
+  (with-controlled-loader-conditions ()
+    (do ((eof '#:eof) (x t (read stream nil eof))) ((eq x eof)) (eval x)))
   #-(or gcl-pre2.7 clozure allegro)
-  (do-load s))
+  (do-load stream))
 (defun load-string (string)
+  "Portably read and evaluate forms from a STRING."
   (with-input-from-string (s string) (load-stream s)))
 
 ;;; ASDF support
 (defun asdf-symbol (x)
   (find-symbol* x :asdf))
-(defun asdf-call (x &rest args)
-  (apply 'call :asdf x args))
 (defun load-asdf (x &key parallel (verbose *compile-verbose*)) ;; parallel loading requires POIU
   (with-profiling `(:asdf ,x)
-    (asdf-call :operate (asdf-symbol (if parallel :parallel-load-op :load-op)) x
-               :verbose verbose)))
+    (call :asdf :operate
+          (asdf-symbol (if parallel :parallel-load-op :load-op))
+          x :verbose verbose)))
 (defun register-asdf-directory (x)
   (pushnew x (symbol-value (asdf-symbol :*central-registry*))))
-(defun asdf-system-up-to-date-p (operation-class system &rest args)
+(defun asdf-system-needs-compilation-p (system)
   "Takes a name of an asdf system (or the system itself) and a asdf operation
   and returns a boolean indicating whether or not anything needs to be done
   in order to perform the given operation on the given system.
@@ -614,21 +662,17 @@ This is designed to abstract away the implementation specific quit forms."
   and none of the source files in the system have changed since then"
   (progv
       (list (asdf-symbol :*verbose-out*))
-      (list (if (getf args :verbose t) *trace-output* (make-broadcast-stream)))
-    (let* ((op (apply #'make-instance operation-class
-                      :original-initargs args args))
-           (system (if (typep system (asdf-symbol :component))
-                       system
-                       (asdf-call :find-system system)))
-           (steps (asdf-call :traverse op system)))
-      (null steps))))
-(defun asdf-system-loaded-up-to-date-p (system)
-  (asdf-system-up-to-date-p (asdf-symbol :load-op) system))
+      (list (make-broadcast-stream))
+    (let* ((op (make-instance (asdf-symbol :load-op)))
+           (system (call :asdf :find-system system))
+           (steps (call :asdf :traverse op system)))
+      (and (member (asdf-symbol :compile-op) steps
+                   :key (lambda (x) (type-of (car x)))) t))))
 (defun asdf-systems-up-to-date-p (systems)
   "Takes a list of names of asdf systems, and
   exits lisp with a status code indicating
   whether or not all of those systems were up-to-date or not."
-  (every #'asdf-system-loaded-up-to-date-p systems))
+  (notany #'asdf-system-needs-compilation-p systems))
 (defun asdf-systems-up-to-date (&rest systems)
   "Are all the loaded systems up to date?"
   (with-coded-exit ()
@@ -636,6 +680,7 @@ This is designed to abstract away the implementation specific quit forms."
 
 ;;; Actually compiling
 (defmacro with-determinism (goal &body body)
+  "Attempt to recreate deterministic conditions for the building a component."
   `(call-with-determinism ,goal #'(lambda () ,@body)))
 
 (defun seed-random-state (seed) ; seed is a integer
@@ -664,7 +709,8 @@ This is designed to abstract away the implementation specific quit forms."
   ;;; as provided by the master process.
   ;;;
   ;;; In SBCL, we'll also need to somehow disable the start-time slot of the
-  ;;; (def!struct (source-info ...)) from main/compiler.lisp (package SB-C).
+  ;;; (def!struct (source-info ...)) from main/compiler.lisp (package SB-C),
+  ;;; and override the source location to point to some logical pathname.
   (let* ((hash (sxhash seed))
          (*gensym-counter* (* hash 10000))
          #+sbcl (sb-impl::*gentemp-counter* (* hash 10000))
@@ -674,6 +720,7 @@ This is designed to abstract away the implementation specific quit forms."
     (funcall thunk)))
 
 (defun read-function (string)
+  "Read a form from a string in function context, return a function"
   (eval `(function ,(read-from-string string))))
 
 (defun do-compile-lisp (dependencies source fasl
@@ -725,6 +772,7 @@ This is designed to abstract away the implementation specific quit forms."
   "Is this a dumped image? As a standalone executable?")
 
 (defun raw-command-line-arguments ()
+  "Find what the actual command line for this process was."
   #+abcl (cdr ext:*command-line-argument-list*) ; abcl adds a "--" to our "--"
   #+allegro (sys:command-line-arguments) ; default: :application t
   #+clisp (coerce (ext:argv) 'list)
@@ -738,9 +786,11 @@ This is designed to abstract away the implementation specific quit forms."
   #-(or abcl allegro clisp clozure cmu ecl gcl lispworks sbcl scl xcl)
   (error "raw-command-line-arguments not implemented yet"))
 
-(defun command-line-arguments ()
-  (let* ((raw (raw-command-line-arguments))
-	 (cooked
+(defun command-line-arguments (&optional (raw (raw-command-line-arguments)))
+  "Extract user arguments from command-line invocation of current process.
+Assume the calling conventions of an XCVB-generated script
+if we are not called from a directly executable image dumped by XCVB."
+  (let* ((cooked
 	  #+(or sbcl allegro) raw
 	  #-(or sbcl allegro)
 	  (if (eq *dumped* :executable)
@@ -830,9 +880,18 @@ This is designed to abstract away the implementation specific quit forms."
       (run-commands dependencies))
     (apply #'dump-image image flags)))
 
-(defun read-first-form (pn)
-  (with-open-file (s pn :direction :input :if-does-not-exist :error)
-    (read s)))
+(defun call-with-input-file (file thunk
+                             &key (element-type (or #+(or abcl xcl) 'character :default))
+                             (external-format :default))
+  "Open FILE for input with given options, call THUNK with the resulting stream."
+  (with-open-file (s file :direction :input
+                     :element-type element-type :external-format external-format
+                     :if-does-not-exist :error)
+    (funcall thunk s)))
+
+(defun read-first-form (file &rest keys)
+  "Read the first form in a FILE, open with given option keys"
+  (apply 'call-with-input-file file 'read keys))
 
 #+ecl ;; wholly untested and probably buggy.
 (defun do-create-image (image dependencies &key
@@ -898,8 +957,9 @@ This is designed to abstract away the implementation specific quit forms."
   "Mappings from xcvb fullname to plist of
  (physical) :pathname, :logical-pathname, :tthsum digest, etc.")
 
-(defun pathname-directory-pathname (pn)
-  (make-pathname :name nil :type nil :version nil :defaults pn))
+(defun pathname-directory-pathname (pathname)
+  "Pathname for the directory containing given PATHNAME"
+  (make-pathname :name nil :type nil :version nil :defaults pathname))
 
 (defun register-fullname (&key fullname pathname tthsum logical-pathname)
   (setf (gethash fullname *pathname-mappings*)
@@ -921,17 +981,19 @@ This is designed to abstract away the implementation specific quit forms."
     (register-fullnames (read-first-form tn) :defaults tn)))
 
 (defun getcwd ()
+  "Get the current working directory as per POSIX getcwd(3)"
   (or #+ccl (ccl:current-directory)
       #+clisp (ext:default-directory)
       #+sbcl (sb-posix:getcwd)
       (error "getcwd not supported on your implementation")))
 
 (defun chdir (x)
+  "Change current directory, as per POSIX chdir(2)"
   (when (pathnamep x) (setf x (#-scl namestring #+scl posix-namestring x)))
   (or #+ccl (setf (ccl:current-directory) x)
       #+clisp (ext:cd x)
       #+sbcl (sb-posix:chdir x)
-      (error "getcwd not supported on your implementation")))
+      (error "chdir not supported on your implementation")))
 
 (defun call-with-current-directory (dir thunk)
   (let* ((dir (truename (merge-pathnames (pathname-directory-pathname dir))))
@@ -943,6 +1005,7 @@ This is designed to abstract away the implementation specific quit forms."
       (chdir cwd))))
 
 (defmacro with-current-directory ((dir) &body body)
+  "Call BODY while the POSIX current working directory is set to DIR"
   `(call-with-current-directory ,dir #'(lambda () ,@body)))
 
 (defun process-cffi-grovel-file (input c exe output &key cc-flags)
@@ -981,6 +1044,7 @@ This is designed to abstract away the implementation specific quit forms."
 
 ;;; String utilities
 (defun string-prefix-p (prefix string)
+  "Does STRING begin with PREFIX?"
   (let* ((x (string prefix))
          (y (string string))
          (lx (length x))
@@ -988,6 +1052,7 @@ This is designed to abstract away the implementation specific quit forms."
     (and (<= lx ly) (string= x y :end2 lx))))
 
 (defun string-suffix-p (string suffix)
+  "Does STRING end with SUFFIX?"
   (let* ((x (string string))
          (y (string suffix))
          (lx (length x))
@@ -995,6 +1060,7 @@ This is designed to abstract away the implementation specific quit forms."
     (and (<= ly lx) (string= x y :start1 (- lx ly)))))
 
 (defun string-enclosed-p (prefix string suffix)
+  "Does STRING begin with PREFIX and end with SUFFIX?"
   (and (string-prefix-p prefix string)
        (string-suffix-p string suffix)))
 
@@ -1027,40 +1093,65 @@ Otherwise, signal an error.")
       (t (error "not a valid stream designator ~S" x)))))
 
 (defmacro with-output ((x &optional (value x)) &body body)
+  "Bind X to an output stream, coercing VALUE (default: previous binding of X)
+as per FORMAT, and evaluate BODY within the scope of this binding."
   `(call-with-output ,value #'(lambda (,x) ,@body)))
 
 (defun copy-stream-to-stream (input output &key (element-type 'character))
-  (loop :with length = 8192
-    :for buffer = (make-array length :element-type element-type)
-    :for end = (read-sequence buffer input)
-    :until (zerop end)
-    :do (write-sequence buffer output :end end)
-    :do (when (< end length) (return))))
+  "Copy the contents of the INPUT stream into the OUTPUT stream,
+using WRITE-SEQUENCE and a sensibly sized buffer."
+  (with-open-stream (input input)
+    (loop :with length = 8192
+      :for buffer = (make-array length :element-type element-type)
+      :for end = (read-sequence buffer input)
+      :until (zerop end)
+      :do (write-sequence buffer output :end end)
+      :do (when (< end length) (return)))))
 
 (defun copy-stream-to-stream-line-by-line (input output)
-  (loop :for (line eof) = (multiple-value-list (read-line input nil nil))
-    :while line
-    :do (progn
-          (princ line output)
-          (unless eof (terpri output))
-          (finish-output output)
-          (when eof (return)))))
+  "Copy the contents of the INPUT stream into the OUTPUT stream,
+reading contents line by line."
+  (with-open-stream (input input)
+    (loop :for (line eof) = (multiple-value-list (read-line input nil nil))
+      :while line
+      :do (progn
+            (princ line output)
+            (unless eof (terpri output))
+            (finish-output output)
+            (when eof (return))))))
 
 (defun slurp-stream-string (input)
-  (with-output-to-string (output)
-    (copy-stream-to-stream input output :element-type 'character)))
+  "Read the contents of the INPUT stream as a string"
+  (with-open-stream (input input)
+    (with-output-to-string (output)
+      (copy-stream-to-stream input output :element-type 'character))))
 
 (defun slurp-stream-lines (input)
-  (loop :for l = (read-line input nil nil)
-    :while l :collect l))
+  "Read the contents of the INPUT stream as a list of lines"
+  (with-open-stream (input input)
+    (loop :for l = (read-line input nil nil)
+      :while l :collect l)))
 
-(defun read-many (s)
-  (loop :with eof = '#:eof
-    :for form = (read s nil eof)
-    :until (eq form eof)
-    :collect form))
+(defun slurp-stream-forms (input)
+  "Read the contents of the INPUT stream as a list of forms"
+  (with-open-stream (input input)
+    (loop :with eof = '#:eof
+      :for form = (read input nil eof)
+      :until (eq form eof)
+      :collect form)))
+
+(defun slurp-file-string (file &rest keys)
+  "Open FILE with option KEYS, read its contents as a string"
+  (apply 'call-with-input-file file 'slurp-stream-string keys))
+(defun slurp-file-lines (file &rest keys)
+  "Open FILE with option KEYS, read its contents as a list of lines"
+  (apply 'call-with-input-file file 'slurp-stream-lines keys))
+(defun slurp-file-forms (file &rest keys)
+  "Open FILE with option KEYS, read its contents as a list of forms"
+  (apply 'call-with-input-file file 'slurp-stream-forms keys))
 
 (defmacro with-safe-io-syntax ((&key (package :cl)) &body body)
+  "Establish safe CL reader options around the evaluation of BODY"
   `(call-with-safe-io-syntax (lambda () ,@body) :package ,package))
 (defun call-with-safe-io-syntax (thunk &key (package :cl))
   (with-standard-io-syntax ()
@@ -1077,8 +1168,13 @@ Otherwise, signal an error.")
       (read in nil nil))))
 
 (defun requires-escaping-p (token &key good-chars bad-chars)
+  "Does this token require escaping, given the specification of
+either good chars that don't need escaping or bad chars that do need escaping,
+as either a recognizing function or a sequence of characters."
   (some
    (cond
+     ((and good-chars bad-chars)
+      (error "only one of good-chars and bad-chars can be provided"))
      ((functionp good-chars)
       (complement good-chars))
      ((functionp bad-chars)
@@ -1091,6 +1187,9 @@ Otherwise, signal an error.")
    token))
 
 (defun escape-token (token &key stream quote good-chars bad-chars escaper)
+  "Call the ESCAPER function on TOKEN string if it needs escaping as per
+REQUIRES-ESCAPING-P using GOOD-CHARS and BAD-CHARS, otherwise output TOKEN,
+using STREAM as output (or returning result as a string if NIL)"
   (cond
     ((requires-escaping-p token :good-chars good-chars :bad-chars bad-chars)
      (with-output (stream)
@@ -1104,12 +1203,16 @@ Otherwise, signal an error.")
 (defun escape-command (command &optional s
                        (escaper #+os-unix 'escape-sh-token
                                 #+os-windows 'escape-windows-token))
+  "Given a COMMAND as a list of tokens, return a string of the
+spaced, escaped tokens, using ESCAPER to escape."
   (with-output (s)
     (loop :for first = t :then nil :for token :in command :do
       (unless first (princ #\space s))
       (funcall escaper token s))))
 
 (defun escape-windows-token-within-double-quotes (x &optional s)
+  "Escape a string token X within double-quotes
+for use within a MS Windows command-line, outputing to S."
   (labels ((issue (c) (princ c s))
            (issue-backslash (n) (loop :repeat n :do (issue #\\))))
     (loop
@@ -1132,11 +1235,14 @@ Otherwise, signal an error.")
          (issue (char x i)) (incf i))))))
 
 (defun escape-windows-token (token &optional s)
+  "Escape a string TOKEN within double-quotes if needed
+for use within a MS Windows command-line, outputing to S."
   (escape-token token :stream s :bad-chars #(#\space #\tab #\") :quote nil
                 :escaper 'escape-windows-token-within-double-quotes))
 
 (defun escape-windows-command (command &optional s)
-    ;; encode a list of arguments into a string suitable for parsing by CommandLineToArgv
+  "Escape a list of command-line arguments into a string suitable for parsing
+by CommandLineToArgv in MS Windows"
     ;; http://msdn.microsoft.com/en-us/library/bb776391(v=vs.85).aspx
     ;; http://msdn.microsoft.com/en-us/library/17w5ykft(v=vs.85).aspx
   (etypecase command
@@ -1144,6 +1250,9 @@ Otherwise, signal an error.")
     (list (escape-command command s 'escape-windows-token))))
 
 (defun escape-sh-token-within-double-quotes (x s &key (quote t))
+  "Escape a string TOKEN within double-quotes
+for use within a POSIX Bourne shell, outputing to S;
+omit the outer double-quotes if key argument :QUOTE is NIL"
   (when quote (princ #\" s))
   (loop :for c :across x :do
     (when (find c "$`\\\"") (princ #\\ s))
@@ -1151,11 +1260,15 @@ Otherwise, signal an error.")
   (when quote (princ #\" s)))
 
 (defun escape-sh-token (token &optional s)
+  "Escape a string TOKEN within double-quotes if needed
+for use within a POSIX Bourne shell, outputing to S."
   (escape-token token :stream s :quote #\" :good-chars
                 #'(lambda (x) (or (alphanumericp x) (find x "+-_.,%@:/")))
                 :escaper 'escape-sh-token-within-double-quotes))
 
 (defun escape-sh-command (command &optional s)
+  "Escape a list of command-line arguments into a string suitable for parsing
+by /bin/sh in POSIX"
   (escape-command command s 'escape-sh-token))
 
 (defun call-with-temporary-file (thunk &key
@@ -1188,6 +1301,9 @@ Otherwise, signal an error.")
                                 (pathname (gensym "PATHNAME") pathnamep)
                                 prefix keep element-type external-format)
                                &body body)
+  "Evaluate BODY where the symbols specified by keyword arguments
+STREAM and PATHNAME are bound corresponding to a newly created temporary file
+ready for I/O. Unless KEEP is specified, delete the file afterwards."
   (check-type stream symbol)
   (check-type pathname symbol)
   `(flet ((think (,stream ,pathname)
@@ -1203,6 +1319,7 @@ Otherwise, signal an error.")
       ,@(when external-format `(:external-format external-format)))))
 
 (defun escape-shell-command (command &optional stream)
+  "Escape a command for the current operating system's shell"
   (#+os-unix escape-sh-command
    #+os-windows escape-windows-command
    command stream))
@@ -1210,15 +1327,24 @@ Otherwise, signal an error.")
 ;;; Simple variant of run-program with no input, and capturing output
 ;;; On some implementations, may output to a temporary file...
 (defun run-program/process-output-stream (command output-processor
+                                          &rest keys
                                           &key ignore-error-status force-shell
                                           (element-type (or #+(or abcl xcl) 'character :default))
-                                          (external-format :default))
+                                          (external-format :default)
+                                          &allow-other-keys)
+  "Run program specified by COMMAND (either list of strings specifying
+a program and list of arguments, or a string specifying shell command),
+and have its output processed by the OUTPUT-PROCESSOR function (or
+merely output to the inherited standard output if it's NIL).
+Always call a shell (rather than directly execute the command)
+if FORCE-SHELL is specified.
+Issue an error if the process wasn't successful unless IGNORE-ERROR-STATUS
+is specified.
+Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
   (declare (ignorable ignore-error-status element-type external-format))
-  (let* ((p (find-package :quux-iolib))
-         (r 'run-program/process-output-stream)
-         (s (and p (find-symbol (string r) p))))
+  (let ((s (find-symbol* 'run-program/process-output-stream :quux-iolib nil)))
     (when s (return-from run-program/process-output-stream
-              (funcall s command output-processor :ignore-error-status ignore-error-status))))
+              (apply s command output-processor keys))))
   #-(or abcl allegro clisp clozure cmu ecl gcl lispworks sbcl scl xcl)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
   (labels (#+(or allegro clisp clozure cmu ecl
@@ -1226,7 +1352,8 @@ Otherwise, signal an error.")
            (run-program (command &key pipe)
              "runs the specified command (a list of program and arguments).
               If using a pipe, returns two values: process and stream
-              If not using a pipe, returns one values: the process result"
+              If not using a pipe, returns one values: the process result;
+              also, inherits the output stream."
              (let* ((command
                      (etypecase command
                        #+os-unix (string `("/bin/sh" "-c" ,command))
@@ -1248,7 +1375,8 @@ Otherwise, signal an error.")
                       (excl:run-shell-command
                        #+os-unix (coerce (cons (first command) command) 'vector)
                        #+os-windows command
-                       :input nil :output (and pipe :stream) :wait (not pipe))
+                       :input nil :output (and pipe :stream) :wait (not pipe)
+                       #+os-windows :show-window #+os-windows (and pipe :hide))
                       #+lispworks
                       (system:run-shell-command
                        (cons "/usr/bin/env" command) ; lispworks wants a full path.
@@ -1259,7 +1387,10 @@ Otherwise, signal an error.")
                        #+clozure ccl:run-program
                        #+sbcl sb-ext:run-program
                        (car command) #+clisp :arguments (cdr command)
-                       :input nil :output (and pipe :stream) :wait (not pipe)
+                       :input nil :wait (not pipe)
+                       :output (if pipe :stream
+                                   #+(or clozure cmu ecl sbcl scl) t
+                                   #+clisp :terminal)
                        . #.(append
                             #+(or clozure cmu ecl sbcl scl) '(:error t)
                             #+sbcl '(:search t
@@ -1313,12 +1444,16 @@ Otherwise, signal an error.")
               command :show-cmd nil :prefix "" :output-stream nil))
            (use-run-program ()
              #-(or abcl cormanlisp gcl (and lispworks os-windows) xcl)
-             (multiple-value-bind (process stream)
-                 (run-program command :pipe t)
-               (unwind-protect
-                    (funcall output-processor stream)
-                 (when stream (close stream))
-                 (check-result (process-result process)))))
+             (let ((pipe (and output-processor t)))
+               (multiple-value-bind (process stream)
+                   (run-program command :pipe pipe)
+                 (unwind-protect
+                      (when output-processor
+                        (funcall output-processor stream))
+                   (when stream (close stream))
+                   (check-result (if pipe
+                                     (process-result process)
+                                     process))))))
            (use-system ()
              (with-temporary-file (:pathname tmp)
                (let* ((command-string
@@ -1328,36 +1463,54 @@ Otherwise, signal an error.")
                                  (list (escape-shell-command command)))
                                tmp)))
                  (check-result (system command-string))
-                 (with-open-file (stream tmp
-                                         :direction :input :if-does-not-exist :error
-                                         :element-type element-type
-                                         :external-format external-format)
-                   (funcall output-processor stream))))))
+                 (when output-processor
+                   (with-open-file (stream tmp
+                                           :direction :input :if-does-not-exist :error
+                                           :element-type element-type
+                                           :external-format external-format)
+                     (funcall output-processor stream)))))))
     (if (and (not force-shell)
              #+(or abcl cormanlisp gcl (and lispworks os-windows) xcl) nil)
         (use-run-program)
         (use-system))))
 
 (defun run-program/read-output-lines (command &rest keys)
+  "Run a program and collect its output as lines (a list of strings)
+by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with SLURP-STREAM-LINES
+as OUTPUT-PROCESSOR and given KEYS"
   (apply 'run-program/process-output-stream command
          'slurp-stream-lines keys))
 
 (defun run-program/read-output-string (command &rest keys)
+  "Run a program and collect its output as a string
+by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with SLURP-STREAM-STRING
+as OUTPUT-PROCESSOR and given KEYS"
   (apply 'run-program/process-output-stream command
          'slurp-stream-string keys))
 
 (defun run-program/read-output-form (command &rest keys)
+  "Run a program and collect its output as a single form (extra output ignored)
+by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with READ
+as OUTPUT-PROCESSOR and given KEYS"
   (apply 'run-program/process-output-stream command
          'read keys))
 
 (defun run-program/read-output-forms (command &rest keys)
+  "Run a program and collect its output as a list of forms
+by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with SLURP-STREAM-FORMS
+as OUTPUT-PROCESSOR and given KEYS"
   (apply 'run-program/process-output-stream command
-         'read-many keys))
+         'slurp-stream-forms keys))
 
-(defun run-program/echo-output (command &key prefix (stream t) ignore-error-status)
+(defun run-program/echo-output (command &rest keys &key prefix (stream t) &allow-other-keys)
+  "Run a program and echo its output to STREAM with given PREFIX (if any)
+by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with an appropriate
+OUTPUT-PROCESSOR and given KEYS"
   (run-program/process-output-stream
-   command #'(lambda (s) (loop :for line = (read-line s nil nil) :while line :do
-                           (format stream "~@[~A~]~A~&" prefix line) (force-output stream)))
+   command
+   #'(lambda (s)
+       (loop :for line = (read-line s nil nil) :while line :do
+         (format stream "~@[~A~]~A~&" prefix line) (force-output stream)))
    :ignore-error-status ignore-error-status))
 
 ;;; Maintaining memory of which grains have been loaded in the current image.
@@ -1481,11 +1634,12 @@ Otherwise, signal an error.")
     manifest))
 
 (defun build-and-load (build &rest args &key . #.*bnl-keys*)
+  "Entry point for users to call an external XCVB to build and load a system."
   (declare (ignore . #.*bnl-keys*))
   (process-manifest (apply 'build-in-slave build args)))
 
 (defun bnl (build &rest keys &key . #.*bnl-keys*)
-  "Short hand for build-and-load"
+  "Short hand for BUILD-AND-LOAD"
   (declare (ignore . #.*bnl-keys*))
   (apply 'build-and-load build keys))
 

@@ -571,7 +571,7 @@ and extra finalization from calling FUN on the world."
         (when (world-process world)
           (setf (process-should-exit-p (world-process world)) t)))
       (let ((text
-             (format nil "(xcvb-driver:run-command '~A)~%"
+             (format nil "(xcvb-driver::run-command '~A)~%"
                     (text-for-xcvb-driver-command env command))))
         (DBG :woac id text command-fifo world)
         (when (eq :sbcl *lisp-implementation-type*) ;; defeat buffering (hopefully)
