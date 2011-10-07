@@ -1506,12 +1506,12 @@ as OUTPUT-PROCESSOR and given KEYS"
   "Run a program and echo its output to STREAM with given PREFIX (if any)
 by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with an appropriate
 OUTPUT-PROCESSOR and given KEYS"
-  (run-program/process-output-stream
+  (apply 'run-program/process-output-stream
    command
    #'(lambda (s)
        (loop :for line = (read-line s nil nil) :while line :do
          (format stream "~@[~A~]~A~&" prefix line) (force-output stream)))
-   :ignore-error-status ignore-error-status))
+   keys))
 
 ;;; Maintaining memory of which grains have been loaded in the current image.
 ;; TODO: fix brokenness. We need to distinguish
@@ -1611,7 +1611,8 @@ OUTPUT-PROCESSOR and given KEYS"
   (let* ((slave-command (apply 'build-slave-command-line build args))
          (slave-output
           (with-safe-io-syntax ()
-            (run-program/read-output-string slave-command :ignore-error-status t)))
+            (run-program/read-output-string
+             slave-command :ignore-error-status t)))
          (manifest
           (progn
             (unless (and slave-output

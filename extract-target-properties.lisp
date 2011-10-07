@@ -62,7 +62,7 @@
   (let ((string (extract-target-properties)))
     (log-format-pp 7 "Information from target Lisp:~%~A" string)
     (with-safe-io-syntax (:package :xcvb-user)
-      (let ((forms (with-input-from-string (s string) (read-many s))))
+      (let ((forms (with-input-from-string (s string) (slurp-stream-forms s))))
         (unless forms
           (user-error "Failed to extract properties from your Lisp implementation"))
         (unless (and (list-of-length-p 1 forms)
