@@ -129,8 +129,23 @@
   #+cmu (setf ext:*gc-verbose* nil)
   #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
   #+(and ecl (not ecl-bytecmp)) (let ((*load-verbose* nil)) (require :cmp))
+  #.(or #+mcl ;; the #$ doesn't work on other lisps, even protected by #+mcl
+     (read-from-string
+      "(eval-when (:compile-toplevel :load-toplevel :execute)
+         (ccl:define-entry-point (_getenv \"getenv\") ((name :string)) :string)
+         (ccl:define-entry-point (_system \"system\") ((name :string)) :int)
+         ;; See http://code.google.com/p/mcl/wiki/Portability
+         (defun current-user-homedir-pathname ()
+           (ccl::findfolder #$kuserdomain #$kCurrentUserFolderType))
+         (defun probe-posix (posix-namestring)
+           \"If a file exists for the posix namestring, return the pathname\"
+           (ccl::with-cstrs ((cpath posix-namestring))
+             (ccl::rlet ((is-dir :boolean)
+                         (fsref :fsref))
+               (when (eq #$noerr (#_fspathmakeref cpath fsref is-dir))
+                 (ccl::%path-from-fsref fsref is-dir))))))"))
   #+sbcl (require :sb-posix)
-  (let ((unix #+(or unix cygwin darwin) t)
+  (let ((unix #+(or unix cygwin darwin mcl) t)
         (windows #+(and (or win32 windows mswindows mingw32) (not cygwin)) t))
     (cond
       ((and unix windows) (error "Your operating system is simultaneously Unix and Windows?~%~
@@ -172,7 +187,7 @@ but before the entry point is called.")
      sb-ext:implicit-generic-function-warning
      sb-kernel:lexical-environment-too-complex
      "Couldn't grovel for ~A (unknown to the C compiler).")
-   ;;#+ccl '(ccl:compiler-warning)
+   ;;#+clozure '(ccl:compiler-warning)
    '("No generic function ~S present when encountering macroexpansion of defmethod. Assuming it will be an instance of standard-generic-function.") ;; from closer2mop
    )
   "Conditions that may be skipped. type symbols, predicates or strings")
@@ -221,11 +236,7 @@ Useful for portably flushing I/O before user input or program exit."
   (apply 'format stream format args)
   (finish-output stream))
 
-
 ;;; Setting up the environment from shell variables
-#+mcl
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (ccl:define-entry-point (_getenv "getenv") ((name :string)) :string))
 (defun getenv (x)
   "Query the libc runtime environment. See getenv(3)."
   (declare (ignorable x))
@@ -259,6 +270,8 @@ Useful for portably flushing I/O before user input or program exit."
 (defun get-optimization-settings ()
   "Get current compiler optimization settings, ready to PROCLAIM again"
   (let ((settings '(speed space safety debug compilation-speed)))
+    #-(or clisp clozure sbcl)
+    (warn "xcvb-driver::get-optimization-settings does not your implementation. Please help me fix that.")
     #.`(loop :for x :in settings
          ,@(or #+clozure '(:for v :in '(ccl::*nx-speed* ccl::*nx-space* ccl::*nx-safety* ccl::*nx-debug* ccl::*nx-cspeed*)))
          :for y = (or #+clisp (gethash x system::*optimize*)
@@ -308,7 +321,7 @@ Useful for portably flushing I/O before user input or program exit."
   Default: whatever's the default for your implementation.")
 
 (defvar *lisp-implementation-directory*
-  (or #+ccl (namestring (ccl::ccl-directory))
+  (or #+clozure (namestring (ccl::ccl-directory))
       #+gcl (namestring system::*system-directory*)
       #+sbcl (namestring (sb-int:sbcl-homedir-pathname)))
   "Where is the home directory for the Lisp implementation,
@@ -343,9 +356,11 @@ A list of strings, or the keyword :DEFAULT.")
 NIL: default to ~/.cache/xcvb/common-lisp/sbcl-1.0.47-x86/ or some such, see docs")
 
 (defvar *tmp-directory-pathname*
-  (pathname
-   #+os-unix (format nil "~A/" (or (getenv "TMP") "/tmp"))
-   #+os-windows (format nil "~A\\" (or (getenv "TEMP") (error "No temporary directory!"))))
+  (let* ((dir
+          #+os-unix (format nil "~A/" (or (getenv "TMP") "/tmp"))
+          #+os-windows (format nil "~A\\" (or (getenv "TEMP") (error "No temporary directory!"))))
+         #+mcl (dir (probe-posix dir)))
+    (pathname dir))
   "pathname of directory where to store temporary files")
 
 (defvar *use-base-image* t
@@ -399,7 +414,7 @@ with associated pathnames and tthsums.")
     ;; add ample margin for *next* GC: 200 MiB
     (incf (sb-alien:extern-alien "auto_gc_trigger" sb-alien:long) (* 200 1024 1024))
     #|(sb-ext:gc :full t)|#)
-  #+ccl
+  #+clozure
   (progn
     (ccl::configure-egc 32768 65536 98304)
     (ccl::set-lisp-heap-gc-threshold (* 384 1024 1024))
@@ -456,8 +471,9 @@ This is designed to abstract away the implementation specific quit forms."
   #+ecl (si:quit code)
   #+gcl (lisp:quit code)
   #+lispworks (lispworks:quit :status code :confirm nil :return nil :ignore-errors-p t)
+  #+mcl (ccl:quit) ;; or should we use FFI to call libc's exit(3) ?
   #+sbcl (sb-unix:unix-exit code)
-  #-(or abcl allegro clisp clozure cmu ecl gcl lispworks sbcl scl xcl)
+  #-(or abcl allegro clisp clozure cmu ecl gcl lispworks mcl sbcl scl xcl)
   (error "xcvb driver: Quitting not implemented"))
 (defun shell-boolean (x)
   "Quit with a return code that is 0 iff argument X is true"
@@ -503,9 +519,9 @@ This is designed to abstract away the implementation specific quit forms."
     (symbol (typep condition x))
     (function (funcall x condition))
     (string (and (typep condition 'simple-condition)
-                 #+(or ccl cmu scl)
+                 #+(or clozure cmu sbcl scl)
 		 (slot-boundp condition
-			      #+ccl 'ccl::format-control
+			      #+clozure 'ccl::format-control
 			      #+(or cmu scl) 'conditions::format-control
 			      #+sbcl 'sb-kernel:format-control)
                  (ignore-errors (equal (simple-condition-format-control condition) x))))))
@@ -686,17 +702,18 @@ Entry point for XCVB-DRIVER when used by XCVB"
 (defun seed-random-state (seed) ; seed is a integer
   (declare (ignorable seed))
   #+sbcl (sb-ext:seed-random-state seed)
-  #+ccl (flet ((get-bits (&aux bits)
-                 (multiple-value-setq (seed bits) (floor seed ccl::mrg31k3p-limit))
-                 bits))
-          (multiple-value-bind (x0 x1 x2 x3 x4 x5)
-              (apply 'values (loop :repeat 6 :collect (get-bits)))
-            (when (zerop (logior x0 x1 x2))
-              (setf x0 (logior (get-bits) 1)))
-            (when (zerop (logior x3 x4 x5))
-              (setf x3 (logior (get-bits) 1)))
-            (ccl::initialize-mrg31k3p-state x0 x1 x2 x3 x4 x5)))
-  #-(or sbcl ccl) (make-random-state *initial-random-state*))
+  #+clozure
+  (flet ((get-bits (&aux bits)
+           (multiple-value-setq (seed bits) (floor seed ccl::mrg31k3p-limit))
+           bits))
+    (multiple-value-bind (x0 x1 x2 x3 x4 x5)
+        (apply 'values (loop :repeat 6 :collect (get-bits)))
+      (when (zerop (logior x0 x1 x2))
+        (setf x0 (logior (get-bits) 1)))
+      (when (zerop (logior x3 x4 x5))
+        (setf x3 (logior (get-bits) 1)))
+      (ccl::initialize-mrg31k3p-state x0 x1 x2 x3 x4 x5)))
+  #-(or sbcl clozure) (make-random-state *initial-random-state*))
 
 (defun call-with-determinism (seed thunk)
   ;;; The seed is an arbitrary object from (a hash of) which we initialize
@@ -982,16 +999,16 @@ if we are not called from a directly executable image dumped by XCVB."
 
 (defun getcwd ()
   "Get the current working directory as per POSIX getcwd(3)"
-  (or #+ccl (ccl:current-directory)
-      #+clisp (ext:default-directory)
+  (or #+clisp (ext:default-directory)
+      #+clozure (ccl:current-directory)
       #+sbcl (sb-posix:getcwd)
       (error "getcwd not supported on your implementation")))
 
 (defun chdir (x)
   "Change current directory, as per POSIX chdir(2)"
   (when (pathnamep x) (setf x (#-scl namestring #+scl posix-namestring x)))
-  (or #+ccl (setf (ccl:current-directory) x)
-      #+clisp (ext:cd x)
+  (or #+clisp (ext:cd x)
+      #+clozure (setf (ccl:current-directory) x)
       #+sbcl (sb-posix:chdir x)
       (error "chdir not supported on your implementation")))
 
@@ -1345,7 +1362,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
   (let ((s (find-symbol* 'run-program/process-output-stream :quux-iolib nil)))
     (when s (return-from run-program/process-output-stream
               (apply s command output-processor keys))))
-  #-(or abcl allegro clisp clozure cmu ecl gcl lispworks sbcl scl xcl)
+  #-(or abcl allegro clisp clozure cmu ecl gcl lispworks mcl sbcl scl xcl)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
   (labels (#+(or allegro clisp clozure cmu ecl
                  (and lispworks os-unix) sbcl scl)
@@ -1366,7 +1383,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                        (list
                         #+(or allegro clozure) (escape-windows-command command)
                         #-allegro command)))
-                    ;; CCL on windows requires some magic until they fix
+                    ;; ClozureCL on Windows requires some magic until they fix
                     ;; http://trac.clozure.com/ccl/ticket/858
                     #+(and clozure os-windows) (command (list command))
                     (process*
@@ -1438,6 +1455,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
              (run-program command :pipe nil)
              #+ecl (ext:system command)
              #+cormanlisp (win32:system command)
+             #+mcl (ccl::with-cstrs ((%command command)) (_system %command))
              #+gcl (lisp:system command)
              #+(and lispworks os-windows)
              (system:call-system-showing-output
@@ -1465,12 +1483,13 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                  (check-result (system command-string))
                  (when output-processor
                    (with-open-file (stream tmp
-                                           :direction :input :if-does-not-exist :error
+                                           :direction :input
+                                           :if-does-not-exist :error
                                            :element-type element-type
                                            :external-format external-format)
                      (funcall output-processor stream)))))))
     (if (and (not force-shell)
-             #+(or abcl cormanlisp gcl (and lispworks os-windows) xcl) nil)
+             #+(or abcl cormanlisp gcl (and lispworks os-windows) mcl xcl) nil)
         (use-run-program)
         (use-system))))
 
