@@ -16,9 +16,10 @@ and background on the design and ultimate goals of XCVB.
 .. contents::
 ..
     1  Current Developments [V1]
-      1.1  Top ITA TODO [V1]
-      1.2  Enhancing Build Speed [V1]
-      1.3  Other Top TODO Items [V1]
+      1.1  Immediate TODO [V1]
+      1.2  Top ITA TODO [V1]
+      1.3  Enhancing Build Speed [V1]
+      1.4  Other Top TODO Items [V1]
     2  Roadmap [V1]
     3  Usability Issues [V1]
       3.1  Migration from ASDF [V2]
@@ -80,6 +81,68 @@ and background on the design and ultimate goals of XCVB.
 Current Developments [V1]
 =========================
 
+Immediate TODO [V1]
+-------------------
+
+These are the very next steps to be taken:
+
+  * Setup a repository for each and every dependency:
+    have a systematic way of representing all dependencies in git repos,
+    with an `xcvb` branch when it diverges from upstream,
+    and (rebasable?) `please-merge` branch for changes that SHOULD be pushed
+    even if XCVB doesn't convince the upstream maintainer.
+
+  * Make sure we can compile with vanilla upstream packages (from Quicklisp?)
+
+  * Fix manifest format:
+
+    + store primitives in the build-command-for languages.
+
+    + use some generic mechanism to extract grain/vp/filenames
+      from build commands!
+
+    + pass not a pathname, but a command in the xcvb-driver language.
+
+    + optionally pass a list with a digest for each input grain.
+
+  * File mapping:
+
+    + Always pass some file mapping, as either a file to load
+      or a form passed before the driver is invoked.
+
+    + The driver can now use virtual names.
+
+    + introduce native-namestring interface?
+
+  * Run-Shell-Command:
+
+    + Test and debug run-program/* on Windows.
+
+    + Move test to t/driver.lisp in its own package;
+      invoke test with each present detected implementations.
+
+  * Magic Build:
+
+    + Have a fallback build that works on Lispworks Per.
+
+    + Have a "build" backend dispatcher that automatically chooses
+      an appropriate actual backend.
+
+    + Have slave-builder use this "build" backend
+
+  * Debugging information:
+    Use logical-pathnames or so, so that implementations should remember
+    appropriate debugging information.
+
+  * Better Testing:
+    ask Java guys how they do testing...
+    Build test infrastructure into XCVB ?
+
+  * Make Nemk better:
+    add support for executables to nemk backend.
+    add support for :around-compile to nemk? to asdf itself?
+
+    
 Top ITA TODO [V1]
 -----------------
 

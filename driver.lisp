@@ -35,6 +35,9 @@
    #:*source-registry*
    #:*manifest*
 
+   ;;; special variables for portability issues
+   #:*default-element-type*
+   
    ;;; String utilities - copied from fare-utils
    ;;#:string-prefix-p
    ;;#:string-suffix-p
@@ -69,6 +72,7 @@
    #:run-program/read-output-string
    #:run-program/read-output-form
    #:run-program/read-output-forms
+   #:run-program/for-side-effects
    #:run-program/echo-output
 
    ;; Magic strings
@@ -148,7 +152,8 @@
   (let ((unix #+(or unix cygwin darwin mcl) t)
         (windows #+(and (or win32 windows mswindows mingw32) (not cygwin)) t))
     (cond
-      ((and unix windows) (error "Your operating system is simultaneously Unix and Windows?~%~
+      ((and unix windows)
+       (error "Your operating system is simultaneously Unix and Windows?~%~
 Congratulations. Now fix XCVB for it assumes that's impossible"))
       (unix (pushnew :os-unix *features*))
       (windows (pushnew :os-windows *features*))
@@ -897,8 +902,11 @@ if we are not called from a directly executable image dumped by XCVB."
       (run-commands dependencies))
     (apply #'dump-image image flags)))
 
+(defvar *default-element-type* (or #+(or abcl xcl) 'character :default)
+  "default element-type for open (depends on the current CL implementation)")
+
 (defun call-with-input-file (file thunk
-                             &key (element-type (or #+(or abcl xcl) 'character :default))
+                             &key (element-type *default-element-type*)
                              (external-format :default))
   "Open FILE for input with given options, call THUNK with the resulting stream."
   (with-open-file (s file :direction :input
@@ -1137,11 +1145,11 @@ reading contents line by line."
             (finish-output output)
             (when eof (return))))))
 
-(defun slurp-stream-string (input)
+(defun slurp-stream-string (input &key (element-type 'character))
   "Read the contents of the INPUT stream as a string"
   (with-open-stream (input input)
     (with-output-to-string (output)
-      (copy-stream-to-stream input output :element-type 'character))))
+      (copy-stream-to-stream input output :element-type element-type))))
 
 (defun slurp-stream-lines (input)
   "Read the contents of the INPUT stream as a list of lines"
@@ -1239,7 +1247,8 @@ for use within a MS Windows command-line, outputing to S."
       (case (char x i)
         ((#\") (issue-backslash 1) (issue #\") (incf i))
         ((#\\)
-         (let* ((j (and (< i+1 l) (position-if-not (lambda (c) (eql c #\\)) x :start i+1)))
+         (let* ((j (and (< i+1 l) (position-if-not
+                                   (lambda (c) (eql c #\\)) x :start i+1)))
                 (n (- (or j l) i)))
            (cond
              ((null j)
@@ -1288,12 +1297,11 @@ for use within a POSIX Bourne shell, outputing to S."
 by /bin/sh in POSIX"
   (escape-command command s 'escape-sh-token))
 
-(defun call-with-temporary-file (thunk &key
-                                 prefix
-                                 keep
-                                 (direction :io)
-                                 (element-type (or #+(or abcl xcl) 'character :default))
-                                 (external-format :default))
+(defun call-with-temporary-file
+    (thunk &key
+     prefix keep (direction :io)
+     (element-type *default-element-type*)
+     (external-format :default))
   (check-type direction (member :output :io))
   (loop
     :with prefix = (or prefix (format nil "~Axm" *tmp-directory-pathname*))
@@ -1346,7 +1354,7 @@ ready for I/O. Unless KEEP is specified, delete the file afterwards."
 (defun run-program/process-output-stream (command output-processor
                                           &rest keys
                                           &key ignore-error-status force-shell
-                                          (element-type (or #+(or abcl xcl) 'character :default))
+                                          (element-type *default-element-type*)
                                           (external-format :default)
                                           &allow-other-keys)
   "Run program specified by COMMAND (either list of strings specifying
@@ -1520,6 +1528,12 @@ by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with SLURP-STREAM-FORMS
 as OUTPUT-PROCESSOR and given KEYS"
   (apply 'run-program/process-output-stream command
          'slurp-stream-forms keys))
+
+(defun run-program/for-side-effects (command &rest keys)
+  "Run a program for its side effects,
+by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with a NIL
+OUTPUT-PROCESSOR and given KEYS"
+  (apply 'run-program/process-output-stream command nil keys))
 
 (defun run-program/echo-output (command &rest keys &key prefix (stream t) &allow-other-keys)
   "Run a program and echo its output to STREAM with given PREFIX (if any)
