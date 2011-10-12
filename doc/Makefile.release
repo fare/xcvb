@@ -32,8 +32,9 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 
 # Dependencies that already include XCVB support upstream.
 # They all use GIT (yay) and their "master" branch includes XCVB support.
-# Exception: libfixposix is actually a C library used by iolib;
-# it doesn't support XCVB directly, but it's no Lisp code, so that's OK.
+# Exception: libfixposix is actually a C library used by iolib,
+# that the farmer depends on. It doesn't support XCVB directly,
+# but it's no Lisp code, so that's OK.
 DEPENDENCIES_SUPPORTING_XCVB := \
 	GIT git://common-lisp.net/projects/asdf/asdf.git ; \
 	GIT git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git ; \
@@ -58,14 +59,18 @@ DEPENDENCIES_PATCHED_FOR_XCVB := \
 	XGIT git://github.com/froydnj/ironclad.git ; \
 	XDARCS http://common-lisp.net/project/babel/darcs/babel ; \
 	XDARCS http://common-lisp.net/project/closer/repos/closer-mop ; \
-	XDARCS http://common-lisp.net/project/editor-hints/darcs/named-readtables/ ; \
-	XCVS rucksack :pserver:anonymous:anonymous@common-lisp.net:/project/rucksack/cvsroot ; \
+	XDARCS http://common-lisp.net/project/editor-hints/darcs/named-readtables ; \
 	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-garbage/ ; \
-	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-features
-
-DEPENDENCIES_PATCHED_FOR_XCVB_FARMER := \
+	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-features ; \
+	: These are used by the farmer only: ; \
 	XGIT git://common-lisp.net/projects/bordeaux-threads/bordeaux-threads.git ; \
 	XGIT git://gitorious.org/iolib/iolib.git ; \
+	: This one is not actually used yet: ; \
+	XCVS rucksack :pserver:anonymous:anonymous@common-lisp.net:/project/rucksack/cvsroot
+
+DEPENDENCIES := \
+	${DEPENDENCIES_SUPPORTING_XCVB} ; \
+	${DEPENDENCIES_PATCHED_FOR_XCVB}
 
 # These are NOT dependencies of XCVB, but have been patched to compile with XCVB.
 NON_DEPENDENCIES_PATCHED_FOR_XCVB := \
@@ -90,10 +95,15 @@ install: install-cl-launch
 	${MAKE} -C xcvb xcvb-bootstrapped-install ${OPTIONS}
 
 install-source: install-cl-launch
-	mkdir -p ${LISP_SOURCE}/xcvb ${LISP_SYSTEMS}
-	for dir in ${DEPENDENCIES} ; do \
-	  rsync -aC --exclude _darcs dependencies/$$dir ${LISP_SOURCE}/ ; \
-	done
+	set -e ; \
+	mkdir -p ${LISP_SOURCE}/xcvb ${LISP_SYSTEMS} ; \
+	GIT () { x=$$(basename $$1 .git) ; \
+	  rsync -aC --exclude _darcs --exclude .git dependencies/$$x ${LISP_SOURCE}/ ; } ; \
+	XGIT () { x=$$(basename $$1 .git) ; \
+	  rsync -aC --exclude _darcs --exclude .git dependencies/$$x ${LISP_SOURCE}/ ; } ; \
+	XCVS () { XGIT "$$1" ; } ; \
+	XDARCS () { XGIT "$$1" ; } ; \
+	${DEPENDENCIES} ; \
 	cd xcvb && cp -a *.asd *.lisp *.xcvb ${LISP_SOURCE}/xcvb/
 	ln -sf $$(find ${LISP_SOURCE}/ \( -name '*test*' -prune -false \) -o \
 			 -type f -name '*.asd' ! -name '*test*' ) ${LISP_SYSTEMS}/
@@ -109,8 +119,8 @@ checkout:
 	  url=git://common-lisp.net/projects/xcvb/$$x.git ; \
 	  if [ -d $$x ] ; then echo "Already got $$x" ; \
 	  else git clone $$url ; git checkout xcvb ; fi } ; \
+	XDARCS () { XGIT "$$1" ; } ; \
 	XCVS () { XGIT "$$1" ; } ; \
-	XDARCS () { XGIT "$$2" ; } ; \
 	set -e ; \
 	GIT git://common-lisp.net/projects/xcvb/xcvb.git ; \
 	mkdir -p dependencies ; cd dependencies ; \
@@ -124,16 +134,16 @@ fake-release-directory:
 	mkdir -p ${RELEASE_DIR}/dependencies ${RELEASE_DIR}/xcvb ; \
 	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} ; \
 	rsync -av ${RELEASE_EXCLUDE} ./ ${RELEASE_DIR}/xcvb/ ; \
-	DEPENDENCIES= ; \
-	R () { rsync -av ${RELEASE_EXCLUDE} ../$$1 ${RELEASE_DIR}/dependencies/ ; } ; \
+	R () { rsync -av ${RELEASE_EXCLUDE} ../$$1/ ${RELEASE_DIR}/dependencies/$$1/ ; } ; \
 	GIT () { R $$(basename $$1 .git) ;} ; \
-	DARCS () { R $$(basename $$1) ;} ; \
+	XGIT () { GIT $$1 ;} ; XDARCS () { GIT $$1 ;} ; XCVS () { GIT $$1 ;} ; \
+	${DEPENDENCIES} ; \
 	${MAKE} -C ${RELEASE_DIR} -f xcvb/doc/Makefile.release prepare-release
 
 gc:
 	echo -n "Packing xcvb..." ; cd xcvb ; git gc ; git repack -Ad
-	for i in ${GIT_DEPENDENCIES} ; do \
-	  (echo -n "Packing $$i..." ; cd dependencies/$$i ; git gc ; git repack -Ad) ; done
+	cd dependencies ; for i in * ; do \
+	  (echo -n "Packing $$i..." ; cd $$i ; git gc ; git repack -Ad) ; done
 
 update:
 	set -e ; echo -n "Updating xcvb..." ; cd xcvb ; git pull -a ; \
@@ -141,8 +151,7 @@ update:
 		cd dependencies/$$x ; git pull origin master:master); } ; \
 	XGIT () { x=$$(basename $$1 .git) ; echo -n "Updating $$x... " ; \
 		cd dependencies/$$i ; git pull origin xcvb:xcvb); } ; \
-	XCVS () { XGIT "$$1" ; } ; \
-	XDARCS () { XGIT "$$2" ; } ; \
+	XDARCS () { XGIT "$$1" ; } ; XCVS () { XGIT "$$1" ; } ; \
 	${DEPENDENCIES}
 
 reset:
@@ -153,8 +162,7 @@ reset:
 	XGIT () { (x=$$(basename $$1 .git) ; echo -n "Resetting $$x... " ; \
 		cd dependencies/$$i ; git reset --hard ; \
 		git checkout xcvb); } ; \
-	XCVS () { XGIT "$$1" ; } ; \
-	XDARCS () { XGIT "$$2" ; } ; \
+	XCVS () { XGIT "$$1" ; } ; XDARCS () { XGIT "$$1" ; } ; \
 	${DEPENDENCIES}
 
 prepare-release:

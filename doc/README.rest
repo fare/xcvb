@@ -240,15 +240,14 @@ you may run this command from the ``xcvb/`` directory::
 
 If you prefer to collect XCVB's dependencies manually into your system,
 you should consult the above file, as it is the authoritative source
-for the list of XCVB dependencies. These dependencies include
-the following Lisp software libraries:
+for the list of XCVB dependencies.
+These dependencies include libraries
+that support being compiled with XCVB natively,
+and libraries that require patching to support being compiled with XCVB.
+If you don't use the patched versions of those libraries,
+you may have to compile XCVB using ASDF.
 
-  * cl-launch 3.011 or later:
-	- homepage: http://cliki.net/CL-Launch
-	- getting it:
-		``git clone git://common-lisp.net/projects/xcvb/cl-launch.git``
-        - getting it, if you're an XCVB project member::
-        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
+The dependencies that support XCVB natively include:
 
   * ASDF 2.017 or later, aka ASDF 2:
 	- homepage: http://cliki.net/asdf
@@ -257,6 +256,13 @@ the following Lisp software libraries:
         - getting it, if you're an ASDF project member:
 		``git clone ssh://USER@common-lisp.net/project/asdf/asdf.git``
 
+  * POIU for fast (parallelized) non-enforcing build:
+	- homepage: http://common-lisp.net/project/qitab/
+	- getting it:
+		``git clone git://common-lisp.net/projects/qitab/poiu.git``
+        - getting it, if you're a QITAB project member::
+		``git clone ssh://USER@common-lisp.net/project/qitab/git/poiu.git``
+
   * Our fork of ``asdf-dependency-grovel``:
 	- homepage: http://cliki.net/asdf-dependency-grovel
 	- getting it:
@@ -264,12 +270,12 @@ the following Lisp software libraries:
         - getting it, if you're an XCVB project member:
 		``git clone ssh://USER@common-lisp.net/project/xcvb/git/asdf-dependency-grovel.git``
 
-  * Closer to MOP, with our trivial XCVB-readiness patch:
-	- homepage: http://common-lisp.net/project/closer/closer-mop.html
-	- getting it for now:
-		``darcs get http://www.common-lisp.net/project/xcvb/darcs/closer-mop``
-	- getting it, once the XCVB patch has been accepted upstream:
-		``darcs get http://www.common-lisp.net/project/closer/darcs/closer-mop``
+  * cl-launch 3.011 or later:
+	- homepage: http://cliki.net/CL-Launch
+	- getting it:
+		``git clone git://common-lisp.net/projects/xcvb/cl-launch.git``
+        - getting it, if you're an XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cl-launch.git``
 
   * command-line-arguments:
 	- homepage: http://common-lisp.net/project/qitab/
@@ -278,39 +284,160 @@ the following Lisp software libraries:
         - getting it, if you're a QITAB project member::
         	``git clone ssh://USER@common-lisp.net/project/qitab/git/command-line-arguments.git``
 
-  * POIU for fast non-enforcing build:
-	- homepage: http://common-lisp.net/project/qitab/
+  * fare-utils:
+	- homepage: http://cliki.net/fare-utils
 	- getting it:
-		``git clone git://common-lisp.net/projects/qitab/poiu.git``
+		``git clone git://common-lisp.net/users/frideau/fare-utils.git``
+        - getting it, if you're frideau::
+        	``git clone ssh://frideau@common-lisp.net/home/frideau/git/fare-utils.git``
+
+  * fare-matcher:
+	- homepage: http://cliki.net/fare-matcher
+	- getting it:
+		``git clone git://common-lisp.net/users/frideau/fare-matcher.git``
         - getting it, if you're a QITAB project member::
-		``git clone ssh://USER@common-lisp.net/project/qitab/git/poiu.git``
+        	``git clone ssh://frideau@common-lisp.net/home/frideau/git/fare-matcher.git``
+
+  * fare-mop:
+	- homepage: http://cliki.net/fare-matcher
+	- getting it:
+		``git clone git://common-lisp.net/users/frideau/fare-matcher.git``
+        - getting it, if you're a QITAB project member::
+        	``git clone ssh://frideau@common-lisp.net/home/frideau/git/fare-matcher.git``
+
+  * quux-iolib:
+	- homepage: http://cliki.net/quux-iolib
+	- getting it:
+        	``git clone git://common-lisp.net/projects/xcvb/quux-iolib.git``
+        - getting it, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/quux-iolib.git``
+
+  * quux-iolib:
+	- homepage: http://cliki.net/quux-iolib
+	- getting it:
+        	``git clone git://common-lisp.net/projects/xcvb/quux-iolib.git``
+        - getting it, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/quux-iolib.git``
+
+  * libfixposix, a dependency of iolib that you'll need if you use our `farmer` extension:
+git://gitorious.org/libfixposix/libfixposix.git
+	- homepage: http://common-lisp.net/project/iolib/
+	- getting it:
+        	``git clone git://gitorious.org/libfixposix/libfixposix.git``
+
+  * iolib, that you'll need if you use our `farmer` extension:
+	- homepage: http://common-lisp.net/project/iolib/
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/iolib.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/iolib.git``
+	- getting the upstream repository:
+        	``git clone git://gitorious.org/libfixposix/libfixposix.git``
 
   * ironclad, for cryptography:
 	- homepage: http://www.method-combination.net/lisp/ironclad/
-	- getting it:
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/ironclad.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/ironclad.git``
+	- getting the upstream repository:
 		``git clone git://github.com/froydnj/ironclad.git``
 
   * binascii for printing cryptographic digests:
 	- homepage: http://www.cliki.net/binascii
-	- getting it:
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/binascii.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/binascii.git``
+	- getting the upstream repository:
 		``git clone git://github.com/froydnj/binascii.git``
 
-Additionally, our XCVB master mode
-(see below `Interactive update of a running image with XCVB driver`_)
-currently requires
-the utility ``tthsum`` to be installed
-so as to compute identifying cryptographic hashes of your files.
-If you cannot install this utility, be sure to disable XCVB master support
-when you use our ``Makefile`` backend, using option ``--no-master``.
-If you are using Debian or Ubuntu, you may install it with::
+  * alexandria:
+	- homepage: http://common-lisp.net/project/alexandria/
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/alexandria.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/alexandria.git``
+	- getting the upstream repository:
+        	``git clone git://common-lisp.net/projects/alexandria/alexandria.git``
 
-	sudo apt-get install tthsum
+  * cffi:
+	- homepage: http://common-lisp.net/project/cffi/
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/cffi.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/cffi.git``
+	- getting the upstream repository:
+        	``git clone git://common-lisp.net/projects/cffi/cffi.git``
 
-Note that for each of these dependencies,
-you'll have to properly setup your ASDF configuration
-so that the dependency is found by ASDF (if you use ASDF);
-and you'll have to properly set up your source-registry and avoid conflicts
-(see below) if you use the bootstrapping using XCVB itself.
+  * Babel:
+	- homepage: http://common-lisp.net/project/babel/
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/babel.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/babel.git``
+	- getting the upstream repository:
+		``darcs get http://www.common-lisp.net/project/babel/darcs/babel``
+
+  * Closer to MOP:
+	- homepage: http://common-lisp.net/project/closer/closer-mop.html
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/closer-mop.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/closer-mop.git``
+	- getting the upstream repository:
+		``darcs get http://common-lisp.net/project/closer/repos/closer-mop``
+
+  * named-readtables:
+	- homepage: http://common-lisp.net/project/editor-hints/darcs/named-readtables/doc/named-readtables.html
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/named-readtables.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/named-readtables.git``
+	- getting the upstream repository:
+		``darcs get http://common-lisp.net/project/editor-hints/darcs/named-readtables``
+
+  * trivial-garbage:
+	- homepage: http://www.cliki.net/trivial-garbage
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/trivial-garbage.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/trivial-garbage.git``
+	- getting the upstream repository:
+		``darcs get http://common-lisp.net/~loliveira/darcs/trivial-garbage/``
+
+  * trivial-feature:
+	- homepage: http://www.cliki.net/trivial-feature
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/trivial-feature.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/trivial-feature.git``
+	- getting the upstream repository:
+		``darcs get http://common-lisp.net/~loliveira/darcs/trivial-feature/``
+
+  * bordeaux-threads:
+	- homepage: http://common-lisp.net/project/bordeaux-threads/
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/bordeaux-threads.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/bordeaux-threads.git``
+	- getting the upstream repository:
+		``git clone git://common-lisp.net/projects/bordeaux-threads/bordeaux-threads.git``
+
+  * rucksack:
+	- homepage: http://common-lisp.net/project/rucksack/
+	- getting our XCVB-patched version:
+        	``git clone git://common-lisp.net/projects/xcvb/rucksack.git``
+        - getting our XCVB-patched version, if you're a XCVB project member::
+        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/rucksack.git``
+	- getting the upstream repository:
+		``cvs -d :pserver:anonymous:anonymous@common-lisp.net:/project/rucksack/cvsroot checkout rucksack``
+
+Note that you'll have to checkout these dependencies in a tree
+that you register in your Lisp source-registry (see ASDF documentation)
+for ASDF and/or XCVB to be able to see them.
+If you want to compile XCVB using itself,
+you'll also have to ensure you avoid conflicts when setting up your source-registry.
 
 Moreover, cl-launch requires special installation of both its executable
 in your ``PATH`` and its (self-extracted) library files
@@ -604,7 +731,6 @@ the options precisely match those of ``xcvb simple-build``
 
 The slave will complete the build then reply with a list of files to load,
 including a TTH_ digest of each file
-(currently using the external utility ``tthsum``)
 so the master can skip the files
 of which the very same version has already been loaded.
 The slave will do all the cryptographic hashing on its side,
@@ -1639,7 +1765,7 @@ in the user configuration, and otherwise defaulting to something under
 ``~/.cache/common-lisp/`` or ``${XDG_CACHE_HOME}/common-lisp/``
 just like with ``cl-launch`` or ASDF 2.
 
-In the future, Exploded File Dependencies and ``tthsum``-based change detection
+In the future, Exploded File Dependencies and digest-based change detection
 will enable a content- and intent- addressed cache in which
 clashes cannot happen by construction
 (or rather, you win a free publication at a crypto conference if you hit one).

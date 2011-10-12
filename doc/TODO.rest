@@ -18,7 +18,7 @@ and background on the design and ultimate goals of XCVB.
     1  Current Developments [V1]
       1.1  Immediate TODO [V1]
       1.2  Top ITA TODO [V1]
-      1.3  Enhancing Build Speed [V1]
+      1.3  Enhancing Build Speed [V2]
       1.4  Other Top TODO Items [V1]
     2  Roadmap [V1]
     3  Usability Issues [V1]
@@ -32,26 +32,24 @@ and background on the design and ultimate goals of XCVB.
       3.8  Lack of Manual [V2]
       3.9  Producing Executables [V3]
     4  Features [V2]
-      4.1   XCVB Self-Test [V2]
-      4.2   Improve Makefile backend [V2]
-      4.3   Abstract Away Paths [V2]
-      4.4   Initialization and Finalization [V2]
-      4.5   Tests [V2]
-      4.6   Compilation Units [V2]
-      4.7   Dependency grovelling [V2]
-      4.8   Bootstrap [V3]
-      4.9   Same source, multiple compilers [V4]
-      4.10  Correctly handling C libraries [V4]
-      4.11  Bug hunting [V5]
-      4.12  Ideas from jknight [V2]
-      4.13  Computed Lisp files [V2]
-      4.14  Cryptographic Checksum [V1]
-      4.15  Template Instantiations [V5]
-      4.16  XCVB configuration [V2]
-      4.17  Configuration Management [V2]
-      4.18  Better ASDF backend [V2]
-      4.19  Better Debugging [V3]
-      4.20  Support common ASDF Extensions [V1]
+      4.1   Improve Makefile backend [V2]
+      4.2   Abstract Away Paths [V2]
+      4.3   Initialization and Finalization [V2]
+      4.4   Tests [V2]
+      4.5   Compilation Units [V2]
+      4.6   Dependency grovelling [V2]
+      4.7   Bootstrap [V3]
+      4.8   Same source, multiple compilers [V4]
+      4.9   Correctly handling C libraries [V4]
+      4.10  Bug hunting [V5]
+      4.11  Ideas from jknight [V2]
+      4.12  Dynamic Dependencies [V2]
+      4.13  Cryptographic Checksum [V1]
+      4.14  Template Instantiations [V5]
+      4.15  Configuration Management [V2]
+      4.16  Better ASDF backend [V2]
+      4.17  Better Debugging [V3]
+      4.18  Support common ASDF Extensions [V1]
     5  Internals [V4]
       5.1  Type-Checking [V4]
       5.2  Error handling [V4]
@@ -92,7 +90,8 @@ These are the very next steps to be taken:
     and (rebasable?) `please-merge` branch for changes that SHOULD be pushed
     even if XCVB doesn't convince the upstream maintainer.
 
-  * Make sure we can compile with vanilla upstream packages (from Quicklisp?)
+  * Make sure we can compile (using asdf)
+    with vanilla upstream packages (from Quicklisp?)
 
   * Fix manifest format:
 
@@ -142,11 +141,11 @@ These are the very next steps to be taken:
     add support for executables to nemk backend.
     add support for :around-compile to nemk? to asdf itself?
 
-    
+
 Top ITA TODO [V1]
 -----------------
 
-Here is the top of our TODO list at ITA:
+Here is the top of our TODO list at ITA (by Google):
 
   * Finish applying XCVB to QRes:
 
@@ -160,7 +159,7 @@ Here is the top of our TODO list at ITA:
 
    + Re-branch based on a recent trunk.
 
-   + Use ``remove-xcvb`` to extract the non-XCVB changes needed by QRes,
+   + Use ``purge-xcvb`` to extract the non-XCVB changes needed by QRes,
      and integrate those fixes into trunk.
 
    + Actually merge with trunk.
@@ -181,10 +180,10 @@ Here is the top of our TODO list at ITA:
    + Try the standalone backend on QRes, for a fast(er) enforcing build.
      Make it robust where it isn't, and more user-friendly, as needed.
      The enforcing build of QRes is an order of magnitude slower than the ASDF build
-     (on a quad-core system). See below `Enhancing Build Speed [V1]`_.
+     (on a quad-core system). See below `Enhancing Build Speed [V2]`_.
 
 
-Enhancing Build Speed [V1]
+Enhancing Build Speed [V2]
 --------------------------
 
   Non-enforcing build:
@@ -367,8 +366,6 @@ I propose our next steps should be as follows:
    straightforwardly into a low-level model of simple computations,
    then interpret the low-level model.
 
- * port ironclad, binascii...
-
  * Have an option to load from the command-line all the (compile and load) dependencies
    of some builds or modules X1..Xn with all the dependencies of X1..Xn loaded,
    but none of X1..Xn.
@@ -439,6 +436,9 @@ I propose our next steps should be as follows:
    then there must *not* be a build with fullname ``/quux/foo`` that preempts that name;
    if there is, issue an error early and refuse to build.
 
+ * Have a :execute-depends-on or :runtime-depends-on similar to :load-depends-on,
+   but with a load-after rather than load-before dependency.
+
  * Implement a portable library for executing sub-programs
    with arbitrary output redirection, that does at least what
    ``asdf:run-shell-program`` does, but hopefully much more,
@@ -453,15 +453,6 @@ I propose our next steps should be as follows:
  * Add support for arbitrary shell commands, including support for
    filename expansion in shell commands, etc., in ``string-escape.lisp``.
    May or may not benefit from the previous.
-
- * Figure out why the call of ``directory`` in ``find-build-files-under``
-   is so slow (at least in SBCL), and find a pure-lisp alternative
-   to spawning a shell that executes ``find(1)``.
-   Xof suggests profiling the thing as it runs;
-   since the external-format support that was at least part of the slow down
-   will have been fixed in 1.0.31.x, let's try when 1.0.32 is released.
-   I'd suggest properly extending IOLib or osicat to do the right thing,
-   but this won't cut it if we want ASDF to share this feature.
 
  * In general, figure out what are the slow parts of XCVB (if any),
    and optimize them or fix the badness in the underlying Lisp.
@@ -709,47 +700,6 @@ Features [V2]
 
 This section describes features that have to be added to XCVB.
 They modify the underlying build model.
-
-
-XCVB Self-Test [V2]
--------------------
-
-We should maintain a comprehensive test suite for XCVB.
-
-There is now a unit test system in ``t/``, and enhancing it
-would be a good way for a hacker to start
-without knowing much about how XCVB works:
-collect a list of things it does, and exercise them,
-either from inside the current Lisp image,
-or by invoking XCVB as a sub-process.
-As failures are detected and fixed, knowledge will seep in.
-
-An XCVB self-test suite would include:
-
-   + Eventually, test all keywords if not all combinations,
-     but start especially with those with big effects such as --no-master.
-
-   + When building XCVB, create one in a staging area, then
-     try to make from clean using that XCVB, and to make from incremental, too.
-
-   + Building XCVB with each of the supported implementations,
-     and running all the tests with each of them (including this build).
-
-   + Checking that the release-tarball bootstraps properly
-     both using the included xcvb.mk and using ASDF.
-
-   + automated migration of some benchmark ASDF systems
-     (e.g. XCVB's own code and dependencies, copied in a test directory).
-
-   + converting back to ASDF, undoing the migration with ``remove-xcvb``,
-     double checking that converting back and forth is a projection
-     (i.e. idempotent after the first time).
-
-   + a Common Lisp equivalent of GNU hello that is moved outside of the XCVB tree
-     (or kept inside, if it has any use).
-
-   + have a mechanism to run the test-suite on a tarball after it is made
-     but before it is released.
 
 
 Improve Makefile backend [V2]
@@ -1028,7 +978,8 @@ Ideas from jknight [V2]
 Ideas from discussion w/ jknight:
 
  * extending XCVB: allow people to export a procedural interface as in "rebuild me"
-   rather than only a declarative interface "conform to my crazy internal graph representation". [V2]
+   rather than only a declarative interface
+   "conform to my crazy internal graph representation". [V2]
    (Note that if you're using the Makefile backend, you can just add rules to a Makefile
    that otherwise ``include``'s the XCVB output.)
 
@@ -1042,8 +993,8 @@ Ideas from discussion w/ jknight:
  * option to only create relative pathname. [V2]
 
 
-Computed Lisp files [V2]
-------------------------
+Dynamic Dependencies [V2]
+-------------------------
 
 Allow source files to be dynamically computed,
 including the computation of its dependencies.
@@ -1113,27 +1064,8 @@ and include them as additional project dependencies
 as the need for such appears.
 
 
-XCVB configuration [V2]
------------------------
-
-XCVB should be use the unix and windows configuration best practices.
-A configuration file in ``~/.config/common-lisp/source-registry.conf``
-overriding ``/etc/common-lisp/source-registry.conf``
-and itself overridable from the environment and the command-line.
-
-For parsing the configuration file, use a sexp language with keywords,
-and share it with ASDF.
-
-See https://bugs.launchpad.net/asdf/+bug/485918
-
-.. _trivial-configuration-parser: http://www.cliki.net/trivial-configuration-parser
-.. _cl-iniparser: http://github.com/TheDarkTrumpet/cl-iniparser
-
-
 Configuration Management [V2]
 -----------------------------
-
-Start by having a command-line interface to add or delete keywords from the target *features*.
 
 Generalize features into a set of configuration variables,
 used by the conditional dependencies language, and more.
@@ -1185,9 +1117,6 @@ Support common ASDF Extensions [V1]
 Support ``cffi-grovel``.
 
 Support ``:static-file``.
-
-Support wrapping a file in a function as with ``ironclad``,
-and or have before, after and around methods or advice.
 
 
 Internals [V4]

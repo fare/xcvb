@@ -524,11 +524,10 @@ This is designed to abstract away the implementation specific quit forms."
     (symbol (typep condition x))
     (function (funcall x condition))
     (string (and (typep condition 'simple-condition)
-                 #+(or clozure cmu sbcl scl)
+                 #+(or clozure cmu scl) ; Note: on SBCL, always bound, and testing triggers warning
 		 (slot-boundp condition
 			      #+clozure 'ccl::format-control
-			      #+(or cmu scl) 'conditions::format-control
-			      #+sbcl 'sb-kernel:format-control)
+			      #+(or cmu scl) 'conditions::format-control)
                  (ignore-errors (equal (simple-condition-format-control condition) x))))))
 (defun match-any-condition-p (condition conditions)
   "match CONDITION against any of the patterns of CONDITIONS supplied"
@@ -1540,11 +1539,11 @@ OUTPUT-PROCESSOR and given KEYS"
 by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with an appropriate
 OUTPUT-PROCESSOR and given KEYS"
   (apply 'run-program/process-output-stream
-   command
-   #'(lambda (s)
-       (loop :for line = (read-line s nil nil) :while line :do
-         (format stream "~@[~A~]~A~&" prefix line) (force-output stream)))
-   keys))
+         command
+         #'(lambda (s)
+             (loop :for line = (read-line s nil nil) :while line :do
+               (format stream "~@[~A~]~A~&" prefix line) (force-output stream)))
+         keys))
 
 ;;; Maintaining memory of which grains have been loaded in the current image.
 ;; TODO: fix brokenness. We need to distinguish
