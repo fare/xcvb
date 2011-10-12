@@ -19,23 +19,23 @@
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
   :build-depends-on ((:fasl "/xcvb/driver")
-		     (:build "/asdf")
-                     (:build "/cl-launch")
-                     (:build "/asdf-dependency-grovel")
-                     (:build "/closer-mop")
-                     (:build "/command-line-arguments")
-                     (:build "/fare-utils") ;; utilities and data structures.
-                     (:build "/fare-matcher") ;; fare-matcher and fare-quasiquote
-                     (:build "/fare-matcher") ;; fare-matcher and fare-quasiquote
-                     (:build "/fare-mop") ;; fare-matcher and fare-quasiquote
+		     (:asdf "asdf")
+                     (:asdf "cl-launch")
+                     (:asdf "asdf-dependency-grovel")
+                     (:asdf "closer-mop")
+                     (:asdf "command-line-arguments")
+                     (:asdf "fare-utils") ;; utilities and data structures.
+                     (:asdf "fare-matcher") ;; fare-matcher and fare-quasiquote
+                     (:asdf "fare-quasiquote") ;; fare-matcher and fare-quasiquote
+                     (:asdf "fare-mop") ;; fare-matcher and fare-quasiquote
                      (:when (:featurep :xcvb-farmer)
-                       (:build "/iolib") ;; I/O event loop
-                       (:build "/quux/iolib")) ;; signalfd support (experimental)
-                     (:build "babel")
-                     (:build "ironclad")
-                     (:build "binascii")
+                       (:asdf "iolib") ;; I/O event loop
+                       (:asdf "quux-iolib")) ;; signalfd support (experimental)
+                     (:asdf "babel")
+                     (:asdf "ironclad")
+                     (:asdf "binascii")
                      (:when (:featurep (:not :clisp))
-                       (:build "/rucksack"))
+                       (:asdf "rucksack"))
                      (:when (:featurep :sbcl)
                        ;; Used by XCVB
                        (:require :sb-posix)

@@ -30,8 +30,11 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 
 ### The dependencies, in case you want them.
 
-DEPENDENCIES := \
-	: Dependencies that include XCVB support ; \
+# Dependencies that already include XCVB support upstream.
+# They all use GIT (yay) and their "master" branch includes XCVB support.
+# Exception: libfixposix is actually a C library used by iolib;
+# it doesn't support XCVB directly, but it's no Lisp code, so that's OK.
+DEPENDENCIES_SUPPORTING_XCVB := \
 	GIT git://common-lisp.net/projects/asdf/asdf.git ; \
 	GIT git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git ; \
 	GIT git://common-lisp.net/projects/xcvb/cl-launch.git ; \
@@ -41,21 +44,32 @@ DEPENDENCIES := \
 	GIT git://common-lisp.net/users/frideau/fare-mop.git ; \
 	GIT git://gitorious.org/libfixposix/libfixposix.git ; \
 	GIT git://common-lisp.net/projects/qitab/poiu.git ; \
-	GIT git://common-lisp.net/projects/xcvb/quux-iolib.git ; \
-	: Dependencies that need be patched to run with XCVB. \
-	  Their XCVB repo is under git://common-lisp.net/projects/xcvb/FOO ; \
+	GIT git://common-lisp.net/projects/xcvb/quux-iolib.git
+
+# Dependencies patched to run with XCVB
+# Their XCVB repo is under git://common-lisp.net/projects/xcvb/FOO
+# The repo listed below is the actual unpatched upstream.
+# In the XCVB repo, the "master" branch is pristine upstream,
+# and the "xcvb" branch has our patches.
+DEPENDENCIES_PATCHED_FOR_XCVB := \
 	XGIT git://common-lisp.net/projects/alexandria/alexandria.git ; \
-	XDARCS http://common-lisp.net/project/babel/darcs/babel ; \
-	XGIT git://github.com/froydnj/binascii.git ; \
-	XGIT git://common-lisp.net/projects/bordeaux-threads/bordeaux-threads.git ; \
-	XDARCS http://common-lisp.net/project/closer/repos/closer-mop ; \
 	XGIT git://common-lisp.net/projects/cffi/cffi.git ; \
-	XGIT git://gitorious.org/iolib/iolib.git ; \
+	XGIT git://github.com/froydnj/binascii.git ; \
 	XGIT git://github.com/froydnj/ironclad.git ; \
-	XGIT http://common-lisp.net/project/editor-hints/darcs/named-readtables/ ; \
+	XDARCS http://common-lisp.net/project/babel/darcs/babel ; \
+	XDARCS http://common-lisp.net/project/closer/repos/closer-mop ; \
+	XDARCS http://common-lisp.net/project/editor-hints/darcs/named-readtables/ ; \
 	XCVS rucksack :pserver:anonymous:anonymous@common-lisp.net:/project/rucksack/cvsroot ; \
-	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-features ; \
-	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-garbage/ ;
+	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-garbage/ ; \
+	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-features
+
+DEPENDENCIES_PATCHED_FOR_XCVB_FARMER := \
+	XGIT git://common-lisp.net/projects/bordeaux-threads/bordeaux-threads.git ; \
+	XGIT git://gitorious.org/iolib/iolib.git ; \
+
+# These are NOT dependencies of XCVB, but have been patched to compile with XCVB.
+NON_DEPENDENCIES_PATCHED_FOR_XCVB := \
+	list not available yet
 
 
 install-cl-launch:

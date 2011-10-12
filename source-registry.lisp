@@ -37,16 +37,11 @@ Initially populated with all build.xcvb files from the search path.")
     :reason (format nil "ancestor ~A at ~A is invalid because of~%~A~&"
                     (fullname ancestor)
                     pathname
-                    (make-invalid-build-reason ancestor))))
+                    (invalid-build-reason ancestor))))
 
-(defgeneric make-invalid-build-reason (x &key &allow-other-keys))
-
-(defmethod make-invalid-build-reason ((x build-registry-entry) &key &allow-other-keys)
+(defmethod invalid-build-reason ((x build-registry-entry))
   (format nil "a conflict between same-named builds at~%~{~S~&~}"
           (brc-pathnames x)))
-
-(defmethod make-invalid-build-reason ((x invalid-build-file) &key &allow-other-keys)
-  (invalid-build-reason x))
 
 (defun pathname-build (pathname)
   (loop :with truename = (truename pathname)
