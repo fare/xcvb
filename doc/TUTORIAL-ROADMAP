@@ -4,7 +4,7 @@ I'm a new user to Common Lisp, and I hear about xcvb to build my software, what 
 first things I'll expect to work?
 
 0. How do I get and install XCVB if it is not already on my distro?
-[We should ensure that fedora, rhel, debian, ubuntu, gentoo have xcvb as a distro package.
+[We should ensure that fedora/rhel, debian/ubuntu, gentoo have xcvb as a distro package.
 And binary distributions for MacOSX, Windows.
 Make sure it is buildable from source with one of 4 lisp environments: SBCL, CLOZURE, CLISP, ECL.]
 
@@ -14,6 +14,7 @@ Make sure it is buildable from source with one of 4 lisp environments: SBCL, CLO
 [in the shell command environment]
 I expect to write these files:
 hello-world.lisp
+package.lisp
 build.xcvb
 
 Then I expect to 'xcvb' to automatically read build.xcvb in the current working directory

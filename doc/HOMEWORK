@@ -12,8 +12,16 @@ Peter's homework.
     case? [harder than I think to fix]
 * [IN PROGRESS] write up the DSL and extension idea, write mockup code for what it looks like.
 * Clean up the internals file.
-* Write a document stating what I, as a user, would want out of XCVB right away. Also, how important
-is it to have timestamp or content based dependency updates?
+* [DONE] Write a document stating what I, as a user, would want out of XCVB right away. Also,
+how important is it to have timestamp or content based dependency updates?
+* Following the proposed tutorial, construct each type of software package. Then write it in the
+low level dependency assembly language to see if it can be represented.
+* Write a more formal description of the dependency language I thought up and send
+  to Fare before friday night.
+* Send Fare any notes on other build systems and programming languages evaluated:
+  FrTime, FlapJax, OMake, Cabal, SCons, CMake, SEBS, VESTA, Rebar, etc.
+* Compile a document explaining every means that 7 Lisps can natively produce fasls, cfasls,
+  executables, etc ???
 
 Fare's homework.
 1- Fix manifest format:
@@ -40,3 +48,13 @@ General Homework
 1. Add linkkit to SBCL.
 https://bugs.launchpad.net/sbcl/+bug/794713
 
+2. Finish ripping out features that we don't strictly need to implement [0] in tutorial.
+   Fix build.xcvb and asdf files to know what we removed.
+
+3. look at Qi, Shen, other extensions of CL with rule or logic programming
+
+4. write the CFFI example in your dreamed logic programming language
+
+5. Do integrate ECL patches to ASDF
+
+6. Give a look at the ABCL extension to ASDF to produce .jar files.
