@@ -37,7 +37,7 @@
 
    ;;; special variables for portability issues
    #:*default-element-type*
-   
+
    ;;; String utilities - copied from fare-utils
    ;;#:string-prefix-p
    ;;#:string-suffix-p
@@ -74,6 +74,10 @@
    #:run-program/read-output-forms
    #:run-program/for-side-effects
    #:run-program/echo-output
+
+   ;; pathname utilities
+   #:native-namestring
+   #:parse-native-namestring
 
    ;; Magic strings
    #:+xcvb-slave-greeting+
@@ -1293,6 +1297,20 @@ by /bin/sh in POSIX"
    #+os-windows escape-windows-command
    command stream))
 
+(defun native-namestring (x)
+  (let* ((p (pathname x)))
+    #+clozure (ccl:native-translated-namestring p)
+    #+(or cmu scl) (ext:unix-namestring p)
+    #+sbcl (sb-ext:native-namestring p)
+    #-(or clozure cmu sbcl scl) (namestring p)))
+
+(defun parse-native-namestring (x)
+  (check-type x string)
+  #+clozure (ccl:native-to-pathname x)
+  #+(or cmu scl) (lisp::parse-unix-namestring x)
+  #+sbcl (sb-ext:parse-native-namestring x)
+  #-(or clozure cmu sbcl scl) (parse-namestring x))
+
 (defun call-with-temporary-file
     (thunk &key
      prefix keep (direction :io)
@@ -1426,7 +1444,8 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                             #+sbcl '(:search t
                                      :external-format external-format)))))
                     (process
-                     #+(or allegro lispworks ecl) (third process*)
+                     #+allegro (if pipe (third process*) (first process*))
+                     #+(lispworks ecl) (third process*)
                      #-(or allegro lispworks ecl) (first process*))
                     (stream
                      (when pipe
@@ -1460,6 +1479,29 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                          (equal exit-code 0))
                (error "Process ~S exited with error code ~D" command exit-code))
              exit-code)
+           (use-run-program ()
+             #-(or abcl cormanlisp gcl (and lispworks os-windows) mcl xcl)
+             (let ((pipe (and output-processor t)))
+               (multiple-value-bind (process stream)
+                   (run-program command :pipe pipe)
+                 (flet ((check ()
+                          (check-result (process-result process))))
+                   (unwind-protect
+                        (if output-processor
+                            (funcall output-processor stream)
+                            #+allegro (check-result process) ; when not capturing, allegro returns the exit code!
+                            #-allegro (check))
+                     (when stream (close stream))
+                     (when output-processor (check)))))))
+           (system-command (command)
+             (etypecase command
+               (string command)
+               (list #+os-unix (escape-sh-command (cons "exec" command))
+                     #-os-unix (escape-shell-command command))))
+           (redirected-system-command (command out)
+             (format nil #+os-unix "exec > ~*~A ; ~2:*~A"
+                     #-os-unix "~A > ~A"
+                     (system-command command) out))
            (system (command)
              #+(or abcl xcl) (ext:run-shell-command command)
              #+allegro
@@ -1473,28 +1515,6 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
              #+(and lispworks os-windows)
              (system:call-system-showing-output
               command :show-cmd nil :prefix "" :output-stream nil))
-           (use-run-program ()
-             #-(or abcl cormanlisp gcl (and lispworks os-windows) mcl xcl)
-             (let ((pipe (and output-processor t)))
-               (multiple-value-bind (process stream)
-                   (run-program command :pipe pipe)
-                 (flet ((check ()
-                          (check-result (process-result process))))
-                   (unwind-protect
-                        (if output-processor
-                            (funcall output-processor stream)
-                            (check))
-                     (when stream (close stream))
-                     (when output-processor (check)))))))
-           (system-command (command)
-             (etypecase command
-               (string command)
-               (list #+os-unix (escape-sh-command (cons "exec" command))
-                     #-os-unix (escape-shell-command command))))
-           (redirected-system-command (command out)
-             (format nil #+os-unix "exec > ~*~A ; ~2:*~A"
-                     #-os-unix "~A > ~A"
-                     (system-command command) out))
            (call-system (command-string)
              (check-result (system command-string)))
            (use-system ()
@@ -1509,7 +1529,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                      (funcall output-processor stream)))
                  (call-system (system-command command)))))
     (if (and (not force-shell)
-             #+clisp ignore-error-status
+             #+(or clisp ecl) ignore-error-status
              #+(or abcl cormanlisp gcl (and lispworks os-windows) mcl xcl) nil)
         (use-run-program)
         (use-system))))

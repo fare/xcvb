@@ -1,11 +1,11 @@
 #+xcvb (module (:depends-on ("helpers" "specials")))
 
-(in-package #:xcvb-unit-tests)
+(in-package #:xcvb-test)
 
 (declaim (optimize (debug 3) (safety 3)))
 
 (defsuite* (sub-xcvb
-            :in test-xcvb
+            :in xcvb-test
             :documentation "Test XCVB as a subprocess"))
 
 (defun run-make (dir target &rest keys)

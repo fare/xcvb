@@ -1,10 +1,15 @@
+;; -*- Common-Lisp -*-
 (module
- (:build-depends-on ((:build "/xcvb") (:asdf "hu.dwim.stefil") (:asdf "cl-ppcre"))
-  :depends-on ("run-program" "run-program-backend" "sub-xcvb" "main")
-  :supersedes-asdf ("xcvb-unit-tests")
+ (:build-depends-on
+   ((:build "/xcvb")
+    (:asdf "hu.dwim.stefil")
+    (:asdf "cl-ppcre"))
+  :depends-on
+   ("run-program" "run-program-backend" "sub-xcvb" "main")
+  :supersedes-asdf ("xcvb-test" ("xcvb-driver-test" "driver-test"))
   :pre-image t
   :build-image nil)
  (:executable "xcvb-test"
   :depends-on :build
   :pre-image-dump "(xcvb::prepare-image #.(xcvbd::get-xcvb-version))"
-  :entry-point "xcvb-unit-tests::main"))
+  :entry-point "xcvb-test::main"))

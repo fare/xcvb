@@ -1,9 +1,11 @@
 #+xcvb (module (:depends-on ("helpers" "specials")))
 
-(in-package #:xcvb-unit-tests)
+(in-package #:xcvb-test)
+
+(declaim (optimize (debug 3) (safety 3)))
 
 (defsuite* (test-run-program-backend
-            :in test-xcvb
+            :in xcvb-test
             :documentation "Test the run-program-backend (simple-build)"))
 
 (defun test-simple-build (&key (build (first +example-builds+))

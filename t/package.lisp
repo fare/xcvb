@@ -1,10 +1,11 @@
-#+xcvb (module (:description "Unit test package for XCVB"))
+#+xcvb (module (:description "Unit test package for XCVB"
+                :depends-on ("driver-test")))
 
 (in-package #:cl)
 
-(defpackage #:xcvb-unit-tests
+(defpackage #:xcvb-test
   (:use :hu.dwim.stefil :xcvb :xcvb-driver :closer-common-lisp
-        :fare-utils)
+        :fare-utils :xcvb-driver-test)
   (:import-from :asdf
                 #:coerce-pathname #:probe-file*
                 #:ensure-directory-pathname #:directory-pathname-p)
@@ -15,8 +16,8 @@
    #:run-program/*
    #:run-program-backend/*))
 
-(in-package #:xcvb-unit-tests)
+(in-package #:xcvb-test)
 
-(defsuite* (test-xcvb
+(defsuite* (xcvb-test
             :in root-suite
             :documentation "All XCVB unit tests"))

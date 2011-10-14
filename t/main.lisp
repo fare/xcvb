@@ -1,6 +1,6 @@
 #+xcvb (module (:depends-on ("sub-xcvb")))
 
-(in-package #:xcvb-unit-tests)
+(in-package #:xcvb-test)
 
 (defparameter +xcvb-test-commands+
   '((("help" "-?" "--help" "-h")
@@ -77,8 +77,10 @@ the name of an XCVB-test command gives specific help on that command.")
     ,@+bootstrap-option-spec+))
 
 (defun run-unit-tests ()
-  (let* ((results (test-xcvb))
-         (failures (coerce (hu.dwim.stefil::failure-descriptions-of results) 'list)))
+  (let ((failures 
+         (mapcan (lambda (x)
+                   (coerce (hu.dwim.stefil::failure-descriptions-of (funcall x)) 'list))
+                 (list #'xcvb-driver-test #'xcvb-test))))
     (when failures
       (error "failures in XCVB unit-tests:~%~{~S~%~}" failures))))
 

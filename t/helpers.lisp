@@ -1,14 +1,8 @@
 #+xcvb (module (:depends-on ("package")))
 
-(in-package #:xcvb-unit-tests)
+(in-package #:xcvb-test)
 
 (declaim (optimize (debug 3) (safety 3)))
-
-;; We add a newline to the end of a string and return it.
-;; We do it in this specific manner so that under unix, windows and macos,
-;; format will choose the correct type of newline delimiters
-(defun nl (str)
-  (format nil "~A~%" str))
 
 (defun in-dir (dir sub)
   (merge-pathnames* (coerce-pathname sub) dir))

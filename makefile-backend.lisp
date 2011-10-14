@@ -133,7 +133,7 @@ xcvb-ensure-object-directories:
 
 (defmethod grain-pathname-text ((env makefile-traversal) (grain file-grain))
   (let ((pathname (call-next-method))) ;; TODO: where do we call enough-namestring ?
-    (values (escape-shell-token-for-Makefile pathname) pathname)))
+    (values (escape-sh-token-for-Makefile pathname) pathname)))
 
 (defmethod grain-pathname-text :around ((env makefile-traversal) grain)
   (declare (ignorable env grain))
@@ -178,7 +178,7 @@ xcvb-ensure-object-directories:
     (let ((asdf-grains (remove-if-not #'asdf-grain-p inputs))))
     (when asdf-grains)
     (let* ((image-namestring (grain-namestring env output))
-           (pathname-text (escape-shell-token-for-Makefile
+           (pathname-text (escape-sh-token-for-Makefile
                            (enough-namestring image-namestring)))))
     (with-output-to-string (s)
       (format s " $(shell [ -f ~A ] && " pathname-text)

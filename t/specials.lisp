@@ -1,6 +1,6 @@
 #+xcvb (module (:depends-on ("package")))
 
-(in-package #:xcvb-unit-tests)
+(in-package #:xcvb-test)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 

@@ -49,7 +49,7 @@
     (dolist (external-command (external-commands-for-computation env command))
       (log-format
        5 "Running Computation's Shell Command:~% ~{~< \\~%   ~1,72:; ~A~>~}~%~%"
-       (mapcar #'escape-shell-token external-command))
+       (mapcar #'escape-token external-command))
       (run-program/echo-output external-command :prefix "command output: "))
     (mapcar/ 'update-change-information env outputs)))
 
