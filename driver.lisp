@@ -303,7 +303,8 @@ Useful for portably flushing I/O before user input or program exit."
   #+abcl :abcl #+allegro :allegro
   #+clisp :clisp #+clozure :ccl #+cmu :cmucl #+cormanlisp :corman
   #+ecl :ecl #+gcl :gcl #+genera :genera
-  #+lispworks-personal-edition :lispworks-personal #+lispworks :lispworks
+  #+lispworks-personal-edition :lispworks-personal
+  #+(and lispworks (not lispworks-personal-edition)) :lispworks
   #+mcl :mcl #+sbcl :sbcl #+scl :scl #+xcl :xcl
   #-(or abcl allegro clisp clozure cmu cormanlisp
         ecl gcl genera lispworks mcl sbcl scl xcl)
@@ -1444,8 +1445,8 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                             #+sbcl '(:search t
                                      :external-format external-format)))))
                     (process
-                     #+allegro (if pipe (third process*) (first process*))
-                     #+(lispworks ecl) (third process*)
+                     #+(or allegro lispworks) (if pipe (third process*) (first process*))
+                     #+ecl (third process*)
                      #-(or allegro lispworks ecl) (first process*))
                     (stream
                      (when pipe
@@ -1484,15 +1485,16 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
              (let ((pipe (and output-processor t)))
                (multiple-value-bind (process stream)
                    (run-program command :pipe pipe)
-                 (flet ((check ()
-                          (check-result (process-result process))))
-                   (unwind-protect
-                        (if output-processor
-                            (funcall output-processor stream)
-                            #+allegro (check-result process) ; when not capturing, allegro returns the exit code!
-                            #-allegro (check))
-                     (when stream (close stream))
-                     (when output-processor (check)))))))
+                 (if output-processor
+                     (unwind-protect
+                          (funcall output-processor stream)
+                       (when stream (close stream))
+                       (check-result (process-result process)))
+                     (unwind-protect
+                          (check-result
+                           #+(or allegro lispworks) ; when not capturing, returns the exit code!
+                           process
+                           #-(or allegro lispworks) (process-result process)))))))
            (system-command (command)
              (etypecase command
                (string command)

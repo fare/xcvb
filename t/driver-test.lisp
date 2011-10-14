@@ -19,20 +19,25 @@ do cl-launch -l $l -s xcvb-driver-test -iw '(xcvb-driver-test:xcvb-driver-test)'
 (declaim (optimize (debug 3) (safety 3)))
 
 ;;#+allegro (trace excl:run-shell-command sys:reap-os-subprocess)
+;;#+lispworks (trace system:run-shell-command system:pid-exit-status)
 
 ;; Poor man's test suite, lacking stefil.
 (defmacro deftest (name formals &body body)
   `(defun ,name ,formals ,@body))
 (defmacro is (x)
-  `(assert ,x))
+  `(progn
+     (format! *error-output* "~&Checking whether ~S~%" ',x)
+     (assert ,x)))
 (defmacro signals (condition sexp)
-  `(handler-case
-       ,sexp
-     (,condition () t)
-     (t (c)
-       (error "Expression ~S raises signal ~S, not ~S" ',sexp c ',condition))
-     (:no-error ()
-      (error "Expression ~S fails to raise condition ~S" ',sexp ',condition))))
+  `(progn
+     (format! *error-output* "~&Checking whether ~S signals ~S~%" ',sexp ',condition)
+     (handler-case
+         ,sexp
+       (,condition () t)
+       (t (c)
+         (error "Expression ~S raises signal ~S, not ~S" ',sexp c ',condition))
+       (:no-error ()
+         (error "Expression ~S fails to raise condition ~S" ',sexp ',condition)))))
 
 #|
 Testing run-program/process-output-stream through its derivatives:
@@ -155,7 +160,7 @@ run-program/echo-output
 
   ;; Test that run-program/process-output-stream fails properly with a
   ;; nil program list
-  #+(or clozure (and allegro os-unix) cmu (and lispworks os-unix) sbcl scl)
+  #+(or clozure (and allegro os-unix) cmu sbcl scl)
   (signals error (run-program/read-output-lines nil))
 
   ;; Test that run-program/process-output-stream fails properly when the
