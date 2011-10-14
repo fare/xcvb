@@ -57,11 +57,11 @@ DEPENDENCIES_PATCHED_FOR_XCVB := \
 	XGIT git://common-lisp.net/projects/cffi/cffi.git ; \
 	XGIT git://github.com/froydnj/binascii.git ; \
 	XGIT git://github.com/froydnj/ironclad.git ; \
-	XDARCS http://common-lisp.net/project/babel/darcs/babel ; \
-	XDARCS http://common-lisp.net/project/closer/repos/closer-mop ; \
-	XDARCS http://common-lisp.net/project/editor-hints/darcs/named-readtables ; \
+	XDARCS http://common-lisp.net/project/babel/darcs/babel/ ; \
+	XDARCS http://common-lisp.net/project/closer/repos/closer-mop/ ; \
+	XDARCS http://common-lisp.net/project/editor-hints/darcs/named-readtables/ ; \
 	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-garbage/ ; \
-	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-features ; \
+	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-features/ ; \
 	: These are used by the farmer only: ; \
 	XGIT git://common-lisp.net/projects/bordeaux-threads/bordeaux-threads.git ; \
 	XGIT git://gitorious.org/iolib/iolib.git ; \
@@ -74,7 +74,10 @@ DEPENDENCIES := \
 
 # These are NOT dependencies of XCVB, but have been patched to compile with XCVB.
 NON_DEPENDENCIES_PATCHED_FOR_XCVB := \
-	list not available yet
+	XDARCS http://common-lisp.net/project/iterate/darcs/iterate/ ; \
+	XDARCS http://www.common-lisp.net/project/closer/darcs/lw-compat/ ; \
+	XDARCS http://dwim.hu/darcs/hu.dwim.stefil/ ; \
+	: more are available but not listed yet
 
 
 install-cl-launch:

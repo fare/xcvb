@@ -1085,6 +1085,20 @@ if we are not called from a directly executable image dumped by XCVB."
        (string-suffix-p string suffix)))
 
 ;;; I/O utilities
+(defun native-namestring (x)
+  (let* ((p (pathname x)))
+    #+clozure (ccl:native-translated-namestring p)
+    #+(or cmu scl) (ext:unix-namestring p)
+    #+sbcl (sb-ext:native-namestring p)
+    #-(or clozure cmu sbcl scl) (namestring p)))
+
+(defun parse-native-namestring (x)
+  (check-type x string)
+  #+clozure (ccl:native-to-pathname x)
+  #+(or cmu scl) (lisp::parse-unix-namestring x)
+  #+sbcl (sb-ext:parse-native-namestring x)
+  #-(or clozure cmu sbcl scl) (parse-namestring x))
+
 (defgeneric call-with-output (x thunk)
   (:documentation ;; from fare-utils
    "Calls FUN with an actual stream argument, behaving like FORMAT with respect to stream'ing:
@@ -1298,20 +1312,6 @@ by /bin/sh in POSIX"
    #+os-windows escape-windows-command
    command stream))
 
-(defun native-namestring (x)
-  (let* ((p (pathname x)))
-    #+clozure (ccl:native-translated-namestring p)
-    #+(or cmu scl) (ext:unix-namestring p)
-    #+sbcl (sb-ext:native-namestring p)
-    #-(or clozure cmu sbcl scl) (namestring p)))
-
-(defun parse-native-namestring (x)
-  (check-type x string)
-  #+clozure (ccl:native-to-pathname x)
-  #+(or cmu scl) (lisp::parse-unix-namestring x)
-  #+sbcl (sb-ext:parse-native-namestring x)
-  #-(or clozure cmu sbcl scl) (parse-namestring x))
-
 (defun call-with-temporary-file
     (thunk &key
      prefix keep (direction :io)
@@ -1435,11 +1435,9 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                       (#+(or cmu ecl scl) ext:run-program
                        #+clozure ccl:run-program
                        #+sbcl sb-ext:run-program
-                       (car command) #+clisp :arguments (cdr command)
+                       (car command) (cdr command)
                        :input nil :wait wait
-                       :output (if pipe :stream
-                                   #+(or clozure cmu ecl sbcl scl) t
-                                   #+clisp :terminal)
+                       :output (if pipe :stream t)
                        . #.(append
                             #+(or clozure cmu ecl sbcl scl) '(:error t)
                             #+sbcl '(:search t
