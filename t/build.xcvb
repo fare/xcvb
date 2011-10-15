@@ -5,7 +5,7 @@
     (:asdf "hu.dwim.stefil")
     (:asdf "cl-ppcre"))
   :depends-on
-   ("run-program" "run-program-backend" "sub-xcvb" "main")
+   ("run-program-backend" "sub-xcvb" "release" "main")
   :supersedes-asdf ("xcvb-test" ("xcvb-driver-test" "driver-test"))
   :pre-image t
   :build-image nil)

@@ -129,20 +129,6 @@ checkout:
 	mkdir -p dependencies ; cd dependencies ; \
 	${DEPENDENCIES}
 
-fake-release-directory:
-	[ -n "${RELEASE_DIR}" ] || { echo "RELEASE_DIR not defined" ; exit 42 ;} ; \
-	mkdir -p "${RELEASE_DIR}" ; \
-	[ -n "${RELEASE_EXCLUDE}" ] || { echo "RELEASE_EXCLUDE not defined" ; exit 42 ;} ; \
-	set -e ; \
-	mkdir -p ${RELEASE_DIR}/dependencies ${RELEASE_DIR}/xcvb ; \
-	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;} ; \
-	rsync -av ${RELEASE_EXCLUDE} ./ ${RELEASE_DIR}/xcvb/ ; \
-	R () { rsync -av ${RELEASE_EXCLUDE} ../$$1/ ${RELEASE_DIR}/dependencies/$$1/ ; } ; \
-	GIT () { R $$(basename $$1 .git) ;} ; \
-	XGIT () { GIT $$1 ;} ; XDARCS () { GIT $$1 ;} ; XCVS () { GIT $$1 ;} ; \
-	${DEPENDENCIES} ; \
-	${MAKE} -C ${RELEASE_DIR} -f xcvb/doc/Makefile.release prepare-release
-
 gc:
 	echo -n "Packing xcvb..." ; cd xcvb ; git gc ; git repack -Ad
 	cd dependencies ; for i in * ; do \
@@ -191,5 +177,8 @@ test: install
 	cd ${XCVB_DIR} && \
 	./test/runme.zsh ${OPTIONS} validate_release_dir_all_lisps
 
+show-dependencies:
+	@echo '${DEPENDENCIES}'
+
 .PHONY: install-cl-launch install install-source install-using-asdf \
-	checkout update gc prepare-release test
+	checkout update gc prepare-release test show-dependencies

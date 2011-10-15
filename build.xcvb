@@ -25,8 +25,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
                      (:asdf "closer-mop")
                      (:asdf "command-line-arguments")
                      (:asdf "fare-utils") ;; utilities and data structures.
-                     (:asdf "fare-matcher") ;; fare-matcher and fare-quasiquote
-                     (:asdf "fare-quasiquote") ;; fare-matcher and fare-quasiquote
+                     (:asdf "fare-matcher") ;; fare-matcher
+                     (:asdf "fare-quasiquote-readtable") ;; fare-quasiquote
                      (:asdf "fare-mop") ;; fare-matcher and fare-quasiquote
                      (:when (:featurep :xcvb-farmer)
                        (:asdf "iolib") ;; I/O event loop

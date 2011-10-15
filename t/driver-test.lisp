@@ -3,9 +3,9 @@ for l in ccl clisp sbcl cmucl ecl abcl xcl scl allegro
 # lispworks gclcvs
 do cl-launch -l $l -s xcvb-driver-test -iw '(xcvb-driver-test:xcvb-driver-test)' ; done
 |#
-
-#+xcvb (module (:description "Unit test package for XCVB-Driver")
-               (:build-depends-on ("/asdf" "/xcvb/driver")))
+#+xcvb
+(module (:description "Unit test package for XCVB-Driver"
+         :build-depends-on ("/asdf" "/xcvb/driver")))
 
 (in-package #:cl)
 

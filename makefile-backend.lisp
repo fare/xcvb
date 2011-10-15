@@ -132,8 +132,8 @@ xcvb-ensure-object-directories:
     namestring))
 
 (defmethod grain-pathname-text ((env makefile-traversal) (grain file-grain))
-  (let ((pathname (call-next-method))) ;; TODO: where do we call enough-namestring ?
-    (values (escape-sh-token-for-Makefile pathname) pathname)))
+  (let ((pathname (call-next-method)))
+    (values (escape-sh-token-for-Makefile (enough-namestring pathname)) pathname)))
 
 (defmethod grain-pathname-text :around ((env makefile-traversal) grain)
   (declare (ignorable env grain))

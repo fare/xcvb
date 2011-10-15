@@ -10,7 +10,9 @@
                 #:coerce-pathname #:probe-file*
                 #:ensure-directory-pathname #:directory-pathname-p)
   (:import-from :xcvb
-                #:module-form-p #:read-module-declaration #:cmdize*)
+                #:module-form-p #:read-module-declaration #:cmdize*
+                #:repl-command #:eval-command #:errexit
+                #:grain-pathname #:handle-global-options)
   (:export
    #:test-xcvb
    #:run-program/*

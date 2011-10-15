@@ -388,7 +388,7 @@
 
 (defun compute-release-dir-variables (&rest keys &key release-dir &allow-other-keys)
   (letk* keys
-      ((release-dir (ensure-directory-pathname release-dir))
+      ((release-dir (ensure-directory-pathname (or release-dir (getenv "RELEASE_DIR"))))
        (xcvb-dir (in-dir release-dir "xcvb/"))
        (build-dir (in-dir release-dir "build/"))
        (source-registry

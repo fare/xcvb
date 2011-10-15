@@ -59,6 +59,7 @@
    #:with-temporary-file
 
    ;;; Escaping the command invocation madness
+   #:easy-sh-character-p
    #:escape-windows-token
    #:escape-windows-command
    #:escape-sh-token
@@ -1294,11 +1295,14 @@ omit the outer double-quotes if key argument :QUOTE is NIL"
     (princ c s))
   (when quote (princ #\" s)))
 
+(defun easy-sh-character-p (x)
+  (or (alphanumericp x) (find x "+-_.,%@:/")))
+
 (defun escape-sh-token (token &optional s)
   "Escape a string TOKEN within double-quotes if needed
 for use within a POSIX Bourne shell, outputing to S."
   (escape-token token :stream s :quote #\" :good-chars
-                #'(lambda (x) (or (alphanumericp x) (find x "+-_.,%@:/")))
+                #'easy-sh-character-p
                 :escaper 'escape-sh-token-within-double-quotes))
 
 (defun escape-sh-command (command &optional s)

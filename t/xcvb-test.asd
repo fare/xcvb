@@ -12,4 +12,5 @@
    (:file "specials" :depends-on ("package"))
    (:file "run-program-backend" :depends-on ("helpers" "specials"))
    (:file "sub-xcvb" :depends-on ("helpers" "specials"))
+   (:file "release" :depends-on ("sub-xcvb"))
    (:file "main" :depends-on ("package"))))

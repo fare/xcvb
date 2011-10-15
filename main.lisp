@@ -439,6 +439,7 @@ using ~A~%"
       (keyword (format nil "--~(~A~)" x))
       (symbol (string-downcase x))
       (string x)
+      (pathname (native-namestring x))
       (list (write-to-string x))
       (t (princ-to-string x)))))
 

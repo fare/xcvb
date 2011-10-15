@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("sub-xcvb")))
+#+xcvb (module (:depends-on ("package")))
 
 (in-package #:xcvb-test)
 
@@ -28,7 +28,17 @@ the name of an XCVB-test command gives specific help on that command.")
     (("validate-release-dir-all-lisps" "vral")
      validate-release-dir-all-lisps +validate-release-dir-all-lisps-option-spec+
      "Test a XCVB release directory"
-     "Compile a XCVB release directory and run tests on it")))
+     "Compile a XCVB release directory and run tests on it")
+    (("eval")
+     eval-command ()
+     "Evaluate some Lisp form"
+     "Evaluate some Lisp form in the context of XCVB itself. For XCVB developers only.")
+    (("repl")
+     repl-command ()
+     "Start a REPL"
+     "The 'repl' evaluates each of its arguments.
+Using 'xcvb repl' launches a Lisp REPL.
+For XCVB developers only (notably for use with SLIME).")))
 
 (defparameter +unit-tests-option-spec+
   '())

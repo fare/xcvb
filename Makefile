@@ -244,8 +244,8 @@ test-and-release-tarball: release-tarball test-release-directory
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/
 
-fake-release-directory:
-	${MAKE} -f ${XCVB_DIR}/doc/Makefile.release fake-release-directory
+fake-release-directory: xcvb-test
+	xcvb-test eval '(xcvb-test::make-fake-release-directory :release-dir "${RELEASE_DIR}/")'
 
 pre-release-test: fake-release-directory test-release-directory
 	${MAKE} -C ${RELEASE_DIR} reset
