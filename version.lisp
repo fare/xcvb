@@ -8,9 +8,7 @@
 (in-package :xcvb-driver)
 
 (defun get-xcvb-directory ()
-  (with-standard-io-syntax
-    (let ((*print-readably* nil))
-      (asdf:system-source-directory :xcvb))))
+  (asdf:system-source-directory :xcvb))
 
 (defun get-xcvb-version ()
   (first

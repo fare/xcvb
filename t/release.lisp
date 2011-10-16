@@ -11,7 +11,8 @@
 
 (defparameter *release-exclude*
   '(:exclude "build" :exclude "obj" :exclude "obj-ne"
-    :exclude "*~" :exclude ".\#*" :exclude "xcvb*.mk"))
+    :exclude "*.bak" :exclude "*~" :exclude ".\#*"
+    :exclude "xcvb*.mk" :exclude "configure*.mk"))
 
 (defun space-separated-components (string)
   (remove-if 'emptyp
@@ -71,3 +72,20 @@ of easy shell characters (that do not require quoting)."
           (r dir (in-dir release-deps (strcat dep "/"))))))
     (run-cmd (or (getenv "MAKE") "make") "-C" release-dir
          "-f" "xcvb/doc/Makefile.release" "prepare-release")))
+
+(defun make-release-tarball (&rest keys)
+  (compute-release-dir-variables! keys)
+  (apply '%make-fake-release-directory keys))
+
+(defun %make-release-tarball (&key release-dir xcvb-dir &allow-other-keys)
+  (chdir xcvb-dir)
+  (let* ((version (run-cmd/string 'git 'describe :tags))
+         (version-dir (strcat "xcvb-" version))
+         (tarball (strcat version-dir ".tar.bz2")))
+    (chdir "../..")
+    (run-cmd 'rm '-f (strcat "xcvb-" version))
+    (apply 'run-cmd `(tar ,@*release-exclude* -hjcf
+                      ,(format nil "xcvb-~A.tar.bz2" version)))
+    (run-cmd 'ln '-sf release-dir version-dir)
+    (apply 'run-cmd `(tar ,@*release-exclude* -hjcf ,tarball ,version-dir))
+    (run-cmd 'ln '-sf tarball "xcvb.tar.bz2")))

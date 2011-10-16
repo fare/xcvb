@@ -489,8 +489,10 @@ Examples
 --------
 
 XCVB itself is an example.
-A simpler example is the trivial Common Lisp application ``hello``
-distributed in directory ``hello/``. See the source and its ``Makefile``.
+Simpler examples are available in directory ``examples``.
+The simplest are ``example-1`` and ``example-2``.
+A more complete kind of Common Lisp application is ``hello``
+See each time the source code and the associated ``Makefile``.
 
 
 Timeline
@@ -523,7 +525,7 @@ with notable contributions from Joyce Chen and Matthew Steele.
 In late August 2009, we released XCVB 0.366
 which successfully compiled a large system at ITA.
 
-In 2011 Q2, Francois-Rene Rideau and Peter Keller have worked
+In 2011 Q2-Q3, Francois-Rene Rideau and Peter Keller have worked
 on making XCVB more usable on more implementations,
 so that it may be a valid replacement to ASDF,
 and notably added support for building executable files.

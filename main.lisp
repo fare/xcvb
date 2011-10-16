@@ -29,8 +29,24 @@
 ;; that can invoke the command, function is the function to call when the
 ;; command is invoked, short-help is a short help string for the user, and
 ;; long-help is a longer help string for the user.
+(defparameter +backdoor-commands+
+  '((("load" "--load")
+     load-command ()
+     "Load a Lisp file"
+     "Load a Lisp file in the context of XCVB itself. For XCVB developers only.")
+    (("eval" "--eval")
+     eval-command ()
+     "Evaluate some Lisp form"
+     "Evaluate some Lisp form in the context of XCVB itself. For XCVB developers only.")
+    (("repl" "--repl")
+     repl-command ()
+     "Start a REPL"
+     "The 'repl' evaluates each of its arguments.
+Using 'xcvb repl' launches a Lisp REPL.
+For XCVB developers only (notably for use with SLIME).")))
+
 (defparameter +xcvb-commands+
-  '((("help" "-?" "--help" "-h")
+  `((("help" "-?" "--help" "-h")
      program-help ()
      "Output some help message"
      "With no additional arguments, the 'help' command provides general help on
@@ -100,20 +116,7 @@ For debugging your XCVB configuration.")
      standalone-build-command +standalone-build-option-spec+
      "build a project (experimental)"
      "build the project directly")
-    (("load")
-     load-command ()
-     "Load a Lisp file"
-     "Load a Lisp file in the context of XCVB itself. For XCVB developers only.")
-    (("eval")
-     eval-command ()
-     "Evaluate some Lisp form"
-     "Evaluate some Lisp form in the context of XCVB itself. For XCVB developers only.")
-    (("repl")
-     repl-command ()
-     "Start a REPL"
-     "The 'repl' evaluates each of its arguments.
-Using 'xcvb repl' launches a Lisp REPL.
-For XCVB developers only (notably for use with SLIME).")
+    ,@+backdoor-commands+
     (("version" "-V" "--version")
      show-version ()
      "Show version"

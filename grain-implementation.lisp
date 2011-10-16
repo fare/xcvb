@@ -501,3 +501,12 @@ Modeled after the asdf function coerce-name"
   (declare (ignore env))
   (assert (equal in (fullname (registered-build in :ensure-build t))))
   (make-vp :src in "/" sub))
+
+
+(defmethod effective-around-compile ((lisp lisp-file-grain))
+  (if (slot-boundp lisp 'around-compile)
+      (around-compile lisp)
+      (let ((build (build-module-grain-for lisp)))
+        (if (slot-boundp build 'around-compile)
+            (around-compile build)
+            nil))))

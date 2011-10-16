@@ -2,7 +2,7 @@
 
 (in-package #:xcvb-test)
 
-(declaim (optimize (debug 3) (safety 3)))
+(declaim (optimize (speed 1) (debug 3) (safety 3)))
 
 (defsuite* (sub-xcvb
             :in xcvb-test
@@ -17,11 +17,12 @@
 (defun make-environment (keys)
   (loop :for xspec :in
     '(:install-bin :install-image :install-lisp :install-source :install-systems
+      :install-xcvb :prefix
       (:object-dir "XCVB_OBJECT_DIRECTORY") (:source-registry "CL_SOURCE_REGISTRY")
       (:implementation-type "LISP" string-downcase)
-      :path :xdg-cache-home :cl-launch-flags
+      :path :xdg-cache-home :cl-launch-flags :asdf-output-translations
       :parallelize)
-    :for spec = (alexandria:ensure-list xspec)
+    :for spec = (ensure-list xspec)
     :for key = (first spec)
     :for var = (or (second spec) (normalize-environment-var key))
     :for fun = (or (third spec) 'identity)
@@ -123,7 +124,7 @@
                        :finally (return cl-user::good))))))
 
 (defun validate-asdf-setup (&rest keys)
-  (run-program/echo-output (apply 'validate-asdf-setup-command keys)))
+  (apply 'run-cmd (apply 'validate-asdf-setup-command keys)))
 
 (defun lisp-long-name (impl)
   (ecase impl
@@ -138,18 +139,21 @@
     (is (string-prefix-p (strcat "built on " (lisp-long-name implementation-type))
                          (second lines)))))
 
-(defun validate-xcvb-ssr (&key xcvb xcvb-dir source-registry &allow-other-keys)
+(defun validate-xcvb-ssr (&rest keys &key xcvb xcvb-dir source-registry &allow-other-keys)
   ;; preconditions: XCVB built from DIR into BUILD-DIR using ENV
   ;; postconditions: xcvb ssr working
-  (let ((ssr (run-program/read-output-string
-              (format nil "~S ssr --source-registry ~S"
-                      xcvb (format nil "~A//:~@[~A~]" xcvb-dir source-registry)))))
+  (let ((ssr (run-cmd/string
+              xcvb 'ssr :source-registry
+              (format nil "~A//:~@[~A~]" xcvb-dir source-registry))))
+    (unless (cl-ppcre:scan "\\(:build \"/xcvb\" :in-file \".*/build.xcvb\"\\)" ssr)
+      (DBG :vxs xcvb keys ssr)
+      (sleep 1000000))
     (is (cl-ppcre:scan "\\(:build \"/xcvb\" :in-file \".*/build.xcvb\"\\)" ssr)
-        "Can't find build for xcvb")
+        "Can't find build for xcvb in~%~A~%" ssr)
     (is (search "(:asdf \"xcvb\" :superseded-by (:build \"/xcvb\"))" ssr)
-        "can't find superseded asdf for xcvb")
+        "can't find superseded asdf for xcvb in~%~A~%" ssr)
     (is (cl-ppcre:scan "\\(:invalid-build :registry-conflict \"/xcvb/test/conflict/b\" :among \\(\".*/examples/conflict/b2?/build.xcvb\" \".*/examples/conflict/b2?/build.xcvb\"\\)\\)" ssr)
-        "can't find conflict for /xcvb/test/conflict/b")))
+        "can't find conflict for /xcvb/test/conflict/b in~%~A~%" ssr)))
 
 (defun validate-xcvb (&rest keys &key implementation-type &allow-other-keys)
   ;; preconditions: env, xcvb built, PWD=.../xcvb/
@@ -234,7 +238,7 @@
                (run-cmd/lines
                 xcvb 'find-module :name "xcvb/driver" :short))))
          (out
-          (run-program/read-output-string
+          (apply 'run-cmd/string
            (xcvb::lisp-invocation-arglist
             :implementation-type implementation-type :lisp-path nil :load driver
             :eval (format nil "'(#.(xcvb-driver:bnl \"xcvb/hello\" ~
@@ -339,7 +343,7 @@
 
 (defun validate-release-dir (&rest keys)
   (compute-release-dir-variables! keys)
-  (apply 'call-with-release-build-dir 'validate-bootstrapped-xcvb keys)
+  (apply 'call-with-release-build-dir 'validate-bootstrapped-build keys)
   (apply 'validate-regular-xcvb-builds 'call-with-release-build-dir keys))
 
 (defun validate-release-dir-all-lisps (&rest keys)
@@ -357,11 +361,13 @@
       `(progn ,@body)))
 
 (defun finalize-variables (&rest keys &key
+                           verbosity
                            implementation-type object-dir build-dir
                            install-bin install-lisp install-image install-source install-systems
                            source-registry xcvb
                            (parallelize () parallelizep)
                            &allow-other-keys)
+  (setf xcvb::*xcvb-verbosity* verbosity)
   (macrolet ((dir (x &optional (default `(error "~A not provided" ',x)))
                `(or (when ,x (ensure-directory-pathname ,x)) ,default)))
     (letk* keys
@@ -391,6 +397,15 @@
       ((release-dir (ensure-directory-pathname (or release-dir (getenv "RELEASE_DIR"))))
        (xcvb-dir (in-dir release-dir "xcvb/"))
        (build-dir (in-dir release-dir "build/"))
+       (install-bin (in-dir build-dir "bin/"))
+       (xcvb (in-dir install-bin "xcvb"))
+       (object-dir (in-dir build-dir "obj/"))
+       (install-xcvb (in-dir build-dir "install/source/xcvb/"))
+       (install-lisp (in-dir build-dir "install/"))
+       (install-source (in-dir build-dir "install/source/"))
+       (install-systems (in-dir build-dir "install/systems/"))
+       (xdg-cache-home (in-dir build-dir "cache/"))
+       (prefix (in-dir build-dir "local/"))
        (source-registry
         (format nil "~A//:~A//:~A//"
                 build-dir xcvb-dir (in-dir release-dir "dependencies/"))))

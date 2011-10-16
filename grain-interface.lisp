@@ -20,6 +20,9 @@
 (defgeneric build-module-grain-for (grain)
   (:documentation "in which build module is this grain being defined"))
 
+(defgeneric effective-around-compile (grain)
+  (:documentation "what hook if any to call around compilation in the target"))
+
 ;;; Define grains.
 
 ;; Unit of build: a file, a process, etc.

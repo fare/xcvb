@@ -211,10 +211,10 @@ ${XCVB_TEST}: ${INSTALL_BIN}/xcvb $(wildcard t/*.lisp t/build.xcvb)
 	cp -f ${XCVB_OBJECT_DIRECTORY}/xcvb/t/xcvb-test $@
 
 test:	${XCVB_TEST}
-	${XCVB_TEST} validate-xcvb-dir --xcvb-dir ${XCVB_DIR}
+	${XCVB_TEST} validate-xcvb-dir --xcvb-dir ${XCVB_DIR} --verbosity 99
 
 fulltest:	${XCVB_TEST}
-	${XCVB_TEST} validate-xcvb-dir-all-lisps --xcvb-dir ${XCVB_DIR}
+	${XCVB_TEST} validate-xcvb-dir-all-lisps --xcvb-dir ${XCVB_DIR} --verbosity 99
 
 export RELEASE_DIR := ${TMP}/xcvb-release
 
@@ -227,15 +227,11 @@ release-directory:
 		checkout reset update gc prepare-release && \
 	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;}
 
-release-tarball:
-	cd ${RELEASE_DIR}/xcvb && \
-	VERSION=$$(git describe --tags) && \
-	cd ../.. && rm -f xcvb-$$VERSION && ln -sf xcvb-release xcvb-$$VERSION && \
-	tar ${RELEASE_EXCLUDE} -hjcf xcvb-$$VERSION.tar.bz2 xcvb-$$VERSION/ && \
-	ln -sf xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2
+release-tarball: xcvb-test
+	xcvb-test eval '(xcvb-test::make-release-tarball :release-dir "${RELEASE_DIR}/")'
 
 test-release-directory: ${XCVB_TEST}
-	${XCVB_TEST} validate-release-dir-all-lisps --release-dir ${RELEASE_DIR}
+	${XCVB_TEST} validate-release-dir-all-lisps --release-dir ${RELEASE_DIR} --verbosity 99
 
 test-and-release-tarball: release-tarball test-release-directory
 	cd ${RELEASE_DIR}/xcvb && \

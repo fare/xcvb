@@ -18,7 +18,7 @@
      ;; lispworks 6.0 on linux/386 has HARP::PC386 HARP::PC386-X, so remove bad features
      . "(remove-if-not 'keywordp *features*)")
     (*target-can-dump-image-p*
-     . "(and (or #+(or allegro ccl clisp cmu gcl lispworks sbcl scl) t #+(or abcl cormanlisp ecl lispworks-personal-edition mcl xcl) nil))")
+     . "(or #+(or allegro ccl clisp cmu gcl (and lispworks (not lispworks-personal-edition)) sbcl scl) t)") ;NO: abcl cormanlisp ecl lispworks-personal-edition mcl xcl
     (*lisp-implementation-directory*
      . "(or #+sbcl (namestring(sb-int:sbcl-homedir-pathname)) #+ccl (namestring(ccl::ccl-directory)))")
     (*target-lisp-image-pathname*

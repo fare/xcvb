@@ -3,7 +3,7 @@
 (in-package #:xcvb-test)
 
 (defparameter +xcvb-test-commands+
-  '((("help" "-?" "--help" "-h")
+  `((("help" "-?" "--help" "-h")
      program-help ()
      "Output some help message"
      "With no additional arguments, the 'help' command provides general help on
@@ -29,16 +29,7 @@ the name of an XCVB-test command gives specific help on that command.")
      validate-release-dir-all-lisps +validate-release-dir-all-lisps-option-spec+
      "Test a XCVB release directory"
      "Compile a XCVB release directory and run tests on it")
-    (("eval")
-     eval-command ()
-     "Evaluate some Lisp form"
-     "Evaluate some Lisp form in the context of XCVB itself. For XCVB developers only.")
-    (("repl")
-     repl-command ()
-     "Start a REPL"
-     "The 'repl' evaluates each of its arguments.
-Using 'xcvb repl' launches a Lisp REPL.
-For XCVB developers only (notably for use with SLIME).")))
+    ,@xcvb::+backdoor-commands+))
 
 (defparameter +unit-tests-option-spec+
   '())
@@ -47,6 +38,7 @@ For XCVB developers only (notably for use with SLIME).")))
   `((("build-dir") :type string :optional t :documentation "where to build stuff")
     (("object-dir") :type string :optional t :documentation "where to store object files")
     (("cl-launch-flags") :type string :optional t :documentation "cl-launch flags")
+    ,@xcvb::+verbosity-option-spec+
     ,@xcvb::+source-registry-option-spec+))
 
 (defparameter +bootstrap-option-spec+

@@ -136,7 +136,6 @@
     (setf compiler::*compiler-default-type* (pathname "")
           compiler::*lsp-ext* ""))
   #+cmu (setf ext:*gc-verbose* nil)
-  #+clisp (setf custom:*source-file-types* nil custom:*compiled-file-types* nil)
   #+(and ecl (not ecl-bytecmp)) (let ((*load-verbose* nil)) (require :cmp))
   #.(or #+mcl ;; the #$ doesn't work on other lisps, even protected by #+mcl
      (read-from-string
@@ -993,7 +992,7 @@ if we are not called from a directly executable image dumped by XCVB."
          (or (and defaults (truename (pathname-directory-pathname defaults)))
              *default-pathname-defaults*)))
     (dolist (m mappings)
-      (apply 'register-fullname-mapping m))))
+      (apply 'register-fullname m))))
 (defun fullname-pathname (fullname)
   (let ((plist (gethash fullname *pathname-mappings*)))
     (or (getf plist :logical-pathname) (getf plist :truename))))
@@ -1089,14 +1088,14 @@ if we are not called from a directly executable image dumped by XCVB."
 (defun native-namestring (x)
   (let* ((p (pathname x)))
     #+clozure (ccl:native-translated-namestring p)
-    #+(or cmu scl) (ext:unix-namestring p)
+    #+(or cmu scl) (ext:unix-namestring p nil)
     #+sbcl (sb-ext:native-namestring p)
     #-(or clozure cmu sbcl scl) (namestring p)))
 
 (defun parse-native-namestring (x)
   (check-type x string)
   #+clozure (ccl:native-to-pathname x)
-  #+(or cmu scl) (lisp::parse-unix-namestring x)
+  #+(or cmu scl) (lisp::parse-unix-namestring x nil)
   #+sbcl (sb-ext:parse-native-namestring x)
   #-(or clozure cmu sbcl scl) (parse-namestring x))
 

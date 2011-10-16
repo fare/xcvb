@@ -339,14 +339,6 @@
 (defmethod make-computation ((env static-traversal) &rest keys &key &allow-other-keys)
   (apply #'make-computation () keys))
 
-(defmethod effective-around-compile ((lisp lisp-file-grain))
-  (if (slot-boundp lisp 'around-compile)
-      (around-compile lisp)
-      (let ((build (build-module-grain-for lisp)))
-        (if (slot-boundp build 'around-compile)
-            (around-compile build)
-            nil))))
-
 (defmethod graph-for-fasls ((env static-traversal) fullname)
   (check-type fullname string)
   (let* ((lisp (graph-for env fullname))

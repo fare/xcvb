@@ -28,19 +28,19 @@ for the Makefile-invoked shell to execute the process specified by these tokens.
 List elements can be either strings that will be escaped
 or escapes of the form (:makefile string) that won't be escaped."
   (with-output (out)
-    (loop :for tok :in tokens
-	  :for () = () :then (when tok (write-char #\space out))
-	  :do (cond
-	       ((null tok))
-	       ((stringp tok)
-		(escape-sh-token-for-Makefile tok out))
-	       ((and (consp tok) (eq :makefile (car tok)))
-		(dolist (s (cdr tok))
-		  (write-string s out)))
-	       ((consp tok)
-		(shell-tokens-to-Makefile tok out))
-	       (t
-		(error "Invalid token member ~S" tok))))))
+    (loop :for (tok . rest) :on tokens :do
+      (cond
+        ((null tok))
+        ((stringp tok)
+         (escape-sh-token-for-Makefile tok out))
+        ((and (consp tok) (eq :makefile (car tok)))
+         (dolist (s (cdr tok))
+           (write-string s out)))
+        ((consp tok)
+         (shell-tokens-to-Makefile tok out))
+        (t
+         (error "Invalid token member ~S" tok)))
+      (when rest (write-char #\space out)))))
 
 (defun shell-tokens-to-string (tokens &optional out)
   (with-output (out)
