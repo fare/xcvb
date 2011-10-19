@@ -45,6 +45,7 @@ enforced locally-declared dependencies.
       5.4  Warning Control
       5.5  CL:REQUIRE
       5.6  Creating Executables
+      5.7  Around-Compile Hook
     6  Troubleshooting an XCVB build
       6.1  Debugging the built system
       6.2  Debugging the build
@@ -214,14 +215,12 @@ sufficient to bootstrap XCVB at:
 You will still need a Lisp implementation to build and run XCVB itself,
 and to build and run the target software that you will build with XCVB:
 
-  * We develop mainly with SBCL
-    (CFASL support is included in SBCL 1.0.30.4 or later):
-	- homepage: http://sbcl.sourceforge.net/
+  * We develop mainly with SBCL (CFASL support is included in SBCL 1.0.30.4 or later):
+        - homepage: http://sbcl.sourceforge.net/
 	- CLiki page: http://cliki.net/SBCL
         - get it from: http://sbcl.sourceforge.net/platform-table.html
 
-  * We also make our best to keep it running with
-    the following other Lisp implementations:
+  * We also make our best to keep it running with the following other Lisp implementations:
 	- Clozure CL: http://ccl.clozure.com/
 	- GNU CLISP: http://clisp.cons.org/
 
@@ -320,7 +319,6 @@ The dependencies that support XCVB natively include:
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/quux-iolib.git``
 
   * libfixposix, a dependency of iolib that you'll need if you use our `farmer` extension:
-git://gitorious.org/libfixposix/libfixposix.git
 	- homepage: http://common-lisp.net/project/iolib/
 	- getting it:
         	``git clone git://gitorious.org/libfixposix/libfixposix.git``
@@ -1350,6 +1348,42 @@ as in::
 	xcvb simple-build --build /xcvb/hello/hello --lisp-implementation ccl
 
 More here soon (bug me about it).
+
+
+Around-Compile Hook
+-------------------
+
+A module may specify ``:around-compile "hook"``
+where hook is a string that when read and evaluated on the target Lisp system
+in a function context i.e. inside ``(function ...)``
+will be a function of one argument that will be called with a thunk
+that when evaluated calls ``compile-file`` for the appropriate file.
+
+Using this hook, you may achieve such effects as:
+locally renaming packages,
+binding @var{*readtables*} and other syntax-controlling variables,
+handling warnings and other conditions,
+proclaiming consistent optimization settings,
+saving code coverage information,
+maintaining meta-data about compilation timings,
+setting gensym counters and PRNG seeds and other sources of non-determinism,
+overriding the source-location and/or timestamping systems,
+checking that some compile-time side-effects were properly balanced,
+etc.
+
+When ``:around-compile`` hook is specified explicitly as ``nil``,
+no function will be called around the compilation.
+When no ``:around-compile`` hook is specified,
+a hook may be inherited from the parent build.
+
+Typically, you would define the hook function in some file,
+and another file (or an entire build) would ``:depends-on``
+the file defining the hook.
+If the hook-defining file is itself in the same build,
+it could explicitly specify ``:around-compile nil``
+to avoid either an undefined hook or a circular dependency.
+
+See for example how we compile ``ironclad`` with XCVB.
 
 
 Troubleshooting an XCVB build

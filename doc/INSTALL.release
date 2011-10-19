@@ -27,13 +27,10 @@ Currently supported are:
         * clisp http://clisp.cons.org/
         * ccl http://trac.clozure.com/openmcl
 
-Second, to use the "master" mode of XCVB that allows compilation inside a
-running image, you will also need the ``tthsum`` utility.
-Otherwise, you will have to disable support for this mode
-by passing option ``--no-master`` to ``xcvb make-makefile``.
-If you are using Debian or Ubuntu, you may get ``tthsum`` with::
-
-	sudo apt-get install tthsum
+SBCL is the one with which we develop and test the software,
+so it tends to work better and we recommend it.
+On a Debian or Ubuntu machine, you may get it with ``apt-get install sbcl``.
+On a Mac with MacPorts, you may get it with ``sudo port install sbcl``. etc.
 
 
 How to install XCVB
@@ -56,8 +53,8 @@ Note that using ASDF requires installing all the source. You can also install th
         make install-source PREFIX=/opt
 
 Look inside the ``Makefile`` to see the supported parameters.
-For fine-tuning beyond those parameters, you may have to manually
-edit ``xcvb/configure.mk``.
+For fine-tuning beyond those parameters,
+you may have to manually edit ``xcvb/configure.mk``.
 
 
 What Next?
