@@ -121,7 +121,7 @@ checkout:
 	XGIT () { x=$$(basename $$1 .git) ; \
 	  url=git://common-lisp.net/projects/xcvb/$$x.git ; \
 	  if [ -d $$x ] ; then echo "Already got $$x" ; \
-	  else git clone $$url ; git checkout xcvb ; fi } ; \
+	  else git clone $$url ; ( cd $$x ; git checkout xcvb ) ; fi } ; \
 	XDARCS () { XGIT "$$1" ; } ; \
 	XCVS () { XGIT "$$1" ; } ; \
 	set -e ; \
@@ -137,22 +137,21 @@ gc:
 update:
 	set -e ; echo -n "Updating xcvb..." ; cd xcvb ; git pull -a ; \
 	GIT () { (x=$$(basename $$1 .git) ; echo -n "Updating $$x... " ; \
-		cd dependencies/$$x ; git pull origin master:master); } ; \
-	XGIT () { x=$$(basename $$1 .git) ; echo -n "Updating $$x... " ; \
-		cd dependencies/$$i ; git pull origin xcvb:xcvb); } ; \
+		cd $$x ; git pull origin master:master); } ; \
+	XGIT () { (x=$$(basename $$1 .git) ; echo -n "Updating $$x... " ; \
+		cd $$x ; git pull origin xcvb:xcvb); } ; \
 	XDARCS () { XGIT "$$1" ; } ; XCVS () { XGIT "$$1" ; } ; \
-	${DEPENDENCIES}
+	cd ../dependencies ; ${DEPENDENCIES}
 
 reset:
-	set -e ; echo -n "Resetting xcvb..." ; cd xcvb ; git reset --hard ; \
+	set -e ; echo -n "Resetting xcvb..." ; cd xcvb ; \
+	git reset --hard ; git checkout master ; \
 	GIT () { (x=$$(basename $$1 .git) ; echo -n "Resetting $$x... " ; \
-		cd dependencies/$$i ; git reset --hard ; \
-		git checkout master); } ; \
+		cd $$x ; git reset --hard ; git checkout master); } ; \
 	XGIT () { (x=$$(basename $$1 .git) ; echo -n "Resetting $$x... " ; \
-		cd dependencies/$$i ; git reset --hard ; \
-		git checkout xcvb); } ; \
+		cd $$x ; git reset --hard ; git checkout xcvb); } ; \
 	XCVS () { XGIT "$$1" ; } ; XDARCS () { XGIT "$$1" ; } ; \
-	${DEPENDENCIES}
+	cd ../dependencies ; ${DEPENDENCIES}
 
 prepare-release:
 	(read ; read ; cat ) < xcvb/doc/INSTALL.release > INSTALL && \
