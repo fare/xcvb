@@ -212,13 +212,13 @@ using ~A~%"
 (defun load-command (args)
   (unless (list-of-length-p 1 args)
     (errexit 2 "load requires exactly 1 argument, a file to load"))
-    (load (car args)))
+    (load (first args)))
 
 ;; Command to eval a file.
 (defun eval-command (args)
   (unless (list-of-length-p 1 args)
     (errexit 2 "eval requires exactly 1 argument, a form to evaluate"))
-    (eval (read-from-string (car args))))
+    (eval (read-from-string (first args))))
 
 ;; Command to start a REPL.
 (defun repl-command (args)

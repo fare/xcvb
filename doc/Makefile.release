@@ -147,9 +147,9 @@ reset:
 	set -e ; echo -n "Resetting xcvb..." ; cd xcvb ; \
 	git reset --hard ; git checkout master ; \
 	GIT () { (x=$$(basename $$1 .git) ; echo -n "Resetting $$x... " ; \
-		cd $$x ; git reset --hard ; git checkout master); } ; \
+		cd $$x ; git reset --hard ; git checkout master ; git clean -fd); } ; \
 	XGIT () { (x=$$(basename $$1 .git) ; echo -n "Resetting $$x... " ; \
-		cd $$x ; git reset --hard ; git checkout xcvb); } ; \
+		cd $$x ; git reset --hard ; git checkout xcvb ; git clean -fd); } ; \
 	XCVS () { XGIT "$$1" ; } ; XDARCS () { XGIT "$$1" ; } ; \
 	cd ../dependencies ; ${DEPENDENCIES}
 

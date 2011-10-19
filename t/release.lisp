@@ -75,17 +75,15 @@ of easy shell characters (that do not require quoting)."
 
 (defun make-release-tarball (&rest keys)
   (compute-release-dir-variables! keys)
-  (apply '%make-fake-release-directory keys))
+  (apply '%make-release-tarball keys))
 
 (defun %make-release-tarball (&key release-dir xcvb-dir &allow-other-keys)
   (chdir xcvb-dir)
-  (let* ((version (run-cmd/string 'git 'describe :tags))
+  (let* ((version (string-trim *spaces* (run-cmd/string 'git 'describe :tags)))
          (version-dir (strcat "xcvb-" version))
          (tarball (strcat version-dir ".tar.bz2")))
     (chdir "../..")
     (run-cmd 'rm '-f (strcat "xcvb-" version))
-    (apply 'run-cmd `(tar ,@*release-exclude* -hjcf
-                      ,(format nil "xcvb-~A.tar.bz2" version)))
     (run-cmd 'ln '-sf release-dir version-dir)
     (apply 'run-cmd `(tar ,@*release-exclude* -hjcf ,tarball ,version-dir))
     (run-cmd 'ln '-sf tarball "xcvb.tar.bz2")))

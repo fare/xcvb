@@ -80,6 +80,11 @@
    #:native-namestring
    #:parse-native-namestring
 
+   ;; current directory
+   #:getcwd
+   #:chdir
+   #:with-current-directory
+
    ;; Magic strings
    #:+xcvb-slave-greeting+
    #:+xcvb-slave-farewell+

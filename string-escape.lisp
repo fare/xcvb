@@ -44,14 +44,12 @@ or escapes of the form (:makefile string) that won't be escaped."
 
 (defun shell-tokens-to-string (tokens &optional out)
   (with-output (out)
-    (loop :for tok :in tokens
-	  :for () = () :then (when tok (write-char #\space out))
-	  :do (cond
-	       ((null tok))
-	       ((stringp tok)
-		(escape-sh-token tok out))
-	       (t
-		(error "Invalid token ~S" tok))))))
+    (loop :for (tok . rest) :on tokens :do
+      (cond
+        ((null tok))
+        ((stringp tok) (escape-sh-token tok out))
+        (t (error "Invalid token ~S" tok)))
+      (when rest (write-char #\space out)))))
 
 (defun normalize-name-for-makefile (x)
   (map 'base-string (lambda (c) (if (find c "$`\\\"") #\_ c)) x))

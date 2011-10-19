@@ -3,7 +3,7 @@
 (in-package :xcvb)
 
 (defun log-format (required-verbosity format &rest args)
-  (when (>= *xcvb-verbosity* required-verbosity)
+  (when (>= (or *xcvb-verbosity* 5) required-verbosity)
     (fresh-line *error-output*)
     (apply #'format *error-output* format args)
     (fresh-line *error-output*))
