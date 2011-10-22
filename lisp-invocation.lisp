@@ -225,8 +225,9 @@
     (strcat "./" x)
     x))
 
-(defun lisp-environment-variable-name (name)
-  (format nil "X~:@(~A~)" name))
+(defun lisp-environment-variable-name (&key (type *lisp-implementation-type*) prefix)
+  (if (eq prefix t) (setf prefix "X"))
+  (format nil "~@[~A~]~:@(~A~)" prefix type))
 
 (defun lisp-invocation-arglist
     (&key (implementation-type *lisp-implementation-type*)
@@ -236,16 +237,20 @@
           load
 	  eval
 	  arguments
-	  (debugger *lisp-allow-debugger*))
+	  (debugger *lisp-allow-debugger*)
+          (cross-compile t))
   (with-slots (name flags disable-debugger load-flag eval-flag
 	       image-flag image-executable-p standalone-executable
 	       arguments-end argument-control)
       (get-lisp-implementation implementation-type)
     (append
      (when (or (null image-path) (not image-executable-p))
-       (list (or (ensure-path-executable lisp-path)
-                 (getenv (lisp-environment-variable-name name))
-                 name)))
+       (list (or
+              (when (consp lisp-path) lisp-path)
+              (ensure-path-executable lisp-path)
+              (getenv (lisp-environment-variable-name
+                       :type implementation-type :prefix (when cross-compile "X")))
+              name)))
      (when (and image-path (not image-executable-p))
        (list image-flag))
      (when image-path

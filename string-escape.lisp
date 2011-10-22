@@ -13,7 +13,9 @@ Raises an error if the string contains a newline."
     (loop :for c :across string :do
       (case c
         ;; Q: Instead of erroring, should this insert a "\\n" or something to escape the newline???
-        ;; Q: Do we need to handle #\\ specially?
+        ;; Q: Do we need to handle #\\ specially? Apparently, no.
+        ;;(#\\ (write-string "\\\\" out))
+        (#\# (write-string "\\#" out))
         (#\newline (error "Makefile line cannot contain a newline"))
         (#\$ (write-string "$$" out))
         (otherwise (write-char c out))))))

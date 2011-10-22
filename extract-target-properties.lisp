@@ -146,6 +146,7 @@
   (append
    ;;#+(and sbcl (or linux cygwin)) '("env" "-u" "SBCL_HOME") ; we now rely on a recent SBCL
    (lisp-invocation-arglist
+    :cross-compile t
     :eval (format nil "(progn (ignore-errors (require \"asdf\")) (setf *print-readably* nil)~
  (handler-bind ((style-warning #'muffle-warning)) (ignore-errors (funcall (find-symbol(string'oos):asdf) (find-symbol(string'load-op):asdf) :asdf)))~
  ~@[(unless (member :asdf2 *features*) (load ~S))~] ~A (finish-output) ~A)"

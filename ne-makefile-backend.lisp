@@ -79,6 +79,9 @@ in a fast way that doesn't enforce dependencies."
          (*makefile-target-directories* (make-hash-table :test 'equal))
          (*makefile-target-directories-to-mkdir* nil)
          (*makefile-phonies* nil)
+         (lisp-env-var (lisp-environment-variable-name :prefix t))
+         (*lisp-executable-pathname* ;; magic escape!
+          (list :makefile "${" lisp-env-var "}"))
          (smt (make-instance 'static-makefile-traversal))
          (env (make-instance 'nem-traversal))
          (static-rules
@@ -98,7 +101,7 @@ in a fast way that doesn't enforce dependencies."
       (with-open-file (out makefile-path
                            :direction :output
                            :if-exists :supersede)
-        (write-makefile-prelude out)
+        (write-makefile-prelude :stream out :lisp-env-var lisp-env-var)
         (dolist (body (reverse (cons static-rules build-rules)))
           (princ body out))
         (write-makefile-conclusion out))))

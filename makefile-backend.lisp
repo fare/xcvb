@@ -3,7 +3,7 @@
   (:author ("Francois-Rene Rideau" "Stas Boukarev")
    :maintainer "Francois-Rene Rideau"
    ;; :run-depends-on ("string-escape")
-   :depends-on ("profiling" "static-traversal" "computations"
+   :depends-on ("profiling" "static-traversal" "computations" "specials"
                 "virtual-pathnames" "driver-commands" "external-commands" "main")))
 
 (in-package :xcvb)
@@ -31,7 +31,8 @@
 (defun write-makefile (fullname &key output-path)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
   (multiple-value-bind (target-dependency build) (handle-target fullname)
-    (let* ((default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
+    (let* ((env (make-instance 'static-makefile-traversal))
+           (default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
            (actual-output-path
             (if output-path
                 (merge-pathnames output-path default-output-path)
@@ -43,7 +44,9 @@
            (*makefile-target-directories* (make-hash-table :test 'equal))
            (*makefile-target-directories-to-mkdir* nil)
            (*makefile-phonies* nil)
-           (env (make-instance 'static-makefile-traversal)))
+           (lisp-env-var (lisp-environment-variable-name :prefix t))
+           (*lisp-executable-pathname* ;; magic escape!
+            (list :makefile "${" lisp-env-var "}")))
       (log-format 9 "output-path: ~S" output-path)
       (log-format 9 "default-output-path: ~S" default-output-path)
       (log-format 9 "actual-output-path: ~S" actual-output-path)
@@ -63,41 +66,52 @@
                              :direction :output
                              :if-exists :supersede)
           (log-format 8 "T=~A printing makefile" (get-universal-time))
-          (write-makefile-prelude out)
+          (write-makefile-prelude
+           :stream out :lisp-env-var lisp-env-var)
           (princ body out)
           (write-makefile-conclusion out)))
       (log-format 8 "T=~A done" (get-universal-time))
       ;; Return data for use by the non-enforcing Makefile backend.
       (values makefile-path makefile-dir))))
 
-(defun write-makefile-prelude (&optional stream)
-  (let ((directories
-         (join-strings
-          (mapcar #'escape-string-for-Makefile
-                  (mapcar 'enough-namestring
-                          *makefile-target-directories-to-mkdir*))
-          :separator " ")))
+(defun write-makefile-prelude (&key stream lisp-env-var)
+  (let ((vars (list lisp-env-var))
+        (implementation-pathname
+         (or *target-lisp-executable-pathname*
+             (lisp-implementation-name (get-lisp-implementation)))))
     (format stream "~
 ### This file was automatically created by XCVB ~A with the arguments~%~
 ### ~{~A~^ ~}~%~
 ### It may have been specialized to the target implementation ~A~%~
 ### from ~A with the following features:~%~
 ###   ~S~%~%~
-### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.
-
+### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.~%~%"
+            *xcvb-version* *arguments* *lisp-implementation-type*
+            implementation-pathname *features*)
+    (format stream "~A ?= ~A~%" lisp-env-var implementation-pathname)
+    (case *lisp-implementation-type*
+      ((:ccl :sbcl)
+       (let ((dir-var (lisp-implementation-directory-variable (get-lisp-implementation))))
+         (format stream "~A ?= $(shell ~A)~%"
+                 dir-var
+                 (shell-tokens-to-Makefile
+                  (lisp-invocation-arglist
+                   :eval (format nil "(progn (princ ~A)(terpri)~A)"
+                                 (association '*lisp-implementation-directory*
+                                              *target-properties-variables*)
+                                 (quit-form)))))
+         (append1f vars dir-var))))
+    (format stream "export~{ ~A~}~%~%" vars))
+  (format stream "
 XCVB_EOD :=
-ifneq ($(wildcard ~A),~A)
+ifneq ($(wildcard ~A),~:*~A)
   XCVB_EOD := xcvb-ensure-object-directories
 endif~2%"
-            *xcvb-version* *arguments* *lisp-implementation-type*
-            (first (lisp-invocation-arglist)) *features*
-            directories directories)
-    (flet ((export-directory (x)
-             (format stream "~%~A ?= ~A~%export ~A~%~%"
-                     x (but-last-char (namestring *lisp-implementation-directory*)) x)))
-      (case *lisp-implementation-type*
-        ((:sbcl) (export-directory "SBCL_HOME"))
-        ((:ccl) (export-directory "CCL_DEFAULT_DIRECTORY"))))))
+          (join-strings
+           (mapcar #'escape-string-for-Makefile
+                   (mapcar 'enough-namestring
+                           *makefile-target-directories-to-mkdir*))
+           :separator " ")))
 
 ;; TODO: clean
 ;; * a clean-xcvb target that removes the object directory
