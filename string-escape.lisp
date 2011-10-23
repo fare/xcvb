@@ -5,6 +5,15 @@
 
 ;;; Escaping for a Makefile
 
+(defun escape-string-hashes (string &optional out)
+  "Escapes only the hashes in a string.
+This is required on the right side of a variable assignment in a Makefile. Go figure."
+  (with-output (out)
+    (loop :for c :across string :do
+      (case c
+        (#\# (write-string "\\#" out))
+        (otherwise (write-char c out))))))
+
 (defun escape-string-for-Makefile (string &optional out)
   "Takes a string and excapes all the characters that need to be put into a makefile.
 The only such character right now is $.
@@ -13,9 +22,7 @@ Raises an error if the string contains a newline."
     (loop :for c :across string :do
       (case c
         ;; Q: Instead of erroring, should this insert a "\\n" or something to escape the newline???
-        ;; Q: Do we need to handle #\\ specially? Apparently, no.
-        ;;(#\\ (write-string "\\\\" out))
-        (#\# (write-string "\\#" out))
+        ;; Q: Do we need to handle #\\ specially? Apparently, no. Make quoting is misdesigned.
         (#\newline (error "Makefile line cannot contain a newline"))
         (#\$ (write-string "$$" out))
         (otherwise (write-char c out))))))

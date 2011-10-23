@@ -1091,7 +1091,7 @@ if we are not called from a directly executable image dumped by XCVB."
 
 ;;; I/O utilities
 (defun native-namestring (x)
-  (let* ((p (pathname x)))
+  (let ((p (pathname x)))
     #+clozure (ccl:native-translated-namestring p)
     #+(or cmu scl) (ext:unix-namestring p nil)
     #+sbcl (sb-ext:native-namestring p)

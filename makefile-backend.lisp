@@ -44,7 +44,7 @@
            (*makefile-target-directories* (make-hash-table :test 'equal))
            (*makefile-target-directories-to-mkdir* nil)
            (*makefile-phonies* nil)
-           (lisp-env-var (lisp-environment-variable-name :prefix t))
+           (lisp-env-var (lisp-environment-variable-name :prefix nil))
            (*lisp-executable-pathname* ;; magic escape!
             (list :makefile "${" lisp-env-var "}")))
       (log-format 9 "output-path: ~S" output-path)
@@ -88,18 +88,20 @@
 ### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.~%~%"
             *xcvb-version* *arguments* *lisp-implementation-type*
             implementation-pathname *features*)
-    (format stream "~A ?= ~A~%" lisp-env-var implementation-pathname)
+    (format stream "X~A ?= ~A~%~2:*~A ?= ${X~:*~A}~%" lisp-env-var implementation-pathname)
     (case *lisp-implementation-type*
       ((:ccl :sbcl)
        (let ((dir-var (lisp-implementation-directory-variable (get-lisp-implementation))))
-         (format stream "~A ?= $(shell ~A)~%"
-                 dir-var
-                 (shell-tokens-to-Makefile
-                  (lisp-invocation-arglist
-                   :eval (format nil "(progn (princ ~A)(terpri)~A)"
-                                 (association '*lisp-implementation-directory*
-                                              *target-properties-variables*)
-                                 (quit-form)))))
+         (format stream "_o_ = ~A~%~A ?= $(shell $(_o_))~%"
+                 (escape-string-hashes
+                  (shell-tokens-to-Makefile
+                   (lisp-invocation-arglist
+                    :cross-compile nil
+                    :eval (format nil "(progn (princ ~A)(terpri)~A)"
+                                  (association '*lisp-implementation-directory*
+                                               *target-properties-variables*)
+                                  (quit-form)))))
+                 dir-var)
          (append1f vars dir-var))))
     (format stream "export~{ ~A~}~%~%" vars))
   (format stream "

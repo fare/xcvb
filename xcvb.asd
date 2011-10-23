@@ -83,8 +83,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "driver-commands" :depends-on ("specials" "utilities" "grain-interface" "external-commands"))
      (:file "run-program-backend" :depends-on ("profiling" "static-traversal" "driver-commands"
 					       "computations" "main" "virtual-pathnames"))
-     (:file "makefile-backend" :depends-on ("profiling" "static-traversal" "driver-commands"
-					    "computations" "main" "virtual-pathnames" "specials"))
+     (:file "makefile-backend"
+            :depends-on ("profiling" "static-traversal" "driver-commands" "computations"
+                         "extract-target-properties" "main" "virtual-pathnames" "specials"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
      (:file "list-files" :depends-on ("simplifying-traversal" "main"))
      (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging" "main"))

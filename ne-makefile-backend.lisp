@@ -79,7 +79,7 @@ in a fast way that doesn't enforce dependencies."
          (*makefile-target-directories* (make-hash-table :test 'equal))
          (*makefile-target-directories-to-mkdir* nil)
          (*makefile-phonies* nil)
-         (lisp-env-var (lisp-environment-variable-name :prefix t))
+         (lisp-env-var (lisp-environment-variable-name :prefix nil))
          (*lisp-executable-pathname* ;; magic escape!
           (list :makefile "${" lisp-env-var "}"))
          (smt (make-instance 'static-makefile-traversal))
