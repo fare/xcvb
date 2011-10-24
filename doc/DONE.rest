@@ -6,6 +6,26 @@ DONE for XCVB
 
 Items dumped from TODO that were done.
 
+(2011-10-23) Setup a repository for each and every dependency
+-------------------------------------------------------------
+
+We now have a systematic way of representing all dependencies in git repos,
+with an `xcvb` branch when it diverges from upstream,
+and (rebasable?) `please-merge` branch for changes that SHOULD be pushed
+even if XCVB doesn't convince the upstream maintainer.
+
+Also, I made sure we can compile (using asdf) with vanilla upstream packages
+(I tried from the master branch, not Quicklisp).
+
+
+(2011-10-14) Provide replacement for ASDF's run-shell-command
+-------------------------------------------------------------
+
+Moved test to t/driver.lisp in its own package;
+invoke test with each present detected implementations.
+
+Introduced a native-namestring interface.
+
 
 (2011-10-03) Ported ironclad, binascii
 --------------------------------------

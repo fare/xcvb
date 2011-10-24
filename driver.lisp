@@ -109,8 +109,8 @@
    #:find-symbol* #:call #:eval-string #:load-string #:load-stream
    ;; #:run #:do-run #:run-commands #:run-command ; used by XCVB, not end-users.
    #:resume #-ecl #:dump-image #+ecl #:create-bundle
-   #:register-pathname-mapping #:register-pathname-mappings #:load-pathname-mappings
-   #:pathname-mapping))
+   #:register-fullname #:register-fullnames #:load-fullname-mappings
+   #:fullname-pathname))
 
 (in-package :xcvb-driver)
 

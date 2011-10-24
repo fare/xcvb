@@ -74,10 +74,32 @@ DEPENDENCIES := \
 
 # These are NOT dependencies of XCVB, but have been patched to compile with XCVB.
 NON_DEPENDENCIES_PATCHED_FOR_XCVB := \
+	GIT git://common-lisp.net/projects/cl-stomp/cl-stomp.git ; \
+	XGIT git://git.b9.com/md5.git ; \
+	XGIT git://git.b9.com/cl-base64.git ; \
+	XGIT git://git.b9.com/ptester.git ; \
+	XGIT git://git.b9.com/puri.git ; \
+	XGIT git://github.com/gwkkwg/metabang-bind ; \
+	XGIT git://common-lisp.net/projects/trivial-backtrace/trivial-backtrace.git ; \
+	XGIT git://github.com/edicl/chunga.git ; \
+	XGIT git://github.com/edicl/cl-fad.git ; \
+	XGIT git://github.com/edicl/cl-ppcre.git ; \
+	XGIT git://github.com/edicl/cl-unicode.git ; \
+	XGIT git://github.com/edicl/cl-who.git ; \
+	XGIT git://github.com/edicl/drakma.git ; \
+	XGIT git://github.com/edicl/flexi-streams.git ; \
+	XGIT git://github.com/edicl/hunchentoot.git ; \
+	XCVS cl+ssl :pserver:anonymous:anonymous@common-lisp.net:/project/cl-plus-ssl/cvsroot ; \
+	XCVS trivial-gray-streams :pserver:anonymous:anonymous@common-lisp.net:/project/cl-plus-ssl/cvsroot ; \
+	XSVN usocket svn://common-lisp.net/project/usocket/svn/usocket/trunk ; \
 	XDARCS http://common-lisp.net/project/iterate/darcs/iterate/ ; \
 	XDARCS http://www.common-lisp.net/project/closer/darcs/lw-compat/ ; \
 	XDARCS http://dwim.hu/darcs/hu.dwim.stefil/ ; \
+	XTAR rfc2388 http://common-lisp.net/project/rfc2388/rfc2388_latest.tar.gz ; \
+	XTAR split-sequence http://ftp.linux.org.uk/pub/lisp/experimental/cclan/split-sequence.tar.gz ; \
+	XTAR trivial-ldap http://homepage.mac.com/ignavusinfo/trivial-ldap/trivial-ldap-0.92.tar.gz ; \
 	: more are available but not listed yet
+	# N/A: single-threaded-ccl
 
 
 install-cl-launch:
@@ -104,8 +126,7 @@ install-source: install-cl-launch
 	  rsync -aC --exclude _darcs --exclude .git dependencies/$$x ${LISP_SOURCE}/ ; } ; \
 	XGIT () { x=$$(basename $$1 .git) ; \
 	  rsync -aC --exclude _darcs --exclude .git dependencies/$$x ${LISP_SOURCE}/ ; } ; \
-	XCVS () { XGIT "$$1" ; } ; \
-	XDARCS () { XGIT "$$1" ; } ; \
+	XDARCS () { XGIT "$$1" ; } ; XCVS () { XGIT "$$1" ; } ; XSVN () { XGIT "$$1" ; } ; \
 	${DEPENDENCIES} ; \
 	cd xcvb && cp -a *.asd *.lisp *.xcvb ${LISP_SOURCE}/xcvb/
 	ln -sf $$(find ${LISP_SOURCE}/ \( -name '*test*' -prune -false \) -o \
@@ -122,8 +143,7 @@ checkout:
 	  url=git://common-lisp.net/projects/xcvb/$$x.git ; \
 	  if [ -d $$x ] ; then echo "Already got $$x" ; \
 	  else git clone $$url ; ( cd $$x ; git checkout xcvb ) ; fi } ; \
-	XDARCS () { XGIT "$$1" ; } ; \
-	XCVS () { XGIT "$$1" ; } ; \
+	XDARCS () { XGIT "$$1" ; } ; XCVS () { XGIT "$$1" ; } ; XSVN () { XGIT "$$1" ; } ; \
 	set -e ; \
 	GIT git://common-lisp.net/projects/xcvb/xcvb.git ; \
 	mkdir -p dependencies ; cd dependencies ; \
@@ -140,7 +160,7 @@ update:
 		cd $$x ; git pull origin master:master); } ; \
 	XGIT () { (x=$$(basename $$1 .git) ; echo -n "Updating $$x... " ; \
 		cd $$x ; git pull origin xcvb:xcvb); } ; \
-	XDARCS () { XGIT "$$1" ; } ; XCVS () { XGIT "$$1" ; } ; \
+	XDARCS () { XGIT "$$1" ; } ; XCVS () { XGIT "$$1" ; } ; XSVN () { XGIT "$$1" ; } ; \
 	cd ../dependencies ; ${DEPENDENCIES}
 
 reset:
@@ -150,7 +170,7 @@ reset:
 		cd $$x ; git reset --hard ; git checkout master ; git clean -fd); } ; \
 	XGIT () { (x=$$(basename $$1 .git) ; echo -n "Resetting $$x... " ; \
 		cd $$x ; git reset --hard ; git checkout xcvb ; git clean -fd); } ; \
-	XCVS () { XGIT "$$1" ; } ; XDARCS () { XGIT "$$1" ; } ; \
+	XCVS () { XGIT "$$1" ; } ; XDARCS () { XGIT "$$1" ; } ; XSVN () { XGIT "$$1" ; } ; \
 	cd ../dependencies ; ${DEPENDENCIES}
 
 prepare-release:

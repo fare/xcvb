@@ -84,15 +84,6 @@ Immediate TODO [V1]
 
 These are the very next steps to be taken:
 
-  * Setup a repository for each and every dependency:
-    have a systematic way of representing all dependencies in git repos,
-    with an `xcvb` branch when it diverges from upstream,
-    and (rebasable?) `please-merge` branch for changes that SHOULD be pushed
-    even if XCVB doesn't convince the upstream maintainer.
-
-  * Make sure we can compile (using asdf)
-    with vanilla upstream packages (from Quicklisp?)
-
   * Fix manifest format:
 
     + store primitives in the build-command-for languages.
@@ -111,14 +102,9 @@ These are the very next steps to be taken:
 
     + The driver can now use virtual names.
 
-    + introduce native-namestring interface?
-
   * Run-Shell-Command:
 
     + Test and debug run-program/* on Windows.
-
-    + Move test to t/driver.lisp in its own package;
-      invoke test with each present detected implementations.
 
   * Magic Build:
 
