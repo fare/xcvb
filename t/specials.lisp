@@ -5,14 +5,15 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
 
 ;; These are the only supported so far -- please add support for more!
-(defparameter +xcvb-lisps+ '(:clisp :ccl :sbcl)
-  "Lisp implementations that can compile XCVB itself")
+(defparameter +xcvb-lisps+ '(:clisp #|:ccl|# :sbcl)
+  "Lisp implementations that can compile and run XCVB itself")
 
 ;; These are missing for the following reason:
 ;; :abcl :xcl are missing create-image
 ;; :gcl (gclcvs from debian) has compiler bugs and is not even able to compile driver.lisp
 ;; :lispworks and :allegro work, but
 ;; being proprietary are not part of the regular testing regime
+;; :mcl :corman :genera not supported
 (defparameter +simple-target-lisps+ '(:clisp :ccl :sbcl :scl :ecl :cmucl)
   "Lisp implementations that can be targetted by the simple backend,
 spawning a new process for each build step.")

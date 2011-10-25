@@ -142,7 +142,10 @@
     (setf compiler::*compiler-default-type* (pathname "")
           compiler::*lsp-ext* ""))
   #+cmu (setf ext:*gc-verbose* nil)
-  #+(and ecl (not ecl-bytecmp)) (let ((*load-verbose* nil)) (require :cmp))
+  #+(and ecl (not ecl-bytecmp))
+  (progn
+    (let ((*load-verbose* nil)) (require :cmp))
+    (setf c::*compile-in-constants* t))
   #.(or #+mcl ;; the #$ doesn't work on other lisps, even protected by #+mcl
      (read-from-string
       "(eval-when (:compile-toplevel :load-toplevel :execute)
@@ -780,7 +783,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
       #-clisp
       (when failure-p
         (die "Compilation Failed for ~A" source))
-      #-(or clisp ecl)
+      #-(or clisp cmu ecl)
       (when warnings-p
         (die "Compilation Warned for ~A" source))))
   (values))
@@ -1101,9 +1104,8 @@ if we are not called from a directly executable image dumped by XCVB."
 (defun parse-native-namestring (x)
   (check-type x string)
   #+clozure (ccl:native-to-pathname x)
-  #+(or cmu scl) (lisp::parse-unix-namestring x nil)
   #+sbcl (sb-ext:parse-native-namestring x)
-  #-(or clozure cmu sbcl scl) (parse-namestring x))
+  #-(or clozure sbcl) (parse-namestring x))
 
 (defgeneric call-with-output (x thunk)
   (:documentation ;; from fare-utils
@@ -1684,7 +1686,7 @@ OUTPUT-PROCESSOR and given KEYS"
 
 (defun require-asdf ()
   (require "asdf")
-  (call :asdf :load-system :asdf))
+  (call :asdf :load-system :asdf)) ;; bootstrap now to avoid issues later.
 (defun require-xcvb ()
   (require-asdf)
   (call :asdf :load-system :xcvb))
@@ -1705,6 +1707,7 @@ OUTPUT-PROCESSOR and given KEYS"
          (apply 'call :xcvb :cmd command))))))
 
 (defun build-in-slave (build &rest args &key . #.*bnl-keys-with-defaults*)
+  "Entry point to call XCVB to build (but not necessarily load) a system."
   (declare (ignore . #.(set-difference *bnl-keys* '(xcvb-program verbosity))))
   (let* ((slave-command (apply 'build-slave-command-line build args))
          (slave-output (run-xcvb-command xcvb-program slave-command))
@@ -1730,7 +1733,7 @@ OUTPUT-PROCESSOR and given KEYS"
     manifest))
 
 (defun build-and-load (build &rest args &key . #.*bnl-keys*)
-  "Entry point for users to call an external XCVB to build and load a system."
+  "Entry point for users to call XCVB to build and load a system."
   (declare (ignore . #.*bnl-keys*))
   (process-manifest (apply 'build-in-slave build args)))
 

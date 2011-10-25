@@ -157,7 +157,7 @@
   :feature :lispworks
   :flags ("-site-init" "-" "-init" "-")
   :eval-flag "-eval"
-  :load-flag () ;; Or should we use -build as magic load? See also -load
+  :load-flag "-load" ;; Is this what we want? See also -build as magic load.
   :arguments-end nil ; What's the deal with THIS? "--"
   :image-flag nil
   :image-executable-p t

@@ -159,6 +159,7 @@
   ;; preconditions: env, xcvb built, PWD=.../xcvb/
   (apply 'validate-xcvb-version keys) ;; is the built xcvb what we think it is?
   (apply 'validate-xcvb-ssr keys) ;; can it search its search path?
+  (apply 'validate-unit-tests keys) ; does it pass unit tests?
   (case implementation-type
     (:sbcl (apply 'validate-a2x keys))) ; can it migrate a2x-test from xcvb?
   (apply 'validate-rmx keys) ; can it remove the xcvb annotations from a2x-test?
@@ -169,7 +170,9 @@
   (case implementation-type
     ((:sbcl :ccl :clisp)
      (apply 'validate-nemk-backend keys))) ;; can it build hello with the non-enforcing Makefile backend?
-  (apply 'validate-master keys)) ; does the xcvb master work?
+  (apply 'validate-master keys) ; does the xcvb master work?
+  (apply 'validate-slave keys) ; does the xcvb slave work?
+  (apply 'validate-bridge keys)) ; does the xcvb bridge work?
 
 (defun validate-hello (&key install-bin &allow-other-keys)
   (is (equal '("hello, world")
@@ -256,6 +259,25 @@
           :object-directory object-dir :output-path build-dir)))
     (is (search "Your desires are my orders" out)
         "Failed to drive a slave ~(~A~) to build hello" implementation-type)))
+
+(defun validate-bridge (&key object-dir implementation-type &allow-other-keys)
+  (let ((out
+         (run-program/read-output-string
+          (xcvb::lisp-invocation-arglist
+           :implementation-type implementation-type
+           :eval (format nil "'(#.(require ~S)~
+                   #.(asdf:load-system :xcvb-driver)~
+                   #.(setf xcvb-driver:*object-directory* ~S)~
+                   #.(asdf:load-system :xcvb-hello-via-bridge)~
+                   #.(xcvb-hello:hello :name ~S :traditional t)#.~A)"
+                         "asdf" object-dir "Sub-XCVB TeStEr"
+                         ;; what about :output-path??? Something based on build-dir?
+                         (xcvb::quit-form :implementation-type implementation-type))))))
+    (is (search "hello, sub-xcvb tester" out)
+        "Failed to build hello via the ASDF-XCVB bridge using ~(~A~)" implementation-type)))
+
+(defun validate-unit-tests (&rest keys &key xcvb-dir &allow-other-keys)
+  (apply 'run-make xcvb-dir "unit-tests" keys))
 
 (defun do-xxx-build (target &rest keys &key xcvb-dir &allow-other-keys)
   (apply 'run-make xcvb-dir target keys))

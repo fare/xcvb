@@ -10,7 +10,7 @@
 using XCVB-test.  Using 'xcvb-test help COMMAND' where COMMAND is
 the name of an XCVB-test command gives specific help on that command.")
     (("unit-tests" "ut")
-     unit-tests +unit-tests-option-spec+
+     run-unit-tests +unit-tests-option-spec+
      "Run unit tests"
      "Run a bunch of tests for xcvb as built into the current xcvb-test image")
     (("validate-xcvb-dir" "vx")
@@ -79,10 +79,11 @@ the name of an XCVB-test command gives specific help on that command.")
     ,@+bootstrap-option-spec+))
 
 (defun run-unit-tests ()
-  (let ((failures 
+  (xcvb-driver-test)
+  (let ((failures
          (mapcan (lambda (x)
                    (coerce (hu.dwim.stefil::failure-descriptions-of (funcall x)) 'list))
-                 (list #'xcvb-driver-test #'xcvb-test))))
+                 '(xcvb-test))))
     (when failures
       (error "failures in XCVB unit-tests:~%~{~S~%~}" failures))))
 
