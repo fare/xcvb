@@ -31,6 +31,7 @@
    #:*use-base-image*
 
    ;;; special variables for XCVB master itself
+   #:*xcvb-program*
    #:*disable-cfasls*
    #:*source-registry*
    #:*manifest*
@@ -373,8 +374,8 @@ NIL: default to ~/.cache/xcvb/common-lisp/sbcl-1.0.47-x86/ or some such, see doc
   "Should we be using a base image for all builds?")
 
 ;;; These variables are specific to XCVB master.
-(defvar *xcvb-binary* "xcvb"
-  "Path to the XCVB binary (a string)")
+(defvar *xcvb-program* "xcvb"
+  "Path to the XCVB binary (a string), OR t if you want to use an in-image XCVB")
 
 (defvar *source-registry* nil
   "CL source registry specification. A sexp or string.
@@ -1629,7 +1630,7 @@ OUTPUT-PROCESSOR and given KEYS"
 ;;; Run a slave, obey its orders.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *bnl-keys-with-defaults*
-    '((xcvb-binary *xcvb-binary*)
+    '((xcvb-program *xcvb-program*)
       (setup *xcvb-setup*)
       (source-registry *source-registry*)
       (output-path nil)
@@ -1647,6 +1648,7 @@ OUTPUT-PROCESSOR and given KEYS"
   (defparameter *bnl-keys* (mapcar #'car *bnl-keys-with-defaults*)))
 
 (defun build-slave-command-line (build &key . #.*bnl-keys-with-defaults*)
+  (declare (ignore xcvb-program))
   (flet ((list-option-arguments (string values)
            (loop
              :for value :in values
@@ -1673,20 +1675,39 @@ OUTPUT-PROCESSOR and given KEYS"
          (boolean-options (&rest vars)
            `(pluralize boolean-option ,@vars)))
       (append
-       (list xcvb-binary "slave-builder")
+       (list "slave-builder")
        (string-options build setup lisp-implementation verbosity source-registry)
        (pathname-options output-path object-directory lisp-binary-path lisp-image-path)
        (list-option-arguments "define-feature" features-defined)
        (list-option-arguments "undefine-feature" features-undefined)
        (boolean-options disable-cfasl use-base-image debugging profiling)))))
 
-(defun build-in-slave (build &rest args &key . #.*bnl-keys*)
-  (declare (ignore . #.(remove 'verbosity *bnl-keys*)))
+(defun require-asdf ()
+  (require "asdf")
+  (call :asdf :load-system :asdf))
+(defun require-xcvb ()
+  (require-asdf)
+  (call :asdf :load-system :xcvb))
+
+(defun run-xcvb-command (program command)
+  (etypecase program
+    (string
+     (with-safe-io-syntax ()
+       (run-program/read-output-string
+        (cons program command) :ignore-error-status t)))
+    (pathname
+     (run-xcvb-command (native-namestring program) command))
+    ((eql t)
+     (unless (find-symbol* :cmd :xvcb nil)
+       (require-xcvb))
+     (with-safe-io-syntax ()
+       (with-output-to-string (*standard-output*)
+         (apply 'call :xcvb :cmd command))))))
+
+(defun build-in-slave (build &rest args &key . #.*bnl-keys-with-defaults*)
+  (declare (ignore . #.(set-difference *bnl-keys* '(xcvb-program verbosity))))
   (let* ((slave-command (apply 'build-slave-command-line build args))
-         (slave-output
-          (with-safe-io-syntax ()
-            (run-program/read-output-string
-             slave-command :ignore-error-status t)))
+         (slave-output (run-xcvb-command xcvb-program slave-command))
          (manifest
           (progn
             (unless (and slave-output
@@ -1717,4 +1738,3 @@ OUTPUT-PROCESSOR and given KEYS"
   "Short hand for BUILD-AND-LOAD"
   (declare (ignore . #.*bnl-keys*))
   (apply 'build-and-load build keys))
-
