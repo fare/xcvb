@@ -53,7 +53,7 @@ concepts underlying XCVB.
       2.22  traversal.lisp
       2.23  dependencies-interpreter.lisp
       2.24  static-traversal.lisp
-      2.25  driver-commands.lisp
+      2.25  target-lisp-commands.lisp
       2.26  makefile-backend.lisp
       2.27  simplifying-traversal.lisp
       2.28  list-files.lisp
@@ -633,10 +633,11 @@ static-traversal.lisp
 Builds a static graph, for use with GNU Make, ASDF, and other static backends.
 
 
-driver-commands.lisp
+target-lisp-commands.lisp
 --------------------
 
-Prints text for driver commands from mini-language.
+Prints text for driver commands from mini-language,
+to be run in the target lisp.
 
 
 makefile-backend.lisp

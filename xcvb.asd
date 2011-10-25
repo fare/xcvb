@@ -80,11 +80,11 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "dependencies-interpreter" :depends-on ("normalize-dependency" "traversal"))
      (:file "static-traversal" :depends-on ("grain-sets" "dependencies-interpreter"))
      (:file "external-commands" :depends-on ("specials" "utilities" "grain-interface"))
-     (:file "driver-commands" :depends-on ("specials" "utilities" "grain-interface" "external-commands"))
-     (:file "run-program-backend" :depends-on ("profiling" "static-traversal" "driver-commands"
+     (:file "target-lisp-commands" :depends-on ("specials" "utilities" "grain-interface" "external-commands"))
+     (:file "run-program-backend" :depends-on ("profiling" "static-traversal" "target-lisp-commands"
 					       "computations" "main" "virtual-pathnames"))
      (:file "makefile-backend"
-            :depends-on ("profiling" "static-traversal" "driver-commands" "computations"
+            :depends-on ("profiling" "static-traversal" "target-lisp-commands" "computations"
                          "extract-target-properties" "main" "virtual-pathnames" "specials"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
      (:file "list-files" :depends-on ("simplifying-traversal" "main"))
@@ -94,9 +94,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "asdf-converter" :depends-on ("main" "grain-interface" "source-registry"))
      (:file "slave" :depends-on ("main"))
      #+xcvb-farmer
-     (:file "farmer" :depends-on ("profiling" "main" "driver-commands" "external-commands"
+     (:file "farmer" :depends-on ("profiling" "main" "target-lisp-commands" "external-commands"
                                   "grain-interface" "dependencies-interpreter"))
      (:file "cffi-grovel-support" :depends-on
-            ("makefile-backend" "static-traversal" "computations" "driver-commands"
+            ("makefile-backend" "static-traversal" "computations" "target-lisp-commands"
                                 "grain-implementation" "asdf-backend" "dependencies-interpreter"))
      (:file "version" :depends-on ("pkgdcl"))))

@@ -1,7 +1,8 @@
 #+xcvb
 (module
  (:depends-on
-  ("macros" "specials" "static-traversal" "profiling" "main" "driver-commands" "external-commands")))
+  ("macros" "specials" "static-traversal" "profiling" "main"
+   "target-lisp-commands" "external-commands")))
 
 #|
 * TODO: make the build incremental. Use crypto checksums.
