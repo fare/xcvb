@@ -91,7 +91,7 @@
    #:+xcvb-slave-farewell+
 
    ;;; Using an inferior XCVB
-   #:build-and-load #:bnl
+   #:build-and-load #:bnl #:build-in-slave
 
    ;;; Build-time variables
    #:*optimization-settings*
