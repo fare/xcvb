@@ -84,6 +84,19 @@ Immediate TODO [V1]
 
 These are the very next steps to be taken:
 
+  * Driver fallback to bootstrapping XCVB with ASDF:
+
+    + if no XCVB binary present, call SBCL directly.
+
+    + if not possible to call SBCL, load XCVB?
+
+  * File mapping:
+
+    + Always pass some file mapping, as either a file to load
+      or a form passed before the driver is invoked.
+
+    + The driver can now use virtual names.
+
   * Fix manifest format:
 
     + store primitives in the build-command-for languages.
@@ -94,13 +107,6 @@ These are the very next steps to be taken:
     + pass not a pathname, but a command in the xcvb-driver language.
 
     + optionally pass a list with a digest for each input grain.
-
-  * File mapping:
-
-    + Always pass some file mapping, as either a file to load
-      or a form passed before the driver is invoked.
-
-    + The driver can now use virtual names.
 
   * Run-Shell-Command:
 
@@ -126,6 +132,9 @@ These are the very next steps to be taken:
   * Make Nemk better:
     add support for executables to nemk backend.
     add support for :around-compile to nemk? to asdf itself?
+
+  * Better integration with ASDF:
+    fallback to loading an ASDF system when no XCVB build is available?
 
 
 Top ITA TODO [V1]

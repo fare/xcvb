@@ -210,7 +210,7 @@ ${XCVB_TEST}: ${INSTALL_BIN}/xcvb $(wildcard t/*.lisp t/build.xcvb)
 		--object-directory ${XCVB_OBJECT_DIRECTORY}
 	cp -f ${XCVB_OBJECT_DIRECTORY}/xcvb/t/xcvb-test $@
 
-unit-tests:
+unit-tests: ${XCVB_TEST}
 	${XCVB_TEST} unit-tests
 
 test:	${XCVB_TEST}
