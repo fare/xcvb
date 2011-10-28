@@ -88,7 +88,7 @@
 ###   ~S~%~%~
 ### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.~%~%"
             *xcvb-version* *arguments* *lisp-implementation-type*
-            implementation-pathname *features*)
+            implementation-pathname *target-system-features*)
     (format stream "X~A ?= ~A~%~2:*~A ?= ${X~:*~A}~%" lisp-env-var implementation-pathname)
     (case *lisp-implementation-type*
       ((:ccl :sbcl)
