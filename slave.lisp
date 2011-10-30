@@ -1,47 +1,30 @@
-#+xcvb (module (:depends-on ("main")))
+#+xcvb (module (:depends-on ("commands")))
 
 (in-package :xcvb)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; slave builder ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter +slave-builder-option-spec+
-  `(,@+build-option-spec+
-    ,@+setup-option-spec+
-    ,@+base-image-option-spec+
-    ,@+source-registry-option-spec+
-    (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
-    ,@+object-directory-option-spec+
-    ,@+lisp-implementation-option-spec+
-    ,@+cfasl-option-spec+
-    ,@+verbosity-option-spec+
-    ,@+profiling-option-spec+))
-
-(defun slave-builder (&key
-                      build setup source-registry
-                      output-path object-directory
-                      lisp-implementation lisp-binary-path
-                      define-feature undefine-feature
-                      disable-cfasl use-base-image verbosity profiling debugging)
-  (multiple-value-bind (makefile-path makefile-dir)
+(define-command slave-builder
+    (("slave-builder")
+     (&rest keys &key)
+     `(,@+build-option-spec+
+       ,@+setup-option-spec+
+       ,@+base-image-option-spec+
+       ,@+source-registry-option-spec+
+       (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
+       ,@+workspace-option-spec+
+       ,@+lisp-implementation-option-spec+
+       ,@+cfasl-option-spec+
+       ,@+verbosity-option-spec+
+       ,@+profiling-option-spec+)
+     "Build some project as a slave to the XCVB master (for internal use)"
+     "Build some project as a slave to the XCVB master (for internal use)"
+     (build))
+  (multiple-value-bind (code makefile-dir)
       ;; Note that make-makefile calls handle-common-options for us.
-      (make-makefile
-       :master t
-       :build build :setup setup
-       :source-registry source-registry :output-path output-path
-       :object-directory object-directory
-       :lisp-implementation lisp-implementation :lisp-binary-path lisp-binary-path
-       :define-feature define-feature :undefine-feature undefine-feature
-       :disable-cfasl disable-cfasl :use-base-image use-base-image
-       :verbosity verbosity :profiling profiling :debugging debugging)
-    (let* ((make-command
-            (list "make"
-                  "-C" (namestring makefile-dir)
-                  "-f" (namestring makefile-path)))
-           (*standard-output* *error-output*))
-      (log-format 6 "Building with ~S" make-command)
-      (run-program/process-output-stream
-       make-command
-       (lambda (stream) (copy-stream-to-stream-line-by-line stream *standard-output*))))
+      (apply 'make-build :master t :retry nil :exit nil keys)
+    (unless (zerop code)
+      (exit code))
     (let* ((*default-pathname-defaults* makefile-dir)
            (env (make-instance 'static-makefile-traversal))
            (issued

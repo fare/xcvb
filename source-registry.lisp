@@ -1,5 +1,5 @@
 ;;; Handle the Search Path for XCVB modules.
-#+xcvb (module (:depends-on ("main" "grain-registry")))
+#+xcvb (module (:depends-on ("commands" "grain-registry")))
 (in-package :xcvb)
 
 ;;; The Source Registry itself.
@@ -351,20 +351,31 @@ for each of its registered names."
 	      (sort (mapcar #'entry-string
 			    (hash-table->alist *builds*)) #'string<)))))
 
-(defun show-source-registry-command (&rest keys &key source-registry verbosity debugging)
-  (declare (ignore source-registry verbosity debugging))
+(define-command show-source-registry-command
+    (("show-source-registry" "source-registry" "ssr")
+     (&rest keys &key)
+     `(,@+source-registry-option-spec+
+       ,@+verbosity-option-spec+)
+     "Show builds in the configured source registry"
+     "Show builds in the implicitly or explicitly configured source registry.
+For debugging your XCVB configuration."
+     ignore)
   (apply 'handle-global-options :use-target-lisp nil keys)
   (show-source-registry))
 
-(defparameter +show-source-registry-option-spec+
-  `(,@+source-registry-option-spec+
-    ,@+verbosity-option-spec+))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Find Module ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun find-module (&rest keys &key source-registry name short verbosity debugging)
-  "find modules of given full name"
-  (declare (ignorable source-registry verbosity debugging))
+(define-command find-module
+    (("find-module" "fm")
+     (&rest keys &key)
+     `((("name" #\n) :type string :optional nil :list t :documentation "name to search for")
+       (("short" #\s) :type boolean :optional t :documentation "short output")
+       ,@+source-registry-option-spec+
+       ,@+verbosity-option-spec+)
+     "Show builds in the specified XCVB path"
+     "Show builds in the implicitly or explicitly specified XCVB path.
+For debugging your XCVB configuration."
+     (name short))
   (apply 'handle-global-options :use-target-lisp nil keys)
   (let ((all-good t))
     (dolist (fullname name)
@@ -378,9 +389,3 @@ for each of its registered names."
            (format *error-output* "Could not find ~S. Check your paths with xcvb ssr.~%" fullname)
            (setf all-good nil)))))
     (exit (if all-good 0 1))))
-
-(defparameter +find-module-option-spec+
-  `((("name" #\n) :type string :optional nil :list t :documentation "name to search for")
-    (("short" #\s) :type boolean :optional t :documentation "short output")
-    ,@+source-registry-option-spec+
-    ,@+verbosity-option-spec+))

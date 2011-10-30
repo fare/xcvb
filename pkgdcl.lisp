@@ -16,16 +16,14 @@
         :fare-matcher :fare-utils :interface :pure :fare-mop
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
-  #+xcvb-farmer
-  (:shadowing-import-from :quux-iolib
-   #:run-program/process-output-stream)
-
   (:shadowing-import-from :asdf
    #:absolute-pathname-p
    #:getenv
    #:merge-pathnames*
    #:pathname-directory-pathname
-   #:while-collecting)
+   #:subpathname
+   #:while-collecting
+   #:orf)
 
   (:import-from :asdf
    #:*default-source-registry-exclusions*
@@ -33,10 +31,11 @@
    #:coerce-pathname
    #:inherit-source-registry
    #:probe-file*
+   #:os-unix-p #:os-windows-p #:featurep
    #:user-homedir)
 
-  (:import-from :xcvb-driver
-   #:*debugging*)
+  (:import-from :alexandria
+   #:ensure-list)
 
   ;;; We have stopped trying to try to export a sensible interface
   ;;; through the package system.

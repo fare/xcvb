@@ -2,7 +2,7 @@
 (module
   (:author ("Francois-Rene Rideau" "Peter Keller")
    :maintainer "Francois-Rene Rideau"
-   :depends-on ("static-traversal" "change-detection" "main" "profiling")))
+   :depends-on ("static-traversal" "change-detection" "commands" "profiling")))
 
 (in-package :xcvb)
 
@@ -15,7 +15,7 @@
   (multiple-value-bind (target-dependency) (handle-target fullname)
     (let* ((*print-pretty* nil); otherwise SBCL will slow us down a lot.
            (env (make-instance 'run-program-traversal)))
-      (log-format 7 "object-directory: ~S" *object-directory*)
+      (log-format 7 "object-cache: ~S" *object-cache*)
       ;; Pass 1: Traverse the graph of dependencies
       (log-format 8 "T=~A building dependency graph for target dependency: ~S"
 		  (get-universal-time) target-dependency)
@@ -57,30 +57,23 @@
 
 ;;; TODO: have only one build command. Have it multiplex the various build backends.
 
-(defparameter +simple-build-option-spec+
-  `(,@+build-option-spec+
-    ,@+setup-option-spec+
-    ,@+base-image-option-spec+
-    ,@+source-registry-option-spec+
-    ,@+object-directory-option-spec+
-    ,@+lisp-implementation-option-spec+
-    ,@+cfasl-option-spec+
-    (("force" #\F) :type boolean :optional t :initial-value nil :documentation "force building everything")
-    (("use-base-image" #\B) :type boolean :optional t :initial-value t :documentation "use a base image")
-    (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
-    ,@+verbosity-option-spec+
-    ,@+profiling-option-spec+))
-
-(defun simple-build-command
-    (&rest keys &key
-     source-registry setup verbosity
-     build lisp-implementation lisp-binary-path define-feature undefine-feature
-     disable-cfasl master object-directory use-base-image profiling debugging
-     force)
-  (declare (ignore source-registry setup verbosity
-                   lisp-implementation lisp-binary-path define-feature
-		   undefine-feature disable-cfasl master object-directory
-		   use-base-image debugging))
-  (with-maybe-profiling (profiling)
-    (apply 'handle-global-options keys)
+(define-command simple-build-command
+    (("simple-build" "simb" "sb")
+     (&rest keys &key)
+     `(,@+build-option-spec+
+       ,@+setup-option-spec+
+       ,@+base-image-option-spec+
+       ,@+source-registry-option-spec+
+       ,@+workspace-option-spec+
+       ,@+lisp-implementation-option-spec+
+       ,@+cfasl-option-spec+
+       (("force" #\F) :type boolean :optional t :initial-value nil :documentation "force building everything")
+       (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
+       ,@+verbosity-option-spec+
+       ,@+profiling-option-spec+)
+     "Build the xcvb targets"
+     "Determine the dependencies and execute shell commands to build the application"
+     (build force))
+  (apply 'handle-global-options keys)
+  (with-maybe-profiling ()
     (simple-build build :force force)))

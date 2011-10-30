@@ -14,7 +14,8 @@
   (:import-from :xcvb
                 #:module-form-p #:read-module-declaration #:cmdize*
                 #:repl-command #:eval-command #:errexit
-                #:grain-pathname #:handle-global-options)
+                #:grain-pathname #:handle-global-options
+                #:define-command #:define-option-spec #:*program*)
   (:export
    #:test-xcvb
    #:run-program/*

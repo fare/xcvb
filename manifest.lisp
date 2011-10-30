@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("macros" "virtual-pathnames")))
+#+xcvb (module (:depends-on ("macros" "virtual-pathnames" "commands")))
 
 (in-package :xcvb)
 
@@ -41,11 +41,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make a load manifest ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter +make-manifest-option-spec+
-  '((("output" #\o) :type string :optional t :initial-value "-"
-     :documentation "Path to manifest file or - for stdout")
-    (("spec" #\s) :type string :optional nil
-     :documentation "list of plists specifying command and optional pathname, source-pathname")))
-
-(defun make-manifest (&key output spec)
+(define-command make-manifest
+    (("make-manifest")
+     ()
+     '((("output" #\o) :type string :optional t :initial-value "-"
+        :documentation "Path to manifest file or - for stdout")
+       (("spec" #\s) :type string :optional nil
+        :documentation "list of plists specifying command and optional pathname, source-pathname"))
+     "Create a manifest of files to load (for internal use)"
+     "given fullnames and paths, output fullnames, tthsum and paths")
   (create-manifest output (with-safe-io-syntax () (read-from-string spec))))

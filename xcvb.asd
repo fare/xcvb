@@ -14,7 +14,7 @@
 
 (let ((old-ver (asdf-version)))
   (load-system :asdf)
-  (let ((min "2.017")
+  (let ((min "2.018")
 	(ver (asdf-version)))
     (unless (or (version-satisfies old-ver "2.014.8") ; first version to do magic upgrade
 		(equal ver old-ver))
@@ -63,15 +63,15 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "utilities" :depends-on ("macros"))
      (:file "logging" :depends-on ("specials"))
      (:file "lisp-invocation" :depends-on ("specials"))
-     (:file "main" :depends-on ("specials" "macros"))
+     (:file "commands" :depends-on ("specials" "macros"))
      (:file "string-escape" :depends-on ("utilities"))
      (:file "virtual-pathnames" :depends-on ("specials" "utilities"))
      (:file "grain-interface" :depends-on ("utilities" "conditions"))
      (:file "grain-sets" :depends-on ("grain-interface"))
      (:file "grain-registry" :depends-on ("grain-interface" "specials"))
-     (:file "source-registry" :depends-on ("grain-registry" "main"))
+     (:file "source-registry" :depends-on ("grain-registry" "commands"))
      (:file "computations" :depends-on ("grain-interface" "grain-registry"))
-     (:file "manifest" :depends-on ("macros" "virtual-pathnames"))
+     (:file "manifest" :depends-on ("macros" "virtual-pathnames" "commands"))
      (:file "extract-target-properties" :depends-on ("string-escape" "lisp-invocation" "grain-interface"))
      (:file "grain-implementation" :depends-on ("grain-registry" "extract-target-properties"))
      (:file "names" :depends-on ("grain-registry" "grain-interface"))
@@ -83,23 +83,25 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "external-commands" :depends-on ("specials" "utilities" "grain-interface"))
      (:file "target-lisp-commands" :depends-on ("specials" "utilities" "grain-interface" "external-commands"))
      (:file "run-program-backend" :depends-on ("profiling" "static-traversal" "target-lisp-commands"
-					       "computations" "main" "virtual-pathnames"))
+					       "computations" "commands" "virtual-pathnames"))
      (:file "makefile-backend"
             :depends-on ("profiling" "static-traversal" "target-lisp-commands" "computations"
-                         "extract-target-properties" "main" "virtual-pathnames" "specials"))
+                         "extract-target-properties" "commands" "virtual-pathnames" "specials"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))
-     (:file "list-files" :depends-on ("simplifying-traversal" "main"))
-     (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging" "main"))
-     (:file "ne-makefile-backend" :depends-on ("main" "makefile-backend"
+     (:file "list-files" :depends-on ("simplifying-traversal" "commands"))
+     (:file "asdf-backend" :depends-on ("simplifying-traversal" "logging" "commands"))
+     (:file "ne-makefile-backend" :depends-on ("commands" "makefile-backend"
                                                "asdf-backend" "simplifying-traversal"))
-     (:file "asdf-converter" :depends-on ("main" "grain-interface" "source-registry"))
-     (:file "slave" :depends-on ("main"))
+     (:file "asdf-converter" :depends-on ("commands" "grain-interface" "source-registry"))
+     (:file "slave" :depends-on ("commands"))
      #+xcvb-farmer
-     (:file "farmer" :depends-on ("profiling" "main" "target-lisp-commands" "external-commands"
-                                  "grain-interface" "dependencies-interpreter"))
+     (:file "farmer"
+            :depends-on ("profiling" "commands" "target-lisp-commands" "external-commands"
+                                     "grain-interface" "dependencies-interpreter"))
      (:file "cffi-grovel-support" :depends-on
             ("makefile-backend" "static-traversal" "computations" "target-lisp-commands"
                                 "grain-implementation" "asdf-backend" "dependencies-interpreter"))
+     (:file "main" :depends-on ("commands"))
      (:file "version" :depends-on ("pkgdcl"))))
 
 (defmethod perform ((op test-op) (c (eql (find-system :xcvb))))

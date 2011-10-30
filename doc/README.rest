@@ -655,15 +655,21 @@ before it invokes your actual Lisp binary.
 
 Finally, object files by default will be stored
 in a directory under ``~/.cache/xcvb/`` such as
-``/home/luser/.cache/xcvb/sbcl-1.0.49-linux-x64/``,
-but you can override it with::
+``/home/luser/.cache/xcvb/sbcl-1.0.49-linux-x64/``.
+You can override the base directory by exporting ``XCVB_CACHE``
+of passing the argument::
 
-	--object-directory /tmp/luser/xcvb-obj/
+	--cache /tmp/luser/xcvb-cache/
+
+You can override the object directory by exporting ``XCVB_CACHE_OBJECTS``
+(relative to the xcvb cache, if a relative pathname), or passing the argument::
+
+	--cache-objects /tmp/luser/xcvb-cache/my-sbcl-r12345/
 
 Once you've build a target, say the executable ``/xcvb/example-1/example-1``
 you can install it somewhere you like::
 
-	cp $(xcvb show object-directory)/xcvb/example-1/example-1 /my/install/bin/
+	cp $(xcvb show cache-objects)/xcvb/example-1/example-1 /my/install/bin/
 
 As an example of how to put it all together, see the ``Makefile``
 of one of the XCVB examples or of XCVB itself.
@@ -819,7 +825,7 @@ Where ``/foo/bar`` is the fullname of your target as usual:
 a build, or a single Lisp module, or an executable.
 As for the ``simple-build`` backend, you may have to specify various
 arguments such as ``--source-registry``, ``--lisp-implementation``,
-``--lisp-binary-path``, ``--object-directory``, etc.
+``--lisp-binary-path``, ``--cache``, ``--cache-objects``, etc.
 
 The default name for said generated ``Makefile``
 is actually ``xcvb.mk`` in the current directory,
@@ -1782,7 +1788,8 @@ How do I prevent clash between incompatible FASLs?
 --------------------------------------------------
 
 The current Make-based backends of XCVB rely on your specifying
-a ``--object-directory`` argument (often defaulting to ``obj``).
+a ``--cache`` argument (defaulting to your ``$XCVB_CACHE``.
+See `Compiling with XCVB`_ above).
 If you make changes to your Lisp implementation and/or to your `Lisp setup`_
 you need to either clear the contents of this directory.
 If you want to alternate between Lisp implementations and/or setups,

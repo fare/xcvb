@@ -238,8 +238,9 @@ and extra finalization from calling FUN on the world."
   ;; probably we need to refactor or gf away the parts that currently depend on it,
   ;; notably fasl-grains-for-name's :pathname thingie.
   (let* ((pathname (portable-pathname-from-string name))
-         (merged (if merge (merge-pathnames merge pathname) pathname))
-         (namestring (strcat *object-directory* (portable-namestring merged))))
+         (merged (if merge (merge-pathnames* merge pathname) pathname))
+         (namestring (subpathname *object-cache-namestring*
+                                  (subseq (portable-namestring merged) 1))))
     (ensure-makefile-will-make-pathname env namestring)
     namestring))
 
@@ -748,7 +749,7 @@ and extra finalization from calling FUN on the world."
   (issue-initial-computations)
   (run-event-loop))
 
-(defun standalone-build (name)
+(defun forker-build (name)
   ;;#+DEBUG
   (trace
    do-handshake
@@ -790,36 +791,31 @@ and extra finalization from calling FUN on the world."
     (let* ((*use-master* nil)
            (*root-worlds* nil)
            (traversal (make-instance 'farmer-traversal)))
-      (setf *working-directory* (new-work-directory (strcat *object-directory* "/_")))
-      (setf *fifo-directory* (strcat *working-directory* "/fifo/"))
+      (setf *working-directory* (new-work-directory (subpathname *workspace* "_/")))
+      (setf *fifo-directory* (subpathname *working-directory* "fifo/"))
       (setf *worker-id* -1)
-      (setf *logs-directory* (strcat *working-directory* "/"))
+      (setf *logs-directory* (subpathname *working-directory* "logs/"))
       (setf *environment* traversal)
       (graph-for traversal fullname)
       (farm-out-world-tree))))
 
-(defparameter +standalone-build-option-spec+
-  `(,@+build-option-spec+
-    ,@+setup-option-spec+
-    ,@+base-image-option-spec+
-    ,@+source-registry-option-spec+
-    ,@+object-directory-option-spec+
-    ,@+lisp-implementation-option-spec+
-    ,@+cfasl-option-spec+
-    ,@+verbosity-option-spec+
-    ,@+profiling-option-spec+))
-
-(defun standalone-build-command
-    (&rest keys &key
-     source-registry setup verbosity output-path
-     build lisp-implementation lisp-binary-path define-feature undefine-feature
-     disable-cfasl master object-directory use-base-image debugging profiling)
-  (declare (ignore source-registry setup verbosity output-path
-                   lisp-implementation lisp-binary-path define-feature undefine-feature
-                   disable-cfasl master object-directory use-base-image debugging))
+(define-command forker-build-command
+    (("forker-build" "fb")
+     (&rest keys &key)
+     `(,@+build-option-spec+
+       ,@+setup-option-spec+
+       ,@+base-image-option-spec+
+       ,@+source-registry-option-spec+
+       ,@+workspace-option-spec+
+       ,@+lisp-implementation-option-spec+
+       ,@+cfasl-option-spec+
+       ,@+verbosity-option-spec+
+       ,@+profiling-option-spec+)
+     "build a project by forking (experimental)"
+     "build the project directly by forking" ignorable)
   (with-maybe-profiling (profiling)
-    (xcvb-driver::tweak-implementation) ;; this hides a SBCL / IOLib bug to be chased later.
+    (xcvb-driver::tweak-implementation) ;; this delays SBCL GC and hides a bug with signals
     (asdf:load-system :xcvb)
     (apply 'handle-global-options keys)
     (append1f *lisp-setup-dependencies* '(:fasl "/xcvb/forker"))
-    (standalone-build (canonicalize-fullname build))))
+    (forker-build (canonicalize-fullname build))))

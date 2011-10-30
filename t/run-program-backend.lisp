@@ -11,9 +11,15 @@
 (defun test-simple-build (&key (build (first +example-builds+))
                           (implementation *lisp-implementation-type*))
   (check-type build string)
-  (cmd 'simple-build :build build
-       :lisp-implementation (string-downcase implementation)
-       :verbosity 10))
+  (let* ((*package* (find-package :xcvb))
+         (workspace (subpathname *tmp-directory-pathname* "xcvb-test/"))
+         (cache (subpathname workspace "cache/"))
+         (object-cache (subpathname workspace "obj/")))
+    (rm-rfv workspace)
+    (cmd 'simple-build :build build
+         :lisp-implementation (string-downcase implementation)
+         :cache cache :object-cache object-cache :workspace workspace
+         :verbosity 10)))
 
 (macrolet ((defs ()
              (let ((defined (make-hash-table :test 'equal)))

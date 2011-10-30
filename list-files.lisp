@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("dependencies-interpreter" "main")))
+#+xcvb (module (:depends-on ("dependencies-interpreter" "commands")))
 
 (in-package :xcvb)
 
@@ -39,24 +39,28 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Remove XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter +remove-xcvb-option-spec+
-  `(,@+build-option-spec+
-    ,@+source-registry-option-spec+
-    ,@+verbosity-option-spec+))
-
-(defun remove-xcvb-command (&rest keys &key source-registry verbosity build debugging)
-  (declare (ignore source-registry verbosity debugging))
+(define-command remove-xcvb-command
+    (("remove-xcvb" "rm-x" "rmx" "rx")
+     (&rest keys &key)
+     `(,@+build-option-spec+
+       ,@+source-registry-option-spec+
+       ,@+verbosity-option-spec+)
+     "Remove XCVB modules from files in build"
+     "Given an XCVB build file, removes the XCVB modules from each of the files listed in the build file."
+     (build))
   (apply 'handle-global-options keys)
   (remove-xcvb-from-build build))
 
-(defparameter +list-files-option-spec+
-  `(,@+multi-build-option-spec+
-    ,@+source-registry-option-spec+
-    ,@+verbosity-option-spec+
-    (("long" #\l) :type boolean :optional t :documentation "long format")))
-
-(defun list-files-command (&rest keys &key source-registry verbosity build debugging long)
-  (declare (ignore source-registry verbosity debugging))
+(define-command list-files-command
+    (("list-files" "lf")
+     (&rest keys &key)
+     `(,@+multi-build-option-spec+
+       ,@+source-registry-option-spec+
+       ,@+verbosity-option-spec+
+       (("long" #\l) :type boolean :optional t :documentation "long format"))
+     "List files in a XCVB build"
+     "Given an XCVB build file, list all files that are directly part of that build."
+     (build long))
   (apply 'handle-global-options keys)
   (log-format 10 "Listing files for build ~S~%" build)
   ;; TODO: Put handle-case here to trap the error for a noncanonical fullname
@@ -75,7 +79,11 @@
 	    (files (mapcar 'grain-pathname grains)))
        (format t (if long "(~{~S~^~%~})~%" "~{~A~%~}") files))))
 
-(defun purge-xcvb-command (files)
+(define-command purge-xcvb-command
+    (("purge-xcvb" "pux" "px")
+     (files) ()
+     "Remove XCVB module statements from explicitly listed files"
+     "Given a list of files, remove the XCVB module statements from each Lisp file and delete specified build files.")
   (initialize-environment)
   (loop :for f :in files
     :for p = (probe-file f) :do

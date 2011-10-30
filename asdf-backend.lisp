@@ -1,7 +1,7 @@
 #+xcvb
 (module
- (:compile-depends-on ("simplifying-traversal" "main")
-  :load-depends-on ("simplifying-traversal" "logging" "main")))
+ (:compile-depends-on ("simplifying-traversal" "commands")
+  :load-depends-on ("simplifying-traversal" "logging" "commands")))
 
 (in-package :xcvb)
 
@@ -11,7 +11,7 @@
 (defvar *target-builds* (make-hashset :test 'equal)
   "A list of asdf system we supersede")
 
-(defgeneric  build-in-target-p (env build))
+(defgeneric build-in-target-p (env build))
 
 (defmethod build-in-target-p ((env asdf-traversal) build)
   (declare (ignorable env))
@@ -42,7 +42,7 @@
          (pushnew s *asdf-system-dependencies* :test 'equal))
        (values))
       ((equal (fullname build) "/asdf")
-       (values)) ;; special case: ASDF is assumed to be there already when using an ASDF 
+       (values)) ;; special case: ASDF is assumed to be there already when using an ASDF
       (errorp
        (error "depending on grain ~A but it has no ASDF equivalent" (fullname build)))
       ((eq build grain)
@@ -169,18 +169,18 @@ Declare asd system as ASDF-NAME."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XCVB to ASDF ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter +xcvb-to-asdf-option-spec+
-  `(,@+multi-build-option-spec+
-    (("name" #\n) :type string :optional t :documentation "name of the new ASDF system")
-    (("output-path" #\o) :type string :optional t :documentation "pathname for the new ASDF system")
-    ,@+source-registry-option-spec+
-    ,@+lisp-implementation-option-spec+
-    ,@+verbosity-option-spec+))
-
-(defun xcvb-to-asdf-command (&rest keys &key
-                             build name output-path verbosity source-registry
-                             lisp-implementation lisp-binary-path debugging)
-  (declare (ignore source-registry verbosity lisp-implementation lisp-binary-path debugging))
+(define-command xcvb-to-asdf-command
+    (("xcvb-to-asdf" "x2a")
+     (&rest keys &key)
+     `(,@+multi-build-option-spec+
+       (("name" #\n) :type string :optional t :documentation "name of the new ASDF system")
+       (("output-path" #\o) :type string :optional t :documentation "pathname for the new ASDF system")
+       ,@+source-registry-option-spec+
+       ,@+lisp-implementation-option-spec+
+       ,@+verbosity-option-spec+)
+     "Extract an ASDF system from XCVB"
+     "Automatically extract an ASDF system from one or many XCVB builds."
+     (build name output-path))
   (apply 'handle-global-options keys)
   (write-asd-file
    :asdf-name name

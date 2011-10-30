@@ -31,12 +31,13 @@ endif
 ifndef CL_LAUNCH_MODE
   $(error Please define CL_LAUNCH_MODE in your configure.mk.)
 endif
-ifndef XCVB_OBJECT_DIRECTORY
-  $(error Please define XCVB_OBJECT_DIRECTORY in your configure.mk.)
+ifndef XCVB_CACHE
+  $(error Please define XCVB_CACHE in your configure.mk.)
 endif
 
 export INSTALL_XCVB
-export XCVB_OBJECT_DIRECTORY
+export XCVB_CACHE
+export XCVB_OBJECT_CACHE := ${XCVB_WORKSPACE}/obj
 
 LISP_SOURCES := $(wildcard *.lisp */*.lisp *.asd */*.asd)
 LISP_INSTALL_FILES := build.xcvb *.asd *.lisp
@@ -72,9 +73,8 @@ xcvb: xcvb-using-xcvb # If broken, fall back to xcvb-using-asdf
 
 # Below you may use either of these setups, or none at all.
 # --setup /xcvb/setup     ## Edit your own or create one from cl-launch with make setup.lisp
-XCVB_MK := ${XCVB_OBJECT_DIRECTORY}/xcvb.mk
-MK_XCVB := ${MAKE} -C ${XCVB_OBJECT_DIRECTORY} -f xcvb.mk
-
+XCVB_MK := ${XCVB_WORKSPACE}/xcvb/xcvb.mk
+MK_XCVB := ${MAKE} -C ${XCVB_WORKSPACE} -f ${XCVB_MK}
 
 XCVB_IMPLEMENTATION_OPTIONS := \
 	     --lisp-implementation ${LISP_IMPL} \
@@ -86,17 +86,18 @@ ${XCVB_MK}: force
 	xcvb make-makefile \
 	     --build /xcvb/xcvb \
 	     --output-path $@ \
-	     --object-directory ${XCVB_OBJECT_DIRECTORY} \
 	     ${XCVB_IMPLEMENTATION_OPTIONS}
 
-PARALLELIZE := -j
+PARALLELIZE ?= -j
 
-${XCVB_OBJECT_DIRECTORY}/xcvb/xcvb: ${XCVB_MK}
+#${XCVB_WORKSPACE}/bin/xcvb: ${XCVB_MK}
+${XCVB_OBJECT_CACHE}/xcvb/xcvb: ${XCVB_MK}
 	${MK_XCVB} ${PARALLELIZE} || XCVB_DEBUGGING=t ${MK_XCVB}
 
 xcvb-using-xcvb: ${INSTALL_BIN}/xcvb
 
-${INSTALL_BIN}/xcvb: ${XCVB_OBJECT_DIRECTORY}/xcvb/xcvb
+#${INSTALL_BIN}/xcvb: ${XCVB_WORKSPACE}/bin/xcvb
+${INSTALL_BIN}/xcvb: ${XCVB_OBJECT_CACHE}/xcvb/xcvb
 	mkdir -p ${INSTALL_BIN}
 	cp -f $< $@
 
@@ -106,7 +107,8 @@ XCVB_INIT :=	--final "(setf xcvb::*xcvb-lisp-directory* (pathname \"${INSTALL_XC
 
 xcvb-bootstrapped-install:
 	mkdir -p ${INSTALL_BIN}
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image ${XCVB_OBJECT_DIRECTORY}/xcvb.image --no-include \
+	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --no-include \
+		--image ${XCVB_OBJECT_CACHE}/xcvb.image \
 		--file require-asdf.lisp \
 		$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb) \
 		${XCVB_INIT}
@@ -121,17 +123,20 @@ xcvb-using-asdf:
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
 
 ## The non-enforcing backend
-xcvb-ne.mk: setup.lisp force
+XCVB_NE_MK := ${XCVB_WORKSPACE}/xcvb/xcvb-ne.mk
+
+${XCVB_NE_MK}: setup.lisp force
 	xcvb non-enforcing-makefile \
 	     --build /xcvb \
 	     --setup /xcvb/setup \
-	     --object-directory ${XCVB_OBJECT_DIRECTORY}/_ne \
+	     --output-path $@ \
+	     --object-cache ${XCVB_OBJECT_CACHE}/_ne \
 	     ${XCVB_IMPLEMENTATION_OPTIONS}
 
-${XCVB_OBJECT_DIRECTORY}/_ne/xcvb-tmp.image: xcvb-ne.mk
-	${MAKE} -f xcvb-ne.mk
+${XCVB_OBJECT_CACHE}/_ne/xcvb-tmp.image: ${XCVB_NE_MK}
+	${MAKE} -f ${XCVB_NE_MK}
 
-xcvb-using-nemk: ${XCVB_OBJECT_DIRECTORY}/_ne/xcvb-tmp.image
+xcvb-using-nemk: ${XCVB_OBJECT_CACHE}/_ne/xcvb-tmp.image
 	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
 	--image $< ${XCVB_INIT} --no-include \
@@ -151,7 +156,7 @@ tidy:
 		examples/example-1/example-1 examples/example-2/example-2
 
 clean: tidy
-	rm -rf xcvb xcvb-bootstrapped obj tmp
+	rm -rf xcvb xcvb-bootstrapped obj tmp cache workspace
 	cd doc ; rm -f *.html *.pdf
 
 mrproper: clean
@@ -205,10 +210,9 @@ XCVB_TEST := ${INSTALL_BIN}/xcvb-test
 xcvb-test: ${XCVB_TEST}
 
 ${XCVB_TEST}: ${INSTALL_BIN}/xcvb $(wildcard t/*.lisp t/build.xcvb)
-	xcvb simple-build --build /xcvb/t/xcvb-test \
-		${XCVB_IMPLEMENTATION_OPTIONS} \
-		--object-directory ${XCVB_OBJECT_DIRECTORY}
-	cp -f ${XCVB_OBJECT_DIRECTORY}/xcvb/t/xcvb-test $@
+	xcvb make-build --build /xcvb/t/xcvb-test \
+		${XCVB_IMPLEMENTATION_OPTIONS}
+	cp -f ${XCVB_OBJECT_CACHE}/xcvb/t/xcvb-test $@
 
 unit-tests: ${XCVB_TEST}
 	${XCVB_TEST} unit-tests
@@ -260,7 +264,10 @@ show-config:
 	echo "INSTALL_SYSTEM=${INSTALL_SYSTEM}" ; \
 	echo "INSTALL_IMAGE=${INSTALL_IMAGE}" ; \
 	echo "INSTALL_XCVB=${INSTALL_XCVB}" ; \
-	echo "XCVB_OBJECT_DIRECTORY=${XCVB_OBJECT_DIRECTORY}"
+	echo "XCVB_WORKSPACE=${XCVB_WORKSPACE}" ; \
+	echo "XCVB_CACHE=${XCVB_CACHE}" ; \
+	echo "XCVB_OBJECT_CACHE=${XCVB_OBJECT_CACHE}" ; \
+	:
 
 WRONGFUL_TAGS := xcvb_0.1 xcvb_0.11 xcvb_0.300 xcvb_0.539
 # Delete wrongful tags from local repository

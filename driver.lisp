@@ -13,6 +13,8 @@
 
 (cl:in-package :cl-user)
 
+(declaim (optimize (speed 2) (space 2) (safety 3) (debug 3) (compilation-speed 0)))
+
 (defpackage :xcvb-driver
   (:nicknames :xcvbd)
   (:use :cl)
@@ -27,7 +29,14 @@
    #:*features-defined* #:*features-undefined*
    #:*xcvb-verbosity*
    #:*lisp-allow-debugger*
-   #:*object-directory*
+   #:*cache* #:*object-cache* #:*workspace*
+   #:*install-prefix*
+   #:*install-program*
+   #:*install-configuration*
+   #:*install-data*
+   #:*install-library*
+   #:*install-image*
+   #:*install-lisp*
    #:*tmp-directory-pathname*
    #:*use-base-image*
 
@@ -98,7 +107,7 @@
    #:*optimization-settings*
    #:*uninteresting-conditions* #:*uninteresting-load-conditions*
    #:*fatal-conditions* #:*deferred-warnings*
-   #:*goal* #:*stderr* #:*debugging*
+   #:*goal* #:*stderr* #:*debugging* #:*profiling*
    #:*post-image-restart* #:*entry-point*
 
    ;;; Environment support
@@ -113,7 +122,7 @@
    ;; #:run #:do-run #:run-commands #:run-command ; used by XCVB, not end-users.
    #:resume #-ecl #:dump-image #+ecl #:create-bundle
    #:register-fullname #:register-fullnames #:load-fullname-mappings
-   #:fullname-pathname))
+   #:registered-fullname-pathname))
 
 (in-package :xcvb-driver)
 
@@ -299,8 +308,9 @@ or when loading the package is optional."
   "Predicate that is true for an empty sequence"
   (or (null x) (and (vectorp x) (zerop (length x)))))
 (defun getenvp (x)
-  "Predicate that is true if the named variable is present in the libc environment"
-  (not (emptyp (getenv x))))
+  "Predicate that is true if the named variable is present in the libc environment,
+then returning the non-empty string value of the variable"
+  (let ((g (getenv x))) (and (not (emptyp g)) g)))
 
 
 ;;;; ----- User-visible variables, 2: Control XCVB -----
@@ -361,9 +371,47 @@ A list of strings, or the keyword :DEFAULT.")
 (defvar *lisp-allow-debugger* nil
   "Should we allow interactive debugging of failed build attempts?")
 
-(defvar *object-directory* nil
-  "where to store object files.
-NIL: default to ~/.cache/xcvb/common-lisp/sbcl-1.0.47-x86/ or some such, see docs")
+(defvar *cache* nil
+  "where to store object files, etc.
+NIL: default to $XDG_CACHE_HOME/xcvb/ or $HOME/.cache/xcvb/, see docs")
+
+(defvar *object-cache* nil
+  "Path to the object cache.
+NIL: default to *cache*/*implementation-identifier*/, see docs")
+
+(defvar *workspace* nil
+  "where to store test and intermediate files private to current run
+NIL: default to <current-directory>/workspace/, see docs")
+
+(defvar *install-prefix* nil
+  "where to install files.
+NIL: default to /usr/local/, see docs
+\"/\": default to /, with special defaults for other paths.
+T: use home directory with special defaults for other paths below.")
+
+(defvar *install-program* nil
+  "where to install program 'binary' (executable) files.
+NIL: default to *install-prefix*/bin, see docs")
+
+(defvar *install-configuration* nil
+  "where to install configuration files.
+NIL: default to *install-prefix*/etc, see docs")
+
+(defvar *install-data* nil
+  "where to install shared (architecture-independent) data files.
+NIL: default to *install-prefix*/share, see docs")
+
+(defvar *install-library* nil
+  "where to install library (architecture-dependent) files.
+NIL: default to *install-prefix*/lib, see docs")
+
+(defvar *install-image* nil
+  "where to install common-lisp image (architecture- and implementation- dependent) files.
+NIL: default to *install-library*/common-lisp/images/, see docs")
+
+(defvar *install-lisp* nil
+  "where to install common-lisp source code and systems, etc.
+NIL: default to *install-data*/common-lisp/, see docs")
 
 (defvar *tmp-directory-pathname*
   (let* ((dir (or
@@ -475,7 +523,7 @@ as per FORMAT, and evaluate BODY within the scope of this binding."
 
 ;;; Input helpers
 
-(defvar *default-element-type* (or #+(or abcl xcl) 'character :default)
+(defvar *default-element-type* (or #+(or abcl cmu scl xcl) 'character :default)
   "default element-type for open (depends on the current CL implementation)")
 
 (defun call-with-input-file (pathname thunk
@@ -550,7 +598,7 @@ ready for I/O. Unless KEEP is specified, delete the file afterwards."
 (defun call-with-safe-io-syntax (thunk &key (package :cl))
   (with-standard-io-syntax ()
     (let ((*package* (find-package package))
-          (*print-readably* t)
+          (*print-readably* nil)
           (*print-escape* t)
 	  (*read-eval* nil))
       (funcall thunk))))
@@ -687,13 +735,15 @@ reading contents line by line."
 (defvar *previous-optimization-settings* nil)
 (defun get-optimization-settings ()
   "Get current compiler optimization settings, ready to PROCLAIM again"
-  (let ((settings '(speed space safety debug compilation-speed)))
-    #-(or clisp clozure sbcl)
-    (warn "xcvb-driver::get-optimization-settings does not your implementation. Please help me fix that.")
+  (let ((settings '(speed space safety debug compilation-speed #+(or cmu scl) c::brevity)))
+    #-(or clisp clozure cmu sbcl scl)
+    (warn "xcvb-driver::get-optimization-settings does not support your implementation. Please help me fix that.")
     #.`(loop :for x :in settings
-         ,@(or #+clozure '(:for v :in '(ccl::*nx-speed* ccl::*nx-space* ccl::*nx-safety* ccl::*nx-debug* ccl::*nx-cspeed*)))
+         ,@(or #+clozure '(:for v :in '(ccl::*nx-speed* ccl::*nx-space* ccl::*nx-safety* ccl::*nx-debug* ccl::*nx-cspeed*))
+               #+(or cmu scl) '(:for f :in '(c::cookie-speed c::cookie-space c::cookie-safety c::cookie-debug c::cookie-cspeed c::cookie-brevity)))
          :for y = (or #+clisp (gethash x system::*optimize*)
                       #+clozure (symbol-value v)
+                      #+(or cmu scl) (funcall f c::*default-cookie*)
                       #+sbcl (cdr (assoc x sb-c::*policy*)))
          :when y :collect (list x y))))
 (defun proclaim-optimization-settings ()
@@ -853,7 +903,7 @@ This is designed to abstract away the implementation specific quit forms."
              *default-pathname-defaults*)))
     (dolist (m mappings)
       (apply 'register-fullname m))))
-(defun fullname-pathname (fullname)
+(defun registered-fullname-pathname (fullname)
   (let ((plist (gethash fullname *pathname-mappings*)))
     (or (getf plist :logical-pathname) (getf plist :truename))))
 (defun load-fullname-mappings (file)
@@ -1781,7 +1831,6 @@ OUTPUT-PROCESSOR and given KEYS"
       (setup *xcvb-setup*)
       (source-registry *source-registry*)
       (output-path nil)
-      (object-directory *object-directory*)
       (lisp-implementation *lisp-implementation-type*)
       (lisp-binary-path *lisp-executable-pathname*)
       (lisp-image-path *lisp-image-pathname*)
@@ -1789,6 +1838,16 @@ OUTPUT-PROCESSOR and given KEYS"
       (features-undefined *features-undefined*)
       (disable-cfasl *disable-cfasls*)
       (use-base-image *use-base-image*)
+      (cache *cache*)
+      (object-cache *object-cache*)
+      (workspace *workspace*)
+      (install-prefix *install-prefix*)
+      (install-program *install-program*)
+      (install-configuration *install-configuration*)
+      (install-data *install-data*)
+      (install-library *install-library*)
+      (install-image *install-image*)
+      (install-lisp *install-lisp*)
       (verbosity *xcvb-verbosity*)
       (debugging *lisp-allow-debugger*)
       (profiling nil)))
@@ -1824,7 +1883,9 @@ OUTPUT-PROCESSOR and given KEYS"
       (append
        (list "slave-builder")
        (string-options build setup lisp-implementation verbosity source-registry)
-       (pathname-options output-path object-directory lisp-binary-path lisp-image-path)
+       (pathname-options output-path lisp-binary-path lisp-image-path cache object-cache workspace
+                         install-prefix install-program install-configuration
+                         install-data install-library install-image install-lisp)
        (list-option-arguments "define-feature" features-defined)
        (list-option-arguments "undefine-feature" features-undefined)
        (boolean-options disable-cfasl use-base-image debugging profiling)))))

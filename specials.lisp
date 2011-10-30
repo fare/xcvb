@@ -4,16 +4,6 @@
 
 ;; User-visible special variables.
 
-;; Note: the statement below only declares the variable.
-;; The actual version number is defined in file version.lisp.
-;; TODO: find a good way to ensure this bit gets incremented at the right time.
-;; e.g. have some version number automatically extracted from the date, plus
-;; maybe a hash obtained from git, and/or from xcvb's own digesting mechanism.
-;; MAYBE what we want is just a git hook that will ensure that a given version
-;; file is modified at every commit, or else either auto-increment the number
-;; in that file or plainly error out.
-(defvar *xcvb-version*)
-
 ;;; We share a few variables from xcvb-master, that we inherit from its package:
 #|
  *lisp-implementation-type*
@@ -23,7 +13,8 @@
  *lisp-flags*
  *xcvb-verbosity*
  *lisp-allow-debugger*
- *object-directory*
+ *cache*
+ *workspace*
  *tmp-directory*
  *use-base-image*
 |#
@@ -69,7 +60,7 @@ Autodetected from the target Lisp system.")
        #p"/usr/share/common-lisp/source/xcvb/"))
   "Directory pathname for the location where XCVB Lisp files are installed")
 
-(defvar *xcvb-version* nil ;; set at the end of the build process, from git describe --tags
+(defvar *xcvb-version* nil ;; set at the end of the build process by prepare-image
   "XCVB version.")
 
 ;; *pathname-grain-cache* is used by code in names.lisp.
@@ -119,9 +110,11 @@ nickname, or SEXP representing a computed entity.")
 (defvar *arguments* nil
   "Arguments passed to the main function")
 
-(defvar *object-directory-pathname* nil
-  "Path to the object directory")
+(defvar *object-cache-namestring* nil
+  "namestring to the object cache")
 
 (defparameter *module-classes*
   '((module . lisp-file-grain)))
 
+(defvar *program* "xcvb"
+  "Name of the program being invoked")

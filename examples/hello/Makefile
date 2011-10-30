@@ -27,6 +27,13 @@ include ${XCVB_ROOT}/configure.mk
 export CL_SOURCE_REGISTRY := ${XCVB_ROOT}//:${CL_SOURCE_REGISTRY}
 $(shell ( echo export CL_SOURCE_REGISTRY=${CL_SOURCE_REGISTRY} ) >&2)
 
+# Where XCVB will produce you hello executable
+EXE=${XCVB_WORKSPACE}/bin/hello
+
+# Where XCVB will produce your xcvb.mk by default
+XCVB_MK := ${XCVB_WORKSPACE}/xcvb/hello/xcvb.mk
+
+
 # This is where XCVB is actually invoked.
 # IN YOUR PROJECT,
 # you should replace the /xcvb/hello with the fullname of your project.
@@ -36,11 +43,10 @@ $(shell ( echo export CL_SOURCE_REGISTRY=${CL_SOURCE_REGISTRY} ) >&2)
 # and see its documentation about the source-registry.
 #	http://common-lisp.net/project/asdf/
 #
-xcvb.mk: force
+${XCVB_MK}: force
 	xcvb make-makefile \
 	     --build /xcvb/hello/hello \
 	     --lisp-implementation ${LISP} \
-	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello
 
 # The PARALLELIZE trick allows the user to disable or tweak build parallelism with
 # make PARALLELIZE= or make PARALLELIZE=-j8 or make PARALLELIZE=-l4
@@ -48,20 +54,16 @@ xcvb.mk: force
 PARALLELIZE ?= -j
 PARALLEL := $(if $(findstring -,${PARALLELIZE}),--parallel)
 
-${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello/hello: xcvb.mk
-	${MAKE} -f xcvb.mk ${PARALLELIZE} || XCVB_DEBUGGING=t ${MAKE} -f xcvb.mk
+hello-using-mk: ${XCVB_MK}
+	${MAKE} -f ${XCVB_MK} ${PARALLELIZE} || XCVB_DEBUGGING=t ${MAKE} -f ${XCVB_MK}
+
+hello: hello-using-mk
 
 # This uses cl-launch to build an executable from the image created by xcvb.
 # For portability across Lisp implementation, we use an image on the side.
 # With SBCL and CLISP, you could use "--dump !" to create a standalone executable instead
 # IN THE FUTURE,
 # xcvb may have builtin option to specify such executables.
-hello-using-mk: ${XCVB_OBJECT_DIRECTORY}/hello/xcvb/hello/hello
-	mkdir -p ${INSTALL_BIN}
-	cp $< ${INSTALL_BIN}/hello
-
-hello: hello-using-mk
-
 # This builds hello directly with ASDF, using cl-launch, using a generated xcvb-hello.asd
 hello-using-asdf: xcvb-hello.asd
 	mkdir -p ${INSTALL_BIN}
@@ -73,23 +75,24 @@ xcvb-hello.asd: force
 	xcvb x2a --build /xcvb/hello --build /xcvb/hello/lib --name xcvb-hello
 
 # This builds hello using our non-enforcing Makefile backend
-NE_IMAGE := ${XCVB_OBJECT_DIRECTORY}/hello_ne/xcvb-tmp.image
-hello-using-nemk:  ${NE_IMAGE}
+NE_IMAGE := ${XCVB_WORKSPACE}/hello_ne/lib/images/xcvb-tmp.image
+hello-using-nemk: ${NE_IMAGE}
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $< --no-include \
 		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
 		--init '(xcvb-hello::main*)'
 
-${NE_IMAGE}: xcvb-ne.mk
-	${MAKE} -f xcvb-ne.mk
+${NE_IMAGE}: ${XCVB_NE_MK}
+	${MAKE} -f ${XCVB_NE_MK}
 
-xcvb-ne.mk: force
+XCVB_NE_MK := ${XCVB_WORKSPACE}/hello_ne/xcvb/hello/xcvb-ne.mk
+${XCVB_NE_MK}: force
 	xcvb non-enforcing-makefile \
 	     --setup /asdf/asdf \
 	     --build /xcvb/hello \
 	     --lisp-implementation ${LISP} \
 	     ${PARALLEL} \
-	     --object-directory ${XCVB_OBJECT_DIRECTORY}/hello_ne
+	     --workspace ${XCVB_WORKSPACE}/hello_ne
 #	     --lisp-binary-path $${$(shell echo ${LISP}|tr '[a-z]' '[A-Z]')}
 
 

@@ -1,6 +1,6 @@
 #+xcvb
 (module
-  (:depends-on ("makefile-backend" "asdf-backend" "simplifying-traversal" "main")))
+  (:depends-on ("makefile-backend" "asdf-backend" "simplifying-traversal")))
 
 (in-package :xcvb)
 
@@ -47,7 +47,7 @@
             `(:xcvb-driver-command ,previous-spec
               (:create-image
                (:image ,image-name)
-               (:register-asdf-directory ,(merge-pathnames (strcat *object-directory* "/")))
+               (:register-asdf-directory ,*object-cache*)
                ,@(when parallel
                        `((:register-asdf-directory
                           ,(pathname-directory-pathname
@@ -109,35 +109,29 @@ in a fast way that doesn't enforce dependencies."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; non-enforcing makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter +non-enforcing-makefile-option-spec+
-  `(,@+multi-build-option-spec+
-    ,@+setup-option-spec+
-    ,@+base-image-option-spec+
-    ,@+source-registry-option-spec+
-    (("name" #\n) :type string :optional t :initial-value "xcvb-tmp" :documentation "ASDF name for the target")
-    (("output-path" #\o) :type string :initial-value "xcvb-ne.mk" :documentation "specify output path")
-    ,@+object-directory-option-spec+
-    ,@+lisp-implementation-option-spec+
-    (("parallel" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")
-    ;; ,@+profiling-option-spec+
-    ,@+verbosity-option-spec+))
-
-(defun non-enforcing-makefile (&rest keys &key
-                               build use-base-image setup source-registry name
-                               output-path object-directory
-                               lisp-implementation lisp-binary-path
-                               define-feature undefine-feature
-                               verbosity parallel debugging #|force-cfasl profiling|#)
-  (declare (ignore source-registry setup verbosity
-                   lisp-implementation lisp-binary-path
-                   define-feature undefine-feature
-                   object-directory use-base-image debugging))
-  ;;(with-maybe-profiling (profiling)
-  (apply 'handle-global-options
-         ;;:disable-cfasl (not force-cfasl)
-         keys)
-  (write-non-enforcing-makefile
-   (mapcar #'canonicalize-fullname build)
-   :asdf-name name
-   :output-path output-path
-   :parallel parallel))
+(define-command non-enforcing-makefile
+    (("non-enforcing-makefile" "nemk" "nm")
+     (&rest keys &key)
+     `(,@+multi-build-option-spec+
+       ,@+setup-option-spec+
+       ,@+base-image-option-spec+
+       ,@+source-registry-option-spec+
+       (("name" #\n) :type string :optional t :initial-value "xcvb-tmp" :documentation "ASDF name for the target")
+       (("output-path" #\o) :type string :initial-value "xcvb-ne.mk" :documentation "specify output path")
+       ,@+workspace-option-spec+
+       ,@+lisp-implementation-option-spec+
+       (("parallel" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")
+       ;; ,@+profiling-option-spec+
+       ,@+verbosity-option-spec+)
+     "Create some Makefile for a non-enforcing build"
+     "Create some Makefile for a non-enforcing build,
+that will use ASDF or POIU to create one or a series of images each containing
+the previous image, a build and its dependencies."
+     (build name output-path parallel))
+  (apply 'handle-global-options #|:disable-cfasl (not force-cfasl)|# keys)
+  (with-maybe-profiling ()
+    (write-non-enforcing-makefile
+     (mapcar #'canonicalize-fullname build)
+     :asdf-name name
+     :output-path output-path
+     :parallel parallel)))

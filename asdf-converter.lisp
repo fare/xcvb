@@ -1,4 +1,4 @@
-#+xcvb (module (:depends-on ("grain-interface" "main" "source-registry")))
+#+xcvb (module (:depends-on ("grain-interface" "commands" "source-registry")))
 
 (in-package :xcvb)
 
@@ -382,17 +382,20 @@ so that the system can now be compiled with XCVB."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ASDF to XCVB ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter +asdf-to-xcvb-option-spec+
-  `((("system" #\a) :type string :optional nil :list t :documentation "Specify an ASDF system to convert (can be repeated)")
-    (("base" #\B) :type string :optional t :documentation "Base pathname for the new build")
-    (("name" #\n) :type string :optional t :documentation "name of the resulting build")
-    ,@+setup-option-spec+
-    ,@+source-registry-option-spec+
-    (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")
-    ,@+verbosity-option-spec+))
-
-(defun asdf-to-xcvb-command
-    (&key system setup source-registry preload verbosity base name debugging)
+(define-command asdf-to-xcvb-command
+    (("asdf-to-xcvb" "a2x")
+     ()
+     `((("system" #\a) :type string :optional nil :list t :documentation "Specify an ASDF system to convert (can be repeated)")
+       (("base" #\B) :type string :optional t :documentation "Base pathname for the new build")
+       (("name" #\n) :type string :optional t :documentation "name of the resulting build")
+       ,@+setup-option-spec+
+       ,@+source-registry-option-spec+
+       (("preload" #\l) :type string :optional t :list t :documentation "Specify an ASDF system to preload (can be repeated)")
+       ,@+verbosity-option-spec+)
+     "Convert ASDF system to XCVB"
+     "Attempt an automated conversion of an ASDF system to XCVB.
+Optionally load a setup Lisp file before anything else, so the user gets
+a chance to load and/or configure ASDF itself and any extension thereof.")
   (handle-global-options :verbosity verbosity :debugging debugging)
   (asdf:initialize-source-registry source-registry)
   (when setup (load setup))

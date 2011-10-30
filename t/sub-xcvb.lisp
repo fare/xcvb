@@ -8,6 +8,9 @@
             :in xcvb-test
             :documentation "Test XCVB as a subprocess"))
 
+
+;;; Helpers
+
 (defun run-make (dir target &rest keys)
   (apply 'run-cmd "make" "-C" dir target (make-environment keys)))
 
@@ -18,7 +21,8 @@
   (loop :for xspec :in
     '(:install-bin :install-image :install-lisp :install-source :install-systems
       :install-xcvb :prefix
-      (:object-dir "XCVB_OBJECT_DIRECTORY") (:source-registry "CL_SOURCE_REGISTRY")
+      (:workspace "XCVB_WORKSPACE") (:cache "XCVB_CACHE")
+      (:object-cache "XCVB_OBJECT_CACHE") (:source-registry "CL_SOURCE_REGISTRY")
       (:implementation-type "LISP" string-downcase)
       :path :xdg-cache-home :cl-launch-flags :asdf-output-translations
       :parallelize)
@@ -37,7 +41,7 @@
     :for xspec :in
     '(;; :install-bin :install-image :install-lisp
       ;; :install-xcvb :install-source :install-systems
-      ;; (:object-dir "XCVB_OBJECT_DIRECTORY")
+      ;; (:object-cache "XCVB_OBJECT_CACHE")
       ;; (:source-registry "CL_SOURCE_REGISTRY")
       ;; (:implementation-type "LISP" upkeywordp)
       :cl-launch :cl-launch-flags :cl-launch-mode)
@@ -75,23 +79,49 @@
   `(setf ,keys (apply 'compute-makefile-configuration-variables ,keys)))
 
 
+;;; Option Specs
+
+(define-option-spec +base-xcvb-dir-option-spec+
+  `((("workspace") :type string :optional t :documentation "where to build stuff")
+    (("object-cache") :type string :optional t :documentation "where to store object files")
+    (("cl-launch-flags") :type string :optional t :documentation "cl-launch flags")
+    ,@xcvb::+verbosity-option-spec+
+    ,@xcvb::+source-registry-option-spec+))
+
+(define-option-spec +bootstrap-option-spec+
+  `((("xcvb" #\S) :type string :optional t :documentation "name of bootstrap XCVB binary")
+    (("install-bin") :type string :optional t :documentation "where to install binaries")
+    (("install-image") :type string :optional t :documentation "where to install images")
+    ;;(("install-lisp") :type string :optional t :documentation "where to install source")
+    ;;(("install-systems") :type string :optional t :documentation "where to install systems")
+    (("parallelize") :type string :optional t :documentation "shall we parallelize?")))
+
+(define-option-spec +lisp-implementation-option-spec+
+  `((("implementation-type" #\S) :type string :optional t
+     :documentation "the Lisp implementation type")))
+
+(define-option-spec +base-release-dir-option-spec+
+  `((("release-dir" #\S) :type string :optional nil
+     :documentation "the XCVB directory")
+    ,@+base-xcvb-dir-option-spec+))
+
 (defun validate-xcvb-checkout (&key xcvb-dir &allow-other-keys)
-  (is (probe-file* (in-dir xcvb-dir "xcvb.asd"))
+  (is (probe-file* (subpathname xcvb-dir "xcvb.asd"))
       "Missing xcvb.asd in XCVB directory ~S" xcvb-dir)
-  (is (probe-file* (in-dir xcvb-dir "driver.lisp"))
+  (is (probe-file* (subpathname xcvb-dir "driver.lisp"))
       "Missing driver.lisp in XCVB directory ~S" xcvb-dir)
-  (is (probe-file* (in-dir xcvb-dir "configure.mk"))
+  (is (probe-file* (subpathname xcvb-dir "configure.mk"))
       "Please configure your configure.mk in ~S~%~
        (and don't forget to properly setup ASDF)" xcvb-dir))
 
 (defun validate-release-checkout (&key release-dir &allow-other-keys)
   (is (probe-file* release-dir)
       "Release directory ~S doesn't exist" release-dir)
-  (is (in-dir release-dir "INSTALL")
+  (is (subpathname release-dir "INSTALL")
       "Release directory ~S fails to contain INSTALL" release-dir)
-  (is (in-dir release-dir "xcvb/")
+  (is (subpathname release-dir "xcvb/")
       "Release directory ~S fails to contain xcvb/" release-dir)
-  (validate-xcvb-dir :xcvb-dir (in-dir release-dir "xcvb/")))
+  (validate-xcvb-dir :xcvb-dir (subpathname release-dir "xcvb/")))
 
 (defun get-makefile-configuration (&rest keys
                                    &key xcvb-dir makefile-configuration &allow-other-keys)
@@ -140,7 +170,7 @@
                          (second lines)))))
 
 (defun validate-xcvb-ssr (&rest keys &key xcvb xcvb-dir source-registry &allow-other-keys)
-  ;; preconditions: XCVB built from DIR into BUILD-DIR using ENV
+  ;; preconditions: XCVB built from DIR into WORKSPACE using ENV
   ;; postconditions: xcvb ssr working
   (let ((ssr (run-cmd/string
               xcvb 'ssr :source-registry
@@ -176,7 +206,7 @@
 
 (defun validate-hello (&key install-bin &allow-other-keys)
   (is (equal '("hello, world")
-             (run-cmd/lines (in-dir install-bin "hello") "-t"))
+             (run-cmd/lines (subpathname install-bin "hello") "-t"))
       "hello not working"))
 
 (defun ensure-file-deleted (file)
@@ -188,10 +218,10 @@
   (ensure-directories-exist install-bin)
   (ensure-directories-exist install-image)
   (flet ((clean ()
-           (ensure-file-deleted (in-dir xcvb-dir "examples/hello/setup.lisp"))
-           (ensure-file-deleted (in-dir install-bin "hello"))))
+           (ensure-file-deleted (subpathname xcvb-dir "examples/hello/setup.lisp"))
+           (ensure-file-deleted (subpathname install-bin "hello"))))
     (clean)
-    (apply 'run-make (in-dir xcvb-dir "examples/hello/") build-target keys)
+    (apply 'run-make (subpathname xcvb-dir "examples/hello/") build-target keys)
     (apply 'validate-hello keys)
     (clean)))
 
@@ -206,35 +236,35 @@
 (defun validate-x2a (&rest keys)
   (apply 'validate-hello-build "hello-using-asdf" keys))
 
-(defun validate-rmx (&rest keys &key xcvb build-dir xcvb-dir source-registry &allow-other-keys)
-  (let* ((test-dir (in-dir build-dir "a2x_rmx/"))
+(defun validate-rmx (&rest keys &key xcvb workspace xcvb-dir source-registry &allow-other-keys)
+  (let* ((test-dir (subpathname workspace "a2x_rmx/"))
          (source-registry (format nil "~A//:~A" test-dir source-registry)))
     (ensure-directories-exist test-dir)
-    (rsync "-a" (in-dir xcvb-dir "examples/a2x/") test-dir)
+    (rsync "-a" (subpathname xcvb-dir "examples/a2x/") test-dir)
     (apply 'validate-xcvb-ssr :source-registry source-registry keys)
     (run-cmd xcvb 'rmx :build "/xcvb/test/a2x"
              :verbosity 9 :source-registry source-registry)
-    (is (not (probe-file* (in-dir test-dir "build.xcvb")))
+    (is (not (probe-file* (subpathname test-dir "build.xcvb")))
         "xcvb rmx failed to remove build.xcvb")
     (dolist (l (is (directory (merge-pathnames* #p"*.lisp" test-dir))))
       (is (not (module-form-p (read-module-declaration l)))
           "xcvb rmx failed to delete module form from ~A" l))))
 
-(defun validate-a2x (&key xcvb build-dir xcvb-dir source-registry &allow-other-keys)
-  (let* ((test-dir (in-dir build-dir "a2x_a2x/"))
+(defun validate-a2x (&key xcvb workspace xcvb-dir source-registry &allow-other-keys)
+  (let* ((test-dir (subpathname workspace "a2x_a2x/"))
          (source-registry (format nil "~A//:~A" test-dir source-registry)))
     (ensure-directories-exist test-dir)
-    (rsync "-a" (in-dir xcvb-dir "examples/a2x/") test-dir)
+    (rsync "-a" (subpathname xcvb-dir "examples/a2x/") test-dir)
     (run-cmd xcvb 'a2x :system "a2x-test" :name "/xcvb/test/a2x"
              :source-registry source-registry)
-    (is (probe-file* (in-dir test-dir "build.xcvb"))
+    (is (probe-file* (subpathname test-dir "build.xcvb"))
       "xcvb a2x failed to create build.xcvb")
     (dolist (l (is (directory (merge-pathnames* #p"*.lisp" test-dir))))
       (is (module-form-p (read-module-declaration l))
           "xcvb a2x failed to create module form for ~A" l))
     (rm-rfv test-dir)))
 
-(defun validate-master (&key xcvb build-dir object-dir source-registry implementation-type
+(defun validate-master (&key xcvb workspace object-cache source-registry implementation-type
                         &allow-other-keys)
   (let* ((driver
           (is (first
@@ -245,33 +275,33 @@
            (xcvb::lisp-invocation-arglist
             :implementation-type implementation-type :lisp-path nil :load driver
             :eval (format nil "'(#.(xcvb-driver:bnl \"xcvb/hello\" ~
-              :output-path ~S :object-directory ~S :source-registry ~S :verbosity 9) ~
+              :output-path ~S :object-cache ~S :source-registry ~S :verbosity 9) ~
               #.(let ((*print-base* 30)) (xcvb-hello::hello :name 716822547 :traditional t)))"
-                          build-dir object-dir source-registry)))))
+                          workspace object-cache source-registry)))))
     (is (search "hello, tester" out)
         "Failed to use hello through the XCVB master")))
 
-(defun validate-slave (&key xcvb build-dir object-dir implementation-type &allow-other-keys)
+(defun validate-slave (&key xcvb workspace object-cache implementation-type &allow-other-keys)
   (let ((out
          (run-cmd/string
           xcvb 'slave-builder :build "/xcvb/hello"
           :lisp-implementation (string-downcase implementation-type)
-          :object-directory object-dir :output-path build-dir)))
+          :object-cache object-cache :output-path workspace)))
     (is (search "Your desires are my orders" out)
         "Failed to drive a slave ~(~A~) to build hello" implementation-type)))
 
-(defun validate-bridge (&key object-dir implementation-type &allow-other-keys)
+(defun validate-bridge (&key object-cache implementation-type &allow-other-keys)
   (let ((out
          (run-program/read-output-string
           (xcvb::lisp-invocation-arglist
            :implementation-type implementation-type
            :eval (format nil "'(#.(require ~S)~
                    #.(asdf:load-system :xcvb-driver)~
-                   #.(setf xcvb-driver:*object-directory* ~S)~
+                   #.(setf xcvb-driver:*object-cache* ~S)~
                    #.(asdf:load-system :xcvb-hello-via-bridge)~
                    #.(xcvb-hello:hello :name ~S :traditional t)#.~A)"
-                         "asdf" object-dir "Sub-XCVB TeStEr"
-                         ;; what about :output-path??? Something based on build-dir?
+                         "asdf" object-cache "Sub-XCVB TeStEr"
+                         ;; what about :output-path??? Something based on workspace?
                          (xcvb::quit-form :implementation-type implementation-type))))))
     (is (search "hello, sub-xcvb tester" out)
         "Failed to build hello via the ASDF-XCVB bridge using ~(~A~)" implementation-type)))
@@ -310,16 +340,16 @@
 (defun validate-bootstrapped-build (&rest keys)
   (apply 'validate-xxx-build 'do-bootstrapped-build keys))
 
-(defun do-release-build (&rest keys &key release-dir build-dir &allow-other-keys)
-  (rm-rfv (in-dir build-dir "obj/"))
+(defun do-release-build (&rest keys &key release-dir workspace &allow-other-keys)
+  (rm-rfv (subpathname workspace "obj/"))
   (apply 'run-make release-dir "install" keys))
 
-(defun ensure-build-directories (&key object-dir install-bin install-image
+(defun ensure-build-directories (&key object-cache install-bin install-image
                                  &allow-other-keys)
   (map () 'ensure-directories-exist
-       (list object-dir install-bin install-image)))
+       (list object-cache install-bin install-image)))
 
-(defun call-with-xcvb-build-dir (thunk &rest keys)
+(defun call-with-xcvb-workspace (thunk &rest keys)
   (apply 'validate-xcvb-checkout keys)
   (apply 'clean-xcvb-dir keys)
   (unwind-protect
@@ -336,24 +366,40 @@
   #|(apply wrapper 'validate-nemk-build keys)|#
   (values))
 
-(defun validate-xcvb-dir (&rest keys)
+(define-command validate-xcvb-dir
+    (("validate-xcvb-dir" "vx")
+     (&rest keys &key)
+     `((("xcvb-dir" #\S) :type string :optional t :documentation "the XCVB directory")
+       ,@+base-xcvb-dir-option-spec+
+       ,@+bootstrap-option-spec+
+       ,@+lisp-implementation-option-spec+)
+     "Test a XCVB source directory"
+     "Compile a XCVB checkout and run tests on it" ignore)
   (compute-xcvb-dir-variables! keys)
-  (apply 'validate-regular-xcvb-builds 'call-with-xcvb-build-dir keys))
+  (apply 'validate-regular-xcvb-builds 'call-with-xcvb-workspace keys))
 
-(defun validate-xcvb-dir-all-lisps (&rest keys)
+(define-command validate-xcvb-dir-all-lisps
+    (("validate-xcvb-dir-all-lisps" "vx")
+     (&rest keys &key)
+     `((("xcvb-dir" #\S) :type string :optional t :documentation "the XCVB directory")
+       ,@+base-xcvb-dir-option-spec+
+       ,@+bootstrap-option-spec+)
+     "Test a XCVB source directory"
+     "Compile a XCVB checkout and run tests on it" ignore)
+    (&rest keys)
   (compute-xcvb-dir-variables! keys)
   (dolist (implementation-type +xcvb-lisps+)
     (apply 'validate-xcvb-dir :implementation-type implementation-type keys)))
 
 (defun clean-xcvb-dir (&rest keys &key xcvb-dir &allow-other-keys)
   (apply 'run-make xcvb-dir "clean" keys)
-  (rm-rfv (in-dir xcvb-dir "build/")))
+  (rm-rfv (subpathname xcvb-dir "workspace/")))
 
 (defun clean-release-dir (&rest keys &key xcvb-dir release-dir &allow-other-keys)
   (apply 'run-make xcvb-dir "clean" keys)
-  (rm-rfv (in-dir release-dir "build/")))
+  (rm-rfv (subpathname release-dir "workspace/")))
 
-(defun call-with-release-build-dir (thunk &rest keys)
+(defun call-with-release-workspace (thunk &rest keys)
   (compute-release-dir-variables! keys)
   (apply 'validate-release-checkout keys)
   (apply 'clean-release-dir keys)
@@ -363,12 +409,26 @@
          (apply thunk keys))
     (apply 'clean-release-dir keys)))
 
-(defun validate-release-dir (&rest keys)
+(define-command validate-release-dir
+    (("validate-release-dir" "vr")
+     (&rest keys &key)
+     `(,@+base-release-dir-option-spec+
+       ,@+bootstrap-option-spec+
+       ,@+lisp-implementation-option-spec+)
+     "Test a XCVB release directory"
+     "Compile a XCVB release directory and run tests on it" ignore)
   (compute-release-dir-variables! keys)
-  (apply 'call-with-release-build-dir 'validate-bootstrapped-build keys)
-  (apply 'validate-regular-xcvb-builds 'call-with-release-build-dir keys))
+  (apply 'call-with-release-workspace 'validate-bootstrapped-build keys)
+  (apply 'validate-regular-xcvb-builds 'call-with-release-workspace keys))
 
-(defun validate-release-dir-all-lisps (&rest keys)
+(define-command validate-release-dir-all-lisps
+  (("validate-release-dir-all-lisps" "vral")
+   (&rest keys &key)
+   `(,@+base-release-dir-option-spec+
+     ,@+bootstrap-option-spec+)
+   "Test a XCVB release directory"
+   "Compile a XCVB release directory and run tests on it"
+   ignore)
   (compute-xcvb-dir-variables! keys)
   (dolist (implementation-type +xcvb-lisps+)
     (apply 'validate-release-dir :implementation-type implementation-type keys)))
@@ -384,7 +444,7 @@
 
 (defun finalize-variables (&rest keys &key
                            verbosity
-                           implementation-type object-dir build-dir
+                           implementation-type object-cache workspace
                            install-bin install-lisp install-image install-source install-systems
                            source-registry xcvb
                            (parallelize () parallelizep)
@@ -394,43 +454,38 @@
                `(or (when ,x (ensure-directory-pathname ,x)) ,default)))
     (letk* keys
         ((implementation-type (or implementation-type *lisp-implementation-type*))
-         (build-dir (dir build-dir))
-         (object-dir (dir object-dir (in-dir build-dir "obj/")))
-         (install-bin (dir install-bin (in-dir build-dir "bin/")))
-         (install-lisp (dir install-lisp (in-dir build-dir "common-lisp/")))
-         (install-image (dir install-image (in-dir build-dir "images/")))
-         (install-source (dir install-source (in-dir build-dir "source/")))
-         (install-systems (dir install-systems (in-dir build-dir "systems/")))
-         (parallelize (if parallelizep parallelize
-                          (let ((ncpus (parse-integer
-                                        (run-program/read-output-string
-                                         "cat /proc/cpuinfo|grep '^processor' | wc -l")
-                                        :junk-allowed t)))
-                            (format nil "-l~A" (1+ ncpus)))))
+         (workspace (dir workspace))
+         (object-cache (dir object-cache (subpathname workspace "obj/")))
+         (install-bin (dir install-bin (subpathname workspace "bin/")))
+         (install-lisp (dir install-lisp (subpathname workspace "common-lisp/")))
+         (install-image (dir install-image (subpathname workspace "images/")))
+         (install-source (dir install-source (subpathname workspace "source/")))
+         (install-systems (dir install-systems (subpathname workspace "systems/")))
+         (parallelize (if parallelizep parallelize (xcvb::make-parallel-flag)))
          (xcvb (or xcvb "xcvb"))
          (path (format nil "~A:~@[~A~]" install-bin (getenv "PATH")))
          (cl-launch-flags (format nil "--lisp ~(~A~) --source-registry ~S"
                                   implementation-type source-registry))
-         (asdf-output-translations (format nil "/:~A" (in-dir build-dir "cache/"))))
+         (asdf-output-translations (format nil "/:~A" (subpathname workspace "cache/"))))
       keys)))
 
 (defun compute-release-dir-variables (&rest keys &key release-dir &allow-other-keys)
   (letk* keys
       ((release-dir (ensure-directory-pathname (or release-dir (getenv "RELEASE_DIR"))))
-       (xcvb-dir (in-dir release-dir "xcvb/"))
-       (build-dir (in-dir release-dir "build/"))
-       (install-bin (in-dir build-dir "bin/"))
-       (xcvb (in-dir install-bin "xcvb"))
-       (object-dir (in-dir build-dir "obj/"))
-       (install-xcvb (in-dir build-dir "install/source/xcvb/"))
-       (install-lisp (in-dir build-dir "install/"))
-       (install-source (in-dir build-dir "install/source/"))
-       (install-systems (in-dir build-dir "install/systems/"))
-       (xdg-cache-home (in-dir build-dir "cache/"))
-       (prefix (in-dir build-dir "local/"))
+       (xcvb-dir (subpathname release-dir "xcvb/"))
+       (workspace (subpathname release-dir "workspace/"))
+       (install-bin (subpathname workspace "bin/"))
+       (xcvb (subpathname install-bin "xcvb"))
+       (object-cache (subpathname workspace "obj/"))
+       (install-xcvb (subpathname workspace "install/source/xcvb/"))
+       (install-lisp (subpathname workspace "install/"))
+       (install-source (subpathname workspace "install/source/"))
+       (install-systems (subpathname workspace "install/systems/"))
+       (xdg-cache-home (subpathname workspace "cache/"))
+       (prefix (subpathname workspace "local/"))
        (source-registry
         (format nil "~A//:~A//:~A//"
-                build-dir xcvb-dir (in-dir release-dir "dependencies/"))))
+                workspace xcvb-dir (subpathname release-dir "dependencies/"))))
     (compute-makefile-configuration-variables! keys)
     (apply 'finalize-variables keys)))
 
@@ -440,8 +495,8 @@
                   (or xcvb-dir
                       (and (asdf:find-system :xcvb)
                            (asdf:system-source-directory :xcvb)))))
-       (build-dir (in-dir xcvb-dir "build/"))
+       (workspace (subpathname xcvb-dir "workspace/"))
        (source-registry
         (format nil "~A//:~A//:~@[~A~]"
-                build-dir xcvb-dir (getenv "CL_SOURCE_REGISTRY"))))
+                workspace xcvb-dir (getenv "CL_SOURCE_REGISTRY"))))
     (apply 'finalize-variables keys)))

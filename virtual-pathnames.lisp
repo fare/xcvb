@@ -73,7 +73,7 @@
                     sub)))
 	  ;; TODO: define a zone :install for end-products like executables?
           (:obj
-           (apply 'strcat *object-directory* subpath))))))
+           (apply 'strcat *object-cache-namestring* subpath))))))
 
 
 ;;;;; Should we register pathnames to make sure there is no aliasing? meh...

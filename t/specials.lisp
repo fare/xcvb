@@ -2,6 +2,9 @@
 
 (in-package #:xcvb-test)
 
+(defvar *commands* (cons () (make-hash-table :test 'equal))
+  "Similar to xcvb::*commands*, but for xcvb-test.")
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
 
 ;; These are the only supported so far -- please add support for more!

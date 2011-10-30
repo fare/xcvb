@@ -1,30 +1,30 @@
-TARGET=example-2
 XCVB_ROOT := $(shell cd ../.. ; /bin/pwd)
-XCVB_OBJECT_DIRECTORY=$(XCVB_ROOT)/examples/${TARGET}/obj
-XCVB_IMAGE=${XCVB_OBJECT_DIRECTORY}/${TARGET}.image
+include ${XCVB_ROOT}/configure.mk
+EXE=${XCVB_WORKSPACE}/bin/example-2
+IMAGE=${XCVB_WORKSPACE}/lib/images/example-2.image
+XCVB_MK := ${XCVB_WORKSPACE}/example/example-2/xcvb.mk
+
+export XCVB_WORKSPACE
+export XCVB_CACHE
 
 # Required for xcvb to find the source registry
 export CL_SOURCE_REGISTRY := ${XCVB_ROOT}//:${CL_SOURCE_REGISTRY}
 
-all: ${TARGET}
+all: build-with-xcvb
 
-example-2: ${XCVB_IMAGE}
+build-with-asdf:
+	mkdir -p $$(dirname ${EXE}) $$(dirname ${IMAGE})
 	cl-launch --lisp 'sbcl sbcl clisp ccl' \
-		--image ${XCVB_IMAGE} \
+		--image ${IMAGE} \
 		--no-include \
-		--output ${TARGET} \
+		--output ${EXE} \
 		--dump '!' \
 		--init '(xcvb-example-2::main)'
 
-${XCVB_IMAGE}: xcvb.mk
-	make -f xcvb.mk 
-
-xcvb.mk: build.xcvb $(wildcard *.lisp) $(wildcard lib-a/*.lisp) $(wildcard lib-b/*.lisp)
-	mkdir -p ${XCVB_OBJECT_DIRECTORY}
-	xcvb make-makefile \
-		--build "${TARGET}" \
-		--lisp-implementation sbcl \
-		--object-directory ${XCVB_OBJECT_DIRECTORY}
+build-with-xcvb:
+	xcvb make-build \
+		--build "/xcvb/example-2/example-2" \
+		--lisp-implementation ${LISP}
 
 clean:
-	rm -rf ${XCVB_OBJECT_DIRECTORY} xcvb.mk ${TARGET}
+	rm -rf ${XCVB_WORKSPACE}

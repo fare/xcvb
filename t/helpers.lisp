@@ -4,11 +4,8 @@
 
 (declaim (optimize (debug 3) (safety 3)))
 
-(defun in-dir (dir sub)
-  (merge-pathnames* (coerce-pathname sub) dir))
-
 (defun ns-in-dir (dir sub)
-  (namestring (is (in-dir dir sub))))
+  (namestring (is (subpathname dir sub))))
 
 (defun run-cmd (&rest args)
   (run-program/echo-output (cmdize* args)))

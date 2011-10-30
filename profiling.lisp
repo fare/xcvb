@@ -18,5 +18,5 @@
   (declare (ignore maybe))
   (funcall thunk))
 
-(defmacro with-maybe-profiling ((maybe) &body body)
+(defmacro with-maybe-profiling ((&optional (maybe *profiling*)) &body body)
   `(call-with-maybe-profiling ,maybe (lambda () ,@body)))

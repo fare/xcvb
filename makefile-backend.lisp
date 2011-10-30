@@ -5,7 +5,7 @@
    ;; :run-depends-on ("string-escape")
    :depends-on ("profiling" "specials" "virtual-pathnames"
                 "static-traversal" "computations"
-                "external-commands" "target-lisp-commands" "main")))
+                "external-commands" "target-lisp-commands" "commands")))
 
 (in-package :xcvb)
 
@@ -53,7 +53,9 @@
       (log-format 9 "actual-output-path: ~S" actual-output-path)
       (log-format 6 "makefile-path: ~S" makefile-path)
       (log-format 9 "*default-pathname-defaults*: ~S" *default-pathname-defaults*)
-      (log-format 7 "object-directory: ~S" *object-directory*)
+      (log-format 7 "workspace: ~S" *workspace*)
+      (log-format 7 "cache: ~S" *cache*)
+      (log-format 7 "object-cache: ~S" *object-cache*)
       ;; Pass 1: Traverse the graph of dependencies
       (log-format 8 "T=~A building dependency graph" (get-universal-time))
       (graph-for env target-dependency)
@@ -215,26 +217,76 @@ xcvb-ensure-object-directories:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter +make-makefile-option-spec+
-  `(,@+build-option-spec+
-    ,@+setup-option-spec+
-    ,@+base-image-option-spec+
-    ,@+source-registry-option-spec+
-    (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
-    ,@+object-directory-option-spec+
-    ,@+lisp-implementation-option-spec+
-    ,@+cfasl-option-spec+
-    (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
-    ,@+verbosity-option-spec+
-    ,@+profiling-option-spec+))
+(define-command make-makefile
+    (("make-makefile" "mkmk" "mm")
+     (&rest keys &key)
+     `(,@+build-option-spec+
+       ,@+setup-option-spec+
+       ,@+base-image-option-spec+
+       ,@+source-registry-option-spec+
+       (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
+       ,@+workspace-option-spec+
+       ,@+install-option-spec+
+       ,@+lisp-implementation-option-spec+
+       ,@+cfasl-option-spec+
+       (("master" #\m) :type boolean :optional t :initial-value t :documentation "enable XCVB-master")
+       ,@+verbosity-option-spec+
+       ,@+profiling-option-spec+)
+     "Create some Makefile"
+     "Create Makefile rules to build a project." ignore)
+  (apply 'make-build :makefile-only t keys))
 
-(defun make-makefile (&rest keys &key
-                      source-registry setup verbosity output-path
-                      build lisp-implementation lisp-binary-path define-feature undefine-feature
-                      disable-cfasl master object-directory use-base-image profiling debugging)
-  (declare (ignore source-registry setup verbosity
-                   lisp-implementation lisp-binary-path define-feature undefine-feature
-                   disable-cfasl master object-directory use-base-image debugging))
-  (with-maybe-profiling (profiling)
-    (apply 'handle-global-options keys)
-    (write-makefile build :output-path output-path)))
+
+(defun ncpus ()
+  (cond
+    ((featurep :linux)
+     (parse-integer
+      (run-program/read-output-string
+       "cat /proc/cpuinfo|grep '^processor' | wc -l")
+      :junk-allowed t))
+    (t
+     nil)))
+
+(defun make-parallel-flag ()
+  (if-bind (ncpus) (ncpus)
+    (format nil "-l~A" (1+ ncpus))
+    "-j"))
+
+(defun invoke-make (&key target directory makefile parallel ignore-error-status env)
+  (let* ((make (or (getenv "MAKE") "make"))
+         (make-command
+          `(,@(when env `("env" ,@env))
+            ,make
+            ,@(when parallel (list (make-parallel-flag)))
+            ,@(when directory `("-C" ,(namestring directory)))
+            ,@(when makefile `("-f" ,(namestring makefile)))
+            ,@(when target (ensure-list target)))))
+      (log-format 6 "Building with ~S" make-command)
+      (run-program/for-side-effects make-command
+       :ignore-error-status ignore-error-status)))
+
+(define-command make-build
+    (("make-build" "mkb" "mb")
+     (&rest keys &key makefile-only (retry t) (exit t))
+     `(,@+make-makefile-option-spec+
+       (("parallel" #\j) :type boolean :optional t :initial-value t :documentation "build in parallel"))
+     "Use Make to build your project (in parallel)"
+     "Create Makefile rules to build a project, use them."
+     (build output-path parallel))
+  (apply 'handle-global-options keys)
+  (with-maybe-profiling ()
+    (multiple-value-bind (makefile-path makefile-dir)
+        (write-makefile build :output-path output-path)
+      (if makefile-only
+          (values makefile-path makefile-dir)
+          (let ((code (invoke-make
+                       :directory makefile-dir :makefile makefile-path :parallel parallel
+                       :ignore-error-status t)))
+            (unless (zerop code)
+              (when retry
+                (invoke-make
+                 :directory makefile-dir :makefile makefile-path :parallel parallel
+                 :ignore-error-status t :env '("XCVB_DEBUGGING=t"))))
+            (if exit
+                (exit code)
+                (values code makefile-dir makefile-path)))))))

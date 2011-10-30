@@ -16,7 +16,8 @@ endif
 
 export RELEASE_DIR ?= $(shell pwd)
 export XCVB_DIR := ${RELEASE_DIR}/xcvb
-export XCVB_OBJECT_DIRECTORY ?= ${RELEASE_DIR}/build/obj
+export XCVB_WORKSPACE ?= ${RELEASE_DIR}/workspace
+export XCVB_CACHE ?= ${XCVB_WORKSPACE}/cache
 export CL_SOURCE_REGISTRY:=${XCVB_DIR}//:${RELEASE_DIR}/dependencies//:${LISP_SOURCE}//
 export PATH:=${INSTALL_BIN}:${PATH}
 
@@ -24,9 +25,8 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 		INSTALL_BIN=${INSTALL_BIN} INSTALL_LISP=${INSTALL_LISP} \
 		INSTALL_IMAGE=${INSTALL_IMAGE} \
 		LISP_SOURCE=${LISP_SOURCE} LISP_SYSTEMS=${LISP_SYSTEMS} \
-		XCVB_OBJECT_DIRECTORY=${XCVB_OBJECT_DIRECTORY} \
+		XCVB_CACHE=${XCVB_CACHE} XCVB_WORKSPACE=${XCVB_WORKSPACE} \
 		RELEASE_DIR=${RELEASE_DIR} XCVB_DIR=${XCVB_DIR}
-
 
 ### The dependencies, in case you want them.
 
@@ -188,7 +188,7 @@ prepare-release:
 		--lisp-implementation $$l \
 		--output-path=${RELEASE_DIR}/xcvb.mk.$$l \
 		--no-master \
-		--object-directory build/obj \
+		--cache ${XCVB_CACHE} \
 		--disable-cfasl ; done && \
 	rm -rf build obj xcvb/obj
 
