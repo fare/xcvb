@@ -1,4 +1,5 @@
 build
+workspace
 *.*fsl
 *.*fasl
 *.amd64f

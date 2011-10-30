@@ -386,7 +386,6 @@
        ,@+bootstrap-option-spec+)
      "Test a XCVB source directory"
      "Compile a XCVB checkout and run tests on it" ignore)
-    (&rest keys)
   (compute-xcvb-dir-variables! keys)
   (dolist (implementation-type +xcvb-lisps+)
     (apply 'validate-xcvb-dir :implementation-type implementation-type keys)))
@@ -495,7 +494,8 @@
                   (or xcvb-dir
                       (and (asdf:find-system :xcvb)
                            (asdf:system-source-directory :xcvb)))))
-       (workspace (subpathname xcvb-dir "workspace/"))
+       (workspace (or (getenvp "XCVB_WORKSPACE")
+                      (subpathname *tmp-directory-pathname* "xcvb-workspace/")))
        (source-registry
         (format nil "~A//:~A//:~@[~A~]"
                 workspace xcvb-dir (getenv "CL_SOURCE_REGISTRY"))))

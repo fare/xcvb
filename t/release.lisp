@@ -55,21 +55,21 @@ of easy shell characters (that do not require quoting)."
                                      &allow-other-keys)
   (when (emptyp release-dir)
     (errexit 42 "RELEASE_DIR not defined"))
-  (let ((release-xcvb (in-dir release-dir "xcvb/"))
-        (release-deps (in-dir release-dir "dependencies/")))
+  (let ((release-xcvb (subpathname release-dir "xcvb/"))
+        (release-deps (subpathname release-dir "dependencies/")))
     (ensure-directories-exist release-xcvb)
     (ensure-directories-exist release-deps)
-    (rm-rfv (in-dir release-dir "build/"))
+    (rm-rfv (subpathname release-dir "build/"))
     (flet ((r (x y)
              (apply 'rsync `(:archive ,@*release-exclude* ,x ,y))))
       (r (asdf:system-relative-pathname :xcvb "") release-xcvb)
-      (let ((dependencies (get-xcvb-dependencies (asdf:system-relative-pathname :xcvb ""))))
+      (let ((dependencies (get-xcvb-dependencies (asdf:system-source-directory :xcvb))))
         (loop :for (nil d) :in dependencies
           :for dep = (basename d ".git")
           :for dir = (if (equal dep "libfixposix")
                          (asdf:system-relative-pathname "iolib" "../../libfixposix/")
-                         (asdf:system-relative-pathname dep "")) :do
-          (r dir (in-dir release-deps (strcat dep "/"))))))
+                         (asdf:system-source-directory dep)) :do
+          (r dir (subpathname release-deps dep :type :directory)))))
     (run-cmd (or (getenv "MAKE") "make") "-C" release-dir
          "-f" "xcvb/doc/Makefile.release" "prepare-release")))
 

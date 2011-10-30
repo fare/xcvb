@@ -4,9 +4,6 @@
 
 (declaim (optimize (debug 3) (safety 3)))
 
-(defun ns-in-dir (dir sub)
-  (namestring (is (subpathname dir sub))))
-
 (defun run-cmd (&rest args)
   (run-program/echo-output (cmdize* args)))
 
