@@ -230,7 +230,7 @@ but before the entry point is called.")
      sb-kernel:redefinition-with-defun
      sb-kernel:redefinition-with-defgeneric
      sb-kernel:redefinition-with-defmethod
-     sb-kernel:redefinition-with-defmacro
+     sb-kernel::redefinition-with-defmacro ; not exported by old SBCLs
      sb-kernel:undefined-alien-style-warning
      sb-ext:implicit-generic-function-warning
      sb-kernel:lexical-environment-too-complex
@@ -537,7 +537,7 @@ as per FORMAT, and evaluate BODY within the scope of this binding."
 
 ;;; Input helpers
 
-(defvar *default-element-type* (or #+(or abcl cmu scl xcl) 'character :default)
+(defvar *default-element-type* (or #+(or abcl cmu cormanlisp scl xcl) 'character :default)
   "default element-type for open (depends on the current CL implementation)")
 
 (defun call-with-input-file (pathname thunk
@@ -563,7 +563,7 @@ as per FORMAT, and evaluate BODY within the scope of this binding."
      (external-format :default))
   (check-type direction (member :output :io))
   (loop
-    :with prefix = (or prefix (format nil "~Axm" *temporary-directory*))
+    :with prefix = (or prefix (format nil "~Axm" (native-namestring *temporary-directory*)))
     :for counter :from (random (ash 1 32))
     :for pathname = (pathname (format nil "~A~36R" prefix counter)) :do
      ;; TODO: on Unix, do something about umask
@@ -573,6 +573,7 @@ as per FORMAT, and evaluate BODY within the scope of this binding."
                             :direction direction
                             :element-type element-type :external-format external-format
                             :if-exists nil :if-does-not-exist :create)
+      #+cormanlisp (format t "~&Using pathname ~S~%" pathname)
       (when stream
         (return
           (if keep
@@ -583,7 +584,7 @@ as per FORMAT, and evaluate BODY within the scope of this binding."
 
 (defmacro with-temporary-file ((&key (stream (gensym "STREAM") streamp)
                                 (pathname (gensym "PATHNAME") pathnamep)
-                                prefix keep element-type external-format)
+                                prefix keep direction element-type external-format)
                                &body body)
   "Evaluate BODY where the symbols specified by keyword arguments
 STREAM and PATHNAME are bound corresponding to a newly created temporary file
@@ -597,6 +598,7 @@ ready for I/O. Unless KEEP is specified, delete the file afterwards."
      #-gcl (declare (dynamic-extent #'think))
      (call-with-temporary-file
       #'think
+      ,@(when direction `(:direction ,direction))
       ,@(when prefix `(:prefix ,prefix))
       ,@(when keep `(:keep ,keep))
       ,@(when element-type `(:element-type ,element-type))
@@ -722,7 +724,7 @@ reading contents line by line."
 
 (defun chdir (x)
   "Change current directory, as per POSIX chdir(2)"
-  (when (pathnamep x) (setf x (#-scl namestring #+scl posix-namestring x)))
+  (when (pathnamep x) (setf x (native-namestring x)))
   (or #+clisp (ext:cd x)
       #+clozure (setf (ccl:current-directory) x)
       #+sbcl (sb-posix:chdir x)
@@ -893,7 +895,7 @@ This is designed to abstract away the implementation specific quit forms."
     (funcall thunk)
     (quit 0)))
 
-(defmacro with-coded-exit (() &body body)
+(defmacro with-coded-exit ((&optional) &body body)
   "Run BODY, BORKing on error and otherwise exiting with a success status"
   `(call-with-coded-exit #'(lambda () ,@body)))
 
@@ -964,7 +966,7 @@ This is designed to abstract away the implementation specific quit forms."
                (bork condition))))))
     (funcall thunk)))
 
-(defmacro with-controlled-compiler-conditions (() &body body)
+(defmacro with-controlled-compiler-conditions ((&optional) &body body)
   "Run BODY while suppressing conditions patterned after *UNINTERESTING-CONDITIONS*"
   `(call-with-controlled-compiler-conditions #'(lambda () ,@body)))
 
@@ -975,7 +977,7 @@ This is designed to abstract away the implementation specific quit forms."
           *uninteresting-conditions*)))
     (call-with-controlled-compiler-conditions thunk)))
 
-(defmacro with-controlled-loader-conditions (() &body body)
+(defmacro with-controlled-loader-conditions ((&optional) &body body)
   "Run BODY while suppressing conditions patterned after *UNINTERESTING-CONDITIONS* plus a few others that don't matter at load-time."
   `(call-with-controlled-loader-conditions #'(lambda () ,@body)))
 
@@ -1423,7 +1425,7 @@ if we are not called from a directly executable image dumped by XCVB."
 
 (defun process-cffi-wrapper-file (input c so output &key cc-flags)
   (declare (ignore output)); see below
-  (flet ((f (x) (namestring (merge-pathnames x))))
+  (flet ((f (x) (native-namestring (merge-pathnames x))))
     (let* ((input (f input))
            (c (f c))
            (so (f so))
@@ -1568,6 +1570,7 @@ by /bin/sh in POSIX"
 ;;;; ----- Running an external program -----
 ;;; Simple variant of run-program with no input, and capturing output
 ;;; On some implementations, may output to a temporary file...
+
 (defun run-program/process-output-stream (command output-processor
                                           &rest keys
                                           &key ignore-error-status force-shell
@@ -1589,7 +1592,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
   (let ((s (find-symbol* 'run-program/process-output-stream :quux-iolib nil)))
     (when s (return-from run-program/process-output-stream
               (apply s command output-processor keys))))
-  #-(or abcl allegro clisp clozure cmu ecl gcl lispworks mcl sbcl scl xcl)
+  #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl lispworks mcl sbcl scl xcl)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
   (labels (#+(or allegro clisp clozure cmu ecl (and lispworks os-unix) sbcl scl)
            (run-program (command &key pipe)
@@ -1597,6 +1600,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
               If using a pipe, returns two values: process and stream
               If not using a pipe, returns one values: the process result;
               also, inherits the output stream."
+             ;; NB: these implementations have unix vs windows set at compile-time.
              (let* ((wait (not pipe))
                     #-(and clisp os-windows)
                     (command
@@ -1605,8 +1609,11 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                        #+os-unix (list command)
                        #+os-windows
                        (string
-                        #+(or allegro clozure) command ;; (format nil "cmd /c ~A" command)
-                        #-(or allegro clozure) `("cmd" "/c" ,command))
+                        ;; We do NOT add cmd /c here. You might want to.
+                        #+(or allegro clozure) command
+                        ;; NB: This is utterly bogus except in the most trivial cases.
+                        ;; Use at your own risk.
+                        #-(or allegro clozure) (list "cmd" "/c" command))
                        #+os-windows
                        (list
                         #+(or allegro clozure) (escape-windows-command command)
@@ -1645,7 +1652,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                        . #.(append
                             #+(or clozure cmu ecl sbcl scl) '(:error t)
                             #+sbcl '(:search t
-                                     :external-format external-format)))))
+                                     #|:external-format external-format ; not in old SBCLs|#)))))
                     (process
                      #+(or allegro lispworks) (if pipe (third process*) (first process*))
                      #+ecl (third process*)
@@ -1698,12 +1705,12 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                            #-(or allegro lispworks) (process-result process)))))))
            (system-command (command)
              (etypecase command
-               (string command)
+               (string (if (os-windows-p) (format nil "cmd /c ~A" command) command))
                (list (escape-shell-command
                       (if (os-unix-p) (cons "exec" command) command)))))
            (redirected-system-command (command out)
              (format nil (if (os-unix-p) "exec > ~*~A ; ~2:*~A" "~A > ~A")
-                     (system-command command) out))
+                     (system-command command) (native-namestring out)))
            (system (command)
              #+(or abcl xcl) (ext:run-shell-command command)
              #+allegro
@@ -1721,7 +1728,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
              (check-result (system command-string)))
            (use-system ()
              (if output-processor
-                 (with-temporary-file (:pathname tmp)
+                 (with-temporary-file (:pathname tmp :direction :output)
                    (call-system (redirected-system-command command tmp))
                    (with-open-file (stream tmp
                                            :direction :input
@@ -1873,7 +1880,7 @@ OUTPUT-PROCESSOR and given KEYS"
                  (format nil "--~(~a~)" name))
          (pathname-option (var)
            `(when ,var
-              (list (to-option-name ,var) (namestring ,var))))
+              (list (to-option-name ,var) (native-namestring ,var))))
          (string-option (var)
            `(when ,var
               (list (to-option-name ,var) (let ((*print-case* :downcase))

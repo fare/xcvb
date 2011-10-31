@@ -1,6 +1,5 @@
 #|
-for l in ccl clisp sbcl cmucl ecl abcl xcl scl allegro
-# lispworks gclcvs
+for l in ccl clisp sbcl cmucl ecl abcl xcl scl allegro # lispworks gclcvs
 do cl-launch -l $l -s xcvb-driver-test -iw '(xcvb-driver-test:xcvb-driver-test)' ; done
 |#
 #+xcvb
@@ -221,9 +220,9 @@ run-program/echo-output
   t)
 
 (deftest test/run-program/process-output-stream ()
-  (common-test/run-program/process-output-stream)
+  #+os-unix (common-test/run-program/process-output-stream)
   #+os-unix (unix-only-test/run-program/process-output-stream)
-  #+os-windows (windows-only-test/run/program/process/output-stream)
+  #+os-windows (windows-only-test/run-program/process-output-stream)
   (terpri)
   t)
 
