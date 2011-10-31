@@ -13,22 +13,26 @@
  *lisp-flags*
  *xcvb-verbosity*
  *lisp-allow-debugger*
- *cache*
+ *cache* *object-cache*
  *workspace*
- *tmp-directory*
+ *temporary-directory*
  *use-base-image*
 |#
 
 (defvar *target-system-features* nil
   "value of *features* in the target system
 Autodetected from the target Lisp system.")
+
 (defvar *target-added-features* nil
   "extra user-provided *features* to push in the target system")
+
 (defvar *target-suppressed-features* nil
   "extra user-provided *features* to remove from the target system")
+
 (defvar *implementation-identifier* nil
   "ASDF-provided identifier for the target implementation, as per
 (asdf::implementation-identifier)")
+
 (defvar *target-asdf-version* nil
   "Version of ASDF on the target Lisp")
 

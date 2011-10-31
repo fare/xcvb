@@ -266,10 +266,7 @@
 
 (defun validate-master (&key xcvb workspace object-cache source-registry implementation-type
                         &allow-other-keys)
-  (let* ((driver
-          (is (first
-               (run-cmd/lines
-                xcvb 'find-module :name "xcvb/driver" :short))))
+  (let* ((driver (is (find-driver)))
          (out
           (apply 'run-cmd/string
            (xcvb::lisp-invocation-arglist
@@ -495,7 +492,7 @@
                       (and (asdf:find-system :xcvb)
                            (asdf:system-source-directory :xcvb)))))
        (workspace (or (getenvp "XCVB_WORKSPACE")
-                      (subpathname *tmp-directory-pathname* "xcvb-workspace/")))
+                      (subpathname *temporary-directory* "xcvb-workspace/")))
        (source-registry
         (format nil "~A//:~A//:~@[~A~]"
                 workspace xcvb-dir (getenv "CL_SOURCE_REGISTRY"))))

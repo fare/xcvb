@@ -305,7 +305,7 @@ assuming said system is a simplified system as created by"
 		     (systems (when system (list system)))
 		     (simplified-system :simplified-system)
 		     base-pathname
-		     (components-path (merge-pathnames *components-path* *tmp-directory-pathname*))
+		     (components-path (merge-pathnames* *components-path* *temporary-directory*))
 		     systems-to-preload
 		     verbose)
 

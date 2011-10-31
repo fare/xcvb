@@ -37,7 +37,7 @@
    #:*install-library*
    #:*install-image*
    #:*install-lisp*
-   #:*tmp-directory-pathname*
+   #:*temporary-directory*
    #:*use-base-image*
 
    ;;; special variables for XCVB master itself
@@ -139,6 +139,26 @@
   ;; otherwise ACL 5.0 may crap out on ASDF dependencies,
   ;; but even other implementations may have "fun" debugging.
   (setf *print-readably* nil)
+  (defun featurep (x &optional (*features* *features*))
+    (cond
+      ((atom x) (and (member x *features*) t))
+      ((eq :not (car x)) (assert (null (cddr x))) (not (featurep (cadr x))))
+      ((eq :or (car x)) (some #'featurep (cdr x)))
+      ((eq :and (car x)) (every #'featurep (cdr x)))
+      (t (error "Malformed feature specification ~S" x))))
+  (defun os-unix-p ()
+    (featurep '(:or :unix :cygwin :darwin)))
+  (defun os-windows-p ()
+    (and (not (os-unix-p)) (featurep '(:or :win32 :windows :mswindows :mingw32))))
+  (defun detect-os ()
+    (flet ((yes (yes) (pushnew yes *features*))
+           (no (no) (setf *features* (remove no *features*))))
+      (cond
+        ((os-unix-p) (yes :os-unix) (no :os-windows))
+        ((os-windows-p) (yes :os-windows) (no :os-unix))
+        (t (error "Congratulations for trying XCVB on an operating system~%~
+that is neither Unix, nor Windows.~%Now you port it.")))))
+  (detect-os)
   #+gcl ;;; If using GCL, do some safety checks
   (flet ((bork (&rest args)
            (apply #'format *error-output* args)
@@ -173,16 +193,6 @@
                (when (eq #$noerr (#_fspathmakeref cpath fsref is-dir))
                  (ccl::%path-from-fsref fsref is-dir))))))"))
   #+sbcl (require :sb-posix)
-  (let ((unix #+(or unix cygwin darwin mcl) t)
-        (windows #+(and (or win32 windows mswindows mingw32) (not cygwin)) t))
-    (cond
-      ((and unix windows)
-       (error "Your operating system is simultaneously Unix and Windows?~%~
-Congratulations. Now fix XCVB for it assumes that's impossible"))
-      (unix (pushnew :os-unix *features*))
-      (windows (pushnew :os-windows *features*))
-      (t (error "Congratulations for trying XCVB on an operating system~%~
-that is neither Unix, nor Windows.~%Now you port it."))))
   (pushnew :xcvb-driver *features*))
 
 ;;;; ----- User-visible variables, 1: Control build in current process -----
@@ -313,6 +323,17 @@ then returning the non-empty string value of the variable"
   (let ((g (getenv x))) (and (not (emptyp g)) g)))
 
 
+;;; On ABCL at least, the Operating System is no compile-time constant.
+
+(defun default-temporary-directory ()
+  (flet ((f (s v d) (format nil "~A~A" (or (getenv v) d (error "No temporary directory!")) s)))
+    (let ((dir (cond
+                 ((os-unix-p) (f #\/ "TMP" "/tmp"))
+                 ((os-windows-p) (f #\\ "TEMP" nil))))
+          #+mcl (dir (probe-posix dir)))
+      (pathname dir))))
+
+
 ;;;; ----- User-visible variables, 2: Control XCVB -----
 
 ;;; These variables are shared with XCVB itself.
@@ -413,14 +434,7 @@ NIL: default to *install-library*/common-lisp/images/, see docs")
   "where to install common-lisp source code and systems, etc.
 NIL: default to *install-data*/common-lisp/, see docs")
 
-(defvar *tmp-directory-pathname*
-  (let* ((dir (or
-               #+os-unix
-               (format nil "~A/" (or (getenv "TMP") "/tmp"))
-               #+os-windows
-               (format nil "~A\\" (or (getenv "TEMP") (error "No temporary directory!")))))
-         #+mcl (dir (probe-posix dir)))
-    (pathname dir))
+(defvar *temporary-directory* (default-temporary-directory)
   "pathname of directory where to store temporary files")
 
 (defvar *use-base-image* t
@@ -549,7 +563,7 @@ as per FORMAT, and evaluate BODY within the scope of this binding."
      (external-format :default))
   (check-type direction (member :output :io))
   (loop
-    :with prefix = (or prefix (format nil "~Axm" *tmp-directory-pathname*))
+    :with prefix = (or prefix (format nil "~Axm" *temporary-directory*))
     :for counter :from (random (ash 1 32))
     :for pathname = (pathname (format nil "~A~36R" prefix counter)) :do
      ;; TODO: on Unix, do something about umask
@@ -1454,29 +1468,19 @@ as either a recognizing function or a sequence of characters."
      (t (error "requires-escaping-p: no good-char criterion")))
    token))
 
+(defun output-string (string &optional stream)
+  (if stream
+      (with-output (stream) (princ string stream))
+      string))
+
 (defun escape-token (token &key stream quote good-chars bad-chars escaper)
   "Call the ESCAPER function on TOKEN string if it needs escaping as per
 REQUIRES-ESCAPING-P using GOOD-CHARS and BAD-CHARS, otherwise output TOKEN,
 using STREAM as output (or returning result as a string if NIL)"
-  (cond
-    ((requires-escaping-p token :good-chars good-chars :bad-chars bad-chars)
-     (with-output (stream)
-       (apply escaper token stream (when quote `(:quote ,quote)))))
-    ((null stream)
-     token)
-    (t
-     (with-output (stream)
-       (princ token stream)))))
-
-(defun escape-command (command &optional s
-                       (escaper #+os-unix 'escape-sh-token
-                                #+os-windows 'escape-windows-token))
-  "Given a COMMAND as a list of tokens, return a string of the
-spaced, escaped tokens, using ESCAPER to escape."
-  (with-output (s)
-    (loop :for first = t :then nil :for token :in command :do
-      (unless first (princ #\space s))
-      (funcall escaper token s))))
+  (if (requires-escaping-p token :good-chars good-chars :bad-chars bad-chars)
+      (with-output (stream)
+        (apply escaper token stream (when quote `(:quote ,quote))))
+      (output-string token stream)))
 
 (defun escape-windows-token-within-double-quotes (x &optional s)
   "Escape a string token X within double-quotes
@@ -1509,15 +1513,6 @@ for use within a MS Windows command-line, outputing to S."
   (escape-token token :stream s :bad-chars #(#\space #\tab #\") :quote nil
                 :escaper 'escape-windows-token-within-double-quotes))
 
-(defun escape-windows-command (command &optional s)
-  "Escape a list of command-line arguments into a string suitable for parsing
-by CommandLineToArgv in MS Windows"
-    ;; http://msdn.microsoft.com/en-us/library/bb776391(v=vs.85).aspx
-    ;; http://msdn.microsoft.com/en-us/library/17w5ykft(v=vs.85).aspx
-  (etypecase command
-    (string command)
-    (list (escape-command command s 'escape-windows-token))))
-
 (defun escape-sh-token-within-double-quotes (x s &key (quote t))
   "Escape a string TOKEN within double-quotes
 for use within a POSIX Bourne shell, outputing to S;
@@ -1538,6 +1533,29 @@ for use within a POSIX Bourne shell, outputing to S."
                 #'easy-sh-character-p
                 :escaper 'escape-sh-token-within-double-quotes))
 
+(defun escape-shell-token (token &optional s)
+  (cond
+    ((os-unix-p) (escape-sh-token token s))
+    ((os-windows-p) (escape-windows-token token s))))
+
+(defun escape-command (command &optional s
+                       (escaper 'escape-shell-token))
+  "Given a COMMAND as a list of tokens, return a string of the
+spaced, escaped tokens, using ESCAPER to escape."
+  (etypecase command
+    (string (output-string command s))
+    (list (with-output (s)
+            (loop :for first = t :then nil :for token :in command :do
+              (unless first (princ #\space s))
+              (funcall escaper token s))))))
+
+(defun escape-windows-command (command &optional s)
+  "Escape a list of command-line arguments into a string suitable for parsing
+by CommandLineToArgv in MS Windows"
+    ;; http://msdn.microsoft.com/en-us/library/bb776391(v=vs.85).aspx
+    ;; http://msdn.microsoft.com/en-us/library/17w5ykft(v=vs.85).aspx
+  (escape-command command s 'escape-windows-token))
+
 (defun escape-sh-command (command &optional s)
   "Escape a list of command-line arguments into a string suitable for parsing
 by /bin/sh in POSIX"
@@ -1545,10 +1563,7 @@ by /bin/sh in POSIX"
 
 (defun escape-shell-command (command &optional stream)
   "Escape a command for the current operating system's shell"
-  (#+os-unix escape-sh-command
-   #+os-windows escape-windows-command
-   command stream))
-
+  (escape-command command stream 'escape-shell-token))
 
 ;;;; ----- Running an external program -----
 ;;; Simple variant of run-program with no input, and capturing output
@@ -1576,8 +1591,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
               (apply s command output-processor keys))))
   #-(or abcl allegro clisp clozure cmu ecl gcl lispworks mcl sbcl scl xcl)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
-  (labels (#+(or allegro clisp clozure cmu ecl
-                 (and lispworks os-unix) sbcl scl)
+  (labels (#+(or allegro clisp clozure cmu ecl (and lispworks os-unix) sbcl scl)
            (run-program (command &key pipe)
              "runs the specified command (a list of program and arguments).
               If using a pipe, returns two values: process and stream
@@ -1592,11 +1606,11 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                        #+os-windows
                        (string
                         #+(or allegro clozure) command ;; (format nil "cmd /c ~A" command)
-                        #-allegro `("cmd" "/c" ,command))
+                        #-(or allegro clozure) `("cmd" "/c" ,command))
                        #+os-windows
                        (list
                         #+(or allegro clozure) (escape-windows-command command)
-                        #-allegro command)))
+                        #-(or allegro clozure) command)))
                     ;; ClozureCL on Windows requires some magic until they fix
                     ;; http://trac.clozure.com/ccl/ticket/858
                     #+(and clozure os-windows) (command (list command))
@@ -1609,16 +1623,13 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                        :input nil :output (and pipe :stream) :wait wait
                        #+os-windows :show-window #+os-windows (and pipe :hide))
                       #+clisp
-                      (etypecase command
-                        #+os-windows
-                        (string
-                         (ext:run-shell-command
-                          command
-                          :input nil :wait wait :output (if pipe :stream :terminal)))
-                        (list
-                         (ext:run-program
-                          (car command) :arguments (cdr command)
-                          :input nil :wait wait :output (if pipe :stream :terminal))))
+                      (flet ((run (f &rest args)
+                               (apply f `(,@args :input nil :wait ,wait :output
+                                          ,(if pipe :stream :terminal)))))
+                        (etypecase command
+                          #+os-windows (run 'ext:run-shell-command command)
+                          (list (run 'ext:run-program (car command)
+                                     :arguments (cdr command)))))
                       #+lispworks
                       (system:run-shell-command
                        (cons "/usr/bin/env" command) ; lispworks wants a full path.
@@ -1647,8 +1658,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                        #+(or cmu scl) (ext:process-output process)
                        #+sbcl (sb-ext:process-output process))))
                (values process stream)))
-           #+(or allegro clisp clozure cmu ecl
-                 (and lispworks os-unix) sbcl scl)
+           #+(or allegro clisp clozure cmu ecl (and lispworks os-unix) sbcl scl)
            (process-result (process)
              ;; 1- wait
              #+(and clozure os-unix) (ccl::external-process-wait process)
@@ -1689,11 +1699,10 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
            (system-command (command)
              (etypecase command
                (string command)
-               (list #+os-unix (escape-sh-command (cons "exec" command))
-                     #-os-unix (escape-shell-command command))))
+               (list (escape-shell-command
+                      (if (os-unix-p) (cons "exec" command) command)))))
            (redirected-system-command (command out)
-             (format nil #+os-unix "exec > ~*~A ; ~2:*~A"
-                     #-os-unix "~A > ~A"
+             (format nil (if (os-unix-p) "exec > ~*~A ; ~2:*~A" "~A > ~A")
                      (system-command command) out))
            (system (command)
              #+(or abcl xcl) (ext:run-shell-command command)
@@ -1703,11 +1712,11 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
              (run-program command :pipe nil)
              #+ecl (ext:system command)
              #+cormanlisp (win32:system command)
-             #+mcl (ccl::with-cstrs ((%command command)) (_system %command))
              #+gcl (lisp:system command)
              #+(and lispworks os-windows)
              (system:call-system-showing-output
-              command :show-cmd nil :prefix "" :output-stream nil))
+              command :show-cmd nil :prefix "" :output-stream nil)
+             #+mcl (ccl::with-cstrs ((%command command)) (_system %command)))
            (call-system (command-string)
              (check-result (system command-string)))
            (use-system ()

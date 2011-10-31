@@ -25,6 +25,10 @@ spawning a new process for each build step.")
   "Lisp implementations that can be targetted by the farmer backend,
 forking processes to share state between build steps.")
 
+(defparameter +all-target-lisps+ '(:clisp :ccl :sbcl :scl :ecl :cmucl :abcl :allegro)
+  "Lisp implementations that can be targetted by the simple backend,
+spawning a new process for each build step.")
+
 (defparameter +example-builds+
   '("/xcvb/example-1" "/xcvb/example-2" "/xcvb/hello")
   "example builds for XCVB")

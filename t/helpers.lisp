@@ -30,3 +30,21 @@
 
 (defun rsync (&rest args)
   (apply 'run-cmd "rsync" args))
+
+(defvar *driver* nil
+  "path to the driver")
+
+(defun find-driver ()
+  (or *driver*
+      (setf *driver* (first
+                      (run-cmd/lines
+                       xcvb 'find-module :name "/xcvb/driver" :short)))))
+
+(defvar *asdf* nil
+  "path to asdf")
+
+(defun find-asdf ()
+  (or *asdf*
+      (setf *asdf* (first
+                    (run-cmd/lines
+                     xcvb 'find-module :name "/asdf/asdf" :short)))))

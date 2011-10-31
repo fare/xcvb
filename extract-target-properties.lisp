@@ -90,7 +90,7 @@
 		       Command:~S~%Error:~%~A~%" command c))))))
 
 (defun extract-target-properties-via-tmpfile ()
-  (with-temporary-file (:pathname pn :prefix (format nil "~Axtp" *tmp-directory-pathname*))
+  (with-temporary-file (:pathname pn :prefix (format nil "~Axtp" *temporary-directory*))
     (with-safe-io-syntax (:package :xcvb-user)
       (let ((command (query-target-lisp-command
                       (format nil "(with-open-file (*standard-output* ~S :direction :output :if-exists :overwrite :if-does-not-exist :error) ~A)"

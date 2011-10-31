@@ -12,7 +12,7 @@
                           (implementation *lisp-implementation-type*))
   (check-type build string)
   (let* ((*package* (find-package :xcvb))
-         (workspace (subpathname *tmp-directory-pathname* "xcvb-test/"))
+         (workspace (subpathname *temporary-directory* "xcvb-test/"))
          (cache (subpathname workspace "cache/"))
          (object-cache (subpathname workspace "obj/")))
     (rm-rfv workspace)

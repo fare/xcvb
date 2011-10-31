@@ -225,6 +225,8 @@ fulltest:	${XCVB_TEST}
 
 export RELEASE_DIR := ${TMP}/xcvb-release
 
+test-driver: ${XCVB_TEST}
+	xcvb-test driver-tests
 
 release: release-directory release-tarball test-and-release-tarball
 

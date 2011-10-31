@@ -429,7 +429,7 @@ command gives specific help on that command.")
                (and (not (equal s "")) s))))
     (let ((tmp (or (v "TMP") (v "TMPDIR"))))
       (when tmp
-        (setf *tmp-directory-pathname* (ensure-pathname-is-directory tmp)))))
+        (setf *temporary-directory* (ensure-pathname-is-directory tmp)))))
 
   ;;; In case debugging is involved, make things easier on the printer
   (setf *print-pretty* nil

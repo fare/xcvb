@@ -2,6 +2,17 @@
 
 (in-package #:xcvb-test)
 
+(define-command run-driver-tests
+    (("driver-tests" "dt")
+     (args) ()
+     "Run driver unit tests"
+     "Run a bunch of tests for xcvb driver on specified implementations,
+or all supported implementations if none are specified")
+  (loop :for lisp :in (or (mapcar #'upkeywordp args) +all-supported-lisps+) :do
+    (xcvb::lisp-invocation-arglist
+     :implementation-type lisp
+     :eval (format nil "(and#.(load ~S)#.(asdf:load-system :xcvb-driver-test)#.(xcvb-driver:with-coded-exit () (xcvb-driver-test:xcvb-driver-test)))" (find-asdf)))))
+
 (define-command run-unit-tests
     (("unit-tests" "ut")
      (args) ()
