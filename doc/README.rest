@@ -311,13 +311,6 @@ The dependencies that support XCVB natively include:
         - getting it, if you're a XCVB project member::
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/quux-iolib.git``
 
-  * quux-iolib:
-	- homepage: http://cliki.net/quux-iolib
-	- getting it:
-        	``git clone git://common-lisp.net/projects/xcvb/quux-iolib.git``
-        - getting it, if you're a XCVB project member::
-        	``git clone ssh://USER@common-lisp.net/project/xcvb/git/quux-iolib.git``
-
   * libfixposix, a dependency of iolib that you'll need if you use our `farmer` extension:
 	- homepage: http://common-lisp.net/project/iolib/
 	- getting it:
@@ -331,6 +324,8 @@ The dependencies that support XCVB natively include:
         	``git clone ssh://USER@common-lisp.net/project/xcvb/git/iolib.git``
 	- getting the upstream repository:
         	``git clone git://gitorious.org/libfixposix/libfixposix.git``
+        - see also the Windows port:
+                http://src.knowledgetools.de/tomas/winapi/index.html
 
   * ironclad, for cryptography:
 	- homepage: http://www.method-combination.net/lisp/ironclad/

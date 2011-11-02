@@ -1609,9 +1609,10 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                        #+os-unix (list command)
                        #+os-windows
                        (string
-                        ;; We do NOT add cmd /c here. You might want to.
+                        ;; NB: We do NOT add cmd /c here. You might want to.
                         #+(or allegro clozure) command
-                        ;; NB: This is utterly bogus except in the most trivial cases.
+                        ;; NB: On other implementations, this is utterly bogus
+                        ;; except in the most trivial cases where no quoting is needed.
                         ;; Use at your own risk.
                         #-(or allegro clozure) (list "cmd" "/c" command))
                        #+os-windows
