@@ -1102,7 +1102,9 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 (defun require-asdf ()
   (require "asdf")
-  (call :asdf :load-system :asdf)) ;; upgrade early to avoid issues later.
+  (call :asdf :load-system :asdf)
+  (unless (call :asdf :version-satisfies (call :asdf :asdf-version) "2.018")
+    (error "XCVB requires ASDF 2.018 or later"))) ;; upgrade early to avoid issues later.
 
 (defun asdf-symbol (x)
   (find-symbol* x :asdf))
@@ -1834,6 +1836,43 @@ OUTPUT-PROCESSOR and given KEYS"
 (defun load-manifest (pathname)
   (process-manifest (read-first-file-form pathname)))
 
+;;;; ----- XCVB automagic bootstrap: creating XCVB if not there yet -----
+(defvar *xcvb-present* nil)
+
+(defun default-xcvb-program ()
+  (require-asdf)
+  (native-namestring
+   (call :asdf :subpathname (call :asdf :user-homedir) ".cache/common-lisp/bin/xcvb")))
+
+(defun xcvb-present-p ()
+  (or (equal *xcvb-program* *xcvb-present*)
+      (etypecase *xcvb-program*
+	((eql t) (and (find-package :xcvb) t))
+	(string
+	 (string-prefix-p "XCVB version "
+			  (run-program/read-output-string
+			   (list *xcvb-program* "version")
+			   :ignore-error-status t))))
+      (when (equal *xcvb-program* "xcvb")
+	(setf *xcvb-program* (default-xcvb-program))
+	(assert (not (equal *xcvb-program* "xcvb")))
+	(xcvb-present-p))))
+
+(defun create-xcvb-program (&optional (program *xcvb-program*))
+  (require-asdf)
+  (when (equal program "xcvb")
+    (setf program (default-xcvb-program)))
+  (load-asdf :xcvb-bootstrap)
+  (setf *xcvb-program* (funcall 'build-xcvb program)
+	*xcvb-present* *xcvb-program*))
+
+(defun ensure-xcvb-present ()
+  (unless (xcvb-present-p)
+    (require-asdf)
+    (etypecase *xcvb-program*
+      ((eql t) (load-asdf :xcvb))
+      (string (create-xcvb-program))))
+  t)
 
 ;;;; ----- XCVB master: calling XCVB -----
 ;;; Run a slave, obey its orders. (who's the master?)
@@ -1929,6 +1968,7 @@ OUTPUT-PROCESSOR and given KEYS"
 (defun build-in-slave (build &rest args &key . #.*bnl-keys-with-defaults*)
   "Entry point to call XCVB to build (but not necessarily load) a system."
   (declare (ignore . #.(set-difference *bnl-keys* '(xcvb-program verbosity))))
+  (ensure-xcvb-present)
   (let* ((slave-command (apply 'build-slave-command-line build args))
          (slave-output (run-xcvb-command xcvb-program slave-command))
          (manifest

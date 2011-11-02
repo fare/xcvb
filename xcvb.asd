@@ -54,7 +54,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  #+xcvb-farmer :quux-iolib
                  #-clisp :rucksack)
     :components
-    ((:file "pkgdcl")
+    ((:file "lisp-invocation")
+     (:file "pkgdcl" :depends-on ("lisp-invocation"))
      (:file "conditions" :depends-on ("pkgdcl"))
      (:file "specials" :depends-on ("pkgdcl"))
      (:file "macros" :depends-on ("pkgdcl"))
@@ -62,7 +63,6 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "digest" :depends-on ("pkgdcl"))
      (:file "utilities" :depends-on ("macros"))
      (:file "logging" :depends-on ("specials"))
-     (:file "lisp-invocation" :depends-on ("specials"))
      (:file "commands" :depends-on ("specials" "macros"))
      (:file "string-escape" :depends-on ("utilities"))
      (:file "virtual-pathnames" :depends-on ("specials" "utilities"))
@@ -102,6 +102,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
             ("makefile-backend" "static-traversal" "computations" "target-lisp-commands"
                                 "grain-implementation" "asdf-backend" "dependencies-interpreter"))
      (:file "main" :depends-on ("commands"))
+     (:file "bootstrap")
      (:file "version" :depends-on ("pkgdcl"))))
 
 (defmethod perform ((op test-op) (c (eql (find-system :xcvb))))

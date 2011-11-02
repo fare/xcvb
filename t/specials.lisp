@@ -7,10 +7,6 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 
-;; These are the only supported so far -- please add support for more!
-(defparameter +xcvb-lisps+ '(:clisp #|:ccl|# :sbcl)
-  "Lisp implementations that can compile and run XCVB itself")
-
 ;; These are missing for the following reason:
 ;; :abcl :xcl are missing create-image
 ;; :gcl (gclcvs from debian) has compiler bugs and is not even able to compile driver.lisp

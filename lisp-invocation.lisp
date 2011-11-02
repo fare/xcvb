@@ -1,7 +1,30 @@
 ;;; Lisp implementations
-#+xcvb (module (:depends-on ("specials")))
+#+xcvb (module (:build-depends-on ()))
 
-(in-package :xcvb)
+(defpackage :lisp-invocation
+  (:use :cl :xcvb-driver)
+  (:export
+   #:get-lisp-implementation
+   #:ensure-path-executable
+   #:lisp-implementation-fullname
+   #:lisp-implementation-name
+   #:lisp-implementation-feature
+   #:lisp-implementation-flags
+   #:lisp-implementation-eval-flag
+   #:lisp-implementation-load-flag
+   #:lisp-implementation-arguments-end
+   #:lisp-implementation-image-flag
+   #:lisp-implementation-image-executable-p
+   #:lisp-implementation-standalone-executable
+   #:lisp-implementation-argument-control
+   #:lisp-implementation-disable-debugger
+   #:lisp-implementation-directory-variable
+   #:lisp-environment-variable-name
+   #:lisp-invocation-arglist
+   #:quit-form
+   #:save-image-form))
+
+(in-package :lisp-invocation)
 
 (defvar *lisp-implementations* (make-hash-table :test 'equal)
   "Dictionary of known Lisp implementations")
@@ -220,10 +243,12 @@
   :dump-format nil)
 
 (defun ensure-path-executable (x)
-  (if (and (stringp x)
-           (not (eql (first-char x) #\/)))
-    (strcat "./" x)
-    x))
+  (when x
+    (let ((n (native-namestring x)))
+      (cond
+	((asdf:absolute-pathname-p x) n)
+	((asdf::os-unix-p) (format nil "./~A" n))
+	(t n)))))
 
 (defun lisp-environment-variable-name (&key (type *lisp-implementation-type*) prefix)
   (if (eq prefix t) (setf prefix "X"))

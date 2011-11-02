@@ -1,0 +1,27 @@
+
+;; Shared by everyone, like distcc, ccache, etc
+cache/
+  by-content/
+    5/Z/5ZLEOHFRYPKVYPPG2XECTXGLJYBPQLGV6PKHJUY # driver.fasl
+  by-intent/
+    2/L/2LYBVL5VDFSBDWA36QGUXW7ZE3UX7BQUBCI2OEQ --> file describing the above...
+  manifest --> rucksack describing the contents, allowing GC of files.
+
+;; Local to a user's machine, may be multiple different copies
+workspace/
+  bin/
+    hello
+  lib/
+    images/
+      hello.image
+  object-cache/
+    xcvb/
+      driver.fasl  --> symlink to $cache/by-content/5/Z/5ZLE...
+
+;; This is the "intent" which means how a file had been compiled and in what environment.
+;; semistructure data with a keyword followed by ONE form.
+:intent ("/xcvb/driver.fasl" :made-from (("/xcvb/driver.lisp" "FSI27UVFQOGOMON3OZXGBFW3S4PUQV6EONFNSKQ")(:implementation "sbcl-1.0.52-linux-amd64" :features (:QUICKLISP :SB-BSD-SOCKETS-ADDRINFO :ASDF-UNIX :ASDF2 :ASDF :ANSI-CL :COMMON-LISP :SBCL :SB-DOC :SB-TEST :SB-LDB :SB-PACKAGE-LOCKS :SB-UNICODE :SB-EVAL :SB-SOURCE-LOCATIONS :IEEE-FLOATING-POINT :X86 :UNIX :ELF :LINUX :SB-THREAD :LARGEFILE :GENCGC :STACK-GROWS-DOWNWARD-NOT-UPWARD :C-STACK-IS-CONTROL-STACK :COMPARE-AND-SWAP-VOPS :UNWIND-TO-FRAME-AND-CALL-VOP :RAW-INSTANCE-INIT-VOPS :STACK-ALLOCATABLE-CLOSURES :STACK-ALLOCATABLE-VECTORS :STACK-ALLOCATABLE-LISTS :STACK-ALLOCATABLE-FIXED-OBJECTS :ALIEN-CALLBACKS :CYCLE-COUNTER :INLINE-CONSTANTS :MEMORY-BARRIER-VOPS :LINKAGE-TABLE :OS-PROVIDES-DLOPEN :OS-PROVIDES-DLADDR :OS-PROVIDES-PUTWC :OS-PROVIDES-SUSECONDS-T :OS-PROVIDES-GETPROTOBY-R :OS-PROVIDES-POLL) :binary "BVMMTVMDGDFKHWJES6D5ZTVD6ZCEU7PU2QIOMLQ" :image "HFPPTUO5YP7KT745G5BFIB3LLB3SUX353K47F4I")))
+
+:compiled-by (:host "meta.ph" :time 12314346 :process (:pid 31241234 :parent 221243 :command "sbcl ..."))
+
+:content "5ZLEOHFRYPKVYPPG2XECTXGLJYBPQLGV6PKHJUY"

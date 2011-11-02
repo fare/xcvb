@@ -6,6 +6,14 @@ DONE for XCVB
 
 Items dumped from TODO that were done.
 
+(2011-11-02) Driver fallback to bootstrapping XCVB with ASDF
+------------------------------------------------------------
+
+If no XCVB binary present,
+(1) produce it into ~/.cache/common-lisp/bin/xcvb by SBCL, CLISP or CCL
+(2) call it!
+
+
 (2011-10-23) Setup a repository for each and every dependency
 -------------------------------------------------------------
 

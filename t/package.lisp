@@ -13,6 +13,8 @@
    #:ensure-directory-pathname #:directory-pathname-p)
   (:import-from :alexandria
    #:ensure-list)
+  (:import-from :xcvb-driver
+   #:+xcvb-lisps+)
   (:import-from :xcvb
    #:module-form-p #:read-module-declaration #:cmdize*
    #:repl-command #:eval-command #:errexit
