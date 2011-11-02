@@ -5,7 +5,7 @@
 
 (in-package :xcvb)
 
-(declaim (optimize (speed 2) (safety 3) (compilation-speed 0) (debug 3)))
+(declaim (optimize (speed 1) (safety 3) (compilation-speed 0) (debug 3)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Backdoor Commands ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -164,15 +164,17 @@ command gives specific help on that command.")
       ;; Else if user typed "xcvb help COMMAND", give specific help on that
       ;; command.
       (let* ((command (first args))
-             (properties (registered-command-properties command))
+             (function (gethash command (cdr (commands))))
+             (properties (registered-command-properties function))
              (command-options (getf properties :option-spec))
-             (names (getf properties :names)))
+             (names (getf properties :names))
+             (description (getf properties :description)))
         (unless (null (cdr args))
           (errexit 2 "Too many arguments -- try 'xcvb help'."))
         (cond
           (properties
             (format t "~1{Command: ~A~%Aliases:~{ ~A~^ ~}~%~%~3*~A~&~}"
-                    (cons command names))
+                    (first names) (rest names) description)
             (when command-options
               (command-line-arguments:show-option-help command-options :sort-names t)))
           (t
@@ -303,6 +305,7 @@ command gives specific help on that command.")
                               debugging profiling
                               define-feature undefine-feature
                               (use-target-lisp t)
+                              xcvb-program
                               cache object-cache workspace
                               install-prefix
                               install-program
@@ -328,6 +331,8 @@ command gives specific help on that command.")
       (setf *lisp-implementation-type* type)))
   (when lisp-binary-path
     (setf *lisp-executable-pathname* lisp-binary-path))
+  (when xcvb-program
+    (setf *xcvb-program* xcvb-program))
   (compute-xcvb-cache! cache)
   (compute-xcvb-workspace! workspace)
   (when use-target-lisp

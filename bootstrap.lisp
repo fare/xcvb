@@ -30,10 +30,11 @@
     (run-program/for-side-effects
      (lisp-invocation:lisp-invocation-arglist
       :implementation-type lisp
-      :eval (format nil "(#.(require \"asdf\")#.(asdf:load-system :asdf)#.(asdf:load-system :xcvb-driver)#.(xcvb-driver:with-coded-exit () (asdf:load-system :xcvb) (xcvb-driver::dump-xcvb ~S))" program)))
-    program))
+      :eval (format nil "(#.(require \"asdf\")#.(asdf:load-system :asdf)#.(asdf:load-system :xcvb-driver)#.(xcvb-driver:with-coded-exit () (asdf:load-system :xcvb) (funcall 'xcvb-driver::dump-xcvb ~S))" program)))
+    (native-namestring program)))
 
 (defun dump-xcvb (program)
+  (setf program (parse-native-namestring program))
   (setf (symbol-value (find-symbol* :*xcvb-lisp-directory* :xcvb))
 	(asdf:system-source-directory :xcvb))
   (call :xcvb :prepare-image (call :xcvb-driver :get-xcvb-version))

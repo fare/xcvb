@@ -36,15 +36,11 @@
 
 (defun find-driver ()
   (or *driver*
-      (setf *driver* (first
-                      (run-cmd/lines
-                       xcvb 'find-module :name "/xcvb/driver" :short)))))
+      (setf *driver* (asdf:system-relative-pathname :xcvb "driver.lisp"))))
 
 (defvar *asdf* nil
   "path to asdf")
 
 (defun find-asdf ()
   (or *asdf*
-      (setf *asdf* (first
-                    (run-cmd/lines
-                     xcvb 'find-module :name "/asdf/asdf" :short)))))
+      (setf *asdf* (asdf:system-relative-pathname :asdf "asdf.lisp"))))

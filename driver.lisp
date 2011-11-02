@@ -731,13 +731,15 @@ reading contents line by line."
       (error "chdir not supported on your implementation")))
 
 (defun call-with-current-directory (dir thunk)
-  (let* ((dir (truename (merge-pathnames (pathname-directory-pathname dir))))
-         (*default-pathname-defaults* dir)
-         (cwd (getcwd)))
-    (chdir dir)
-    (unwind-protect
-         (funcall thunk)
-      (chdir cwd))))
+  (if dir
+      (let* ((dir (truename (merge-pathnames (pathname-directory-pathname dir))))
+             (*default-pathname-defaults* dir)
+             (cwd (getcwd)))
+        (chdir dir)
+        (unwind-protect
+             (funcall thunk)
+          (chdir cwd)))
+      (funcall thunk)))
 
 (defmacro with-current-directory ((dir) &body body)
   "Call BODY while the POSIX current working directory is set to DIR"
@@ -1447,8 +1449,8 @@ if we are not called from a directly executable image dumped by XCVB."
                     so)))))))
 
 ;;; Magic strings. Do not change. Constants, except we can't portably use defconstant here.
-(defvar +xcvb-slave-greeting+ #.(format nil "XCVB-SLAVE~%"))
-(defvar +xcvb-slave-farewell+ #.(format nil "~%Your desires are my orders~%"))
+(defvar +xcvb-slave-greeting+ #.(format nil "Dear Master, here are your build commands:~%"))
+(defvar +xcvb-slave-farewell+ #.(format nil "~%Your desires are my orders, sincerely, XCVB.~%"))
 
 
 ;;;; ----- Escaping strings for the shell -----
@@ -1842,37 +1844,52 @@ OUTPUT-PROCESSOR and given KEYS"
 (defun default-xcvb-program ()
   (require-asdf)
   (native-namestring
-   (call :asdf :subpathname (call :asdf :user-homedir) ".cache/common-lisp/bin/xcvb")))
+   (call :asdf :subpathname (call :asdf :user-homedir)
+         (format nil ".cache/common-lisp/bin/~(~A~@[-~A~]~)/xcvb"
+                 (call :asdf :operating-system) (call :asdf :architecture)))))
 
-(defun xcvb-present-p ()
-  (or (equal *xcvb-program* *xcvb-present*)
-      (etypecase *xcvb-program*
-	((eql t) (and (find-package :xcvb) t))
+(defun xcvb-present-p (&optional (program *xcvb-program*))
+  ;; returns the resolved path to xcvb if present
+  (or (and (equal program *xcvb-present*) program)
+      (etypecase program
+	((eql t) (and (find-package :xcvb) (setf *xcvb-present* t)))
 	(string
-	 (string-prefix-p "XCVB version "
-			  (run-program/read-output-string
-			   (list *xcvb-program* "version")
-			   :ignore-error-status t))))
-      (when (equal *xcvb-program* "xcvb")
-	(setf *xcvb-program* (default-xcvb-program))
-	(assert (not (equal *xcvb-program* "xcvb")))
-	(xcvb-present-p))))
+         (and
+          (string-prefix-p "XCVB version "
+                           (run-program/read-output-string
+                            (list program "version")
+                            :ignore-error-status t))
+          (setf *xcvb-present* program)))
+        (pathname
+         (xcvb-present-p (native-namestring program))))
+      (when (equal program "xcvb")
+	(let ((default (default-xcvb-program)))
+          (assert (not (equal default "xcvb")))
+          (xcvb-present-p default)))
+      (setf *xcvb-present* nil)))
 
 (defun create-xcvb-program (&optional (program *xcvb-program*))
-  (require-asdf)
+  ;; Ugly: May side-effect *xcvb-program* to point to the resolved location of xcvb.
   (when (equal program "xcvb")
-    (setf program (default-xcvb-program)))
+    (setf program (default-xcvb-program))
+    (when (equal *xcvb-program* "xcvb")
+      (setf *xcvb-program* program)))
+  (require-asdf)
   (load-asdf :xcvb-bootstrap)
-  (setf *xcvb-program* (funcall 'build-xcvb program)
-	*xcvb-present* *xcvb-program*))
+  (funcall 'build-xcvb program))
 
-(defun ensure-xcvb-present ()
-  (unless (xcvb-present-p)
-    (require-asdf)
-    (etypecase *xcvb-program*
-      ((eql t) (load-asdf :xcvb))
-      (string (create-xcvb-program))))
+(defun require-xcvb ()
+  (require-asdf)
+  (call :asdf :load-system :xcvb)
   t)
+
+(defun ensure-xcvb-present (&optional (program *xcvb-program*))
+  ;; returns the resolved path to the xcvb binary
+  (or (xcvb-present-p program)
+      (etypecase program
+        ((eql t) (require-xcvb))
+        ((or string pathname) (create-xcvb-program program)))))
+
 
 ;;;; ----- XCVB master: calling XCVB -----
 ;;; Run a slave, obey its orders. (who's the master?)
@@ -1910,7 +1927,6 @@ OUTPUT-PROCESSOR and given KEYS"
   (defparameter *bnl-keys* (mapcar #'car *bnl-keys-with-defaults*)))
 
 (defun build-slave-command-line (build &key . #.*bnl-keys-with-defaults*)
-  (declare (ignore xcvb-program))
   (flet ((list-option-arguments (string values)
            (loop
              :for value :in values
@@ -1939,25 +1955,23 @@ OUTPUT-PROCESSOR and given KEYS"
       (append
        (list "slave-builder")
        (string-options build setup lisp-implementation verbosity source-registry)
-       (pathname-options output-path lisp-binary-path lisp-image-path cache object-cache workspace
+       (pathname-options output-path lisp-binary-path lisp-image-path
+                         xcvb-program cache object-cache workspace
                          install-prefix install-program install-configuration
                          install-data install-library install-image install-lisp)
        (list-option-arguments "define-feature" features-defined)
        (list-option-arguments "undefine-feature" features-undefined)
        (boolean-options disable-cfasl use-base-image debugging profiling)))))
 
-(defun require-xcvb ()
-  (require-asdf)
-  (call :asdf :load-system :xcvb))
-
 (defun run-xcvb-command (program command)
   (etypecase program
     (string
+     ;; Ugly: rely on the above having side-effected *xcvb-program*
      (with-safe-io-syntax ()
        (run-program/read-output-string
         (cons program command) :ignore-error-status t)))
     (pathname
-     (run-xcvb-command (native-namestring program) command))
+     (run-xcvb-command (namestring program) command))
     ((eql t)
      (unless (find-symbol* :cmd :xvcb nil)
        (require-xcvb))
@@ -1968,24 +1982,25 @@ OUTPUT-PROCESSOR and given KEYS"
 (defun build-in-slave (build &rest args &key . #.*bnl-keys-with-defaults*)
   "Entry point to call XCVB to build (but not necessarily load) a system."
   (declare (ignore . #.(set-difference *bnl-keys* '(xcvb-program verbosity))))
-  (ensure-xcvb-present)
-  (let* ((slave-command (apply 'build-slave-command-line build args))
+  (let* ((xcvb-program (ensure-xcvb-present xcvb-program))
+         (slave-command (apply 'build-slave-command-line build :xcvb-program xcvb-program args))
          (slave-output (run-xcvb-command xcvb-program slave-command))
+         (slave-greeting-pos (search +xcvb-slave-greeting+ slave-output :from-end t))
          (manifest
           (progn
             (unless (and slave-output
-                         (string-enclosed-p
-                          +xcvb-slave-greeting+ slave-output +xcvb-slave-farewell+))
+                         slave-greeting-pos
+                         (string-suffix-p slave-output +xcvb-slave-farewell+))
               (format! *error-output*
                        "Failed to execute a build slave.~%~
 			Slave command:~%  ~S~%~
 			Slave output:~%~A~%~
-			(If using SLIME, you might have useful error output in your *inferior-lisp* buffer.)"
+			(If using SLIME, you might have useful error output in your *inferior-lisp* buffer~%in which case next time you may M-x slime-redirect-inferior-output.)"
                        slave-command slave-output)
               (error "XCVB slave failed"))
             (read-from-string
              slave-output t nil
-             :start (length +xcvb-slave-greeting+)
+             :start (+ (length +xcvb-slave-greeting+) slave-greeting-pos)
              :end (- (length slave-output) (length +xcvb-slave-farewell+)))))
          (*xcvb-verbosity* (+ (or verbosity *xcvb-verbosity*) 2)))
     (when (>= *xcvb-verbosity* 9)

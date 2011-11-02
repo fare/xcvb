@@ -266,7 +266,9 @@
 
 (defun validate-master (&key xcvb workspace object-cache source-registry implementation-type
                         &allow-other-keys)
-  (let* ((driver (is (find-driver)))
+  (let* ((driver (is (first
+                      (run-cmd/lines
+                       xcvb 'find-module :name "/xcvb/driver" :short))))
          (out
           (apply 'run-cmd/string
            (xcvb::lisp-invocation-arglist

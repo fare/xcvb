@@ -97,6 +97,10 @@ given command name is invalid."
 
 ;;;; Common Option Specs
 
+(define-option-spec +xcvb-program-option-spec+
+  '((("xcvb-program" #\X) :type string :optional t
+     :documentation "specify where to find the xcvb binary")))
+
 (define-option-spec +source-registry-option-spec+
   '((("source-registry" #\S) :type string :optional t
      :documentation "override your source-registry")))

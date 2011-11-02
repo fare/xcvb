@@ -118,6 +118,7 @@ in a fast way that doesn't enforce dependencies."
        ,@+source-registry-option-spec+
        (("name" #\n) :type string :optional t :initial-value "xcvb-tmp" :documentation "ASDF name for the target")
        (("output-path" #\o) :type string :initial-value "xcvb-ne.mk" :documentation "specify output path")
+       ,@+xcvb-program-option-spec+
        ,@+workspace-option-spec+
        ,@+lisp-implementation-option-spec+
        (("parallel" #\P) :type boolean :optional t :initial-value nil :documentation "compile in parallel with POIU")

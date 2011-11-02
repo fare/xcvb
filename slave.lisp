@@ -12,6 +12,7 @@
        ,@+base-image-option-spec+
        ,@+source-registry-option-spec+
        (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
+       ,@+xcvb-program-option-spec+
        ,@+workspace-option-spec+
        ,@+lisp-implementation-option-spec+
        ,@+cfasl-option-spec+

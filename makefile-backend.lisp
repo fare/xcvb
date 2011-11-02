@@ -225,6 +225,7 @@ xcvb-ensure-object-directories:
        ,@+base-image-option-spec+
        ,@+source-registry-option-spec+
        (("output-path" #\o) :type string :initial-value "xcvb.mk" :documentation "specify output path")
+       ,@+xcvb-program-option-spec+
        ,@+workspace-option-spec+
        ,@+install-option-spec+
        ,@+lisp-implementation-option-spec+
@@ -262,7 +263,8 @@ xcvb-ensure-object-directories:
             ,@(when makefile `("-f" ,(namestring makefile)))
             ,@(when target (ensure-list target)))))
       (log-format 6 "Building with ~S" make-command)
-      (run-program/for-side-effects make-command
+      (run-program/for-side-effects
+       make-command ; (strcat (escape-shell-command make-command) " >&2")
        :ignore-error-status ignore-error-status)))
 
 (define-command make-build

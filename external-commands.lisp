@@ -87,7 +87,7 @@ will create the desired content. An atomic rename() will have to be performed af
 
 (define-external-commands-for-computation :make-manifest (env manifest &rest commands)
   (list
-   (cmdize 'xcvb 'make-manifest
+   (cmdize *xcvb-program* 'make-manifest
            :output (pseudo-effective-namestring env manifest)
            :spec (let ((manifest-spec (commands-to-manifest-spec env commands)))
                    (with-safe-io-syntax ()
