@@ -239,14 +239,16 @@ xcvb-ensure-object-directories:
 
 
 (defun ncpus ()
-  (cond
-    ((featurep :linux)
-     (parse-integer
-      (run-program/read-output-string
-       "cat /proc/cpuinfo|grep '^processor' | wc -l")
-      :junk-allowed t))
-    (t
-     nil)))
+  (flet ((read-int (x) (parse-integer x :junk-allowed t))
+         (run-program/int (x) (read-int (run-program/read-output-string x))))
+    (ignore-errors
+      (cond
+        ((featurep :linux)
+         (run-program/int '("grep" "-c" "^processor " "/proc/cpuinfo")))
+        ((featurep :darwin)
+         (run-program/int '("sysctl" "-n" "hw.ncpu")))
+        ((os-windows-p)
+         (read-int (getenv "NUMBER_OF_PROCESSORS")))))))
 
 (defun make-parallel-flag ()
   (if-bind (ncpus) (ncpus)
