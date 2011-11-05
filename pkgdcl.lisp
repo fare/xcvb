@@ -1,6 +1,7 @@
 #+xcvb
 (module
- (:description "package for XCVB"))
+ (:description "package for XCVB"
+  :depends-on ("lisp-invocation")))
 
 (in-package :xcvb-driver)
 

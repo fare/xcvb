@@ -136,7 +136,8 @@
 
 (defun handle-target (fullname)
   (let* ((target (if fullname
-                   (resolve-absolute-module-name fullname)
+                   (or (resolve-asdf-name fullname)
+                       (resolve-absolute-module-name fullname))
                    (let* ((build-file (probe-file "build.xcvb"))
                           (build-module-grain
                            (and build-file (pathname-build build-file))))
@@ -152,7 +153,7 @@
                        (invalid-build-registry-entry
                         (user-error "Implicitly specified build.xcvb in current directory ~
                                 but it is invalid:~%~A~&"
-                                (invalid-build-reason build-module-grain)))))))
+                                    (invalid-build-reason build-module-grain)))))))
          (build (if target (build-module-grain-for target)
                     (user-error "User requested build ~S but it can't be found.~%~
 			    You may check available builds with xcvb ssr.~%" fullname)))

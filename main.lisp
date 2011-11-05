@@ -173,7 +173,7 @@ command gives specific help on that command.")
           (errexit 2 "Too many arguments -- try 'xcvb help'."))
         (cond
           (properties
-            (format t "~1{Command: ~A~%Aliases:~{ ~A~^ ~}~%~%~3*~A~&~}"
+            (format t "Command: ~A~%Aliases:~{ ~A~^ ~}~%~%~A~&"
                     (first names) (rest names) description)
             (when command-options
               (command-line-arguments:show-option-help command-options :sort-names t)))
@@ -323,7 +323,6 @@ command gives specific help on that command.")
     (setf *xcvb-verbosity* verbosity))
   (log-format-pp 9 "xcvb options: ~S" keys)
   (initialize-xcvb-source-registry source-registry)
-  (search-source-registry)
   (when lisp-implementation
     (let ((type (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
       (unless (and type (get-lisp-implementation type))

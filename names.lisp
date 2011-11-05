@@ -171,6 +171,9 @@ of decreasing fullname length"
      (lambda (build suffix)
        (return (values build suffix))))))
 
+(defun resolve-asdf-name (name)
+  (registered-build `(:asdf ,name)))
+
 ;; TODO: say if we resolve as a build, lisp, executable, image, etc. ?
 (defun resolve-absolute-module-name (name &key error-p)
   "Resolve absolute NAME into an appropriate grain, if any"

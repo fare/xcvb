@@ -192,7 +192,9 @@ that is neither Unix, nor Windows.~%Now you port it.")))))
                          (fsref :fsref))
                (when (eq #$noerr (#_fspathmakeref cpath fsref is-dir))
                  (ccl::%path-from-fsref fsref is-dir))))))"))
-  #+sbcl (require :sb-posix)
+  #+sbcl (progn
+           (require :sb-posix)
+           (proclaim '(sb-ext:muffle-conditions sb-ext:compiler-note)))
   (pushnew :xcvb-driver *features*))
 
 ;;;; ----- User-visible variables, 1: Control build in current process -----
@@ -1102,12 +1104,6 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 ;;; ASDF support
 
-(defun require-asdf ()
-  (require "asdf")
-  (call :asdf :load-system :asdf)
-  (unless (call :asdf :version-satisfies (call :asdf :asdf-version) "2.018")
-    (error "XCVB requires ASDF 2.018 or later"))) ;; upgrade early to avoid issues later.
-
 (defun asdf-symbol (x)
   (find-symbol* x :asdf))
 
@@ -1116,6 +1112,16 @@ Entry point for XCVB-DRIVER when used by XCVB"
     (call :asdf :operate
           (asdf-symbol (if parallel :parallel-load-op :load-op))
           x :verbose verbose)))
+
+(defparameter *asdf-version-required-for-xcvb* "2.018.6")
+
+(defun require-asdf ()
+  (require "asdf")
+  (with-controlled-loader-conditions ()
+    (load-asdf :asdf)) ;; upgrade early, avoid issues.
+  (let ((required *asdf-version-required-for-xcvb*))
+    (unless (call :asdf :version-satisfies (call :asdf :asdf-version) required)
+      (error "XCVB requires ASDF ~A or later" required))))
 
 (defun register-asdf-directory (x)
   (pushnew x (symbol-value (asdf-symbol :*central-registry*))))

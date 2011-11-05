@@ -239,8 +239,8 @@ xcvb-ensure-object-directories:
 
 
 (defun ncpus ()
-  (flet ((read-int (x) (parse-integer x :junk-allowed t))
-         (run-program/int (x) (read-int (run-program/read-output-string x))))
+  (labels ((read-int (x) (parse-integer x :junk-allowed t))
+           (run-program/int (x) (read-int (run-program/read-output-string x))))
     (ignore-errors
       (cond
         ((featurep :linux)

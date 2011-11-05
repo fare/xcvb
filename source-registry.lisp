@@ -101,13 +101,14 @@ Initially populated with all build.xcvb files from the search path.")
 		   n)
        (setf (registered-build `(:supersedes-asdf ,n)) (make-require-grain :name n)))))
 
-(defun initialize-xcvb-source-registry (&optional parameter)
+(defun initialize-xcvb-source-registry (&optional (parameter asdf:*source-registry-parameter*))
+  (setf asdf:*source-registry-parameter* parameter)
   (initialize-builds)
   (log-format 10  "Initializing source registry: ")
   (let ((source-registry (compute-xcvb-source-registry parameter)))
     (setf *flattened-source-registry* (list source-registry))
-    (log-format-pp 10 "~S~%" *flattened-source-registry*)
-    *flattened-source-registry*))
+    (log-format-pp 10 "~S~%" *flattened-source-registry*))
+  (search-source-registry parameter))
 
 (defun assert-source-registry ()
   (unless *flattened-source-registry*
@@ -191,13 +192,20 @@ Initially populated with all build.xcvb files from the search path.")
                        :key (compose #'length #'pathname-directory))))
     (map () fn builds)))
 
-(defun search-source-registry ()
+(defun search-source-registry (&optional (parameter asdf:*source-registry-parameter*))
   (log-format 10 "Searching for build files in source registry")
   (finalize-source-registry)
   (dolist (root (car *flattened-source-registry*))
     (log-format 10 " Searching for build files under ~S" root)
     (map-build-files-under root #'(lambda (x) (register-build-file x root)))
-    (confirm-builds-under root)))
+    (confirm-builds-under root))
+  (search-source-registry-asdf parameter)) ;; TODO: handle packages from Quicklisp?
+
+(defun search-source-registry-asdf (&optional (parameter asdf:*source-registry-parameter*))
+  (asdf:initialize-source-registry parameter)
+  (loop :for name :being :the :hash-keys :of asdf::*source-registry*
+    :for fullname = `(:asdf ,name) :do
+    (register-build-named fullname (make-instance 'asdf-grain :name name) :asdf)))
 
 (defun ensure-source-registry-searched ()
   (unless *source-registry-searched-p*

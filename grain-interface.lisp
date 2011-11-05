@@ -291,7 +291,7 @@ into an image that will be used for all future compile/load operations")
   ()
   (:documentation "Linkable compiled Lisp object file grain for ECL"))
 
-(defclass asdf-grain (transient-grain explicitly-named-grain)
+(defclass asdf-grain (transient-grain explicitly-named-grain build-registry-entry)
   ((name
     :initarg :name
     :reader asdf-grain-system-name)
