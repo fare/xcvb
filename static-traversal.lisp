@@ -336,6 +336,16 @@
             (reverse *lisp-setup-dependencies*)
             :test #'equal))))
 
+(define-graph-for :asdf ((env static-traversal) system-name)
+  (declare (ignorable env))
+  (let* ((phony (make-instance 'phony-grain
+                               :fullname `(:build-asdf ,system-name))))
+    (issue-image-named env nil)
+    (make-computation
+     env :outputs (list phony) :inputs (traversed-dependencies env) :command
+     `(:xcvb-driver-command ,(image-setup env) (:load-asdf ,system-name)))
+    (call-next-method)))
+
 (defmethod make-computation ((env static-traversal) &rest keys &key &allow-other-keys)
   (apply #'make-computation () keys))
 

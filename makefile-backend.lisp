@@ -31,12 +31,13 @@
 
 (defun write-makefile (fullname &key output-path)
   "Write a Makefile to output-path with information about how to compile the specified BUILD."
-  (multiple-value-bind (target-dependency build) (handle-target fullname)
+  (multiple-value-bind (target-dependency build directory) (handle-target fullname)
+    (declare (ignore build directory))
     (let* ((env (make-instance 'static-makefile-traversal))
-           (default-output-path (merge-pathnames "xcvb.mk" (grain-pathname build)))
+           (default-output-path (subpathname *workspace* "xcvb.mk"))
            (actual-output-path
             (if output-path
-                (merge-pathnames output-path default-output-path)
+                (merge-pathnames* output-path default-output-path)
                 default-output-path))
            (makefile-path (ensure-absolute-pathname actual-output-path))
            (makefile-dir (pathname-directory-pathname makefile-path))

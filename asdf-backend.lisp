@@ -84,12 +84,10 @@ Declare asd system as ASDF-NAME."
                (first (grain-asdf-equivalents first-build))
                (pathname-name (fullname first-build)))))
          (default-output-path
-          (merge-pathnames
-           (make-pathname :name asdf-name :type "asd")
-           (grain-pathname first-build)))
+          (subpathname (grain-pathname first-build) (strcat asdf-name ".asd")))
          (output-path
           (if output-path
-            (merge-pathnames
+            (merge-pathnames*
              (ensure-absolute-pathname output-path)
              default-output-path)
             default-output-path))
@@ -103,7 +101,7 @@ Declare asd system as ASDF-NAME."
       :asdf-name asdf-name)))
 
 (defun do-write-asd-file (env &key output-path asdf-name)
-  (let* ((output-path (merge-pathnames output-path))
+  (let* ((output-path (merge-pathnames* output-path))
          (_ (ensure-directories-exist output-path))
          (*default-pathname-defaults* (pathname-directory-pathname output-path)))
     (declare (ignore _))

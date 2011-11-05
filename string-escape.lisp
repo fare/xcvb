@@ -61,4 +61,4 @@ or escapes of the form (:makefile string) that won't be escaped."
       (when rest (write-char #\space out)))))
 
 (defun normalize-name-for-makefile (x)
-  (map 'base-string (lambda (c) (if (find c "$`\\\"") #\_ c)) x))
+  (map 'base-string (lambda (c) (if (find c "$`\\\" ()[]{};	") #\_ c)) x))

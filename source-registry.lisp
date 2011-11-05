@@ -203,9 +203,12 @@ Initially populated with all build.xcvb files from the search path.")
 
 (defun search-source-registry-asdf (&optional (parameter asdf:*source-registry-parameter*))
   (asdf:initialize-source-registry parameter)
-  (loop :for name :being :the :hash-keys :of asdf::*source-registry*
+  (loop :for name :being :the :hash-keys :of asdf::*source-registry* :using (:hash-value v)
     :for fullname = `(:asdf ,name) :do
-    (register-build-named fullname (make-instance 'asdf-grain :name name) :asdf)))
+    (register-build-named fullname (make-instance 'asdf-grain :name name) :asdf))
+  (unless (gethash "asdf" asdf::*source-registry*)
+    (setf (registered-build `(:supersedes-asdf "asdf")) (make-require-grain :name "asdf"))))
+
 
 (defun ensure-source-registry-searched ()
   (unless *source-registry-searched-p*
@@ -321,6 +324,13 @@ for each of its registered names."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Show Search Path ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defgeneric build-string-description (entry fullname)
   (:documentation "A human readable description of this grain"))
+
+(defmethod build-string-description ((entry asdf-grain) fullname)
+  (assert (and (list-of-length-p 2 fullname) (eq (first fullname) :asdf)))
+  (let ((name (second fullname)))
+    (format nil "(:asdf ~S :directory ~S)" name
+            (pathname-directory-pathname
+             (nth-value 2 (asdf:locate-system name))))))
 
 (defmethod build-string-description ((entry require-grain) fullname)
   (assert (and (list-of-length-p 2 fullname) (eq (first fullname) :supersedes-asdf)))

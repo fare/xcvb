@@ -124,8 +124,7 @@
 (defun get-asdf-pathname ()
   (let ((build (registered-build "/asdf")))
     (when (typep build 'build-module-grain)
-      (asdf:merge-pathnames* (asdf:coerce-pathname "asdf.lisp")
-                             (grain-pathname build)))))
+      (subpathname (grain-pathname build) "asdf.lisp"))))
 
 (defun query-target-lisp-command (query-string)
   (assert *lisp-implementation-type*)

@@ -129,7 +129,7 @@ a reference to the system was superseded by a build.xcvb file.")
   "File named relatively to the object directory"
   `(:object
     ,(portable-namestring
-      (merge-pathnames
+      (merge-pathnames*
        (portable-pathname-from-string name)
        (portable-pathname-from-string (fullname grain))))))
 
@@ -137,7 +137,7 @@ a reference to the system was superseded by a build.xcvb file.")
   "File named relatively to the filesystem"
   `(:file ,(namestring
             (ensure-absolute-pathname
-             (merge-pathnames
+             (merge-pathnames*
               name
               (pathname-directory-pathname
                (grain-pathname

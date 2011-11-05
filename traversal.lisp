@@ -136,8 +136,8 @@
 
 (defun handle-target (fullname)
   (let* ((target (if fullname
-                   (or (resolve-asdf-name fullname)
-                       (resolve-absolute-module-name fullname))
+                   (or (resolve-absolute-module-name fullname)
+                       (resolve-asdf-name fullname))
                    (let* ((build-file (probe-file "build.xcvb"))
                           (build-module-grain
                            (and build-file (pathname-build build-file))))
@@ -154,12 +154,21 @@
                         (user-error "Implicitly specified build.xcvb in current directory ~
                                 but it is invalid:~%~A~&"
                                     (invalid-build-reason build-module-grain)))))))
-         (build (if target (build-module-grain-for target)
+         (build (typecase target
+                  ((or lisp-module-grain executable-grain) (build-module-grain-for target))
+                  (asdf-grain nil)
+                  (t
                     (user-error "User requested build ~S but it can't be found.~%~
-			    You may check available builds with xcvb ssr.~%" fullname)))
+			    You may check available builds with xcvb ssr.~%" fullname))))
          (name (fullname target))
          (dep (etypecase target
                 (build-module-grain `(:build ,name))
                 (lisp-module-grain `(:fasl ,(second name)))
-		(executable-grain name))))
-    (values dep build)))
+                (asdf-grain name)
+		(executable-grain name)))
+         (directory (pathname-directory-pathname
+                     (cond
+                       (build (grain-pathname build))
+                       ((typep target 'asdf-grain)
+                        (nth-value 2 (asdf:locate-system (second name))))))))
+    (values dep (or build target) directory)))

@@ -510,3 +510,6 @@ Modeled after the asdf function coerce-name"
         (if (slot-boundp build 'around-compile)
             (around-compile build)
             nil))))
+
+(defmethod fullname ((grain asdf-grain))
+  `(:asdf ,(asdf-grain-system-name grain)))
