@@ -1080,7 +1080,8 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 (defun eval-string (string)
   "Evaluate a form read from a string"
-  (eval (read-from-string string)))
+  (with-controlled-loader-conditions ()
+    (eval (read-from-string string))))
 
 (defun cl-require (x)
   (with-profiling `(:require ,x)
@@ -1109,9 +1110,10 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 (defun load-asdf (x &key parallel (verbose *compile-verbose*)) ;; parallel loading requires POIU
   (with-profiling `(:asdf ,x)
-    (call :asdf :operate
-          (asdf-symbol (if parallel :parallel-load-op :load-op))
-          x :verbose verbose)))
+    (with-controlled-loader-conditions ()
+      (call :asdf :operate
+            (asdf-symbol (if parallel :parallel-load-op :load-op))
+            x :verbose verbose))))
 
 (defparameter *asdf-version-required-for-xcvb* "2.018.6")
 

@@ -458,7 +458,13 @@ command gives specific help on that command.")
 
 (defun cmd* (&rest args)
   "For debugging purposes, let the user try a command from the REPL"
-  (interpret-command (cmdize* args)))
+  (restart-case
+      (interpret-command (cmdize* args))
+    (exit (&optional (exit-code 0))
+      :report (lambda (stream)
+		    ;; when invoked interactively exit-code is always 0
+		    (format stream "Abort current computation and return exit code 0"))
+      (return-from cmd* exit-code))))
 
 (defun cmd (&rest args)
   "For debugging purposes, let the user try a command from the REPL, in a local context"

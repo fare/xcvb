@@ -341,6 +341,7 @@
   (let* ((phony (make-instance 'phony-grain
                                :fullname `(:build-asdf ,system-name))))
     (issue-image-named env nil)
+    (build-command-for env '(:build "/asdf"))
     (make-computation
      env :outputs (list phony) :inputs (traversed-dependencies env) :command
      `(:xcvb-driver-command ,(image-setup env) (:load-asdf ,system-name)))

@@ -13,4 +13,4 @@
 	       "lib-b/func-2"
 	       "lib-b/func-3"
 	       "lib-b/package")
-  :build-image t))
+  :build-image nil))
