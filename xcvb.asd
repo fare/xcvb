@@ -45,7 +45,7 @@
     :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-    :defsystem-depends-on (:asdf :xcvb-driver)
+    :defsystem-depends-on (:asdf :xcvb-driver :xcvb-bootstrap)
     :depends-on (:asdf :xcvb-driver
                  :fare-utils :fare-mop :command-line-arguments
                  :asdf-dependency-grovel
@@ -54,8 +54,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  #+xcvb-farmer :quux-iolib
                  #-clisp :rucksack)
     :components
-    ((:file "lisp-invocation")
-     (:file "pkgdcl" :depends-on ("lisp-invocation"))
+    ((:file "pkgdcl")
      (:file "conditions" :depends-on ("pkgdcl"))
      (:file "specials" :depends-on ("pkgdcl"))
      (:file "macros" :depends-on ("pkgdcl"))
@@ -72,7 +71,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "source-registry" :depends-on ("grain-registry" "commands"))
      (:file "computations" :depends-on ("grain-interface" "grain-registry"))
      (:file "manifest" :depends-on ("macros" "virtual-pathnames" "commands"))
-     (:file "extract-target-properties" :depends-on ("string-escape" "lisp-invocation" "grain-interface"))
+     (:file "extract-target-properties" :depends-on ("string-escape" "grain-interface"))
      (:file "grain-implementation" :depends-on ("grain-registry" "extract-target-properties"))
      (:file "names" :depends-on ("grain-registry" "grain-interface"))
      (:file "normalize-dependency" :depends-on ("names" "grain-interface"))
@@ -102,7 +101,6 @@ deterministic separate compilation and enforced locally-declared dependencies."
             ("makefile-backend" "static-traversal" "computations" "target-lisp-commands"
                                 "grain-implementation" "asdf-backend" "dependencies-interpreter"))
      (:file "main" :depends-on ("commands"))
-     (:file "bootstrap")
      (:file "version" :depends-on ("pkgdcl"))))
 
 (defmethod perform ((op test-op) (c (eql (find-system :xcvb))))

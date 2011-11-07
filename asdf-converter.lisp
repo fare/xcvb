@@ -236,8 +236,8 @@ assuming said system is a simplified system as created by"
 
 (defun dependency-sort (components component-order-map)
   "Sorts a list of asdf components according to their dependencies."
-  (sort components #'< :key
-        (lambda (x) (or (component-position x component-order-map) -1))))
+  (sort (copy-list components) #'< :key
+        #'(lambda (x) (or (component-position x component-order-map) -1))))
 
 (defun get-module-for-component (asdf-component build-module-grain
                                  name-component-map original-traverse-order-map)
@@ -301,16 +301,10 @@ assuming said system is a simplified system as created by"
              (error "Could not find system :~A" first-system-name)))
     (pathname-directory-pathname (truename sysdef-pathname))))
 
-(defun asdf-to-xcvb (&key
-                     name
-		     system
-		     (systems (when system (list system)))
-		     (simplified-system :simplified-system)
-		     base-pathname
+(defun asdf-to-xcvb (&key name system (systems (when system (list system)))
+		     (simplified-system :simplified-system) base-pathname
 		     (components-path (merge-pathnames* *components-path* *temporary-directory*))
-		     systems-to-preload
-		     verbose)
-
+		     systems-to-preload verbose)
   "Takes the name of one or several ASDF system(s) and
 merge them into a single XCVB build,
 adding xcvb module declarations to the top of all the files in that build,
@@ -328,7 +322,9 @@ so that the system can now be compiled with XCVB."
 		 so that asdf-to-xcvb may work on them.")
   (dolist (sys systems) (remhash sys asdf::*defined-systems*))
   (log-format 6 "Extract the original traverse order from ASDF before any transformation.")
-  (let ((original-traverse-order-map (systems-traverse-order-map systems)))
+  (let ((original-traverse-order-map (systems-traverse-order-map systems))
+        (*load-pathname* base-pathname)
+        (*default-pathname-defaults* (pathname-directory-pathname base-pathname)))
     (log-format 6 "Clear the system cache *again* because we'll re-define thing transformed.")
     (dolist (sys systems) (remhash sys asdf::*defined-systems*))
     (asdf:initialize-output-translations "/:")
@@ -365,7 +361,6 @@ so that the system can now be compiled with XCVB."
                 :components
                 (mapcan (lambda (x) (getf (cdr x) :components))
                         system-components))))
-           (*default-pathname-defaults* base-pathname)
            (build-module-grain
             (get-build-module-grain-for-asdf-system
              asdf-system systems original-asdf-deps

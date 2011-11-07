@@ -412,7 +412,7 @@ command gives specific help on that command.")
 	(exit (&optional (exit-code 0))
 	  :report (lambda (stream)
 		    ;; when invoked interactively exit-code is always 0
-		    (format stream "Abort current computation and quit the process with process exit code 0"))
+		    (format stream "Abort current computation and quit the process with process exit code "))
           (quit exit-code))
         (abort ()
           :report (lambda (stream)
@@ -464,7 +464,11 @@ command gives specific help on that command.")
       :report (lambda (stream)
 		    ;; when invoked interactively exit-code is always 0
 		    (format stream "Abort current computation and return exit code 0"))
-      (return-from cmd* exit-code))))
+      (return-from cmd* exit-code))
+    (abort ()
+      :report (lambda (stream)
+                (format stream "Abort current computation and return exit code 111"))
+      (return-from cmd* 111))))
 
 (defun cmd (&rest args)
   "For debugging purposes, let the user try a command from the REPL, in a local context"
