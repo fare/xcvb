@@ -103,6 +103,7 @@ Declare asd system as ASDF-NAME."
 (defun do-write-asd-file (env &key output-path asdf-name)
   (let* ((output-path (merge-pathnames* output-path))
          (_ (ensure-directories-exist output-path))
+         ;; bind *default-pathname-defaults* to the asdf file's directory.
          (*default-pathname-defaults* (pathname-directory-pathname output-path)))
     (declare (ignore _))
     (with-open-file (out output-path :direction :output :if-exists :supersede)
@@ -122,13 +123,16 @@ Declare asd system as ASDF-NAME."
   (let* ((namestring (grain-namestring env grain))
          (pathname (pathname namestring))
          (enough (enough-namestring namestring))
-         (noext (asdf-dependency-grovel::strip-extension enough "lisp")))
+         (noext (asdf-dependency-grovel::strip-extension enough "lisp"))
+         (around-compile (effective-around-compile grain)))
     `(:file ,noext
             ,@(when (or (absolute-pathname-p (pathname enough))
                         (not (equal (coerce-pathname
                                      noext :type "lisp" :defaults *default-pathname-defaults*)
                                     pathname)))
-                    `(:pathname ,pathname)))))
+                `(:pathname ,pathname))
+            ,@(when around-compile
+                `(:around-compile ,around-compile)))))
 (defmethod asdf-spec (env (grain source-grain))
   `(:static-file ,(enough-namestring (grain-namestring env grain))))
 

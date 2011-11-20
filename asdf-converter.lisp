@@ -277,14 +277,16 @@ assuming said system is a simplified system as created by"
                    filepath
                    (grain-pathname build-module-grain))
                   "lisp")
-                 :allow-absolute nil))))
+                 :allow-absolute nil)))
+         (around-compile (asdf-dependency-grovel::escaped-around-compile-hook asdf-component)))
     (make-instance 'lisp-file-grain
                    :fullname `(:lisp ,name)
                    :parent build-module-grain
                    :pathname filepath
                    :computation nil
                    :compile-depends-on compile-dependencies
-                   :load-depends-on dependencies)))
+                   :load-depends-on dependencies
+                   :around-compile around-compile)))
 
 (defvar *components-path* #p"simplified-system-components.lisp-expr")
 

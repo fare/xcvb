@@ -6,6 +6,12 @@ DONE for XCVB
 
 Items dumped from TODO that were done.
 
+(2011-11-18) add support for :around-compile to ASDF
+----------------------------------------------------
+
+Requires ASDF 2.018.12 and ASDF-DEPENDENCY-GROVEL 1.104.
+
+
 (2011-11-02) Driver fallback to bootstrapping XCVB with ASDF
 ------------------------------------------------------------
 
