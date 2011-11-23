@@ -16,89 +16,59 @@
 (declaim (optimize (speed 2) (space 2) (safety 3) (debug 3) (compilation-speed 0)))
 
 (defpackage :xcvb-driver
-  (:nicknames :xcvbd)
+  (:nicknames :xcvbd :xd)
   (:use :cl)
   (:export
 
    ;;; special variables shared with XCVB itself
    #:*lisp-implementation-type*
-   #:*lisp-executable-pathname*
-   #:*lisp-image-pathname*
+   #:*lisp-executable-pathname* #:*lisp-image-pathname*
    #:*lisp-implementation-directory*
-   #:*lisp-flags*
+   #:*lisp-flags*  #:*lisp-allow-debugger*
+   #:*use-base-image* #:*disable-cfasls*
    #:*features-defined* #:*features-undefined*
    #:*xcvb-verbosity*
-   #:*lisp-allow-debugger*
    #:*cache* #:*object-cache* #:*workspace*
-   #:*install-prefix*
-   #:*install-program*
-   #:*install-configuration*
-   #:*install-data*
-   #:*install-library*
-   #:*install-image*
-   #:*install-lisp*
+   #:*install-prefix* #:*install-program* #:*install-configuration*
+   #:*install-data* #:*install-library* #:*install-image* #:*install-lisp*
    #:*temporary-directory*
-   #:*use-base-image*
+   #:*source-registry*
 
    ;;; special variables for XCVB master itself
-   #:*xcvb-program*
-   #:*disable-cfasls*
-   #:*source-registry*
-   #:*manifest*
+   #:*xcvb-program* #:*manifest*
 
    ;;; special variables for portability issues
    #:*default-element-type*
 
    ;;; String utilities - copied from fare-utils
-   ;;#:string-prefix-p
-   ;;#:string-suffix-p
-   ;;#:string-enclosed-p
+   ;;#:string-prefix-p #:string-suffix-p #:string-enclosed-p
 
    ;;; I/O utilities
-   ;;#:with-output ; copied from fare-utils
-   #:slurp-stream-string
-   #:slurp-stream-lines
-   #:slurp-stream-forms
-   #:call-with-input-file
-   #:slurp-file-string
-   #:slurp-file-lines
-   #:slurp-file-forms
-   #:copy-stream-to-stream
-   #:copy-stream-to-stream-line-by-line
-   #:with-safe-io-syntax
-   #:read-first-file-form
-   #:with-temporary-file
+   #:with-output #:with-input-file #:with-safe-io-syntax #:with-temporary-file
+   #:slurp-stream-string #:slurp-stream-lines #:slurp-stream-forms
+   #:slurp-file-string #:slurp-file-lines #:slurp-file-forms
+   #:copy-stream-to-stream #:copy-stream-to-stream-line-by-line
+   #:read-first-file-form #:read-function
 
    ;;; Escaping the command invocation madness
-   #:easy-sh-character-p
-   #:escape-windows-token
-   #:escape-windows-command
-   #:escape-sh-token
-   #:escape-sh-command
-   #:escape-token
-   #:escape-command
+   #:easy-sh-character-p #:escape-sh-token #:escape-sh-command
+   #:escape-windows-token #:escape-windows-command
+   #:escape-token #:escape-command
 
    ;;; run-program/foo
    #:run-program/process-output-stream
-   #:run-program/read-output-lines
-   #:run-program/read-output-string
-   #:run-program/read-output-form
-   #:run-program/read-output-forms
-   #:run-program/for-side-effects
-   #:run-program/echo-output
+   #:run-program/read-output-lines #:run-program/read-output-string
+   #:run-program/read-output-form #:run-program/read-output-forms
+   #:run-program/for-side-effects #:run-program/echo-output
 
    ;; pathname utilities
-   #:native-namestring
-   #:parse-native-namestring
+   #:native-namestring #:parse-native-namestring
 
    ;; current directory
-   #:getcwd
-   #:chdir
-   #:with-current-directory
+   #:getcwd #:chdir #:with-current-directory
 
    ;; Magic strings
-   #:+xcvb-slave-greeting+
-   #:+xcvb-slave-farewell+
+   #:+xcvb-slave-greeting+ #:+xcvb-slave-farewell+
 
    ;;; Using an inferior XCVB
    #:build-and-load #:bnl #:build-in-slave
@@ -674,12 +644,11 @@ using WRITE-SEQUENCE and a sensibly sized buffer."
 reading contents line by line."
   (with-open-stream (input input)
     (loop :for (line eof) = (multiple-value-list (read-line input nil nil))
-      :while line
-      :do (progn
-            (princ line output)
-            (unless eof (terpri output))
-            (finish-output output)
-            (when eof (return))))))
+      :while line :do
+      (princ line output)
+      (unless eof (terpri output))
+      (finish-output output)
+      (when eof (return)))))
 
 (defun slurp-stream-string (input &key (element-type 'character))
   "Read the contents of the INPUT stream as a string"
@@ -690,16 +659,14 @@ reading contents line by line."
 (defun slurp-stream-lines (input)
   "Read the contents of the INPUT stream as a list of lines"
   (with-open-stream (input input)
-    (loop :for l = (read-line input nil nil)
-      :while l :collect l)))
+    (loop :for l = (read-line input nil nil) :while l :collect l)))
 
 (defun slurp-stream-forms (input)
   "Read the contents of the INPUT stream as a list of forms"
   (with-open-stream (input input)
     (loop :with eof = '#:eof
       :for form = (read input nil eof)
-      :until (eq form eof)
-      :collect form)))
+      :until (eq form eof) :collect form)))
 
 (defun slurp-file-string (file &rest keys)
   "Open FILE with option KEYS, read its contents as a string"
@@ -867,10 +834,11 @@ This is designed to abstract away the implementation specific quit forms."
   #+(or cmu scl) (unix:unix-exit code)
   #+ecl (si:quit code)
   #+gcl (lisp:quit code)
+  #+genera (error "You probably don't want to Halt the Machine.")
   #+lispworks (lispworks:quit :status code :confirm nil :return nil :ignore-errors-p t)
   #+mcl (ccl:quit) ;; or should we use FFI to call libc's exit(3) ?
-  #+sbcl (sb-unix:unix-exit code)
-  #-(or abcl allegro clisp clozure cmu ecl gcl lispworks mcl sbcl scl xcl)
+  #+sbcl (sb-ext:quit :unix-status code :recklessly-p (not finish-output))
+  #-(or abcl allegro clisp clozure cmu ecl gcl genera lispworks mcl sbcl scl xcl)
   (error "xcvb driver: Quitting not implemented"))
 
 (defun shell-boolean (x)
