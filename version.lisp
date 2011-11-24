@@ -13,4 +13,4 @@
 (defun get-xcvb-version ()
   (first
    (run-program/read-output-lines
-    (format nil "cd ~A ; git describe --tags" (get-xcvb-directory)))))
+    (format nil "cd ~A ; git describe --tags --dirty=+" (get-xcvb-directory)))))

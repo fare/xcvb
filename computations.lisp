@@ -73,3 +73,20 @@
 (defun computation-children (computation)
   (mappend #'grain-users (computation-outputs computation)))
 
+(defun map-computations (fun &key from-end)
+  (dolist (c (if from-end *computations* (reverse *computations*)))
+    (funcall fun c)))
+
+(defun map-grains (fun &key from-end)
+  (let ((h (make-hash-table)))
+    (map-computations
+     (lambda (c)
+       (loop :for g :in (append (computation-inputs c) (computation-outputs c))
+         :unless (gethash g h) :do
+         (setf (gethash g h) t)
+         (funcall fun g)))
+     :from-end from-end)))
+
+(defun list-grains (&key from-end)
+  (while-collecting (c)
+    (map-grains #'c :from-end from-end)))

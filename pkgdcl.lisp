@@ -26,6 +26,9 @@
    #:while-collecting
    #:orf)
 
+  (:shadowing-import-from :xcvb-driver
+   #:with-output)
+
   (:import-from :asdf
    #:*default-source-registry-exclusions*
    #:*default-source-registries*

@@ -21,14 +21,13 @@ deterministic separate compilation and enforced locally-declared dependencies."
   :build-depends-on
   ((:fasl "/xcvb/driver")
    (:asdf "asdf")
-   (:asdf "cl-launch")
+   (:build "cl-launch")
    (:asdf "asdf-dependency-grovel")
    (:asdf "closer-mop")
-   (:asdf "command-line-arguments")
-   (:asdf "fare-utils") ;; utilities and data structures.
-   (:asdf "fare-matcher") ;; fare-matcher
-   (:asdf "fare-quasiquote-readtable") ;; fare-quasiquote
-   (:asdf "fare-mop") ;; fare-matcher and fare-quasiquote
+   (:build "command-line-arguments")
+   (:build "fare-utils") ;; utilities and data structures.
+   (:build "fare-matcher") ;; fare-matcher and fare-quasiquote-readtable
+   (:build "fare-mop")
    (:when (:featurep :xcvb-farmer)
      (:asdf "iolib") ;; I/O event loop
      (:asdf "quux-iolib")) ;; signalfd support (experimental)

@@ -162,15 +162,13 @@ until something else is found, then return that header as a string"
 (defun get-dependencies-from-component (component)
   (get-dependencies-from-components (list component)))
 
-
 (defun get-build-module-grain-for-asdf-system
     (asdf-system original-systems asdf-deps
      original-traverse-order-map &key name)
   "Returns a build-module-grain with information from the given asdf system,
 assuming said system is a simplified system as created by"
   (flet ((maybe-slot-value (object slot)
-           (if (slot-boundp object slot)
-             (slot-value object slot))))
+           (and (slot-boundp object slot) (slot-value object slot))))
     (let* ((fullname (or name (maybe-slot-value asdf-system 'asdf::name)))
            ;;(canonical-fullname (canonicalize-fullname fullname))
            (directory (pathname-directory-pathname (component-truename asdf-system)))
