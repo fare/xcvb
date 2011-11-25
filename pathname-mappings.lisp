@@ -9,13 +9,17 @@
 
 (defun print-pathname-mappings (env stream grains)
   (with-safe-io-syntax ()
-    (let ((*print-readably* t))
-      (format stream "~
- (defparameter *pathname-mappings* ~
-   (macrolet ((f () (let ((m (make-hash-table :test 'equal))) ~
-     (loop :for (x . y) :in '~S :do (setf (gethash x m) y)) m))) ~
+    (let ((*print-readably* t)
+          (*print-pretty* t)
+          (*print-case* :downcase))
+      (format stream "(in-package :xcvb-driver)~%~
+ (defparameter *pathname-mappings*~%  ~
+   (macrolet ((f () (let ((m (make-hash-table :test 'equal)))~%    ~
+     (loop :for (x . y) :in~%       '~S~%      ~
+       :do (setf (gethash x m) y)) m)))~%    ~
      (f)))~%"
-              (mapcar/ 'grain-pathname-mapping env grains)))))
+              (mapcar/ 'grain-pathname-mapping env
+                       (remove-if-not 'file-grain-p grains))))))
 
 (defun pathname-mappings-lisp-pathname ()
   (subpathname *workspace* "pathname-mappings.lisp"))
