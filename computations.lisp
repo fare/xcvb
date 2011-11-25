@@ -77,7 +77,7 @@
   (dolist (c (if from-end *computations* (reverse *computations*)))
     (funcall fun c)))
 
-(defun map-grains (fun &key from-end)
+(defun map-computation-grains (fun &key from-end)
   (let ((h (make-hash-table)))
     (map-computations
      (lambda (c)
@@ -87,6 +87,6 @@
          (funcall fun g)))
      :from-end from-end)))
 
-(defun list-grains (&key from-end)
+(defun list-computation-grains (&key from-end)
   (while-collecting (c)
-    (map-grains #'c :from-end from-end)))
+    (map-computation-grains #'c :from-end from-end)))

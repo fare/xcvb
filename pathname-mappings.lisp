@@ -4,10 +4,10 @@
 
 (in-package :xcvb)
 
-(defun grain-pathname-mapping (grain)
-  (list (fullname grain) :pathname ,(grain-pathname grain)))
+(defun grain-pathname-mapping (env grain)
+  (list (fullname grain) :pathname (grain-namestring env grain)))
 
-(defun print-pathname-mappings (stream grains)
+(defun print-pathname-mappings (env stream grains)
   (with-safe-io-syntax ()
     (let ((*print-readably* t))
       (format stream "~
@@ -15,7 +15,7 @@
    (macrolet ((f () (let ((m (make-hash-table :test 'equal))) ~
      (loop :for (x . y) :in '~S :do (setf (gethash x m) y)) m))) ~
      (f)))~%"
-              (mapcar 'grain-pathname-mapping grains)))))
+              (mapcar/ 'grain-pathname-mapping env grains)))))
 
 (defun pathname-mappings-lisp-pathname ()
   (subpathname *workspace* "pathname-mappings.lisp"))
@@ -23,7 +23,7 @@
 (defun pathname-mappings-fasl-pathname ()
   (make-pathname :type *fasl-type* :defaults (pathname-mappings-lisp-pathname)))
 
-(defun make-pathname-mappings-lisp ()
+(defun make-pathname-mappings-lisp (env)
   (with-open-file (s (pathname-mappings-lisp-pathname) :direction :output
                      :if-exists :rename-and-delete :if-does-not-exist :create)
-    (print-pathname-mappings s (list-grains))))
+    (print-pathname-mappings env s (list-computation-grains))))
