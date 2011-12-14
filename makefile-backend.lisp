@@ -78,20 +78,27 @@
       ;; Return data for use by the non-enforcing Makefile backend.
       (values makefile-path makefile-dir))))
 
-(defun write-makefile-prelude (&key stream lisp-env-var)
-  (let ((vars (list lisp-env-var))
-        (implementation-pathname
-         (or *target-lisp-executable-pathname*
-             (lisp-implementation-name (get-lisp-implementation)))))
-    (format stream "~
-### This file was automatically created by XCVB ~A with the arguments~%~
+(defparameter +generated-file-warning-start+
+  "### This file was automatically created by XCVB")
+
+(defun write-generated-file-warning (stream implementation-pathname)
+  (format stream "~
+~A ~A with the arguments~%~
 ### ~{~A~^ ~}~%~
 ### It may have been specialized to the target implementation ~A~%~
 ### from ~A with the following features:~%~
 ###   ~S~%~%~
 ### DO NOT EDIT! Changes will be lost when XCVB overwrites this file.~%~%"
-            *xcvb-version* *arguments* *lisp-implementation-type*
-            implementation-pathname *target-system-features*)
+          +generated-file-warning-start+
+          *xcvb-version* *arguments* *lisp-implementation-type*
+          implementation-pathname *target-system-features*))
+
+(defun write-makefile-prelude (&key stream lisp-env-var)
+  (let ((vars (list lisp-env-var))
+        (implementation-pathname
+         (or *target-lisp-executable-pathname*
+             (lisp-implementation-name (get-lisp-implementation)))))
+    (write-generated-file-warning stream implementation-pathname)
     (format stream "X~A ?= ~A~%~2:*~A ?= ${X~:*~A}~%" lisp-env-var implementation-pathname)
     (case *lisp-implementation-type*
       ((:ccl :sbcl)

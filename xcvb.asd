@@ -14,7 +14,7 @@
 
 (let ((old-ver (asdf-version)))
   (load-system :asdf)
-  (let ((min "2.018.6")
+  (let ((min "2.019")
 	(ver (asdf-version)))
     (unless (or (version-satisfies old-ver "2.014.8") ; first version to do magic upgrade
 		(equal ver old-ver))
@@ -85,6 +85,9 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "run-program-backend" :depends-on ("profiling" "static-traversal" "target-lisp-commands"
 					       "computations" "commands" "virtual-pathnames"))
      (:file "makefile-backend"
+            :depends-on ("profiling" "static-traversal" "target-lisp-commands" "computations"
+                         "extract-target-properties" "commands" "virtual-pathnames" "specials"))
+     (:file "blaze-backend"
             :depends-on ("profiling" "static-traversal" "target-lisp-commands" "computations"
                          "extract-target-properties" "commands" "virtual-pathnames" "specials"))
      (:file "simplifying-traversal" :depends-on ("traversal" "dependencies-interpreter"))

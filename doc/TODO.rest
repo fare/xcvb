@@ -91,6 +91,8 @@ These are the very next steps to be taken:
 
     + The driver can now use virtual names.
 
+    + Support some file-mapping mechanism for blaze.
+
   * Fix manifest format:
 
     + store primitives in the build-command-for languages.

@@ -1083,7 +1083,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
             (asdf-symbol (if parallel :parallel-load-op :load-op))
             x :verbose verbose))))
 
-(defparameter *asdf-version-required-for-xcvb* "2.018.6")
+(defparameter *asdf-version-required-for-xcvb* "2.019")
 
 (defun require-asdf ()
   (require "asdf")

@@ -7,5 +7,5 @@
   :licence "MIT"
   :description "XCVB bridge for ASDF"
   :long-description "A module to integrate XCVB builds into ASDF"
-  :depends-on ((:version :asdf "2.018.6") :xcvb-driver)
+  :depends-on ((:version :asdf "2.019") :xcvb-driver)
   :components ((:file "bridge")))
