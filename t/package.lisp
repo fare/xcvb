@@ -13,6 +13,8 @@
    #:ensure-directory-pathname #:directory-pathname-p)
   (:import-from :alexandria
    #:ensure-list)
+  (:shadowing-import-from :xcvb-driver
+   #:with-output)
   (:import-from :xcvb-driver
    #:+xcvb-lisps+)
   (:import-from :xcvb

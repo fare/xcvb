@@ -15,6 +15,7 @@
   (:use :closer-common-lisp
         :xcvb-driver :command-line-arguments :asdf :lisp-invocation
         :fare-matcher :fare-utils :interface :pure :fare-mop
+        :fare-memoization
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
   (:shadowing-import-from :asdf
@@ -33,6 +34,7 @@
    #:*default-source-registry-exclusions*
    #:*default-source-registries*
    #:coerce-pathname
+   #:pathname-parent-directory-pathname
    #:inherit-source-registry
    #:probe-file*
    #:os-unix-p #:os-windows-p #:featurep

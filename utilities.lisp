@@ -2,6 +2,7 @@
 
 (in-package :xcvb)
 
+;;; Lists
 (defun list-of-length-p (n x)
   (length=n-p x n))
 
@@ -33,6 +34,15 @@
       (let ((*package* (find-package package)))
         (write x :stream s :readably t :escape t :pretty nil)
         (terpri s)))))
+
+;;; Filesystem
+(defun find-proper-ancestor (dir properf)
+  (loop :for x = (pathname-directory-pathname dir)
+    :then (pathname-parent-directory-pathname x) :do
+    (cond
+      ((funcall properf x) (return x))
+      ((member (pathname-directory x) '(() (:absolute)) :test 'equal)
+       (return nil)))))
 
 ;;; Environment control
 ;;; This better be moved to some portability package...
