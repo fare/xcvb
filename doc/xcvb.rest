@@ -166,7 +166,7 @@ Although there was a successful attempt to parallelize the compilation part
 the loading is still done serially in the same image,
 which leads to the above problems of unenforced dependencies
 that cause non-deterministic build problems,
-and make compilation essentially non-deterministic. 
+and make compilation essentially non-deterministic.
 
 In contrast, XCVB will provide
 an essentially deterministic way of compiling files

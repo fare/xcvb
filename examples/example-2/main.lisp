@@ -1,6 +1,6 @@
 #+xcvb
-(module 
-  (:depends-on 
+(module
+  (:depends-on
     ("lib-a/func-1" "lib-a/func-2" "lib-a/func-3"
      "lib-b/func-1" "lib-b/func-2" "lib-b/func-3"
      "package")))
