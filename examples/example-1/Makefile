@@ -16,7 +16,7 @@ build-with-simple-build:
 		--lisp-implementation ${LISP} \
 		--verbosity 10
 
-# Build by creating the xcvb.mk file and running it. 
+# Build by creating the xcvb.mk file and running it.
 build-with-parallel-make: ${EXE}
 ${EXE}: ${XCVB_MK}
 	make -f ${XCVB_MK}

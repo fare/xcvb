@@ -21,7 +21,7 @@ Until then, let's rely on the external utility tthsum.
 #| ;; Implementation from before we were using ironclad
 (defun tthsum-for-files (files)
   (when files
-    (let* ((truefiles 
+    (let* ((truefiles
             (loop :for file :in files :collect
               (or (probe-file file) (error "File ~A does not exist" file))))
            (namestrings (mapcar #'namestring truefiles))

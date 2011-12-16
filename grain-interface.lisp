@@ -186,7 +186,7 @@
     ;;:reader long-description
     :documentation "A detailed description of the file"))
   (:documentation "Documented grain"))
-  
+
 (defclass source-grain (explicitly-named-file-grain)
   ((name
     :initarg :name
