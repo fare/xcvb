@@ -28,26 +28,66 @@
     (("READONLY-root" #\R) :type string :optional t :documentation "google3 root (default: from current dir)") ;; default: ${BUILD-root}/../READONLY/google3/
     (("package" #\P) :type string :optional t :documentation "BUILD package"))) ;; default: package for current dir under BUILD-root
 
-(defun initialize-blaze-parameters (&key build-root readonly-root package &allow-other-keys)
-  (let* ((current-dir (unless (and build-root package)
-                        (truename *default-pathname-defaults*)))
-         (build-dir (unless package
-                      (find-blaze-BUILD-directory current-dir)))
-         (build-root (or build-root
-                         (find-google3-directory (or build-dir current-dir))))
-         (package-name (or package
-                           (enough-namestring build-dir build-root)))
-         (package-dir (if package
-                          (subpathname build-root package)
-                          current-dir))
-         (readonly-root (if readonly-root
-                            (truename readonly-root)
-                            (probe-file* (subpathname build-root "../READONLY/google3/")))))
+(defun resolve-blaze-source-registry (source-registry &key root readonly-root)
+  (cond
+    ((emptyp source-registry)
+     (let ((bsr (getenv "BLAZE_SOURCE_REGISTRY")))
+       (if (emptyp bsr)
+           (error "No --source-registry or BLAZE_SOURCE_REGISTRY specified")
+           (resolve-blaze-source-registry
+            bsr :root root :readonly-root readonly-root))))
+    ((find (char source-registry 0) "\"(")
+     ;; (warn "Using a Lisp source-registry at your own risk")
+     source-registry)
+    (t
+     (with-output-to-string (s)
+       (loop :for entry :in (split-string source-registry :separator ";")
+         :for previousp = nil
+         :for recursep = (string-suffix-p entry "//") :do
+         (labels ((x (p)
+                    (when p
+                      (format s "~@[:~]~A~@[/~]"
+                              previousp (ensure-directory-pathname p)
+                              recursep))))
+           (if (find #\: entry)
+               (x (label->pathname
+                   entry :root root :readonly-root readonly-root))
+               (x (BUILD-package->pathname
+                   entry :root root :readonly-root readonly-root)))))))))
+
+(defun handle-blaze-options (&rest keys
+                             &key build-root readonly-root package
+                             source-registry lisp-binary-path
+                             &allow-other-keys)
+  (let* ((current-dir
+          (unless (and build-root package)
+            (truename *default-pathname-defaults*)))
+         (build-dir
+          (unless package (find-BUILD-directory current-dir)))
+         (build-root
+          (or build-root (find-BUILD-root (or build-dir current-dir))))
+         (package-name
+          (or package (enough-namestring build-dir build-root)))
+         (package-dir
+          (if package
+              (subpathname build-root package)
+              current-dir))
+         (readonly-root
+          (if readonly-root
+              (truename readonly-root)
+              (probe-file* (subpathname build-root "../READONLY/google3/"))))
+         (source-registry (resolve-blaze-source-registry
+                           source-registry
+                           :root build-root :readonly-root readonly-root))
+         (lisp-binary-path (label->pathname lisp-binary-path)))
     (setf *BUILD-root* build-root
           *BUILD-package* package-name
           *BUILD-package-directory* package-dir
-          *READONLY-BUILD-root* readonly-root))
-  (values))
+          *READONLY-BUILD-root* readonly-root)
+    (apply 'handle-global-options
+           :source-registry source-registry
+           :lisp-binary-path lisp-binary-path
+           keys)))
 
 (define-memo-function (BUILD-root-p :memo-variable *BUILD-root-p*) (dir)
   ;; This is way too specific to Google
@@ -240,7 +280,7 @@
        ,@+profiling-option-spec+)
      "Create some blaze BUILD"
      "Create blaze BUILD rules to build a project." ignore)
-  (apply 'make-build :blaze-BUILD-only t keys))
+  (apply 'blaze-build :blaze-BUILD-only t keys))
 
 (defun invoke-blaze (&key target directory makefile ignore-error-status env)
   (let* ((make (or (getenv "MAKE") "make"))
@@ -262,7 +302,7 @@
      "Use blaze to build your project"
      "Create blaze BUILD rules to build a package, use them."
      (build))
-  (apply 'handle-global-options keys)
+  (apply 'handle-blaze-options keys)
   (with-maybe-profiling ()
     (multiple-value-bind (blaze-BUILD-path blaze-BUILD-dir)
         (write-blaze-BUILD build)
