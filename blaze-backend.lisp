@@ -168,6 +168,7 @@
            (*print-pretty* nil); otherwise SBCL will slow us down a lot.
            (lisp-env-var (lisp-environment-variable-name :prefix nil))
            (*lisp-executable-pathname* ;; magic escape!
+            ;; NIY, blaze escape rather than Makefile escape
             (list :blaze-BUILD "${" lisp-env-var "}")))
       (log-format 9 "output-path: ~S" output-path)
       (log-format 9 "default-output-path: ~S" default-output-path)

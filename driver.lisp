@@ -475,7 +475,9 @@ Useful for portably flushing I/O before user input or program exit."
 ;;; Output helpers
 
 (defgeneric call-with-output (x thunk)
-  (:documentation ;; from fare-utils
+  (:documentation
+   ;; code from fare-utils base/streams where it's now named
+   ;; call-with-output-stream to avoid the package clash in a lot of my code.
    "Calls FUN with an actual stream argument, behaving like FORMAT with respect to stream'ing:
 If OBJ is a stream, use it as the stream.
 If OBJ is NIL, use a STRING-OUTPUT-STREAM as the stream, and return the resulting string.
