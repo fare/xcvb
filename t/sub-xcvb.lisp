@@ -291,7 +291,7 @@
 
 (defun validate-bridge (&key object-cache implementation-type &allow-other-keys)
   (let ((out
-         (run-program/read-output-string
+         (run-program/
           (xcvb::lisp-invocation-arglist
            :implementation-type implementation-type
            :eval (format nil "'(#.(require ~S)~
@@ -301,7 +301,8 @@
                    #.(xcvb-hello:hello :name ~S :traditional t)#.~A)"
                          "asdf" object-cache "Sub-XCVB TeStEr"
                          ;; what about :output-path??? Something based on workspace?
-                         (xcvb::quit-form :implementation-type implementation-type))))))
+                         (xcvb::quit-form :implementation-type implementation-type)))
+          :output :string)))
     (is (search "hello, sub-xcvb tester" out)
         "Failed to build hello via the ASDF-XCVB bridge using ~(~A~)" implementation-type)))
 

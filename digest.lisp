@@ -25,7 +25,7 @@ Until then, let's rely on the external utility tthsum.
             (loop :for file :in files :collect
               (or (probe-file file) (error "File ~A does not exist" file))))
            (namestrings (mapcar #'namestring truefiles))
-           (lines (run-program/read-output-lines (cons "tthsum" namestrings))))
+           (lines (run-program/ (cons "tthsum" namestrings) :output :lines)))
       (unless lines
         (error "Couldn't extract TTH digest for given files. Is the tthsum utility installed?"))
       (unless (list-of-length-p (length files) lines)
@@ -46,8 +46,9 @@ Until then, let's rely on the external utility tthsum.
 
 (defun has-tthsum-p ()
   (let ((s (ignore-errors
-             (run-program/read-output-string
-              '("tthsum" #-windows "/dev/null" #+windows "NUL")))))
+             (run-program/
+              '("tthsum" #-windows "/dev/null" #+windows "NUL")
+              :output :string))))
     (and (>= (length s) 41)
          (string= s "LWPNACQDBZRYXW3VHJVCJ64QBZNGHOHHHZWCLNQ" :end1 39))))
 

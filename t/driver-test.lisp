@@ -39,12 +39,7 @@ do cl-launch -l $l -s xcvb-driver-test -iw '(xcvb-driver-test:xcvb-driver-test)'
          (error "Expression ~S fails to raise condition ~S" ',sexp ',condition)))))
 
 #|
-Testing run-program/process-output-stream through its derivatives:
-run-program/read-output-lines
-run-program/read-output-string
-run-program/read-output-form
-run-program/read-output-forms
-run-program/echo-output
+Testing run-program/
 |#
 
 ;; We add a newline to the end of a string and return it.
@@ -122,109 +117,95 @@ run-program/echo-output
   (signals error (slurp-stream-lines "not valid"))
   t)
 
-(defun common-test/run-program/process-output-stream ()
-  ;; Test that the 'echo' program can echo a single string.
-  ;; Use the output-processor of slurp-stream-lines.
-  (is (equal '("string")
-             (run-program/read-output-lines '("echo" "string"))))
+(defun common-test/run-program/ ()
+  ;; Can we echo a simple string?
+  (is (equal '("abcde")
+             (run-program/ '("echo" "abcde") :output :lines)))
+  (is (equal (nl "fghij")
+             (run-program/ '("echo" "fghij") :output :string)))
 
-  ;; Test that the 'echo' program can echo a single string.
-  ;; Use the output-processor of slurp-stream-string.
-  (is (equal (nl "string")
-             (run-program/read-output-string '("echo" "string"))))
-
-  ;; Test that the 'echo' program can echo an argument with a space.
-  ;; Use the output-procesor of slurp-stream-lines.
+  ;; Are spaces handled properly?
   (is (equal '("Hello World")
-             (run-program/read-output-lines '("echo" "Hello World"))))
-
-  ;; Test that the 'echo' program can echo an argument with a space.
-  ;; Use the output-processor of slurp-stream-string.
+             (run-program/ '("echo" "Hello World") :output :lines)))
   (is (equal (nl "Hello World")
-             (run-program/read-output-string '("echo" "Hello World"))))
-
-  ;; Test that the 'echo' program can echo an argument with a space.
-  ;; Use the output-processor of slurp-stream-string. Also use the
-  ;; command string form.
+             (run-program/ '("echo" "Hello World") :output :string)))
   (is (equal (nl "Hello World")
-             (run-program/read-output-string "echo Hello World")))
+             (run-program/ "echo Hello World" :output :string)))
 
-  ;; Test that run-program/process-output-stream fails properly with an
+  ;; Test that run-program/ fails properly with an
   ;; empty program string
   #+(or clozure (and allegro os-unix) cmu (and lispworks os-unix) sbcl scl)
-  (signals error (run-program/read-output-lines '("")))
+  (signals error (run-program/ '("") :output :lines))
 
   ;; An empty string itself is ok since it is passed to the shell.
-  (is (equal "" (run-program/read-output-string "")))
+  (is (equal "" (run-program/ "" :output :string)))
 
-  ;; Test that run-program/process-output-stream fails properly with a
+  ;; Test that run-program/ fails properly with a
   ;; nil program list
   #+(or clozure (and allegro os-unix) cmu sbcl scl)
-  (signals error (run-program/read-output-lines nil))
+  (signals error (run-program/ nil :output :lines))
 
-  ;; Test that run-program/process-output-stream fails properly when the
+  ;; Test that run-program/ fails properly when the
   ;; executable doesn't exist.
-  (signals error (run-program/read-output-lines '("does-not-exist")))
-  (signals error (run-program/read-output-lines "does-not-exist"))
+  (signals error (run-program/ '("does-not-exist") :output :lines))
+  (signals error (run-program/ "does-not-exist" :output :lines))
 
-  (is (equal 0 (run-program/for-side-effects "echo ok")))
-  (is (equal 0 (run-program/for-side-effects '("echo" "ok"))))
+  (is (equal 0 (run-program/ "echo ok" :output nil)))
+  (is (equal 0 (run-program/ '("echo" "ok") :output nil)))
   t)
 
 
-(defun unix-only-test/run-program/process-output-stream ()
+(defun unix-only-test/run-program/ ()
 
-  (is (equal 0 (run-program/for-side-effects "true")))
-  (signals error (run-program/for-side-effects "false"))
-  (is (equal 1 (run-program/for-side-effects "false" :ignore-error-status t)))
+  (is (equal 0 (run-program/ "true")))
+  (signals error (run-program/ "false"))
+  (is (equal 1 (run-program/ "false" :ignore-error-status t)))
 
   (let ((tf (native-namestring (asdf:system-relative-pathname :xcvb "t/test-file"))))
 
     ;; a basic smoke test
     (is (equal '("Single")
-               (run-program/read-output-lines
-                `("/bin/grep" "Single" ,tf))))
+               (run-program/ `("/bin/grep" "Single" ,tf) :output :lines)))
 
     ;; Make sure space is handled correctly
     (is (equal '("double entry")
-               (run-program/read-output-lines
-                `("/bin/grep" "double entry" ,tf))))
+               (run-program/ `("/bin/grep" "double entry" ,tf) :output :lines)))
 
     ;; Make sure space is handled correctly
     (is (equal '("triple word entry")
-               (run-program/read-output-lines
-                `("/bin/grep" "triple word entry" ,tf))))
+               (run-program/ `("/bin/grep" "triple word entry" ,tf) :output :lines)))
 
     ;; Testing special characters
     (loop :for char :across "+-_.,%@:/\\!&*(){}"
       :for str = (string char) :do
       (is (equal (list (format nil "escape ~A" str))
-                 (run-program/read-output-lines
-                  `("/bin/grep" ,(format nil "[~A]" str) ,tf)))))
+                 (run-program/
+                  `("/bin/grep" ,(format nil "[~A]" str) ,tf)
+                  :output :lines))))
 
-    ;; Test that run-program/process-output-stream signals an error
+    ;; Test that run-program/ signals an error
     ;; with an executable that doesn't return 0
-    (signals error (run-program/read-output-lines '("/bin/false")))
+    (signals error (run-program/ '("/bin/false") :output :lines))
 
-    ;; Test that we can suppress the error on run-program/process-output-stream
-    (is (null (run-program/read-output-lines '("/bin/false")
-                                             :ignore-error-status t))))
+    ;; Test that we can suppress the error on run-program/
+    (is (null (run-program/ '("/bin/false")
+                            :output :lines :ignore-error-status t))))
   t)
 
-(defun windows-only-test/run-program/process-output-stream ()
+(defun windows-only-test/run-program/ ()
 
   ;; a basic smoke test
-  (is (equal (run-program/read-output-lines '("cmd" "/c" "echo" "ok"))
+  (is (equal (run-program/ '("cmd" "/c" "echo" "ok") :output :lines)
              '(("ok"))))
 
   t)
 
-(deftest test/run-program/process-output-stream ()
-  #+os-unix (common-test/run-program/process-output-stream)
-  #+os-unix (unix-only-test/run-program/process-output-stream)
-  #+os-windows (windows-only-test/run-program/process-output-stream)
+(deftest test/run-program/ ()
+  #+os-unix (common-test/run-program/)
+  #+os-unix (unix-only-test/run-program/)
+  #+os-windows (windows-only-test/run-program/)
   (terpri)
   t)
 
 (defun xcvb-driver-test ()
-  (test/run-program/process-output-stream))
+  (test/run-program/))

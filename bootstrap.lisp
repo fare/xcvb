@@ -7,11 +7,12 @@
   (equal
    "JUST ANOTHER LISP HACKER"
    (first
-    (run-program/read-output-lines
+    (run-program/
      (lisp-invocation:lisp-invocation-arglist
       :implementation-type lisp
       :eval (format nil "(progn (format t\"~~:@(~~{~~31R~~^ ~~}~~)\"'(595756 9556552524 643802 496307950)) ~A)"
 		    (lisp-invocation:quit-form :code 0 :implementation-type lisp)))
+     :output :lines
      :ignore-error-status t))))
 
 ;; These are the only supported so far -- please add support for more!
@@ -27,10 +28,11 @@
     (unless lisp
       (error "Cannot find a supported implementation to run XCVB itself~%amongst ~{~A~^ ~}."
 	     +xcvb-lisps+))
-    (run-program/for-side-effects
+    (run-program/
      (lisp-invocation:lisp-invocation-arglist
       :implementation-type lisp
-      :eval (format nil "(#.(require \"asdf\")#.(asdf:load-system :asdf)#.(asdf:load-system :xcvb-driver)#.(xcvb-driver:with-coded-exit () (asdf:load-system :xcvb) (funcall 'xcvb-driver::dump-xcvb ~S))" program)))
+      :eval (format nil "(#.(require \"asdf\")#.(asdf:load-system :asdf)#.(asdf:load-system :xcvb-driver)#.(xcvb-driver:with-coded-exit () (asdf:load-system :xcvb) (funcall 'xcvb-driver::dump-xcvb ~S))" program))
+     :output nil) ;; for side-effects
     (native-namestring program)))
 
 (defun dump-xcvb (program)

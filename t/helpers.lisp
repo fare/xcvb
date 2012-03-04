@@ -5,13 +5,13 @@
 (declaim (optimize (debug 3) (safety 3)))
 
 (defun run-cmd (&rest args)
-  (run-program/echo-output (cmdize* args)))
+  (run-program/ (cmdize* args)))
 
 (defun run-cmd/string (&rest args)
-  (run-program/read-output-string (cmdize* args)))
+  (run-program/ (cmdize* args) :output :string))
 
 (defun run-cmd/lines (&rest args)
-  (run-program/read-output-lines (cmdize* args)))
+  (run-program/ (cmdize* args) :output :lines))
 
 (defun rm-rfv (x)
   (let* ((p (pathname x))
@@ -24,7 +24,7 @@
     (assert (directory-pathname-p p))
     (unless (search "xcvb" n)
       (break "Do you really want to rm -rfv ~A ???" n))
-    (run-program/echo-output
+    (run-program/
      `("/bin/rm" "-rfv" ,n)
      :ignore-error-status t)))
 

@@ -246,17 +246,25 @@ xcvb-ensure-object-directories:
   (apply 'make-build :makefile-only t keys))
 
 
+(defun read-integer (x)
+  (parse-integer x :junk-allowed t))
+
+(defun slurp-stream-integer (input-stream)
+  (read-integer (slurp-stream-string input-stream)))
+
+(defmethod slurp-input-stream ((x (eql :integer)) input-stream
+                               &key &allow-other-keys)
+  (slurp-stream-integer input-stream))
+
 (defun ncpus ()
-  (labels ((read-int (x) (parse-integer x :junk-allowed t))
-           (run-program/int (x) (read-int (run-program/read-output-string x))))
-    (ignore-errors
-      (cond
-        ((featurep :linux)
-         (run-program/int '("grep" "-c" "^processor " "/proc/cpuinfo")))
-        ((featurep :darwin)
-         (run-program/int '("sysctl" "-n" "hw.ncpu")))
-        ((os-windows-p)
-         (read-int (getenv "NUMBER_OF_PROCESSORS")))))))
+  (ignore-errors
+    (cond
+      ((featurep :linux)
+       (run-program/ '("grep" "-c" "^processor " "/proc/cpuinfo") :output :integer))
+      ((featurep :darwin)
+       (run-program/ '("sysctl" "-n" "hw.ncpu") :output :integer))
+      ((os-windows-p)
+       (read-integer (getenv "NUMBER_OF_PROCESSORS"))))))
 
 (defun make-parallel-flag ()
   (if-bind (ncpus) (ncpus)
@@ -273,7 +281,7 @@ xcvb-ensure-object-directories:
             ,@(when makefile `("-f" ,(namestring makefile)))
             ,@(when target (ensure-list target)))))
       (log-format 6 "Building with ~S" make-command)
-      (run-program/for-side-effects
+      (run-program/ ;; for side-effects
        make-command ; (strcat (escape-shell-command make-command) " >&2")
        :ignore-error-status ignore-error-status)))
 

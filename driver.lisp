@@ -49,6 +49,7 @@
    #:slurp-file-string #:slurp-file-lines #:slurp-file-forms
    #:copy-stream-to-stream #:copy-stream-to-stream-line-by-line
    #:read-first-file-form #:read-function
+   #:slurp-input-stream
 
    ;;; Escaping the command invocation madness
    #:easy-sh-character-p #:escape-sh-token #:escape-sh-command
@@ -56,6 +57,8 @@
    #:escape-token #:escape-command
 
    ;;; run-program/foo
+   #:run-program/
+   ;; Obsolete:
    #:run-program/process-output-stream
    #:run-program/read-output-lines #:run-program/read-output-string
    #:run-program/read-output-form #:run-program/read-output-forms
@@ -641,12 +644,13 @@ using WRITE-SEQUENCE and a sensibly sized buffer."
       :do (write-sequence buffer output :end end)
       :do (when (< end length) (return)))))
 
-(defun copy-stream-to-stream-line-by-line (input output)
+(defun copy-stream-to-stream-line-by-line (input output &key prefix)
   "Copy the contents of the INPUT stream into the OUTPUT stream,
 reading contents line by line."
   (with-open-stream (input input)
     (loop :for (line eof) = (multiple-value-list (read-line input nil nil))
       :while line :do
+      (when prefix (princ prefix output))
       (princ line output)
       (unless eof (terpri output))
       (finish-output output)
@@ -1553,27 +1557,60 @@ by /bin/sh in POSIX"
 ;;; Simple variant of run-program with no input, and capturing output
 ;;; On some implementations, may output to a temporary file...
 
-(defun run-program/process-output-stream (command output-processor
-                                          &rest keys
-                                          &key ignore-error-status force-shell
-                                          (element-type *default-element-type*)
-                                          (external-format :default)
-                                          &allow-other-keys)
-  "Run program specified by COMMAND (either list of strings specifying
-a program and list of arguments, or a string specifying
-a /bin/sh shell command on Unix, a CMD.EXE command on Windows),
-and have its output processed by the OUTPUT-PROCESSOR function (or
-merely output to the inherited standard output if it's NIL).
+(defgeneric slurp-input-stream (processor input-stream &key &allow-other-keys))
+
+(defmethod slurp-input-stream ((function function) input-stream &key &allow-other-keys)
+  (funcall function input-stream))
+
+(defmethod slurp-input-stream ((list cons) input-stream &key &allow-other-keys)
+  (apply (first list) (cons input-stream (rest list))))
+
+(defmethod slurp-input-stream ((output-stream stream) input-stream
+                               &key element-type &allow-other-keys)
+  (copy-stream-to-stream
+   input-stream output-stream :element-type element-type))
+
+(defmethod slurp-input-stream ((x (eql 'string)) stream &key &allow-other-keys)
+  (declare (ignorable x))
+  (slurp-stream-string stream))
+
+(defmethod slurp-input-stream ((x (eql :string)) stream &key &allow-other-keys)
+  (declare (ignorable x))
+  (slurp-stream-string stream))
+
+(defmethod slurp-input-stream ((x (eql :lines)) stream &key &allow-other-keys)
+  (declare (ignorable x))
+  (slurp-stream-lines stream))
+
+(defmethod slurp-input-stream ((x (eql :form)) stream &key &allow-other-keys)
+  (declare (ignorable x))
+  (read stream))
+
+(defmethod slurp-input-stream ((x (eql :forms)) stream &key &allow-other-keys)
+  (declare (ignorable x))
+  (slurp-stream-forms stream))
+
+(defun run-program/ (command
+                     &rest keys
+                     &key output ignore-error-status force-shell
+                     (element-type *default-element-type*)
+                     (external-format :default)
+                     &allow-other-keys)
+  "Run program specified by COMMAND,
+either a list of strings specifying a program and list of arguments,
+or a string specifying a shell command (/bin/sh on Unix, CMD.EXE on Windows);
+have its output processed by the OUTPUT processor function
+as per PROCESS-INPUT-STREAM,
+or merely output to the inherited standard output if it's NIL.
 Always call a shell (rather than directly execute the command)
 if FORCE-SHELL is specified.
 Issue an error if the process wasn't successful unless IGNORE-ERROR-STATUS
 is specified.
 Return the exit status code of the process that was called.
-Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
+Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT processor."
   (declare (ignorable ignore-error-status element-type external-format))
-  (let ((s (find-symbol* 'run-program/process-output-stream :quux-iolib nil)))
-    (when s (return-from run-program/process-output-stream
-              (apply s command output-processor keys))))
+  (let ((s (find-symbol* 'run-program/ :quux-iolib nil)))
+    (when s (return-from run-program/ (apply s command output-processor keys))))
   #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl lispworks mcl sbcl scl xcl)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
   (labels (#+(or allegro clisp clozure cmu ecl (and lispworks os-unix) sbcl scl)
@@ -1678,7 +1715,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                    (run-program command :pipe pipe)
                  (if output-processor
                      (unwind-protect
-                          (funcall output-processor stream)
+                          (slurp-input-stream output stream)
                        (when stream (close stream))
                        (check-result (process-result process)))
                      (unwind-protect
@@ -1710,7 +1747,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
            (call-system (command-string)
              (check-result (system command-string)))
            (use-system ()
-             (if output-processor
+             (if output
                  (with-temporary-file (:pathname tmp :direction :output)
                    (call-system (redirected-system-command command tmp))
                    (with-open-file (stream tmp
@@ -1718,7 +1755,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
                                            :if-does-not-exist :error
                                            :element-type element-type
                                            :external-format external-format)
-                     (funcall output-processor stream)))
+                     (slurp-input-stream output stream)))
                  (call-system (system-command command)))))
     (if (and (not force-shell)
              #+(or clisp ecl) ignore-error-status
@@ -1729,51 +1766,35 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to OUTPUT-PROCESSOR."
 
 ;;;; ----- Common things to do with an external program -----
 
-(defun run-program/read-output-lines (command &rest keys)
-  "Run a program and collect its output as lines (a list of strings)
-by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with SLURP-STREAM-LINES
-as OUTPUT-PROCESSOR and given KEYS"
-  (apply 'run-program/process-output-stream command
-         'slurp-stream-lines keys))
+(defmacro run-program/process-output-stream (command output-processor &rest keys)
+  (warn "run-program/process-output-stream has been superseded by run-program/")
+  `(run-program/ ,command :output ,output-processor ,@keys))
 
-(defun run-program/read-output-string (command &rest keys)
-  "Run a program and collect its output as a string
-by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with SLURP-STREAM-STRING
-as OUTPUT-PROCESSOR and given KEYS"
-  (apply 'run-program/process-output-stream command
-         'slurp-stream-string keys))
+(defmacro run-program/read-output-lines (command &rest keys)
+  (warn "run-program/read-output-lines has been superseded by run-program/ ... :output :lines")
+  `(run-program/ ,command :output :lines ,@keys))
 
-(defun run-program/read-output-form (command &rest keys)
-  "Run a program and collect its output as a single form (extra output ignored)
-by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with READ
-as OUTPUT-PROCESSOR and given KEYS"
-  (apply 'run-program/process-output-stream command
-         'read keys))
+(defmacro run-program/read-output-string (command &rest keys)
+  (warn "run-program/read-output-string has been superseded by run-program/ ... :output :string")
+  `(run-program/ ,command :output :string ,@keys))
 
-(defun run-program/read-output-forms (command &rest keys)
-  "Run a program and collect its output as a list of forms
-by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with SLURP-STREAM-FORMS
-as OUTPUT-PROCESSOR and given KEYS"
-  (apply 'run-program/process-output-stream command
-         'slurp-stream-forms keys))
+(defmacro run-program/read-output-form (command &rest keys)
+  (warn "run-program/read-output-form has been superseded by run-program/ ... :output :form")
+  `(run-program/ ,command :output :form ,@keys))
 
-(defun run-program/for-side-effects (command &rest keys)
-  "Run a program for its side effects,
-by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with a NIL
-OUTPUT-PROCESSOR and given KEYS"
-  (apply 'run-program/process-output-stream command nil keys))
+(defmacro run-program/read-output-forms (command &rest keys)
+  (warn "run-program/read-output-forms has been superseded by run-program/ ... :output :forms")
+  `(run-program/ ,command :output :forms ,@keys))
+
+(defmacro run-program/for-side-effects (command &rest keys)
+  (warn "run-program/for-side-effects has been superseded by run-program/ ... :output nil")
+  `(run-program/ ,command :output :forms ,@keys))
 
 (defun run-program/echo-output (command &rest keys &key prefix (stream t) &allow-other-keys)
-  "Run a program and echo its output to STREAM with given PREFIX (if any)
-by calling RUN-PROGRAM/PROCESS-OUTPUT-STREAM with an appropriate
-OUTPUT-PROCESSOR and given KEYS"
-  (apply 'run-program/process-output-stream
-         command
-         #'(lambda (s)
-             (loop :for line = (read-line s nil nil) :while line :do
-               (format stream "~@[~A~]~A~&" prefix line) (force-output stream)))
-         keys))
-
+  (apply
+   'run-program/ command
+   :output `(copy-stream-to-stream-line-by-line ,stream :prefix ,prefix)
+   keys))
 
 ;;;; ----- Manifest: representing how an image was built or is to be built -----
 
