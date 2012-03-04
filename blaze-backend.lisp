@@ -89,7 +89,9 @@
            :lisp-binary-path lisp-binary-path
            keys)))
 
-(define-memo-function (BUILD-root-p :memo-variable *BUILD-root-p*) (dir)
+(defparameter *BUILD-root-p* (make-hash-table :test 'equal))
+
+(define-memo-function (BUILD-root-p :table *BUILD-root-p*) (dir)
   ;; This is way too specific to Google
   (equal (with-open-file (s (subpathname dir "__init__.py")
                             :direction :input :if-does-not-exist nil)
@@ -99,7 +101,9 @@
 (defun find-BUILD-root (&optional (dir *default-pathname-defaults*))
   (find-proper-ancestor dir 'BUILD-root-p))
 
-(define-memo-function (BUILD-directory-p :memo-variable *BUILD-directory-p*) (dir)
+(defparameter *BUILD-directory-p* (make-hash-table :test 'equal))
+
+(define-memo-function (BUILD-directory-p :table *BUILD-directory-p*) (dir)
   (and (probe-file (subpathname dir "BUILD")) t))
 
 (defun find-BUILD-directory (&optional (dir *default-pathname-defaults*))
