@@ -21,7 +21,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
   :build-depends-on
   ((:fasl "/xcvb/driver")
    (:asdf "asdf")
-   (:build "cl-launch")
+   (:build "/cl-launch")
+   (:build "/fare-memoization")
    (:asdf "asdf-dependency-grovel")
    (:asdf "closer-mop")
    (:build "command-line-arguments")

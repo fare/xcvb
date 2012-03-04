@@ -1610,7 +1610,7 @@ Return the exit status code of the process that was called.
 Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT processor."
   (declare (ignorable ignore-error-status element-type external-format))
   (let ((s (find-symbol* 'run-program/ :quux-iolib nil)))
-    (when s (return-from run-program/ (apply s command output-processor keys))))
+    (when s (return-from run-program/ (apply s command keys))))
   #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl lispworks mcl sbcl scl xcl)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
   (labels (#+(or allegro clisp clozure cmu ecl (and lispworks os-unix) sbcl scl)
@@ -1710,10 +1710,10 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
              exit-code)
            (use-run-program ()
              #-(or abcl cormanlisp gcl (and lispworks os-windows) mcl xcl)
-             (let ((pipe (and output-processor t)))
+             (let ((pipe (and output t)))
                (multiple-value-bind (process stream)
                    (run-program command :pipe pipe)
-                 (if output-processor
+                 (if output
                      (unwind-protect
                           (slurp-input-stream output stream)
                        (when stream (close stream))
@@ -1855,9 +1855,9 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
 	(string
          (and
           (string-prefix-p "XCVB version "
-                           (run-program/read-output-string
+                           (run-program/
                             (list program "version")
-                            :ignore-error-status t))
+                            :ignore-error-status t :output :string))
           (setf *xcvb-present* program)))
         (pathname
          (xcvb-present-p (native-namestring program))))
@@ -1967,8 +1967,8 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
     (string
      ;; Ugly: rely on the above having side-effected *xcvb-program*
      (with-safe-io-syntax ()
-       (run-program/read-output-string
-        (cons program command) :ignore-error-status t)))
+       (run-program/
+        (cons program command) :output :string :ignore-error-status t)))
     (pathname
      (run-xcvb-command (namestring program) command))
     ((eql t)
