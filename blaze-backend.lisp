@@ -24,8 +24,8 @@
   "current BUILD package directory")
 
 (define-option-spec +blaze-option-spec+
-  '((("BUILD-root" #\r) :type string :optional t :documentation "root of BUILD packges") ;; default: google3 ancestor of current directory
-    (("READONLY-root" #\R) :type string :optional t :documentation "google3 root (default: from current dir)") ;; default: ${BUILD-root}/../READONLY/google3/
+  '((("build-root" #\r) :type string :optional t :documentation "root of BUILD packges") ;; default: google3 ancestor of current directory
+    (("readonly-root" #\R) :type string :optional t :documentation "google3 root (default: from current dir)") ;; default: ${BUILD-root}/../READONLY/google3/
     (("package" #\P) :type string :optional t :documentation "BUILD package"))) ;; default: package for current dir under BUILD-root
 
 (defun resolve-blaze-source-registry (source-registry &key root readonly-root)
@@ -41,14 +41,13 @@
      source-registry)
     (t
      (with-output-to-string (s)
-       (loop :for entry :in (split-string source-registry :separator ";")
-         :for previousp = nil
-         :for recursep = (string-suffix-p entry "//") :do
-         (labels ((x (p)
-                    (when p
-                      (format s "~@[:~]~A~@[/~]"
-                              previousp (ensure-directory-pathname p)
-                              recursep))))
+       (loop :for (entry . morep) :on (split-string source-registry :separator ";")
+	     :for recursep = (string-suffix-p entry "//") :do
+	 (labels ((x (p)
+		    (if p
+			(format s "~A~@[/~*~]~@[:~]"
+				(ensure-directory-pathname p) recursep morep)
+			(error "Couldn't find BUILD directory for source-registry entry ~S" entry))))
            (if (find #\: entry)
                (x (label->pathname
                    entry :root root :readonly-root readonly-root))
@@ -63,11 +62,16 @@
           (unless (and build-root package)
             (truename *default-pathname-defaults*)))
          (build-dir
-          (unless package (find-BUILD-directory current-dir)))
+          (or package
+	      (find-BUILD-directory current-dir)
+	      (error "Can't find BUILD directory")))
          (build-root
-          (or build-root (find-BUILD-root (or build-dir current-dir))))
+          (or build-root
+	      (find-BUILD-root (or build-dir current-dir))
+	      (error "Can't find BUILD root directory")))
          (package-name
-          (or package (enough-namestring build-dir build-root)))
+          (or package
+	      (enough-namestring build-dir build-root)))
          (package-dir
           (if package
               (subpathname build-root package)
@@ -79,7 +83,8 @@
          (source-registry (resolve-blaze-source-registry
                            source-registry
                            :root build-root :readonly-root readonly-root))
-         (lisp-binary-path (label->pathname lisp-binary-path)))
+         (lisp-binary-path (label->pathname lisp-binary-path
+					    :root build-root :readonly-root readonly-root)))
     (setf *BUILD-root* build-root
           *BUILD-package* package-name
           *BUILD-package-directory* package-dir
@@ -132,7 +137,8 @@
 (defun BUILD-package->pathname
     (package-name
      &key (root *BUILD-root*) (readonly-root *READONLY-BUILD-root*))
-  (flet ((sub (x) (probe-file* (subpathname x (strcat package-name "/")))))
+  (flet ((sub (x)
+	   (probe-file* (subpathname x package-name :type :directory))))
     (or (sub root) (sub readonly-root))))
 
 (defun label->pathname (label &key
