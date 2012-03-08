@@ -85,10 +85,13 @@
                            :root build-root :readonly-root readonly-root))
          (lisp-binary-path (label->pathname lisp-binary-path
 					    :root build-root :readonly-root readonly-root)))
+  (when (>= (or *xcvb-verbosity* 5) 10)
+    (DBG :hbo current-dir package-dir source-registry lisp-binary-path build-dir build-root package-name readonly-root))
     (setf *BUILD-root* build-root
           *BUILD-package* package-name
           *BUILD-package-directory* package-dir
-          *READONLY-BUILD-root* readonly-root)
+          *READONLY-BUILD-root* readonly-root
+	  *default-pathname-defaults* package-dir)
     (apply 'handle-global-options
            :source-registry source-registry
            :lisp-binary-path lisp-binary-path

@@ -72,7 +72,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "source-registry" :depends-on ("grain-registry" "commands"))
      (:file "computations" :depends-on ("grain-interface" "grain-registry"))
      (:file "manifest" :depends-on ("macros" "virtual-pathnames" "commands"))
-     (:file "extract-target-properties" :depends-on ("string-escape" "grain-interface"))
+     (:file "extract-target-properties" :depends-on ("specials" "string-escape" "grain-interface"))
      (:file "grain-implementation" :depends-on ("grain-registry" "extract-target-properties"))
      (:file "names" :depends-on ("grain-registry" "grain-interface"))
      (:file "normalize-dependency" :depends-on ("names" "grain-interface"))
