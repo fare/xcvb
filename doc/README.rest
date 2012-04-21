@@ -721,7 +721,7 @@ It allows you to build some Lisp software cleanly in a subprocess
 then load the results into the current image.
 
 When you call ``xcvb-driver:build-and-load``
-(which also has the short-hand ``xcvbd:bnl``),
+(which also has the short-hand ``xd:bnl``),
 it will use ``run-program`` to invoke a slave XCVB process
 that will drive all the compilation out-of-image
 then reply to the master with a specification of files to load.
@@ -768,7 +768,9 @@ However it you used ASDF, you can still use
 the usual ASDF mechanisms to update your system.
 
 Also note that the usual restrictions apply
-as to any update of a running Common Lisp image:
+as to any update of a running Common Lisp image,
+whether using ASDF, XCVB, SLIME, or any other tool,
+or directly using ``compile-file`` and ``load``:
 
   * errors may happen if you change a symbol's nature
     between lexical, special, constant or symbol-macro as a variable,
@@ -940,7 +942,7 @@ For instance, a ``:depends-on (... "foo" ...)`` will specify
 a load-time dependency on ``(:fasl "foo")`` and
 a compile-time dependency on ``(:cfasl "foo")``.
 
-Note however that nothing is done to prevent both the FASL and CFASL to be loaded,
+Note however that nothing is done to prevent the FASL and CFASL from both being loaded,
 in any order implicit in the transitive dependencies of a module.
 This can cause interesting surprises if any of those compile-time side-effects
 are not idempotent, and/or if loading the CFASL resets some work done by the FASL.
@@ -1882,7 +1884,7 @@ With this experience, we confidently believe the following:
       arbitrary code, and that code is run in a single environment
       that conflates planning time, building time, runtime.
       XCVB distinguishes those times and executes them in isolated processes,
-      possibly in different Lisp implementations and/or computer architecture.
+      possibly in different Lisp implementations and/or computer architectures.
       Therefore there's no possible automatic reuse
       of a general ASDF-targeted ``.asd`` files
       into an XCVB build with an ``.asd`` syntax.

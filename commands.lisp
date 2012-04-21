@@ -99,7 +99,9 @@ given command name is invalid."
 
 (define-option-spec +xcvb-program-option-spec+
   '((("xcvb-program" #\X) :type string :optional t
-     :documentation "specify where to find the xcvb binary")))
+     :documentation "specify where to find the xcvb binary")
+    (("required-xcvb-version" #\V) :type string :optional t
+     :documentation "specify a minimum xcvb version")))
 
 (define-option-spec +source-registry-option-spec+
   '((("source-registry" #\S) :type string :optional t

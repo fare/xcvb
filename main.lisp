@@ -306,6 +306,7 @@ command gives specific help on that command.")
                               define-feature undefine-feature
                               (use-target-lisp t)
                               xcvb-program
+                              required-xcvb-version
                               cache object-cache workspace
                               install-prefix
                               install-program
@@ -322,6 +323,13 @@ command gives specific help on that command.")
   (when verbosity
     (setf *xcvb-verbosity* verbosity))
   (log-format-pp 9 "xcvb options: ~S" keys)
+  (when required-xcvb-version
+    (let ((reduced-required-version
+           (first (asdf:split-string required-xcvb-version :separator "-" :max 2))))
+      (unless (asdf:version-satisfies *xcvb-version* reduced-required-version)
+        ;;; TODO: try recompiling XCVB then exec'ing it instead of just borking(?)
+        (error "You require XCVB version ~A but this is only XCVB version ~A"
+               reduced-required-version *xcvb-version*))))
   (initialize-xcvb-source-registry source-registry)
   (when lisp-implementation
     (let ((type (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
@@ -489,6 +497,7 @@ command gives specific help on that command.")
   (apply #'errformat fmt args)
   (exit code))
 
-(defun prepare-image (version)
-  (setf *xcvb-version* version)
+(defun prepare-image (&key version directory)
+  (setf *xcvb-version* version
+        *xcvb-lisp-directory* directory)
   (asdf:clear-configuration))

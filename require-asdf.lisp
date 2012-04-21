@@ -15,3 +15,6 @@
 ;; This matters when the implementation provides an ASDF earlier than 2.015.
 (handler-bind ((style-warning #'muffle-warning))
   (asdf:load-system :asdf))
+
+(unless (asdf:version-satisfies (asdf:asdf-version) "2.019")
+  (error "XCVB requires ASDF 2.019 or later"))

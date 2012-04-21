@@ -37,6 +37,9 @@
    #:os-unix-p #:os-windows-p #:featurep
    #:user-homedir)
 
+  (:shadowing-import-from :xcvb-driver
+   #:find-symbol*)
+
   (:import-from :alexandria
    #:ensure-list)
 

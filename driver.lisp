@@ -36,6 +36,7 @@
 
    ;;; special variables for XCVB master itself
    #:*xcvb-program* #:*manifest*
+   #:*required-xcvb-version*
 
    ;;; special variables for portability issues
    #:*default-element-type*
@@ -420,6 +421,9 @@ NIL: default to *install-data*/common-lisp/, see docs")
 
 (defvar *xcvb-program* "xcvb"
   "Path to the XCVB binary (a string), OR t if you want to use an in-image XCVB")
+
+(defvar *required-xcvb-version* "0.577"
+  "Minimal version of XCVB required for use with this version of the xcvb-driver")
 
 (defvar *source-registry* nil
   "CL source registry specification. A sexp or string.
@@ -1093,8 +1097,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 (defun require-asdf ()
   (require "asdf")
-  (with-controlled-loader-conditions ()
-    (load-asdf :asdf)) ;; upgrade early, avoid issues.
+  (load-asdf :asdf) ;; upgrade early, avoid issues.
   (let ((required *asdf-version-required-for-xcvb*))
     (unless (call :asdf :version-satisfies (call :asdf :asdf-version) required)
       (error "XCVB requires ASDF ~A or later" required))))
@@ -1900,6 +1903,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *bnl-keys-with-defaults*
     '((xcvb-program *xcvb-program*)
+      (required-xcvb-version *required-xcvb-version*)
       (setup *xcvb-setup*)
       (source-registry *source-registry*)
       (output-path nil)
@@ -1953,7 +1957,8 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
            `(pluralize boolean-option ,@vars)))
       (append
        (list "slave-builder")
-       (string-options build setup lisp-implementation verbosity source-registry)
+       (string-options build setup lisp-implementation source-registry
+                       verbosity required-xcvb-version)
        (pathname-options output-path lisp-binary-path lisp-image-path
                          xcvb-program cache object-cache workspace
                          install-prefix install-program install-configuration
