@@ -37,12 +37,15 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 # but it's no Lisp code, so that's OK.
 DEPENDENCIES_SUPPORTING_XCVB := \
 	GIT git://common-lisp.net/projects/asdf/asdf.git ; \
+	GIT git://common-lisp.net/projects/asdf/asdf-encodings.git ; \
 	GIT git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git ; \
 	GIT git://common-lisp.net/projects/xcvb/cl-launch.git ; \
 	GIT git://common-lisp.net/projects/qitab/command-line-arguments.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-utils.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-matcher.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-mop.git ; \
+	GIT git://common-lisp.net/users/frideau/fare-memoization.git ; \
+	GIT git://common-lisp.net/users/frideau/lambda-reader.git ; \
 	GIT git://gitorious.org/libfixposix/libfixposix.git ; \
 	GIT git://common-lisp.net/projects/qitab/poiu.git ; \
 	GIT git://common-lisp.net/projects/xcvb/quux-iolib.git
@@ -98,9 +101,8 @@ NON_DEPENDENCIES_PATCHED_FOR_XCVB := \
 	XTAR rfc2388 http://common-lisp.net/project/rfc2388/rfc2388_latest.tar.gz ; \
 	XTAR split-sequence http://ftp.linux.org.uk/pub/lisp/experimental/cclan/split-sequence.tar.gz ; \
 	XTAR trivial-ldap http://homepage.mac.com/ignavusinfo/trivial-ldap/trivial-ldap-0.92.tar.gz ; \
-	: more are available but not listed yet
-	# N/A: single-threaded-ccl
-
+	: more are available but not listed yet ; \
+	: N/A: single-threaded-ccl
 
 install-cl-launch:
 	mkdir -p ${LISP_SOURCE}/cl-launch ${INSTALL_BIN}
