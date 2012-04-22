@@ -84,7 +84,11 @@ Immediate TODO [V1]
 
 These are the very next steps to be taken:
 
-  * File mapping:
+  * File Encoding:
+
+    + Port asdf's :encoding support and asdf-encodings to XCVB.
+
+  * File pathname mapping:
 
     + Always pass some file mapping, as either a file to load
       or a form passed before the driver is invoked.
