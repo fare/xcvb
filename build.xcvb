@@ -70,6 +70,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      "farmer")
    "source-registry"
    "main"
+   "self-upgrade"
    "version"
    "cffi-grovel-support")
   :supersedes-asdf

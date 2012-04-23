@@ -98,6 +98,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "ne-makefile-backend" :depends-on ("commands" "makefile-backend"
                                                "asdf-backend" "simplifying-traversal"))
      (:file "asdf-converter" :depends-on ("commands" "grain-interface" "source-registry"))
+     (:file "self-upgrade" :depends-on ("commands"))
      (:file "slave" :depends-on ("commands"))
      #+xcvb-farmer
      (:file "farmer"
