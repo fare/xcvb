@@ -38,6 +38,8 @@
    #:user-homedir)
 
   (:shadowing-import-from :xcvb-driver
+   #:get-xcvb-version #:get-xcvb-directory
+   #:build-xcvb
    #:find-symbol*)
 
   (:import-from :alexandria

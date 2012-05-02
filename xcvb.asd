@@ -56,7 +56,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  #+xcvb-farmer :quux-iolib
                  #-clisp :rucksack)
     :components
-    ((:file "pkgdcl")
+    ((:file "version")
+     (:file "pkgdcl" :depends-on ("version"))
      (:file "conditions" :depends-on ("pkgdcl"))
      (:file "specials" :depends-on ("pkgdcl"))
      (:file "macros" :depends-on ("pkgdcl"))
@@ -107,8 +108,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "cffi-grovel-support" :depends-on
             ("makefile-backend" "static-traversal" "computations" "target-lisp-commands"
                                 "grain-implementation" "asdf-backend" "dependencies-interpreter"))
-     (:file "main" :depends-on ("commands"))
-     (:file "version" :depends-on ("pkgdcl"))))
+     (:file "main" :depends-on ("commands"))))
 
 (defmethod perform ((op test-op) (c (eql (find-system :xcvb))))
   (asdf:load-system :xcvb-test)

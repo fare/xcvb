@@ -363,7 +363,7 @@ command gives specific help on that command.")
    :install-library install-library
    :install-image install-image
    :install-lisp install-lisp)
-  (xcvb-driver::ensure-required-xcvb-version required-xcvb-version))
+  (ensure-required-xcvb-version required-xcvb-version))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

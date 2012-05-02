@@ -3,7 +3,7 @@
 #+xcvb
 (module (:depends-on ("commands")))
 
-(in-package :xcvb-driver)
+(in-package :xcvb)
 
 (declaim (optimize (speed 1) (safety 3) (compilation-speed 0) (debug 3)))
 
@@ -13,10 +13,10 @@
 (defun ensure-required-xcvb-version (required-xcvb-version)
   (when required-xcvb-version
     (let ((reduced-required-version (reduce-xcvb-version required-xcvb-version))
-          (reduced-current-version (reduce-xcvb-version xcvb::*xcvb-version*)))n
+          (reduced-current-version (reduce-xcvb-version *xcvb-version*)))
       (unless (asdf:version-satisfies reduced-current-version reduced-required-version)
         (log-format 1 "This is XCVB ~A but version ~A was required"
-                    xcvb::*xcvb-version* required-xcvb-version)
+                    *xcvb-version* required-xcvb-version)
         (flet ((abend (fmt &rest args)
                  (errexit 18 "Can't recompile XCVB ~A or newer: ~?."
                           required-xcvb-version fmt args)))
@@ -29,7 +29,7 @@
               (abend "no version found in XCVB source code."))
             (unless (asdf:version-satisfies reduced-source-version reduced-required-version)
               (abend "found insufficient source XCVB version ~A" source-version))
-            (unless (xcvb-driver::build-xcvb *xcvb-program*)
+            (unless (build-xcvb *xcvb-program*)
               (abend "failed to build XCVB ~A" source-version))
             (exit
              (run-program/ (cons *xcvb-program* *arguments*)
