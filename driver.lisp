@@ -13,7 +13,8 @@
 
 (cl:in-package :cl-user)
 
-(declaim (optimize (speed 2) (space 2) (safety 3) (debug 3) (compilation-speed 0)))
+(declaim (optimize (speed 2) (space 2) (safety 3) (debug 3) (compilation-speed 0))
+         #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note))
 
 (defpackage :xcvb-driver
   (:nicknames :xcvbd :xd)
@@ -847,7 +848,11 @@ This is designed to abstract away the implementation specific quit forms."
   #+genera (error "You probably don't want to Halt the Machine.")
   #+lispworks (lispworks:quit :status code :confirm nil :return nil :ignore-errors-p t)
   #+mcl (ccl:quit) ;; or should we use FFI to call libc's exit(3) ?
-  #+sbcl (sb-ext:quit :unix-status code :recklessly-p (not finish-output))
+  #+sbcl #.(let ((exit (find-symbol* :exit :sb-ext nil))
+                 (quit (find-symbol* :quit :sb-ext nil)))
+             (cond
+               (exit `(,exit :code code :abort (not finish-output)))
+               (quit `(,quit :unix-status code :recklessly-p (not finish-output)))))
   #-(or abcl allegro clisp clozure cmu ecl gcl genera lispworks mcl sbcl scl xcl)
   (error "xcvb driver: Quitting not implemented"))
 
