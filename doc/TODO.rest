@@ -84,6 +84,9 @@ Immediate TODO [V1]
 
 These are the very next steps to be taken:
 
+  * Setup: read xcvb-driver, asdf and provided setup files when extracting the features...
+    This brings some circularity issues to the foreground. Ouch.
+
   * File Encoding:
 
     + Port asdf's :encoding support and asdf-encodings to XCVB.

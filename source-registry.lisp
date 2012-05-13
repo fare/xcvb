@@ -62,10 +62,9 @@ Initially populated with all build.xcvb files from the search path.")
                   :conflicts (remove-if #'same-truename-p (brc-pathnames build)))))))))
 
 (defun compute-xcvb-source-registry (&optional parameter)
-  (let ((*default-pathname-defaults* *xcvb-lisp-directory*))
-    ;; Check to see that if this envar is defined to a non-empty
-    ;; string, ensure that it is an absolute path to, not a relative
-    ;; one.
+  (let ((*default-pathname-defaults* (or *xcvb-lisp-directory* *default-pathname-defaults*)))
+    ;; Check to see that if this envar is defined to a non-empty string
+    ;; ensure that it is an absolute path to, not a relative one.
     (handler-case
         (asdf::flatten-source-registry parameter)
       (error (c)

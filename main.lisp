@@ -493,6 +493,6 @@ command gives specific help on that command.")
   (exit code))
 
 (defun prepare-image (&key version directory)
-  (setf *xcvb-version* version
-        *xcvb-lisp-directory* directory)
+  (setf *xcvb-version* (or version (get-xcvb-version))
+        *xcvb-lisp-directory* (ensure-directory-pathname (or directory (get-xcvb-directory))))
   (asdf:clear-configuration))

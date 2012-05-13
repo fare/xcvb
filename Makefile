@@ -103,7 +103,7 @@ ${INSTALL_BIN}/xcvb: ${XCVB_OBJECT_CACHE}/xcvb/xcvb
 
 XCVB_INIT :=	--final "(xcvb::prepare-image \
 				:version \#.(xcvbd::get-xcvb-version) \
-				:directory (pathname \"${INSTALL_XCVB}/\"))" \
+				:directory \"${INSTALL_XCVB}/\")" \
 		--init '(apply (function xcvb::main) cl-launch::*arguments*)'
 
 xcvb-bootstrapped-install:
@@ -146,6 +146,7 @@ xcvb-using-nemk: ${XCVB_OBJECT_CACHE}/_ne/xcvb-tmp.image
 
 ## Installing Lisp files needed at runtime
 lisp-install:
+	mkdir -p ${INSTALL_XCVB}/
 	rsync -av ${LISP_INSTALL_FILES} ${INSTALL_XCVB}/
 
 ## Janitoring
