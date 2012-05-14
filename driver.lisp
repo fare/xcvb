@@ -105,7 +105,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *implementation-settings*
     `(;; These should ensure all tail calls are optimized, says jsnell:
-      #+sbcl (sb-c::merge-tail-calls 3) #+sbcl (sb-c::insert-debug-catch 0)
+      #+sbcl (sb-c::insert-debug-catch 0) ;; (sb-c::merge-tail-calls 3) is redundant and deprecated
       #+(or cmu scl) (ext:inhibit-warnings 3)))
   (defvar *optimization-settings*
     `((speed 2) (space 2) (safety 3) (debug 2) (compilation-speed 0)
