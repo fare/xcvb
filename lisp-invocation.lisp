@@ -1,5 +1,5 @@
 ;;; Lisp implementations
-#+xcvb (module (:build-depends-on ()))
+#+xcvb (module (:build-depends-on ("/asdf" "/xcvb/driver")))
 
 (defpackage :lisp-invocation
   (:use :cl :xcvb-driver)

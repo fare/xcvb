@@ -11,13 +11,14 @@
 
 (in-package :asdf)
 
-(defsystem :xcvb-bootstrap
-  :author ("Francois-Rene Rideau" "Peter Keller")
+(defsystem :lisp-invocation
+  :author ("Francois-Rene Rideau")
   :maintainer "Francois-Rene Rideau"
   :licence "MIT"
-  :description "Bootstrapping an XCVB binary from ASDF"
-  :long-description "This system allows you to create an XCVB binary
-using an automatically detected supported host implementation and
-install it in a known location, from an arbitrary current Lisp implementation."
-  :depends-on (:lisp-invocation)
-  :components ((:file "bootstrap")))
+  :description "Invoking Lisp subprocesses from Lisp"
+  :long-description "lisp-invocation allows you to portably execute Lisp code
+as subprocesses of a current Lisp process.
+All known command-line accessible Common Lisp implementations are supported."
+    :depends-on (:asdf :xcvb-driver)
+    :components
+    ((:file "lisp-invocation")))
