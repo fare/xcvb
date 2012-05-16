@@ -1598,6 +1598,16 @@ by /bin/sh in POSIX"
   (declare (ignorable x))
   (slurp-stream-forms stream))
 
+(define-condition subprocess-error (error)
+  ((code :initform nil :initarg :error-code :reader subprocess-error-code)
+   (command :initform nil :initarg :command :reader subprocess-error-command)
+   (process :initform nil :initarg :process :reader subprocess-error-process))
+  (:report (lambda (condition stream)
+             (format stream "Subprocess~@[ ~S~]~@[ run with command ~S~] exited with error~@[ code ~D~]"
+                     (subprocess-error-process condition)
+                     (subprocess-error-command condition)
+                     (subprocess-error-code condition)))))
+
 (defun run-program/ (command
                      &rest keys
                      &key output ignore-error-status force-shell
@@ -1708,14 +1718,13 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
              #+ecl (nth-value 1 (ext:external-process-status process))
              #+lispworks (system:pid-exit-status process :wait t)
              #+sbcl (sb-ext:process-exit-code process))
-           (check-result (exit-code)
+           (check-result (exit-code process)
              #+clisp
              (setf exit-code
                    (typecase exit-code (integer exit-code) (null 0) (t -1)))
              (unless (or ignore-error-status
                          (equal exit-code 0))
-               (error "Process ~S exited with error code ~D" command exit-code))
-             exit-code)
+               (error 'subprocess-error :command command :code exit-code :process process)))
            (use-run-program ()
              #-(or abcl cormanlisp gcl (and lispworks os-windows) mcl xcl)
              (let ((pipe (and output t)))
@@ -1725,12 +1734,13 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
                      (unwind-protect
                           (slurp-input-stream output stream)
                        (when stream (close stream))
-                       (check-result (process-result process)))
+                       (check-result (process-result process) process))
                      (unwind-protect
                           (check-result
                            #+(or allegro lispworks) ; when not capturing, returns the exit code!
                            process
-                           #-(or allegro lispworks) (process-result process)))))))
+                           #-(or allegro lispworks) (process-result process)
+                           process))))))
            (system-command (command)
              (etypecase command
                (string (if (os-windows-p) (format nil "cmd /c ~A" command) command))
@@ -1753,7 +1763,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
               command :show-cmd nil :prefix "" :output-stream nil)
              #+mcl (ccl::with-cstrs ((%command command)) (_system %command)))
            (call-system (command-string)
-             (check-result (system command-string)))
+             (check-result (system command-string) nil))
            (use-system ()
              (if output
                  (with-temporary-file (:pathname tmp :direction :output)
