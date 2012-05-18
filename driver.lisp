@@ -60,6 +60,8 @@
 
    ;;; run-program/foo
    #:run-program/
+   #:subprocess-error
+   #:subprocess-error-code #:subprocess-error-command #:subprocess-error-process
    ;; Obsolete:
    #:run-program/process-output-stream
    #:run-program/read-output-lines #:run-program/read-output-string

@@ -84,6 +84,15 @@ Immediate TODO [V1]
 
 These are the very next steps to be taken:
 
+  * Distribution: after discussing with Xach yesterday, it appears
+    we will best distribute two tarballs:
+    one with just naked xcvb, no .git data, but
+    a file specifying the version as extracted from git;
+    the other, with all dependencies and git history.
+    This will allow for both usage patterns:
+    people who want a latest release without dependencies (i.e. quicklisp) and
+    people who want all the dependencies self-contained (for reproducibility).
+
   * Setup: read xcvb-driver, asdf and provided setup files when extracting the features...
     This brings some circularity issues to the foreground. Ouch.
 
