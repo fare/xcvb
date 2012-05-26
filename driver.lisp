@@ -1601,7 +1601,7 @@ by /bin/sh in POSIX"
   (slurp-stream-forms stream))
 
 (define-condition subprocess-error (error)
-  ((code :initform nil :initarg :error-code :reader subprocess-error-code)
+  ((code :initform nil :initarg :code :reader subprocess-error-code)
    (command :initform nil :initarg :command :reader subprocess-error-command)
    (process :initform nil :initarg :process :reader subprocess-error-process))
   (:report (lambda (condition stream)
