@@ -45,6 +45,7 @@ DEPENDENCIES_SUPPORTING_XCVB := \
 	GIT git://common-lisp.net/users/frideau/fare-matcher.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-mop.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-memoization.git ; \
+	GIT git://common-lisp.net/projects/qitab/inferior-shell.git ; \
 	GIT git://common-lisp.net/users/frideau/lambda-reader.git ; \
 	GIT git://gitorious.org/libfixposix/libfixposix.git ; \
 	GIT git://common-lisp.net/projects/qitab/poiu.git ; \
