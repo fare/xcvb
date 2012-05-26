@@ -11,5 +11,5 @@
   :build-image nil)
  (:executable "xcvb-test"
   :depends-on :build
-  :pre-image-dump "(xcvb::prepare-image #.(xcvbd::get-xcvb-version))"
+  :pre-image-dump "(xcvb::prepare-image :version #.(xd::get-xcvb-version) :directory #.(xd:getenv \"INSTALL_XCVB\"))"
   :entry-point "xcvb-test::main"))

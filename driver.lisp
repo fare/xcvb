@@ -1103,7 +1103,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
 (defparameter *asdf-version-required-for-xcvb* "2.019")
 
 (defun require-asdf ()
-  (require "asdf")
+  (funcall 'require "asdf") ;; work around CLISP annoyance
   (load-asdf :asdf) ;; upgrade early, avoid issues.
   (let ((required *asdf-version-required-for-xcvb*))
     (unless (call :asdf :version-satisfies (call :asdf :asdf-version) required)
@@ -1726,7 +1726,8 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
                    (typecase exit-code (integer exit-code) (null 0) (t -1)))
              (unless (or ignore-error-status
                          (equal exit-code 0))
-               (error 'subprocess-error :command command :code exit-code :process process)))
+               (error 'subprocess-error :command command :code exit-code :process process))
+	     exit-code)
            (use-run-program ()
              #-(or abcl cormanlisp gcl (and lispworks os-windows) mcl xcl)
              (let ((pipe (and output t)))
@@ -1886,6 +1887,8 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
           (assert (not (equal default "xcvb")))
           (xcvb-present-p default)))
       (setf *xcvb-present* nil)))
+
+(declaim (ftype (function (t) string) build-xcvb)) ; avoid warning on forward reference.
 
 (defun create-xcvb-program (&optional (program *xcvb-program*))
   ;; Ugly: May side-effect *xcvb-program* to point to the resolved location of xcvb.

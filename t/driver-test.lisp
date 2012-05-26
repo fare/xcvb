@@ -158,7 +158,7 @@ Testing run-program/
 (defun unix-only-test/run-program/ ()
 
   (is (equal 0 (run-program/ "true")))
-  (signals error (run-program/ "false"))
+  (signals subprocess-error (run-program/ "false"))
   (is (equal 1 (run-program/ "false" :ignore-error-status t)))
 
   (let ((tf (native-namestring (asdf:system-relative-pathname :xcvb "t/test-file"))))
@@ -185,7 +185,7 @@ Testing run-program/
 
     ;; Test that run-program/ signals an error
     ;; with an executable that doesn't return 0
-    (signals error (run-program/ '("/bin/false") :output :lines))
+    (signals subprocess-error (run-program/ '("/bin/false") :output :lines))
 
     ;; Test that we can suppress the error on run-program/
     (is (null (run-program/ '("/bin/false")

@@ -66,7 +66,7 @@ DEPENDENCIES_PATCHED_FOR_XCVB := \
 	XGIT git://common-lisp.net/projects/cffi/cffi.git ; \
 	XGIT git://github.com/froydnj/binascii.git ; \
 	XGIT git://github.com/froydnj/ironclad.git ; \
-	XDARCS http://common-lisp.net/project/babel/darcs/babel/ ; \
+	XGIT git://github.com/edicl/cl-ppcre.git ; \
 	XDARCS http://common-lisp.net/project/closer/repos/closer-mop/ ; \
 	XDARCS http://common-lisp.net/project/editor-hints/darcs/named-readtables/ ; \
 	XDARCS http://common-lisp.net/~loliveira/darcs/trivial-garbage/ ; \
@@ -74,6 +74,8 @@ DEPENDENCIES_PATCHED_FOR_XCVB := \
 	: These are used by the farmer only: ; \
 	XGIT git://common-lisp.net/projects/bordeaux-threads/bordeaux-threads.git ; \
 	XGIT git://gitorious.org/iolib/iolib.git ; \
+	: This is used by xcvb-test: ; \
+	XDARCS http://common-lisp.net/project/babel/darcs/babel/ ; \
 	: This one is not actually used yet: ; \
 	XCVS rucksack :pserver:anonymous:anonymous@common-lisp.net:/project/rucksack/cvsroot
 
@@ -93,7 +95,6 @@ NON_DEPENDENCIES_PATCHED_FOR_XCVB := \
 	XGIT git://common-lisp.net/projects/trivial-backtrace/trivial-backtrace.git ; \
 	XGIT git://github.com/edicl/chunga.git ; \
 	XGIT git://github.com/edicl/cl-fad.git ; \
-	XGIT git://github.com/edicl/cl-ppcre.git ; \
 	XGIT git://github.com/edicl/cl-unicode.git ; \
 	XGIT git://github.com/edicl/cl-who.git ; \
 	XGIT git://github.com/edicl/drakma.git ; \

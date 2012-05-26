@@ -277,9 +277,10 @@
 (defun validate-slave (&key xcvb workspace object-cache implementation-type &allow-other-keys)
   (let ((out
          (run/s
-          xcvb 'slave-builder :build "/xcvb/hello"
-          :lisp-implementation (string-downcase implementation-type)
-          :object-cache object-cache :output-path workspace)))
+          `(,xcvb slave-builder
+		  :build "/xcvb/hello"
+		  :lisp-implementation ,(string-downcase implementation-type)
+		  :object-cache ,object-cache :output-path ,workspace))))
     (is (search "Your desires are my orders" out)
         "Failed to drive a slave ~(~A~) to build hello" implementation-type)))
 
@@ -421,7 +422,6 @@
    "Test a XCVB release directory"
    "Compile a XCVB release directory and run tests on it"
    ignore)
-  (compute-xcvb-dir-variables! keys)
   (dolist (implementation-type +xcvb-lisps+)
     (apply 'validate-release-dir :implementation-type implementation-type keys)))
 

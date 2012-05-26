@@ -93,6 +93,8 @@ These are the very next steps to be taken:
     people who want a latest release without dependencies (i.e. quicklisp) and
     people who want all the dependencies self-contained (for reproducibility).
 
+  * Fix dependency management so it all happens in one place, preferrably under Lisp control
+
   * Setup: read xcvb-driver, asdf and provided setup files when extracting the features...
     This brings some circularity issues to the foreground. Ouch.
 

@@ -65,11 +65,15 @@ of easy shell characters (that do not require quoting)."
       (let ((dependencies (get-xcvb-dependencies (asdf:system-source-directory :xcvb))))
         (loop :for (nil d) :in dependencies
           :for dep = (basename d ".git")
-          :for dir = (if (equal dep "libfixposix")
-                         (asdf:system-relative-pathname "iolib" "../../libfixposix/")
-                         (asdf:system-source-directory dep)) :do
+          :for dir = (cond
+		       ((equal dep "libfixposix")
+			(asdf:system-relative-pathname "iolib" "../../libfixposix/"))
+		       ((equal dep "iolib")
+			(asdf:system-relative-pathname "iolib" "../"))
+		       (t
+			(asdf:system-source-directory dep))) :do
           (r dir (subpathname release-deps dep :type :directory)))))
-    (run `(,(or (getenv "MAKE") "make") "-C" release-dir
+    (run `(,(or (getenv "MAKE") "make") "-C" ,release-dir
 	   "-f" "xcvb/doc/Makefile.release" "prepare-release"))))
 
 (defun make-release-tarballs (&rest keys)
@@ -79,7 +83,7 @@ of easy shell characters (that do not require quoting)."
 (defun %make-release-tarballs (&key release-dir xcvb-dir &allow-other-keys)
   (nest
     (with-current-directory (xcvb-dir))
-    (progn
+    (let (asdf::*source-registry* asdf::*source-registry-parameter*)
       (asdf:initialize-source-registry xcvb-dir)
       (asdf:clear-system :xcvb))
     (let* ((version (xcvb-driver::get-xcvb-version-from-git))

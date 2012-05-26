@@ -46,7 +46,7 @@ XCVB_MK := ${XCVB_WORKSPACE}/xcvb/hello/xcvb.mk
 ${XCVB_MK}: force
 	xcvb make-makefile \
 	     --build /xcvb/hello/hello \
-	     --lisp-implementation ${LISP} \
+	     --lisp-implementation ${LISP}
 
 # The PARALLELIZE trick allows the user to disable or tweak build parallelism with
 # make PARALLELIZE= or make PARALLELIZE=-j8 or make PARALLELIZE=-l4
