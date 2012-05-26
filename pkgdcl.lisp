@@ -15,7 +15,7 @@
   (:use :closer-common-lisp
         :xcvb-driver :command-line-arguments :asdf :lisp-invocation
         :fare-matcher :fare-utils :interface :pure :fare-mop
-        :fare-memoization
+        :fare-memoization :inferior-shell
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
   (:shadowing-import-from :asdf

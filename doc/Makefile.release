@@ -48,7 +48,12 @@ DEPENDENCIES_SUPPORTING_XCVB := \
 	GIT git://common-lisp.net/users/frideau/lambda-reader.git ; \
 	GIT git://gitorious.org/libfixposix/libfixposix.git ; \
 	GIT git://common-lisp.net/projects/qitab/poiu.git ; \
-	GIT git://common-lisp.net/projects/xcvb/quux-iolib.git
+	GIT git://common-lisp.net/projects/xcvb/quux-iolib.git ;
+
+DEPENDENCIES_STILL_USING_ASDF := \
+	: These are used by xcvb-test: ; \
+	DARCS http://dwim.hu/darcs/hu.dwim.asdf/ ; \
+	XDARCS http://dwim.hu/darcs/hu.dwim.stefil/ ; \
 
 # Dependencies patched to run with XCVB
 # Their XCVB repo is under git://common-lisp.net/projects/xcvb/FOO
@@ -73,6 +78,7 @@ DEPENDENCIES_PATCHED_FOR_XCVB := \
 
 DEPENDENCIES := \
 	${DEPENDENCIES_SUPPORTING_XCVB} ; \
+	${DEPENDENCIES_STILL_USING_ASDF} ; \
 	${DEPENDENCIES_PATCHED_FOR_XCVB}
 
 # These are NOT dependencies of XCVB, but have been patched to compile with XCVB.
@@ -97,7 +103,6 @@ NON_DEPENDENCIES_PATCHED_FOR_XCVB := \
 	XSVN usocket svn://common-lisp.net/project/usocket/svn/usocket/trunk ; \
 	XDARCS http://common-lisp.net/project/iterate/darcs/iterate/ ; \
 	XDARCS http://www.common-lisp.net/project/closer/darcs/lw-compat/ ; \
-	XDARCS http://dwim.hu/darcs/hu.dwim.stefil/ ; \
 	XTAR rfc2388 http://common-lisp.net/project/rfc2388/rfc2388_latest.tar.gz ; \
 	XTAR split-sequence http://ftp.linux.org.uk/pub/lisp/experimental/cclan/split-sequence.tar.gz ; \
 	XTAR trivial-ldap http://homepage.mac.com/ignavusinfo/trivial-ldap/trivial-ldap-0.92.tar.gz ; \

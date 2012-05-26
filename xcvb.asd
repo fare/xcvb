@@ -53,6 +53,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :asdf-dependency-grovel
                  :fare-matcher :fare-quasiquote-readtable
                  :ironclad :binascii :babel
+		 :inferior-shell
                  #+xcvb-farmer :quux-iolib
                  #-clisp :rucksack)
     :components

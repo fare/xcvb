@@ -12,7 +12,7 @@
 ;;; Helpers
 
 (defun run-make (dir target &rest keys)
-  (apply 'run-cmd "make" "-C" dir target (make-environment keys)))
+  (run `("make" "-C" ,dir ,target ,@(make-environment keys))))
 
 (defun normalize-environment-var (key)
   (substitute #\_ #\- (string-upcase key)))
@@ -55,8 +55,7 @@
 
 (defun extract-makefile-configuration (&rest keys &key xcvb-dir &allow-other-keys)
   (loop
-    :for line :in (apply 'run-cmd/lines "make" "-C" xcvb-dir "show-config"
-                         (make-environment keys))
+    :for line :in (run/lines `("make" "-C" ,xcvb-dir "show-config" ,@(make-environment keys)))
     :for pos = (position #\= line)
     :for name = (subseq line 0 pos)
     :for value = (cond
@@ -154,7 +153,7 @@
                        :finally (return cl-user::good))))))
 
 (defun validate-asdf-setup (&rest keys)
-  (apply 'run-cmd (apply 'validate-asdf-setup-command keys)))
+  (run (apply 'validate-asdf-setup-command keys)))
 
 (defun lisp-long-name (impl)
   (ecase impl
@@ -164,7 +163,7 @@
     ((:clisp) "CLISP")))
 
 (defun validate-xcvb-version (&key xcvb implementation-type &allow-other-keys)
-  (let ((lines (run-cmd/lines xcvb 'version)))
+  (let ((lines (run/lines `(,xcvb version))))
     (is (string-prefix-p "XCVB version " (first lines)))
     (is (string-prefix-p (strcat "built on " (lisp-long-name implementation-type))
                          (second lines)))))
@@ -172,9 +171,7 @@
 (defun validate-xcvb-ssr (&rest keys &key xcvb xcvb-dir source-registry &allow-other-keys)
   ;; preconditions: XCVB built from DIR into WORKSPACE using ENV
   ;; postconditions: xcvb ssr working
-  (let ((ssr (run-cmd/string
-              xcvb 'ssr :source-registry
-              (format nil "~A//:~@[~A~]" xcvb-dir source-registry))))
+  (let ((ssr (run/s `(,xcvb ssr :source-registry (,xcvb-dir "//:" ,source-registry)))))
     (unless (cl-ppcre:scan "\\(:build \"/xcvb\" :in-file \".*/build.xcvb\"\\)" ssr)
       (DBG :vxs xcvb keys ssr)
       (sleep 1000000))
@@ -206,7 +203,7 @@
 
 (defun validate-hello (&key install-bin &allow-other-keys)
   (is (equal '("hello, world")
-             (run-cmd/lines (subpathname install-bin "hello") "-t"))
+             (run/lines `(,(subpathname install-bin "hello") "-t")))
       "hello not working"))
 
 (defun ensure-file-deleted (file)
@@ -242,8 +239,7 @@
     (ensure-directories-exist test-dir)
     (rsync "-a" (subpathname xcvb-dir "examples/a2x/") test-dir)
     (apply 'validate-xcvb-ssr :source-registry source-registry keys)
-    (run-cmd xcvb 'rmx :build "/xcvb/test/a2x"
-             :verbosity 9 :source-registry source-registry)
+    (run `(,xcvb rmx :build "/xcvb/test/a2x" :verbosity 9 :source-registry ,source-registry))
     (is (not (probe-file* (subpathname test-dir "build.xcvb")))
         "xcvb rmx failed to remove build.xcvb")
     (dolist (l (is (directory (merge-pathnames* #p"*.lisp" test-dir))))
@@ -255,8 +251,7 @@
          (source-registry (format nil "~A//:~A" test-dir source-registry)))
     (ensure-directories-exist test-dir)
     (rsync "-a" (subpathname xcvb-dir "examples/a2x/") test-dir)
-    (run-cmd xcvb 'a2x :system "a2x-test" :name "/xcvb/test/a2x"
-             :source-registry source-registry)
+    (run `(,xcvb a2x :system "a2x-test" :name "/xcvb/test/a2x" :source-registry ,source-registry))
     (is (probe-file* (subpathname test-dir "build.xcvb"))
       "xcvb a2x failed to create build.xcvb")
     (dolist (l (is (directory (merge-pathnames* #p"*.lisp" test-dir))))
@@ -267,10 +262,9 @@
 (defun validate-master (&key xcvb workspace object-cache source-registry implementation-type
                         &allow-other-keys)
   (let* ((driver (is (first
-                      (run-cmd/lines
-                       xcvb 'find-module :name "/xcvb/driver" :short))))
+                      (run/lines `(,xcvb find-module :name "/xcvb/driver" :short)))))
          (out
-          (apply 'run-cmd/string
+          (run/s
            (xcvb::lisp-invocation-arglist
             :implementation-type implementation-type :lisp-path nil :load driver
             :eval (format nil "'(#.(xcvb-driver:bnl \"xcvb/hello\" ~
@@ -282,7 +276,7 @@
 
 (defun validate-slave (&key xcvb workspace object-cache implementation-type &allow-other-keys)
   (let ((out
-         (run-cmd/string
+         (run/s
           xcvb 'slave-builder :build "/xcvb/hello"
           :lisp-implementation (string-downcase implementation-type)
           :object-cache object-cache :output-path workspace)))
@@ -291,7 +285,7 @@
 
 (defun validate-bridge (&key object-cache implementation-type &allow-other-keys)
   (let ((out
-         (run-program/
+         (run/s
           (xcvb::lisp-invocation-arglist
            :implementation-type implementation-type
            :eval (format nil "'(#.(require ~S)~
@@ -301,8 +295,7 @@
                    #.(xcvb-hello:hello :name ~S :traditional t)#.~A)"
                          "asdf" object-cache "Sub-XCVB TeStEr"
                          ;; what about :output-path??? Something based on workspace?
-                         (xcvb::quit-form :implementation-type implementation-type)))
-          :output :string)))
+                         (xcvb::quit-form :implementation-type implementation-type))))))
     (is (search "hello, sub-xcvb tester" out)
         "Failed to build hello via the ASDF-XCVB bridge using ~(~A~)" implementation-type)))
 

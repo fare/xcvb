@@ -442,19 +442,8 @@ command gives specific help on that command.")
   (setf *print-pretty* nil
         *print-readably* nil))
 
-(defun cmdize/1 (x)
-  (with-safe-io-syntax ()
-    (typecase x
-      (character (format nil "-~A" x))
-      (keyword (format nil "--~(~A~)" x))
-      (symbol (string-downcase x))
-      (string x)
-      (pathname (native-namestring x))
-      (list (write-to-string x))
-      (t (princ-to-string x)))))
-
 (defun cmdize* (args)
-  (mapcar #'cmdize/1 args))
+  (mapcar #'token-string args))
 
 (defun cmdize (&rest args)
   (cmdize* args))

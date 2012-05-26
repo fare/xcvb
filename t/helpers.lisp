@@ -4,15 +4,6 @@
 
 (declaim (optimize (debug 3) (safety 3)))
 
-(defun run-cmd (&rest args)
-  (run-program/ (cmdize* args)))
-
-(defun run-cmd/string (&rest args)
-  (run-program/ (cmdize* args) :output :string))
-
-(defun run-cmd/lines (&rest args)
-  (run-program/ (cmdize* args) :output :lines))
-
 (defun rm-rfv (x)
   (let* ((p (pathname x))
          (d (pathname-directory p))
@@ -29,7 +20,7 @@
      :ignore-error-status t)))
 
 (defun rsync (&rest args)
-  (apply 'run-cmd "rsync" args))
+  (run `("rsync" ,@args)))
 
 (defvar *driver* nil
   "path to the driver")

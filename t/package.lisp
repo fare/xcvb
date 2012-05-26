@@ -5,7 +5,7 @@
 
 (defpackage #:xcvb-test
   (:use :hu.dwim.stefil :xcvb :xcvb-driver :closer-common-lisp
-        :fare-utils :xcvb-driver-test)
+        :fare-utils :xcvb-driver-test :inferior-shell)
   (:shadowing-import-from :asdf
    #:subpathname)
   (:import-from :asdf
