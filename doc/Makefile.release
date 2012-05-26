@@ -131,6 +131,8 @@ install-source: install-cl-launch
 	mkdir -p ${LISP_SOURCE}/xcvb ${LISP_SYSTEMS} ; \
 	GIT () { x=$$(basename $$1 .git) ; \
 	  rsync -aC --exclude _darcs --exclude .git dependencies/$$x ${LISP_SOURCE}/ ; } ; \
+	DARCS () { x=$$(basename $$1) ; \
+	  rsync -aC --exclude _darcs --exclude _darcs dependencies/$$x ${LISP_SOURCE}/ ; } ; \
 	XGIT () { x=$$(basename $$1 .git) ; \
 	  rsync -aC --exclude _darcs --exclude .git dependencies/$$x ${LISP_SOURCE}/ ; } ; \
 	XDARCS () { XGIT "$$1" ; } ; XCVS () { XGIT "$$1" ; } ; XSVN () { XGIT "$$1" ; } ; \
@@ -150,6 +152,9 @@ checkout:
 	  url=git://common-lisp.net/projects/xcvb/$$x.git ; \
 	  if [ -d $$x ] ; then echo "Already got $$x" ; \
 	  else git clone $$url ; ( cd $$x ; git checkout xcvb ) ; fi } ; \
+	DARCS () { x=$$(basename $$1) ; url=$$1 ; \
+	  if [ -d $$x ] ; then echo "Already got $$x" ; \
+	  else darcs get $$url ; fi } ; \
 	XDARCS () { XGIT "$$1" ; } ; XCVS () { XGIT "$$1" ; } ; XSVN () { XGIT "$$1" ; } ; \
 	set -e ; \
 	GIT git://common-lisp.net/projects/xcvb/xcvb.git ; \
@@ -167,6 +172,8 @@ update:
 		cd $$x ; git pull origin master:master); } ; \
 	XGIT () { (x=$$(basename $$1 .git) ; echo -n "Updating $$x... " ; \
 		cd $$x ; git pull origin xcvb:xcvb); } ; \
+	DARCS () { (x=$$(basename $$1) ; echo -n "Updating $$x... " ; \
+		cd $$x ; darcs pull -a); } ; \
 	XDARCS () { XGIT "$$1" ; } ; XCVS () { XGIT "$$1" ; } ; XSVN () { XGIT "$$1" ; } ; \
 	cd ../dependencies ; ${DEPENDENCIES}
 
@@ -177,6 +184,8 @@ reset:
 		cd $$x ; git reset --hard ; git checkout master ; git clean -fd); } ; \
 	XGIT () { (x=$$(basename $$1 .git) ; echo -n "Resetting $$x... " ; \
 		cd $$x ; git reset --hard ; git checkout xcvb ; git clean -fd); } ; \
+	DARCS () { (x=$$(basename $$1) ; echo -n "Resetting $$x... " ; \
+		cd $$x ; darcs revert -a); } ; \
 	XCVS () { XGIT "$$1" ; } ; XDARCS () { XGIT "$$1" ; } ; XSVN () { XGIT "$$1" ; } ; \
 	cd ../dependencies ; ${DEPENDENCIES}
 
