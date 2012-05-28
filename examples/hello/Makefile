@@ -19,6 +19,9 @@ all: hello
 XCVB_ROOT := $(shell cd ../.. ; /bin/pwd)
 #May also work: XCVB_ROOT := $(shell xcvb ssp | grep '^ (:BUILD "/xcvb") ' | cut -d'"' -f4)
 include ${XCVB_ROOT}/configure.mk
+export XCVB_CACHE
+export XCVB_OBJECT_CACHE := ${XCVB_WORKSPACE}/obj
+export XCVB_WORKSPACE
 
 # Autodetect the CL_SOURCE_REGISTRY for the example.
 # IN YOUR PROJECT,
@@ -46,6 +49,7 @@ XCVB_MK := ${XCVB_WORKSPACE}/xcvb/hello/xcvb.mk
 ${XCVB_MK}: force
 	xcvb make-makefile \
 	     --build /xcvb/hello/hello \
+	     --output-path $@ \
 	     --lisp-implementation ${LISP}
 
 # The PARALLELIZE trick allows the user to disable or tweak build parallelism with
@@ -56,6 +60,8 @@ PARALLEL := $(if $(findstring -,${PARALLELIZE}),--parallel)
 
 hello-using-mk: ${XCVB_MK}
 	${MAKE} -f ${XCVB_MK} ${PARALLELIZE} || XCVB_DEBUGGING=t ${MAKE} -f ${XCVB_MK}
+	mkdir -p ${XCVB_WORKSPACE}/bin
+	cp ${XCVB_OBJECT_CACHE}/xcvb/hello/hello ${EXE}
 
 hello: hello-using-mk
 

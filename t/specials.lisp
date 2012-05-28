@@ -8,7 +8,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
 
 ;; These are missing for the following reason:
-;; :abcl :xcl are missing create-image
+;; :abcl :xcl are missing create-image (though abcl has abcl-jar)
 ;; :gcl (gclcvs from debian) has compiler bugs and is not even able to compile driver.lisp
 ;; :lispworks and :allegro work, but
 ;; being proprietary are not part of the regular testing regime
@@ -21,7 +21,7 @@ spawning a new process for each build step.")
   "Lisp implementations that can be targetted by the farmer backend,
 forking processes to share state between build steps.")
 
-(defparameter +all-target-lisps+ '(:clisp :ccl :sbcl :scl :ecl :cmucl :abcl :allegro)
+(defparameter +all-target-lisps+ '(:ccl :clisp :sbcl :scl :ecl :cmucl :abcl :allegro :lispworks)
   "Lisp implementations that can be targetted by the simple backend,
 spawning a new process for each build step.")
 

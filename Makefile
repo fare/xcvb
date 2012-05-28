@@ -38,6 +38,7 @@ endif
 export INSTALL_XCVB
 export XCVB_CACHE
 export XCVB_OBJECT_CACHE := ${XCVB_WORKSPACE}/obj
+export XCVB_WORKSPACE
 
 LISP_SOURCES := $(wildcard *.lisp */*.lisp *.asd */*.asd)
 LISP_INSTALL_FILES := build.xcvb *.asd *.lisp
