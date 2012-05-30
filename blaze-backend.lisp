@@ -226,6 +226,7 @@
   (format stream "~%"))
 
 (defmethod vp-namestring :around ((env blaze-traversal) vp)
+  (declare (ignorable env vp))
   (let ((namestring (call-next-method)))
     namestring))
 

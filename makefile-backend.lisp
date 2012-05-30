@@ -4,7 +4,7 @@
    :maintainer "Francois-Rene Rideau"
    ;; :run-depends-on ("string-escape")
    :depends-on ("profiling" "specials" "virtual-pathnames"
-                "static-traversal" "computations"
+                "static-traversal" "computations" "extract-target-properties"
                 "external-commands" "target-lisp-commands" "commands")))
 
 (in-package :xcvb)

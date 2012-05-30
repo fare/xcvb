@@ -1229,10 +1229,10 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 ;;; Resuming from an image with proper command-line arguments
 
-(defparameter *arguments* nil
+(defvar *arguments* nil
   "Command-line arguments")
 
-(defparameter *dumped* nil
+(defvar *dumped* nil
   "Is this a dumped image? As a standalone executable?")
 
 (defun raw-command-line-arguments ()
@@ -1250,19 +1250,18 @@ Entry point for XCVB-DRIVER when used by XCVB"
   #-(or abcl allegro clisp clozure cmu ecl gcl lispworks sbcl scl xcl)
   (error "raw-command-line-arguments not implemented yet"))
 
-(defun command-line-arguments (&optional (raw (raw-command-line-arguments)))
+(defun command-line-arguments (&optional (arguments (raw-command-line-arguments)))
   "Extract user arguments from command-line invocation of current process.
 Assume the calling conventions of an XCVB-generated script
 if we are not called from a directly executable image dumped by XCVB."
-  (let* (#-abcl
-         (cooked
-	  #+(or sbcl allegro) raw
-	  #-(or sbcl allegro)
+  #+abcl arguments
+  #-abcl
+  (let* (#-(or sbcl allegro)
+	 (arguments
 	  (if (eq *dumped* :executable)
-	      raw
-	      (member "--" raw :test 'string-equal))))
-    #+abcl raw
-    #-abcl (cdr cooked)))
+	      arguments
+	      (member "--" arguments :test 'string-equal))))
+    (rest arguments)))
 
 (defun do-resume (&key (post-image-restart *post-image-restart*) (entry-point *entry-point*))
   (with-standard-io-syntax
@@ -1490,7 +1489,7 @@ for use within a MS Windows command-line, outputing to S."
       :with l = (length x) :with i = 0
       :for i+1 = (1+ i) :while (< i l) :do
       (case (char x i)
-        ((#\") (issue-backslash 1) (issue #\") (incf i))
+        ((#\") (issue-backslash 1) (issue #\") (setf i i+1))
         ((#\\)
          (let* ((j (and (< i+1 l) (position-if-not
                                    (lambda (c) (eql c #\\)) x :start i+1)))
@@ -1503,7 +1502,7 @@ for use within a MS Windows command-line, outputing to S."
              (t
               (issue-backslash n) (setf i j)))))
         (otherwise
-         (issue (char x i)) (incf i))))))
+         (issue (char x i)) (setf i i+1))))))
 
 (defun escape-windows-token (token &optional s)
   "Escape a string TOKEN within double-quotes if needed

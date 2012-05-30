@@ -202,7 +202,7 @@ Initially populated with all build.xcvb files from the search path.")
 
 (defun search-source-registry-asdf (&optional (parameter asdf:*source-registry-parameter*))
   (asdf:initialize-source-registry parameter)
-  (loop :for name :being :the :hash-keys :of asdf::*source-registry* :using (:hash-value v)
+  (loop :for name :being :the :hash-keys :of asdf::*source-registry*
     :for fullname = `(:asdf ,name) :do
     (register-build-named fullname (make-instance 'asdf-grain :name name) :asdf))
   (unless (gethash "asdf" asdf::*source-registry*)

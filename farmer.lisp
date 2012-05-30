@@ -189,7 +189,9 @@ and extra finalization from calling FUN on the world."
                              &key inputs outputs command &allow-other-keys)
   (cond
     ((or (eq :compile-file-directly (first command))
-         (equal '(:fasl "/xcvb/forker") (fullname (first outputs))))
+	 (member (fullname (first outputs))
+		 '((:fasl "/xcvb/forker") (:fasl "/single-threaded-ccl/single-threaded-ccl") )
+		 :test 'equal))
      (call-next-method))
     (t
      (multiple-value-bind (setup commands)
@@ -817,5 +819,7 @@ and extra finalization from calling FUN on the world."
     (xcvb-driver::tweak-implementation) ;; this delays SBCL GC and hides a bug with signals
     (asdf:load-system :xcvb)
     (apply 'handle-global-options keys)
-    (append1f *lisp-setup-dependencies* '(:fasl "/xcvb/forker"))
+    (appendf *lisp-setup-dependencies*
+	     `(,@(when (eq *lisp-implementation-type* :ccl) `((:fasl "/single-threaded-ccl/single-threaded-ccl")))
+	       (:fasl "/xcvb/forker")))
     (forker-build (canonicalize-fullname build))))

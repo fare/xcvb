@@ -39,6 +39,8 @@ deterministic separate compilation and enforced locally-declared dependencies."
    (:asdf "binascii")
    (:when (:featurep (:not :clisp))
      (:asdf "rucksack"))
+   (:when (:featurep :clozure)
+     "/single-threaded-ccl")
    (:when (:featurep :sbcl)
      ;; Used by XCVB
      (:require :sb-posix)
