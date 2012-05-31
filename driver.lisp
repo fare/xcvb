@@ -469,7 +469,7 @@ Useful for portably flushing I/O before user input or program exit."
 (defun native-namestring (x)
   "From a CL pathname, a namestring suitable for use by the OS shell"
   (let ((p (pathname x)))
-    #+clozure (ccl:native-translated-namestring p)
+    #+clozure (let ((*default-pathname-defaults* #p"")) (ccl:native-translated-namestring p)) ; see ccl bug 978
     #+(or cmu scl) (ext:unix-namestring p nil)
     #+sbcl (sb-ext:native-namestring p)
     #-(or clozure cmu sbcl scl) (namestring p)))
