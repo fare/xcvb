@@ -64,16 +64,8 @@ ifeq (${LISP_IMPL},sbcl)
     --noinform --no-userinit --no-sysinit --eval '(progn(princ(posix-getenv "SBCL_HOME"))(quit))')
 endif
 
-### Not needed by XCVB anymore since it's fully bootstrapped, but that's how
-### you may automatically dump a setup.lisp that has the same ASDF configuration
-### as cl-launch invoked with the same options (requires cl-launch 2.21 or later).
-setup.lisp:
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} -B print_lisp_setup > $@
-
 xcvb: xcvb-using-xcvb # If broken, fall back to xcvb-using-asdf
 
-# Below you may use either of these setups, or none at all.
-# --setup /xcvb/setup     ## Edit your own or create one from cl-launch with make setup.lisp
 XCVB_MK := ${XCVB_WORKSPACE}/xcvb/xcvb.mk
 MK_XCVB := ${MAKE} -C ${XCVB_WORKSPACE} -f ${XCVB_MK}
 
@@ -127,7 +119,7 @@ xcvb-using-asdf:
 ## The non-enforcing backend
 XCVB_NE_MK := ${XCVB_WORKSPACE}/xcvb/xcvb-ne.mk
 
-${XCVB_NE_MK}: setup.lisp force
+${XCVB_NE_MK}: force
 	xcvb non-enforcing-makefile \
 	     --build /xcvb \
 	     --setup /xcvb/setup \

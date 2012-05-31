@@ -46,7 +46,7 @@
     :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-    :defsystem-depends-on (:asdf :xcvb-driver :xcvb-bootstrap :asdf-condition-control)
+    :defsystem-depends-on (:asdf :xcvb-driver :xcvb-bootstrap :asdf-condition-control asdf-encodings)
     :depends-on (:asdf :xcvb-driver :lambda-reader
                  :fare-utils :fare-mop :fare-memoization
                  :command-line-arguments

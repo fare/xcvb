@@ -22,6 +22,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
   :build-depends-on
   ((:fasl "/xcvb/driver")
    (:asdf "asdf")
+   (:build "asdf-encodings")
    (:build "/cl-launch")
    (:build "/fare-memoization")
    (:asdf "asdf-dependency-grovel")
@@ -80,6 +81,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
   ("xcvb"
    ("xcvb-driver" "driver")
    ("lisp-invocation" "lisp-invocation")
+   ("asdf-condition-control" "asdf-condition-control")
    ("xcvb-bootstrap" "bootstrap")
    ("xcvb-bridge" "bridge"))
   :pre-image t

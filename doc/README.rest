@@ -472,7 +472,6 @@ Documentation
 ``Makefile.release``
 	the ``Makefile`` for XCVB itself is an example
         for how to integrate XCVB in your ``Makefile``.
-        Note that the ``setup.lisp`` complexity is only required if you're using ASDF 1.
 
 ``INSTALL.release``
 	instructions for installing XCVB from the expansion of a release tarball.

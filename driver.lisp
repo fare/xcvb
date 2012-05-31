@@ -427,7 +427,7 @@ NIL: default to *install-data*/common-lisp/, see docs")
 (defvar *xcvb-program* "xcvb"
   "Path to the XCVB binary (a string), OR t if you want to use an in-image XCVB")
 
-(defvar *required-xcvb-version* "0.577"
+(defvar *required-xcvb-version* "0.579"
   "Minimal version of XCVB required for use with this version of the xcvb-driver")
 
 (defvar *source-registry* nil

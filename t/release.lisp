@@ -65,13 +65,14 @@ of easy shell characters (that do not require quoting)."
       (let ((dependencies (get-xcvb-dependencies (asdf:system-source-directory :xcvb))))
         (loop :for (nil d) :in dependencies
           :for dep = (basename d ".git")
-          :for dir = (cond
-		       ((equal dep "libfixposix")
-			(asdf:system-relative-pathname "iolib" "../../libfixposix/"))
-		       ((equal dep "iolib")
-			(asdf:system-relative-pathname "iolib" "../"))
-		       (t
-			(asdf:system-source-directory dep))) :do
+          :for dir = (let ((*read-eval* t)) ;; allow #. in iolib.asd
+		       (cond
+			 ((equal dep "libfixposix")
+			  (asdf:system-relative-pathname "iolib" "../../libfixposix/"))
+			 ((equal dep "iolib")
+			  (asdf:system-relative-pathname "iolib" "../"))
+			 (t
+			  (asdf:system-source-directory dep)))) :do
           (r dir (subpathname release-deps dep :type :directory)))))
     (run `(,(or (getenv "MAKE") "make") "-C" ,release-dir
 	   "-f" "xcvb/doc/Makefile.release" "prepare-release"))))
