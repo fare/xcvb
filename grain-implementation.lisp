@@ -325,6 +325,7 @@ Only currently support :generate and :executable extension form."
    :fullname `(:asdf ,name)))
 
 (defun make-require-grain (&key name)
+  (setf name (string name))
   (make-instance
    'require-grain
    :name name

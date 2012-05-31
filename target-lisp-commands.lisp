@@ -20,7 +20,7 @@
 
 (define-text-for-xcvb-driver-command :require (env name)
   (declare (ignore env))
-  (format nil "(:cl-require ~(~S~))" name))
+  (format nil "(:cl-require ~S)" name))
 
 (define-text-for-xcvb-driver-command :load-asdf (env name &key parallel)
   (declare (ignore env))
