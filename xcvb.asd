@@ -15,7 +15,7 @@
 
 (let ((old-ver (asdf-version)))
   (load-system :asdf)
-  (let ((min "2.20.18")
+  (let ((min "2.21")
 	(ver (asdf-version)))
     (unless (or (version-satisfies old-ver "2.014.8") ; first version to do magic upgrade
 		(equal ver old-ver))
@@ -46,7 +46,7 @@
     :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-    :defsystem-depends-on (:asdf :xcvb-driver :xcvb-bootstrap)
+    :defsystem-depends-on (:asdf :xcvb-driver :xcvb-bootstrap :asdf-condition-control)
     :depends-on (:asdf :xcvb-driver :lambda-reader
                  :fare-utils :fare-mop :fare-memoization
                  :command-line-arguments

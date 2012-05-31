@@ -221,6 +221,7 @@ but before the entry point is called.")
 
 (defvar *uninteresting-load-conditions*
   (append
+   '("Overwriting already existing readtable ~S.") ;; from named-readtables
    #+clisp '(clos::simple-gf-replacing-method-warning))
   "Additional conditions that may be skipped while loading. type symbols, predicates or strings")
 
