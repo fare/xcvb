@@ -93,6 +93,7 @@
    #:format! #:finish-outputs #:quit #:shell-boolean
    #:print-backtrace #:die #:bork #:with-coded-exit
    #:uninteresting-condition-p #:fatal-condition-p
+   #:proclaim-optimization-settings
    #:with-controlled-compiler-conditions #:with-controlled-loader-conditions
    #:with-xcvb-compilation-unit
    #:find-symbol* #:call #:eval-string #:load-string #:load-stream

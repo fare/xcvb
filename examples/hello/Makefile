@@ -81,24 +81,27 @@ xcvb-hello.asd: force
 	xcvb x2a --build /xcvb/hello --build /xcvb/hello/lib --name xcvb-hello
 
 # This builds hello using our non-enforcing Makefile backend
-NE_IMAGE := ${XCVB_WORKSPACE}/hello_ne/lib/images/xcvb-tmp.image
+NE_IMAGE := ${XCVB_OBJECT_CACHE}/xcvb-tmp.image
 hello-using-nemk: ${NE_IMAGE}
 	mkdir -p ${INSTALL_BIN}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --image $< --no-include \
 		--output ${INSTALL_BIN}/hello --dump ${INSTALL_IMAGE}/hello.image \
 		--init '(xcvb-hello::main*)'
 
+XCVB_NE_MK := ${XCVB_WORKSPACE}/hello_ne/xcvb/hello/xcvb-ne.mk
 ${NE_IMAGE}: ${XCVB_NE_MK}
 	${MAKE} -f ${XCVB_NE_MK}
 
-XCVB_NE_MK := ${XCVB_WORKSPACE}/hello_ne/xcvb/hello/xcvb-ne.mk
+
+xcvb-ne-mk: ${XCVB_NE_MK}
 ${XCVB_NE_MK}: force
 	xcvb non-enforcing-makefile \
 	     --setup /asdf/asdf \
 	     --build /xcvb/hello \
 	     --lisp-implementation ${LISP} \
 	     ${PARALLEL} \
-	     --workspace ${XCVB_WORKSPACE}/hello_ne
+	     --workspace ${XCVB_WORKSPACE}/hello_ne \
+	     --output-path $@
 #	     --lisp-binary-path $${$(shell echo ${LISP}|tr '[a-z]' '[A-Z]')}
 
 

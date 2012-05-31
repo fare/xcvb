@@ -7,13 +7,13 @@
   (equal
    "JUST ANOTHER LISP HACKER"
    (first
-    (run-program/
-     (lisp-invocation:lisp-invocation-arglist
-      :implementation-type lisp
-      :eval (format nil "(progn (format t\"~~:@(~~{~~31R~~^ ~~}~~)\"'(595756 9556552524 643802 496307950)) ~A)"
-		    (lisp-invocation:quit-form :code 0 :implementation-type lisp)))
-     :output :lines
-     :ignore-error-status t))))
+    (ignore-errors
+     (run-program/
+      (lisp-invocation:lisp-invocation-arglist
+       :implementation-type lisp
+       :eval (format nil "(progn (format t\"~~:@(~~{~~31R~~^ ~~}~~)\"'(595756 9556552524 643802 496307950)) ~A)"
+		     (lisp-invocation:quit-form :code 0 :implementation-type lisp)))
+      :output :lines)))))
 
 ;; These are the only supported so far -- please add support for more!
 (defparameter +xcvb-lisps+

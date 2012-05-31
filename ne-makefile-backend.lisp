@@ -98,13 +98,14 @@ in a fast way that doesn't enforce dependencies."
             :collect (make-nem-stage env asdf-name build
                                      :previous previous-asdf
                                      :parallel parallel))))
-      (with-open-file (out makefile-path
-                           :direction :output
-                           :if-exists :supersede)
-        (write-makefile-prelude :stream out :lisp-env-var lisp-env-var)
-        (dolist (body (reverse (cons static-rules build-rules)))
-          (princ body out))
-        (write-makefile-conclusion out))))
+    (ensure-directories-exist makefile-path)
+    (with-open-file (out makefile-path
+			 :direction :output
+			 :if-exists :supersede)
+      (write-makefile-prelude :stream out :lisp-env-var lisp-env-var)
+      (dolist (body (reverse (cons static-rules build-rules)))
+	(princ body out))
+      (write-makefile-conclusion out))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; non-enforcing makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;
