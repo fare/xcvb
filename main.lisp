@@ -388,7 +388,7 @@ command gives specific help on that command.")
 (defun main (&rest arguments)
   (setf *arguments* arguments)
   (initialize-environment)
-  (let* ((*package* (find-package :xcvb)))
+  (with-safe-io-syntax (:package :xcvb)
     (main* arguments)))
 
 (defun main* (arguments)

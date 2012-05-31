@@ -105,7 +105,8 @@
   (check-type grain grain))
 
 (defmethod issue-dependency ((env traversal) grain)
-  (log-format-pp 10 "Issuing dependency for ~A" grain)
+  ;; Note: long dependency lists do not mix well with pretty-print.
+  (log-format 10 "Issuing dependency for ~A" grain)
   (setf (gethash grain (issued-dependencies env)) t)
   (push grain (traversed-dependencies-r env)))
 

@@ -601,7 +601,6 @@ ready for I/O. Unless KEEP is specified, delete the file afterwards."
   (with-standard-io-syntax ()
     (let ((*package* (find-package package))
           (*print-readably* nil)
-          (*print-escape* t)
 	  (*read-eval* nil))
       (funcall thunk))))
 

@@ -8,7 +8,8 @@
 (declaim (optimize (speed 1) (safety 3) (compilation-speed 0) (debug 3)))
 
 (defun reduce-xcvb-version (version)
-  (first (asdf:split-string version :separator "-" :max 2)))
+  (subseq version 0
+	  (position-if-not (lambda (x) (or (digit-char-p x) (eql x #\.))) version)))
 
 (defun ensure-required-xcvb-version (required-xcvb-version)
   (when required-xcvb-version
