@@ -99,14 +99,6 @@ XCVB_INIT :=	--final "(xcvb::prepare-image \
 				:directory \"${INSTALL_XCVB}/\")" \
 		--init '(apply (function xcvb::main) cl-launch::*arguments*)'
 
-xcvb-bootstrapped-install:
-	mkdir -p ${INSTALL_BIN}
-	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} --no-include \
-		--image ${XCVB_OBJECT_CACHE}/xcvb.image \
-		--file require-asdf.lisp \
-		$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb) \
-		${XCVB_INIT}
-
 ## If you don't have XCVB, but have a cl-launch with properly ASDF setup in configure.mk,
 ## then you can bootstrap XCVB with the following target:
 xcvb-using-asdf:
@@ -278,7 +270,7 @@ fix-remote-git-tags:
 .PHONY: all install lisp-install tidy clean mrproper \
 	xpdf doc online-doc pull push show-current-revision force \
 	release release-directory release-tarball test-and-release-tarball \
-	xcvb-bootstrapped-install xcvb-asdf-install \
+	xcvb-asdf-install \
 	test fulltest show-config mk \
 	fix-local-git-tags fix-remote-git-tags
 

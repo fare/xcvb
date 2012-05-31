@@ -127,7 +127,7 @@ install-cl-launch:
 install: install-cl-launch
 	mkdir -p ${INSTALL_BIN}
 	${MAKE} ${XSH} -f xcvb.mk.${LISP} ${OPTIONS}
-	${MAKE} -C xcvb xcvb-bootstrapped-install ${OPTIONS}
+	${MAKE} -C xcvb xcvb ${OPTIONS}
 
 install-source: install-cl-launch
 	set -e ; \
