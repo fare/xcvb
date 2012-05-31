@@ -323,7 +323,6 @@ command gives specific help on that command.")
   (when verbosity
     (setf *xcvb-verbosity* verbosity))
   (log-format-pp 9 "xcvb options: ~S" keys)
-  (initialize-xcvb-source-registry source-registry)
   (when lisp-implementation
     (let ((type (find-symbol (string-upcase lisp-implementation) (find-package :keyword))))
       (unless (and type (get-lisp-implementation type))
@@ -335,6 +334,9 @@ command gives specific help on that command.")
     (setf *xcvb-program* xcvb-program))
   (compute-xcvb-cache! cache)
   (compute-xcvb-workspace! workspace)
+  ;; Initialize source-registry after lisp-implementation,
+  ;; so we know what to do with magic require targets on sbcl.
+  (initialize-xcvb-source-registry source-registry)
   (when use-target-lisp
     (flet ((m (x) (mapcar #'(lambda (s) (intern (string-upcase s) :keyword)) x)))
       (setf *target-added-features* (m define-feature))

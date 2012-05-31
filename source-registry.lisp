@@ -77,7 +77,7 @@ Initially populated with all build.xcvb files from the search path.")
     :sb-cltl2
     :sb-concurrency
     :sb-cover
-    :sb-daemon
+    ;;:sb-daemon
     :sb-executable
     :sb-grovel
     :sb-introspect
