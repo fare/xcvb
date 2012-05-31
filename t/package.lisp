@@ -5,7 +5,7 @@
 
 (defpackage #:xcvb-test
   (:use :hu.dwim.stefil :xcvb :xcvb-driver :closer-common-lisp
-        :fare-utils :xcvb-driver-test :inferior-shell)
+        :fare-utils :xcvb-driver-test :inferior-shell :lisp-invocation)
   (:shadowing-import-from :asdf
    #:subpathname)
   (:import-from :asdf
@@ -14,7 +14,7 @@
   (:import-from :alexandria
    #:ensure-list)
   (:shadowing-import-from :xcvb-driver
-   #:with-output)
+   #:with-output #:lisp-present-p)
   (:import-from :xcvb-driver
    #:+xcvb-lisps+)
   (:import-from :xcvb

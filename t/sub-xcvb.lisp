@@ -382,7 +382,8 @@
      "Compile a XCVB checkout and run tests on it" ignore)
   (compute-xcvb-dir-variables! keys)
   (dolist (implementation-type +xcvb-lisps+)
-    (apply 'validate-xcvb-dir :implementation-type implementation-type keys)))
+    (when (lisp-present-p implementation-type)
+      (apply 'validate-xcvb-dir :implementation-type implementation-type keys))))
 
 (defun clean-xcvb-dir (&rest keys &key xcvb-dir &allow-other-keys)
   (apply 'run-make xcvb-dir "clean" keys)
@@ -423,7 +424,8 @@
    "Compile a XCVB release directory and run tests on it"
    ignore)
   (dolist (implementation-type +xcvb-lisps+)
-    (apply 'validate-release-dir :implementation-type implementation-type keys)))
+    (when (lisp-present-p implementation-type)
+      (apply 'validate-release-dir :implementation-type implementation-type keys))))
 
 (defmacro letk1 (keys var val &body body)
   `(let ((,var ,val))

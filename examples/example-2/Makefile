@@ -23,7 +23,7 @@ build-with-asdf:
 
 build-with-xcvb:
 	xcvb make-build \
-		--build "/xcvb/example-2/example-2" \
+		--build "/xcvb/example-2" \
 		--lisp-implementation ${LISP}
 
 clean:

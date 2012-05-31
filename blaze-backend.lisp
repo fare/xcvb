@@ -227,6 +227,7 @@
 
 (defmethod vp-namestring :around ((env blaze-traversal) vp)
   (declare (ignorable env vp))
+  ;; something needs to be done here to convert between pathnames and text? or somewhere else?
   (let ((namestring (call-next-method)))
     namestring))
 
