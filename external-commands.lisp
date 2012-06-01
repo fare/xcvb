@@ -41,10 +41,9 @@ will create the desired content. An atomic rename() will have to be performed af
   tempname)
 
 (defun tempname-target (target)
-  (let* ((path (pathname target))
-         (tempname (namestring
-                    (make-pathname :name (strcat (pathname-name path) "__temp")
-                                   :defaults path))))
+  (let* ((target (pathname target))
+         (tempname (make-pathname :name (strcat (pathname-name target) "__temp")
+                                   :defaults target)))
     (rename-target target tempname)))
 
 (define-simple-dispatcher external-commands-for-computation #'external-commands-for-computation-atom)
@@ -63,7 +62,7 @@ will create the desired content. An atomic rename() will have to be performed af
          (commands (external-commands-for-computation-dispatcher env computation-command)))
     (append commands
 	    (loop :for (target . tempname) :in *renamed-targets*
-		  :collect (list "mv" tempname target)))))
+		  :collect (list "mv" (native-namestring tempname) (native-namestring target))))))
 
 (define-external-commands-for-computation :xcvb-driver-command (env keys &rest commands)
   (list
