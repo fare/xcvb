@@ -312,8 +312,7 @@ so that the system can now be compiled with XCVB."
     (setf base-pathname (guess-base-pathname-for-systems systems)))
   (log-format 6 "Preloading systems")
   (xcvb-driver:with-controlled-compiler-conditions ()
-    (dolist (sys systems-to-preload)
-      (asdf:operate 'asdf:load-op sys)))
+    (map () 'asdf:load-system systems-to-preload))
   (setf systems (mapcar 'asdf::coerce-name systems)
         system (if system (asdf::coerce-name system) (car systems)))
   (log-format 6 "Remove any system possibly used by XCVB itself ~%~
@@ -341,7 +340,8 @@ so that the system can now be compiled with XCVB."
     (let ((asdf-dependency-grovel::*system-base-dir*
            (asdf:apply-output-translations base-pathname))
           (*features* (cons :grovel-dependencies *features*)))
-      (asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system))
+      (with-standard-io-syntax
+	(asdf:oos 'asdf-dependency-grovel:dependency-op simplified-system)))
     (log-format 6 "Adding dependency information to files")
     (let* ((original-asdf-deps
             (mapcar 'asdf::coerce-name
