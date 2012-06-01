@@ -83,10 +83,14 @@ of easy shell characters (that do not require quoting)."
 
 (defun %make-release-tarballs (&key release-dir xcvb-dir &allow-other-keys)
   (nest
+    (with-standard-io-syntax)
     (with-current-directory (xcvb-dir))
     (let (asdf::*source-registry* asdf::*source-registry-parameter*)
-      (asdf:initialize-source-registry xcvb-dir)
-      (asdf:clear-system :xcvb))
+      (asdf:initialize-source-registry
+       `(:source-registry (:tree ,release-dir) :ignore-inherited-configuration))
+      (asdf:clear-system :xcvb)
+      (xcvb::log-format-pp 5 "Making release tarballs for XCVB at: ~A"
+			   (asdf:system-relative-pathname :xcvb "../")))
     (let* ((version (xcvb-driver::get-xcvb-version-from-git))
 	   (version-dir (strcat "xcvb-" version))
 	   (suffix ".tar.bz2")
@@ -100,4 +104,5 @@ of easy shell characters (that do not require quoting)."
       (run `(ln -sf ,bigtarball ("xcvb" ,bigsuffix)))
       (xcvb-driver::make-xcvb-version-file)
       (run `(tar ,@*release-exclude* "-C" ,release-dir --exclude ".git" -hjcf ,tarball "xcvb"))
+      (delete-file (xcvb-driver::xcvb-version-file))
       (run `(ln -sf ,tarball ("xcvb" ,suffix))))))

@@ -46,4 +46,8 @@
 ;;; from a git checkout. It is only consulted in a gitless code checkout.
 ;;; Edit manually at your own risk.
 ~S~%"
-              version))))
+              version))
+    (when (>= (or *xcvb-verbosity* 5) 5)
+      (format *error-output* "~&Saved version ~A in version file ~A~%"
+	      version (truename file)))
+    (values)))
