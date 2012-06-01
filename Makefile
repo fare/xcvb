@@ -215,7 +215,7 @@ export RELEASE_DIR := ${TMP}/xcvb-release
 test-driver: ${XCVB_TEST}
 	xcvb-test driver-tests
 
-release: release-directory release-tarball test-and-release-tarball
+release: release-directory release-tarballs test-and-release-tarballs
 
 release-directory:
 	mkdir -p ${RELEASE_DIR} && \
@@ -223,13 +223,13 @@ release-directory:
 		checkout reset update gc prepare-release && \
 	{ rm -rf "${RELEASE_DIR}/build/" ; \: ;}
 
-release-tarball: xcvb-test
-	xcvb-test eval '(xcvb-test::make-release-tarball :release-dir "${RELEASE_DIR}/")'
+release-tarballs: xcvb-test
+	xcvb-test eval '(xcvb-test::make-release-tarballs :release-dir "${RELEASE_DIR}/")'
 
 test-release-directory: ${XCVB_TEST}
 	${XCVB_TEST} validate-release-dir-all-lisps --release-dir ${RELEASE_DIR} --verbosity 99
 
-test-and-release-tarball: release-tarball test-release-directory
+test-and-release-tarballs: release-tarballs test-release-directory
 	cd ${RELEASE_DIR}/xcvb && \
 	VERSION=$$(git describe --tags) && \
 	cd ${TMP} && \

@@ -79,7 +79,7 @@ of easy shell characters (that do not require quoting)."
 
 (defun make-release-tarballs (&rest keys)
   (compute-release-dir-variables! keys)
-  (apply '%make-release-tarball keys))
+  (apply '%make-release-tarballs keys))
 
 (defun %make-release-tarballs (&key release-dir xcvb-dir &allow-other-keys)
   (nest
