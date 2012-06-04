@@ -54,7 +54,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :fare-matcher :fare-quasiquote-readtable
                  :ironclad :binascii :babel
 		 :inferior-shell
-		 :single-threaded-ccl
+		 #+clozure :single-threaded-ccl
                  #+xcvb-farmer :quux-iolib
                  #-clisp :rucksack)
     :components
