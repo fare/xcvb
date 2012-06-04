@@ -170,11 +170,11 @@ gc:
 	  (echo -n "Packing $$i..." ; cd $$i ; git gc ; git repack -Ad) ; done
 
 update:
-	set -e ; echo -n "Updating xcvb..." ; cd xcvb ; git pull -a ; \
+	set -e ; echo -n "Updating xcvb..." ; cd xcvb ; git pull --rebase ; \
 	GIT () { (x=$$(basename $$1 .git) ; echo -n "Updating $$x... " ; \
-		cd $$x ; git pull origin master:master); } ; \
+		cd $$x ; git pull --rebase origin master:master); } ; \
 	XGIT () { (x=$$(basename $$1 .git) ; echo -n "Updating $$x... " ; \
-		cd $$x ; git pull origin xcvb:xcvb); } ; \
+		cd $$x ; git pull --rebase origin xcvb:xcvb); } ; \
 	DARCS () { (x=$$(basename $$1) ; echo -n "Updating $$x... " ; \
 		cd $$x ; darcs pull -a); } ; \
 	XDARCS () { XGIT "$$1" ; } ; XCVS () { XGIT "$$1" ; } ; XSVN () { XGIT "$$1" ; } ; \
