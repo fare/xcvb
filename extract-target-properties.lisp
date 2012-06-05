@@ -110,7 +110,7 @@
 
 (defun extract-target-properties ()
   (case *lisp-implementation-type*
-    ((:gcl :xcl :lispworks)
+    ((:clisp :gcl :xcl :lispworks)
      (extract-target-properties-via-tmpfile))
     (otherwise
      (extract-target-properties-via-pipe))))
@@ -146,7 +146,10 @@
    ;;#+(and sbcl (or linux cygwin)) '("env" "-u" "SBCL_HOME") ; we now rely on a recent SBCL
    (lisp-invocation-arglist
     :cross-compile t
-    :eval (format nil "(progn (ignore-errors (require \"asdf\")) (setf *print-readably* nil)~
- (handler-bind ((style-warning #'muffle-warning)) (ignore-errors (funcall (find-symbol(string'oos):asdf) (find-symbol(string'load-op):asdf) :asdf)))~
+    :eval (format nil "(progn (setf *load-verbose* nil *print-readably* nil)~
+ (ignore-errors (require \"asdf\"))~
+ (handler-bind ((style-warning #'muffle-warning))~
+   (ignore-errors
+    (funcall (find-symbol(string'oos):asdf) (find-symbol(string'load-op):asdf) :asdf :verbose nil)))~
  ~@[(unless (member :asdf2 *features*) (load ~S))~] ~A (finish-output) ~A)"
                   (get-asdf-pathname) query-string (quit-form :code 0)))))
