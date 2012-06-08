@@ -1634,12 +1634,13 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
   #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl lispworks mcl sbcl scl xcl)
   (error "RUN-PROGRAM/PROCESS-OUTPUT-STREAM not implemented for this Lisp")
   (labels (#+(or allegro clisp clozure cmu ecl (and lispworks os-unix) sbcl scl)
-           (run-program (command &key pipe)
+           (run-program (command &key pipe interactive)
              "runs the specified command (a list of program and arguments).
               If using a pipe, returns two values: process and stream
               If not using a pipe, returns one values: the process result;
               also, inherits the output stream."
              ;; NB: these implementations have unix vs windows set at compile-time.
+	     (assert (not (and pipe interactive)))
              (let* ((wait (not pipe))
                     #-(and clisp os-windows)
                     (command
@@ -1649,8 +1650,12 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
                        #+os-windows
                        (string
                         ;; NB: We do NOT add cmd /c here. You might want to.
-                        #+(or allegro clozure) command
-                        ;; NB: On other implementations, this is utterly bogus
+                        #+allegro command
+			;; On ClozureCL for Windows, we assume you are using
+			;; r15398 or later in 1.9 or later,
+			;; so that bug 858 is fixed http://trac.clozure.com/ccl/ticket/858
+			#+clozure (cons "cmd" (strcat "/c " command))
+                        ;; NB: On other Windows implementations, this is utterly bogus
                         ;; except in the most trivial cases where no quoting is needed.
                         ;; Use at your own risk.
                         #-(or allegro clozure) (list "cmd" "/c" command))
@@ -1658,8 +1663,6 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
                        (list
                         #+(or allegro clozure) (escape-windows-command command)
                         #-(or allegro clozure) command)))
-                    ;; ClozureCL on Windows requires some magic until they fix
-                    ;; http://trac.clozure.com/ccl/ticket/858
                     #+(and clozure os-windows) (command (list command))
                     (process*
                      (multiple-value-list
@@ -1667,11 +1670,11 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
                       (excl:run-shell-command
                        #+os-unix (coerce (cons (first command) command) 'vector)
                        #+os-windows command
-                       :input nil :output (and pipe :stream) :wait wait
+                       :input interactive :output (or (and pipe :stream) interactive) :wait wait
                        #+os-windows :show-window #+os-windows (and pipe :hide))
                       #+clisp
                       (flet ((run (f &rest args)
-                               (apply f `(,@args :input nil :wait ,wait :output
+                               (apply f `(,@args :input ,(when interactive :terminal) :wait ,wait :output
                                           ,(if pipe :stream :terminal)))))
                         (etypecase command
                           #+os-windows (run 'ext:run-shell-command command)
@@ -1680,14 +1683,14 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
                       #+lispworks
                       (system:run-shell-command
                        (cons "/usr/bin/env" command) ; lispworks wants a full path.
-                       :input nil :output (and pipe :stream)
+                       :input interactive :output (or (and pipe :stream) interactive)
                        :wait wait :save-exit-status (and pipe t))
                       #+(or clozure cmu ecl sbcl scl)
                       (#+(or cmu ecl scl) ext:run-program
                        #+clozure ccl:run-program
                        #+sbcl sb-ext:run-program
                        (car command) (cdr command)
-                       :input nil :wait wait
+                       :input interactive :wait wait
                        :output (if pipe :stream t)
                        . #.(append
                             #+(or clozure cmu ecl sbcl scl) '(:error t)
@@ -1730,10 +1733,11 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
 	     exit-code)
            (use-run-program ()
              #-(or abcl cormanlisp gcl (and lispworks os-windows) mcl xcl)
-             (let ((pipe (and output t)))
+             (let* ((interactive (eq output :interactive))
+		    (pipe (and output (not interactive))))
                (multiple-value-bind (process stream)
-                   (run-program command :pipe pipe)
-                 (if output
+                   (run-program command :pipe pipe :interactive interactive)
+                 (if (and output (not interactive))
                      (unwind-protect
                           (slurp-input-stream output stream)
                        (when stream (close stream))
@@ -1752,32 +1756,33 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
            (redirected-system-command (command out)
              (format nil (if (os-unix-p) "exec > ~*~A ; ~2:*~A" "~A > ~A")
                      (system-command command) (native-namestring out)))
-           (system (command)
+           (system (command &key interactive)
              #+(or abcl xcl) (ext:run-shell-command command)
              #+allegro
-             (excl:run-shell-command command :input nil :output nil :wait t)
+             (excl:run-shell-command command :input interactive :output interactive :wait t)
              #+(or clisp clozure cmu (and lispworks os-unix) sbcl scl)
-             (run-program command :pipe nil)
+             (run-program command :pipe nil :interactive interactive)
              #+ecl (ext:system command)
              #+cormanlisp (win32:system command)
              #+gcl (lisp:system command)
              #+(and lispworks os-windows)
              (system:call-system-showing-output
-              command :show-cmd nil :prefix "" :output-stream nil)
+              command :show-cmd interactive :prefix "" :output-stream nil)
              #+mcl (ccl::with-cstrs ((%command command)) (_system %command)))
-           (call-system (command-string)
-             (check-result (system command-string) nil))
+           (call-system (command-string &key interactive)
+             (check-result (system command-string :interactive interactive) nil))
            (use-system ()
-             (if output
-                 (with-temporary-file (:pathname tmp :direction :output)
-                   (call-system (redirected-system-command command tmp))
-                   (with-open-file (stream tmp
-                                           :direction :input
-                                           :if-does-not-exist :error
-                                           :element-type element-type
-                                           :external-format external-format)
-                     (slurp-input-stream output stream)))
-                 (call-system (system-command command)))))
+	     (let ((interactive (eq output :interactive)))
+	       (if (and output (not interactive))
+		   (with-temporary-file (:pathname tmp :direction :output)
+		     (call-system (redirected-system-command command tmp))
+		     (with-open-file (stream tmp
+					     :direction :input
+					     :if-does-not-exist :error
+					     :element-type element-type
+					     :external-format external-format)
+		       (slurp-input-stream output stream)))
+		   (call-system (system-command command) :interactive interactive)))))
     (if (and (not force-shell)
              #+(or clisp ecl) ignore-error-status
              #+(or abcl cormanlisp gcl (and lispworks os-windows) mcl xcl) nil)
