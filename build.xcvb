@@ -25,6 +25,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
    (:build "asdf-encodings")
    (:build "/cl-launch")
    (:build "/fare-memoization")
+   (:build "/lisp-interface-library")
    (:asdf "asdf-dependency-grovel")
    (:asdf "closer-mop")
    (:build "command-line-arguments")
