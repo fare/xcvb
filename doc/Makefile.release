@@ -48,6 +48,7 @@ DEPENDENCIES_SUPPORTING_XCVB := \
 	GIT git://common-lisp.net/projects/qitab/inferior-shell.git ; \
 	GIT git://common-lisp.net/users/frideau/lambda-reader.git ; \
 	GIT git://gitorious.org/libfixposix/libfixposix.git ; \
+	GIT git://github.com/fare/lisp-interface-library.git ; \
 	GIT git://common-lisp.net/projects/qitab/single-threaded-ccl.git ; \
 	GIT git://common-lisp.net/projects/qitab/poiu.git ; \
 	GIT git://common-lisp.net/projects/xcvb/quux-iolib.git
