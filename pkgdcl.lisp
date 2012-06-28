@@ -19,21 +19,15 @@
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
   (:shadowing-import-from :asdf
-   #:absolute-pathname-p
    #:getenv
-   #:merge-pathnames*
-   #:pathname-directory-pathname
-   #:subpathname
-   #:while-collecting
    #:orf)
 
   (:import-from :asdf
+   #:getenv-absolute-pathname
    #:*default-source-registry-exclusions*
    #:*default-source-registries*
-   #:coerce-pathname
    #:pathname-parent-directory-pathname
    #:inherit-source-registry
-   #:probe-file*
    #:os-unix-p #:os-windows-p #:featurep
    #:user-homedir)
 

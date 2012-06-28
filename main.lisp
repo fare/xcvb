@@ -187,7 +187,7 @@ command gives specific help on that command.")
 (defun compute-xcvb-cache (cache)
   (ensure-directory-pathname
    (or cache
-       (getenvp "XCVB_CACHE")
+       (getenv-absolute-pathname "XCVB_CACHE")
        (subpathname (getenvp "XDG_CACHE_HOME") "xcvb/")
        (subpathname (user-homedir) ".cache/xcvb/"))))
 
@@ -197,7 +197,7 @@ command gives specific help on that command.")
 (defun compute-xcvb-workspace (workspace)
   (ensure-directory-pathname
    (or workspace
-       (getenvp "XCVB_WORKSPACE")
+       (getenv-pathname "XCVB_WORKSPACE")
        (subpathname
         (ensure-absolute-pathname *default-pathname-defaults*) "workspace/"))))
 
@@ -207,7 +207,7 @@ command gives specific help on that command.")
 (defun compute-object-cache (object-cache)
   (ensure-directory-pathname
    (or object-cache
-       (getenvp "XCVB_OBJECT_CACHE")
+       (getenv-pathname "XCVB_OBJECT_CACHE")
        (progn
          (assert *cache*)
          (get-target-properties)
@@ -238,7 +238,7 @@ command gives specific help on that command.")
        (setf install-prefix #p"/usr/local/"))
       ((os-windows-p)
        (let ((common-appdata (or #+lispworks (sys:get-folder-path :common-appdata)
-                                 (getenvp "ALLUSERSAPPDATA")
+                                 (getenv-pathname "ALLUSERSAPPDATA")
                                  (subpathname (getenvp "ALLUSERSPROFILE") "Application Data/"))))
          (setf install-prefix (subpathname common-appdata "common-lisp/"))
          (orf install-data (subpathname install-prefix "share/"))
@@ -434,7 +434,7 @@ command gives specific help on that command.")
 
   ;;; Determine the temporary directory
   (labels ((v (x)
-             (let ((s (asdf:getenv x)))
+             (let ((s (getenv x)))
                (and (not (equal s "")) s))))
     (let ((tmp (or (v "TMP") (v "TMPDIR"))))
       (when tmp
