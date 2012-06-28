@@ -27,7 +27,7 @@
    #:*default-source-registries*
    #:pathname-parent-directory-pathname
    #:inherit-source-registry
-   #:os-unix-p #:os-windows-p #:featurep
+   #:os-unix-p #:os-windows-p #:featurep #:subpathname*
    #:user-homedir)
 
   (:shadowing-import-from :xcvb-driver

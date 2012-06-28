@@ -188,7 +188,7 @@ command gives specific help on that command.")
   (ensure-directory-pathname
    (or cache
        (getenv-absolute-directory "XCVB_CACHE")
-       (subpathname (getenv-absolute-directory "XDG_CACHE_HOME") "xcvb/")
+       (subpathname* (getenv-absolute-directory "XDG_CACHE_HOME") "xcvb/")
        (subpathname (user-homedir) ".cache/xcvb/"))))
 
 (defun compute-xcvb-cache! (cache)
@@ -239,7 +239,8 @@ command gives specific help on that command.")
       ((os-windows-p)
        (let ((common-appdata (or #+lispworks (sys:get-folder-path :common-appdata)
                                  (getenv-absolute-directory "ALLUSERSAPPDATA")
-                                 (subpathname (getenv-absolute-directory "ALLUSERSPROFILE") "Application Data/"))))
+                                 (subpathname* (getenv-absolute-directory "ALLUSERSPROFILE") "Application Data/")
+				 (error "Can't locate common-appdata"))))
          (setf install-prefix (subpathname common-appdata "common-lisp/"))
          (orf install-data (subpathname install-prefix "share/"))
          (orf install-library (subpathname install-prefix "lib/"))
