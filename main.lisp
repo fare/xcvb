@@ -187,8 +187,8 @@ command gives specific help on that command.")
 (defun compute-xcvb-cache (cache)
   (ensure-directory-pathname
    (or cache
-       (getenv-absolute-pathname "XCVB_CACHE")
-       (subpathname (getenvp "XDG_CACHE_HOME") "xcvb/")
+       (getenv-absolute-directory "XCVB_CACHE")
+       (subpathname (getenv-absolute-directory "XDG_CACHE_HOME") "xcvb/")
        (subpathname (user-homedir) ".cache/xcvb/"))))
 
 (defun compute-xcvb-cache! (cache)
@@ -197,7 +197,7 @@ command gives specific help on that command.")
 (defun compute-xcvb-workspace (workspace)
   (ensure-directory-pathname
    (or workspace
-       (getenv-pathname "XCVB_WORKSPACE")
+       (getenv-absolute-directory "XCVB_WORKSPACE")
        (subpathname
         (ensure-absolute-pathname *default-pathname-defaults*) "workspace/"))))
 
@@ -207,7 +207,7 @@ command gives specific help on that command.")
 (defun compute-object-cache (object-cache)
   (ensure-directory-pathname
    (or object-cache
-       (getenv-pathname "XCVB_OBJECT_CACHE")
+       (getenv-absolute-directory "XCVB_OBJECT_CACHE")
        (progn
          (assert *cache*)
          (get-target-properties)
@@ -238,8 +238,8 @@ command gives specific help on that command.")
        (setf install-prefix #p"/usr/local/"))
       ((os-windows-p)
        (let ((common-appdata (or #+lispworks (sys:get-folder-path :common-appdata)
-                                 (getenv-pathname "ALLUSERSAPPDATA")
-                                 (subpathname (getenvp "ALLUSERSPROFILE") "Application Data/"))))
+                                 (getenv-absolute-directory "ALLUSERSAPPDATA")
+                                 (subpathname (getenv-absolute-directory "ALLUSERSPROFILE") "Application Data/"))))
          (setf install-prefix (subpathname common-appdata "common-lisp/"))
          (orf install-data (subpathname install-prefix "share/"))
          (orf install-library (subpathname install-prefix "lib/"))
@@ -251,7 +251,7 @@ command gives specific help on that command.")
        (orf install-program
             (subpathname install-prefix "bin/"))
        (orf install-configuration
-            (getenvp "XDG_CONFIG_HOME")
+            (getenv-absolute-directory "XDG_CONFIG_HOME")
             (subpathname install-prefix ".config/"))
        (orf install-data
             (subpathname install-prefix ".local/share/"))
@@ -259,10 +259,10 @@ command gives specific help on that command.")
             (subpathname install-prefix ".local/lib/")))
       ((os-windows-p)
        (let* ((appdata (or #+lispworks (sys:get-folder-path :appdata)
-                           (getenvp "APPDATA")
+                           (getenv-absolute-directory "APPDATA")
                            (subpathname install-prefix "Application Data/")))
               (localappdata (or #+lispworks (sys:get-folder-path :local-appdata)
-                                (getenvp "LOCALAPPDATA")
+                                (getenv-absolute-directory "LOCALAPPDATA")
                                 (subpathname appdata "Local/"))))
          (orf install-program (subpathname localappdata "bin/"))
          (orf install-configuration (subpathname localappdata "config/"))
@@ -433,12 +433,10 @@ command gives specific help on that command.")
   #+clozure (setf *error-output* ccl::*stderr* *trace-output* ccl::*stderr*)
 
   ;;; Determine the temporary directory
-  (labels ((v (x)
-             (let ((s (getenv x)))
-               (and (not (equal s "")) s))))
-    (let ((tmp (or (v "TMP") (v "TMPDIR"))))
-      (when tmp
-        (setf *temporary-directory* (ensure-pathname-is-directory tmp)))))
+  (setf *temporary-directory*
+	(or (getenv-absolute-directory "TMPDIR")
+	    (when (os-windows-p) (getenv-absolute-directory "TEMP"))
+	    (xd::default-temporary-directory)))
 
   ;;; In case debugging is involved, make things easier on the printer
   (setf *print-pretty* nil

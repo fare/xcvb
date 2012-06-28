@@ -23,7 +23,6 @@
    #:orf)
 
   (:import-from :asdf
-   #:getenv-absolute-pathname
    #:*default-source-registry-exclusions*
    #:*default-source-registries*
    #:pathname-parent-directory-pathname
