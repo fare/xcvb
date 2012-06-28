@@ -195,7 +195,7 @@ but before the entry point is called.")
 (defvar *goal* nil
   "what is the name of the goal toward which we execute commands?")
 
-(defvar *stderr* *error-output*
+(defvar *stderr* #-clozure *error-output* #+clozure ccl::*stderr*
   "the original error output stream at startup")
 
 (defvar *uninteresting-conditions*
