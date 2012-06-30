@@ -222,7 +222,8 @@ but before the entry point is called.")
 
 (defvar *uninteresting-load-conditions*
   (append
-   '("Overwriting already existing readtable ~S.") ;; from named-readtables
+   '("Overwriting already existing readtable ~S." ;; from named-readtables
+     #(#:finalizers-off-warning :asdf-finalizers)) ;; from asdf-finalizers
    #+clisp '(clos::simple-gf-replacing-method-warning))
   "Additional conditions that may be skipped while loading. type symbols, predicates or strings")
 
@@ -920,9 +921,13 @@ This is designed to abstract away the implementation specific quit forms."
 ;;;; ----- Filtering conditions while building -----
 
 (defun match-condition-p (x condition)
-  "Compare received CONDITION to some pattern X"
+  "Compare received CONDITION to some pattern X:
+a symbol naming a condition class,
+a simple vector of length 2, arguments to find-symbol* with result as above,
+or a string describing the format-control of a simple-condition."
   (etypecase x
     (symbol (typep condition x))
+    ((simple-vector 2) (typep condition (find-symbol* (svref x 0) (svref x 1) nil)))
     (function (funcall x condition))
     (string (and (typep condition 'simple-condition)
                  #+(or clozure cmu scl) ; Note: on SBCL, always bound, and testing triggers warning
