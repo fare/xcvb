@@ -18,46 +18,47 @@
   (values))
 
 (defun make-nem-stage (env asdf-name build &key previous parallel)
-  (let* ((*computations* nil)
+  (nest
+   (let ((*computations* nil)
          (*asdf-system-dependencies* nil)
-         (*require-dependencies* nil)
-         (_g (graph-for-build-module-grain env build))
-         (inputs (loop :for computation :in (reverse *computations*)
+         (*require-dependencies* nil)))
+   (progn (graph-for-build-module-grain env build))
+   (let ((inputs (loop :for computation :in (reverse *computations*)
                    :for i = (first (computation-inputs computation))
                    :when (and i (not (grain-computation i)))
                    :collect i))
-         (asd-vp (make-vp :obj "/" asdf-name "." "asd"))
-         (_w (do-write-asd-file env :output-path (vp-namestring env asd-vp)
-                                :asdf-name asdf-name))
-         (image-name `(:image ,(strcat "/" asdf-name)))
-         (image (setf (registered-grain image-name)
-                      (make-grain 'image-grain :fullname image-name)))
-         (previous-spec (if previous
-                            `(:image (:image ,(strcat "/" previous)))
-                            (progn
-                              (setf inputs
-                                    (append (mapcar #'registered-grain *lisp-setup-dependencies*)
-                                            inputs))
-                              `(:load ,*lisp-setup-dependencies*))))
-         (computation
-          (make-computation ()
-            :outputs (list image)
-            :inputs inputs
-            :command
-            `(:xcvb-driver-command ,previous-spec
-              (:create-image
-               (:image ,image-name)
-               (:register-asdf-directory ,*object-cache*)
-               ,@(when parallel
-                       `((:register-asdf-directory
-                          ,(pathname-directory-pathname
-                            (grain-pathname (registered-build "/poiu" :ensure-build t))))
-                         (:load-asdf :poiu)))
-               (:load-asdf ,(coerce-asdf-system-name asdf-name)
-                           ,@(when parallel `(:parallel t)))))))
-         (*computations* (list computation)))
-    (declare (ignore _w _g))
-    (computations-to-Makefile env)))
+         (asd-vp (make-vp :obj "/" asdf-name "." "asd"))))
+   (progn (do-write-asd-file env :output-path (vp-namestring env asd-vp)
+                             :asdf-name asdf-name))
+   (let* ((image-name `(:image ,(strcat "/" asdf-name)))
+          (image (setf (registered-grain image-name)
+                       (make-grain 'image-grain :fullname image-name)))
+          (previous-spec (if previous
+                             `(:image (:image ,(strcat "/" previous)))
+                             (progn
+                               (setf inputs
+                                     (append (mapcar #'registered-grain *lisp-setup-dependencies*)
+                                             inputs))
+                               `(:load ,*lisp-setup-dependencies*))))
+          (computation
+           (make-computation ()
+             :outputs (list image)
+             :inputs inputs
+             :command
+             `(:xcvb-driver-command ,previous-spec
+                (:create-image
+                (:image ,image-name)
+                (:register-asdf-directory ,*object-cache*)
+                ,@(when parallel
+                    `((:register-asdf-directory
+                       ,(pathname-directory-pathname
+                         (grain-pathname (registered-build "/poiu" :ensure-build t))))))
+                (:initialize-asdf)
+                ,@(when parallel '((:load-asdf :poiu)))
+                (:load-asdf ,(coerce-asdf-system-name asdf-name)
+                            ,@(when parallel `(:parallel t)))))))
+          (*computations* (list computation)))
+     (computations-to-Makefile env))))
 
 (defun write-non-enforcing-makefile (build-names &key output-path asdf-name parallel)
   "Write a Makefile to output-path with information about how to compile the specified BUILD

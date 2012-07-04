@@ -26,6 +26,10 @@
   (declare (ignore env))
   (format nil "(:load-asdf ~(~S~)~@[ :parallel t~])" name parallel))
 
+(define-text-for-xcvb-driver-command :initialize-asdf (env)
+  (declare (ignore env))
+  (format nil "(:initialize-asdf)"))
+
 (define-text-for-xcvb-driver-command :register-asdf-directory (env directory)
   (declare (ignore env))
   (format nil "(:register-asdf-directory ~S)" (namestring directory)))

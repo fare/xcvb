@@ -17,7 +17,7 @@
 
 (defun print-pathname-mappings (env stream grains)
   (with-safe-io-syntax ()
-    (let ((*print-readably* t)
+    (let ((*print-readably* nil)
           (*print-pretty* t)
           (*print-case* :downcase))
       (format stream "(in-package :xcvb-driver)~%~

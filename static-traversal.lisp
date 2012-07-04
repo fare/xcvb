@@ -344,7 +344,7 @@
     (build-command-for env '(:build "/asdf"))
     (make-computation
      env :outputs (list phony) :inputs (traversed-dependencies env) :command
-     `(:xcvb-driver-command ,(image-setup env) (:load-asdf ,system-name)))
+     `(:xcvb-driver-command ,(image-setup env) (:initialize-asdf) (:load-asdf ,system-name)))
     (call-next-method)))
 
 (defmethod make-computation ((env static-traversal) &rest keys &key &allow-other-keys)

@@ -1115,6 +1115,10 @@ Entry point for XCVB-DRIVER when used by XCVB"
     (unless (call :asdf :version-satisfies (call :asdf :asdf-version) required)
       (error "XCVB requires ASDF ~A or later" required))))
 
+(defun initialize-asdf ()
+  (require-asdf)
+  (call :asdf :clear-configuration))
+
 (defun register-asdf-directory (x)
   (pushnew x (symbol-value (asdf-symbol :*central-registry*))))
 

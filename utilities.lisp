@@ -28,12 +28,12 @@
 
 
 ;;; I/O
-(defun readable-string (x &key (package :cl))
-  (with-output-to-string (s)
+(defun readable-string (x &key (package :cl) output)
+  (with-output (output)
     (with-safe-io-syntax ()
       (let ((*package* (find-package package)))
-        (write x :stream s :readably t :escape t :pretty nil)
-        (terpri s)))))
+        (write x :stream output :readably t :escape t :pretty nil)
+        (terpri output)))))
 
 ;;; Filesystem
 (defun find-proper-ancestor (dir properf)

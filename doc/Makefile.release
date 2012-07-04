@@ -68,6 +68,7 @@ DEPENDENCIES_PATCHED_FOR_XCVB := \
 	XGIT git://common-lisp.net/projects/cffi/cffi.git ; \
 	XGIT git://github.com/froydnj/binascii.git ; \
 	XGIT git://github.com/froydnj/ironclad.git ; \
+	XGIT git://github.com/froydnj/nibbles.git ; \
 	XGIT git://github.com/edicl/cl-ppcre.git ; \
 	XDARCS http://common-lisp.net/project/closer/repos/closer-mop/ ; \
 	XDARCS http://common-lisp.net/project/editor-hints/darcs/named-readtables/ ; \

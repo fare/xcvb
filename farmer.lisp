@@ -150,7 +150,7 @@ and extra finalization from calling FUN on the world."
   (while-collecting (c) (emit-simplified-commands #'c commands)))
 
 (defvar *simple-xcvb-driver-commands*
-  '(:load-file :require :load-asdf :register-asdf-directory :debugging))
+  '(:load-file :require :initialize-asdf :load-asdf :register-asdf-directory :debugging))
 
 (defun emit-simplified-commands (collector commands)
   (flet ((collect (x) (funcall collector `(:xcvb-driver-command ,x))))
