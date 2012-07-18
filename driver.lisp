@@ -137,6 +137,9 @@
         (t (error "Congratulations for trying XCVB on an operating system~%~
 that is neither Unix, nor Windows.~%Now you port it.")))))
   (detect-os)
+  #+(or abcl (and allegro ics) (and clisp unicode) clozure (and cmu unicode)
+        (and ecl unicode) lispworks (and sbcl sb-unicode) scl)
+  (pushnew :xcvb-unicode *features*)
   #+gcl ;;; If using GCL, do some safety checks
   (flet ((bork (&rest args)
            (apply #'format *error-output* args)
@@ -1060,13 +1063,16 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 ;;; Loading and evaluating code
 
-(defun do-load (x)
+(defun do-load (x &key encoding)
   (with-controlled-loader-conditions ()
-    (load x :verbose (>= *xcvb-verbosity* 8) :print (>= *xcvb-verbosity* 9))))
+    (load x
+	  :external-format (encoding-external-format encoding)
+	  :verbose (>= *xcvb-verbosity* 8)
+	  :print (>= *xcvb-verbosity* 9))))
 
-(defun load-file (x)
-  (with-profiling `(:load-file ,x)
-    (unless (do-load x)
+(defun load-file (x &key encoding)
+  (with-profiling `(:load-file ,x :encoding ,encoding)
+    (unless (do-load x :encoding encoding)
       (error "Failed to load ~A" (list x)))))
 
 (defun eval-string (string)
@@ -1192,8 +1198,26 @@ Entry point for XCVB-DRIVER when used by XCVB"
          (*random-state* (seed-random-state hash)))
     (funcall thunk)))
 
+(defparameter *utf-8-external-format*
+  #+(and xcvb-unicode (not clisp)) :utf-8
+  #+(and xcvb-unicode clisp) charset:utf-8
+  #-xcvb-unicode :default
+  "Default :external-format argument to pass to CL:OPEN and also
+CL:LOAD or CL:COMPILE-FILE to best process a UTF-8 encoded file.
+On modern implementations, this will decode UTF-8 code points as CL characters.
+On legacy implementations, it may fall back on some 8-bit encoding,
+with non-ASCII code points being read as several CL characters;
+hopefully, if done consistently, that won't affect program behavior too much.")
+
+(defun encoding-external-format (encoding)
+  (case encoding
+    ((:utf-8 nil) *utf-8-external-format*) ;; Our recommended default.
+    (:default :default) ;; for backwards compatibility only. Explicit usage discouraged.
+    (otherwise
+     (call :asdf-encodings :encoding-external-format encoding))))
+
 (defun do-compile-lisp (dependencies source fasl
-                        &key #+sbcl cfasl #+ecl lisp-object around-compile)
+                        &key #+sbcl cfasl #+ecl lisp-object around-compile encoding)
   (let ((*goal* `(:compile-lisp ,source))
         (*default-pathname-defaults* (truename *default-pathname-defaults*)))
     (multiple-value-bind (output-truename warnings-p failure-p)
@@ -1211,6 +1235,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
                      (lambda ()
                        (apply #'compile-file source
                            :output-file (merge-pathnames (or #+ecl lisp-object fasl))
+			   :external-format (encoding-external-format encoding)
                            (append
                             #+sbcl (when cfasl `(:emit-cfasl ,(merge-pathnames cfasl)))
                             #+ecl (when lisp-object '(:system-p t))))))
@@ -1838,7 +1863,7 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
 ;; 1- either a grain or a virtual command that we issue, e.g. (:load-file (:fasl "/foo/bar"))
 ;; 2- the actual thing that the driver runs, e.g. (:load-file "/path/to/foo/bar.fasl")
 ;; The mapping can be done at one place or the other, but currently there's a big confusion!
-(defun process-manifest-entry (&rest entry &key command pathname tthsum &allow-other-keys)
+(defun process-manifest-entry (&rest entry &key command pathname tthsum encoding &allow-other-keys)
   ;; also source source-tthsum source-pathname
   (unless (and tthsum
                (equal tthsum
@@ -1857,7 +1882,10 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
       (pathname
        (assert (and (consp command) (eq :load-file (car command))
                     (consp (cdr command)) (null (cddr command))))
-       (load pathname :verbose (>= *xcvb-verbosity* 8) :print (>= *xcvb-verbosity* 9)))
+       (load pathname
+	     :external-format (encoding-external-format encoding)
+	     :verbose (>= *xcvb-verbosity* 8)
+	     :print (>= *xcvb-verbosity* 9)))
       (t
        (run-command command)))
     (push entry *manifest*)))

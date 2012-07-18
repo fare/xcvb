@@ -23,25 +23,17 @@ low level dependency assembly language to see if it can be represented.
 * Compile a document explaining every means that 7 Lisps can natively produce fasls, cfasls,
   executables, etc ???
 
-Fare's homework.
-1- Fix manifest format:
+Fare's homework:
+1- fix examples
+2- Make XCVB easily compile ASDF projects in serial in REPL and command line.
+3- Explain the issues regarding the system-granular asdf parallelizer
+ and bootstrap of a xcvb using iolib to do that.
+* Fix manifest format:
  * store primitives in the build-command-for languages.
  * use some generic mechanism to extract grain/vp/filenames from build commands!
  * pass not a pathname, but a command in the xcvb-driver language.
  * optionally pass a list with a digest for each input grain.
-
-2- always pass some file mapping, as either a file to load
- or a form passed before the driver is invoked.
-
- * Test and debug run-program/* on Windows.
-
- * Have a "build" backend dispatcher that automatically choose an appropriate actual backend
- * Have slave-builder use "build"
-
- * Build test infrastructure into XCVB ?
- * Testing:
-  * add support for executables to nemk backend.
-  * ask Java guys how they do testing...
+* see TODO.rest
 
 General Homework
 

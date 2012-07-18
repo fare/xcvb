@@ -22,7 +22,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
   :build-depends-on
   ((:fasl "/xcvb/driver")
    (:asdf "asdf")
-   (:build "asdf-encodings")
+   (:build "/asdf-encodings")
    (:build "/cl-launch")
    (:build "/fare-memoization")
    (:build "/lisp-interface-library")

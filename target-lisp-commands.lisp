@@ -52,19 +52,19 @@
     (format stream ")")))
 
 (define-text-for-xcvb-driver-command :compile-lisp (env name-options &rest dependencies)
-  (destructuring-bind (name &key around-compile &aux (basename (second name)))
+  (destructuring-bind (name &key around-compile encoding &aux (basename (second name)))
       name-options
     (text-for-xcvb-driver-helper
      env dependencies
      ":compile-lisp (~S ~S~@[ :cfasl ~S~]~@[ :lisp-object ~S~]~
-			  ~@[ :around-compile ~S~])"
+			  ~@[ :around-compile ~S~]~@[ :encoding ~S~])"
      (effective-namestring env name)
      (tempname-target (effective-namestring env `(:fasl ,basename)))
      (when *use-cfasls*
        (tempname-target (effective-namestring env `(:cfasl ,basename))))
      (when (target-ecl-p)
        (tempname-target (effective-namestring env `(:lisp-object ,basename))))
-     around-compile)))
+     around-compile encoding)))
 
 (define-text-for-xcvb-driver-command :create-image (env spec &rest dependencies)
   (destructuring-bind (&key image executable pre-image-dump post-image-restart entry-point) spec

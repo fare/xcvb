@@ -24,8 +24,8 @@ mapping back to this array...")
 (defclass <grain-map>
     (<encoded-key-map>
      map-simple-empty map-simple-decons map-simple-update-key
-     map-simple-map/2 map-simple-join/list map-simple-size
-     map-simple-for-each map-simple-divide/list)
+     map-simple-map/2 map-simple-join/list map-size-from-fold-left
+     map-for-each-from-fold-left map-simple-divide/list)
   ())
 
 (defmethod base-interface ((i <grain-map>))

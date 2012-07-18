@@ -23,6 +23,9 @@
 (defgeneric effective-around-compile (grain)
   (:documentation "what hook if any to call around compilation in the target"))
 
+(defgeneric effective-encoding (grain)
+  (:documentation "what encoding to use for given grain"))
+
 ;;; Define grains.
 
 ;; Unit of build: a file, a process, etc.
@@ -233,6 +236,11 @@ into an image that will be used for all future compile/load operations")
     :initarg :around-compile
     :reader around-compile
     :documentation "a string that, if read after reading the compile dependencies, evaluates in function context to either NIL or a function taking a thunk and returning the values of calling the thunk in a proper some context")
+   (encoding
+    :initarg :encoding
+    :initform nil
+    :reader specified-encoding
+    :documentation "a keyword specifying the encoding to use for the grain, as per asdf-encodings")
    (extension-forms
     :initarg :extension-forms
     :accessor grain-extension-forms

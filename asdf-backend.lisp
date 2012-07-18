@@ -124,7 +124,8 @@ Declare asd system as ASDF-NAME."
          (pathname (pathname namestring))
          (enough (enough-namestring namestring))
          (noext (asdf-dependency-grovel::strip-extension enough "lisp"))
-         (around-compile (effective-around-compile grain)))
+         (around-compile (effective-around-compile grain))
+         (encoding (effective-encoding grain)))
     `(:file ,noext
             ,@(when (or (absolute-pathname-p (pathname enough))
                         (not (equal (coerce-pathname
@@ -132,7 +133,9 @@ Declare asd system as ASDF-NAME."
                                     pathname)))
                 `(:pathname ,pathname))
             ,@(when around-compile
-                `(:around-compile ,around-compile)))))
+                `(:around-compile ,around-compile))
+            ,@(unless (eq encoding :utf-8)
+                `(:encoding ,encoding)))))
 (defmethod asdf-spec (env (grain source-grain))
   `(:static-file ,(enough-namestring (grain-namestring env grain))))
 
@@ -150,6 +153,7 @@ Declare asd system as ASDF-NAME."
   ;; for the asdf file.
   `(asdf:defsystem ,(keywordify-asdf-name asdf-name)
      :depends-on ,(mapcar 'keywordify-asdf-name (reverse *asdf-system-dependencies*))
+     :encoding :utf-8
      :components ,(loop :with visited = (make-hash-table :test 'equal)
                     :for computation :in (reverse *computations*)
                     :for lisp = (first (computation-inputs computation))

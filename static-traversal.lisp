@@ -364,7 +364,8 @@
           (compile-dependencies (compile-dependencies lisp))
           (cload-dependencies (cload-dependencies lisp))
           (load-dependencies (load-dependencies lisp))
-          (around-compile (effective-around-compile lisp)))
+          (around-compile (effective-around-compile lisp))
+          (encoding (effective-encoding lisp)))
       (issue-dependency env lisp)
       (unless specialp
         (pre-image-for env lisp))
@@ -389,5 +390,6 @@
              (:compile-lisp
               (,fullname
                ,@(when around-compile `(:around-compile ,around-compile)))
+               ,@(when encoding `(:encoding ,encoding))
               ,@(traversed-build-commands env)))))
         outputs))))

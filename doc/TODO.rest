@@ -84,14 +84,11 @@ Immediate TODO [V1]
 
 These are the very next steps to be taken:
 
-  * Distribution: after discussing with Xach yesterday, it appears
-    we will best distribute two tarballs:
-    one with just naked xcvb, no .git data, but
-    a file specifying the version as extracted from git;
-    the other, with all dependencies and git history.
-    This will allow for both usage patterns:
-    people who want a latest release without dependencies (i.e. quicklisp) and
-    people who want all the dependencies self-contained (for reproducibility).
+  * find memory leak in hu.dwim.stefil or the way we use it.
+
+  * add quicklisp support and convince Xach to use it.
+
+  * implement around-compile and compile-check for xcvb.
 
   * Fix dependency management so it all happens in one place, preferrably under Lisp control
 

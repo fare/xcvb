@@ -102,9 +102,11 @@
               (append common-dependencies
                       (normalize load-depends-on))
               build-dependencies
-              (if (slot-boundp grain 'build-depends-on)
-                  (normalize build-depends-on)
-                  (build-dependencies (grain-parent grain))))))))
+	      (append (unless (eq :utf-8 (effective-encoding grain))
+			(normalize '((:build "/asdf-encodings"))))
+		      (if (slot-boundp grain 'build-depends-on)
+			  (normalize build-depends-on)
+			(build-dependencies (grain-parent grain)))))))))
 
 (defun normalize-supersedes-asdf (n x)
   (etypecase x
@@ -503,7 +505,6 @@ Modeled after the asdf function coerce-name"
   (assert (equal in (fullname (registered-build in :ensure-build t))))
   (make-vp :src in "/" sub))
 
-
 (defmethod effective-around-compile ((lisp lisp-file-grain))
   (if (slot-boundp lisp 'around-compile)
       (around-compile lisp)
@@ -511,6 +512,11 @@ Modeled after the asdf function coerce-name"
         (if (slot-boundp build 'around-compile)
             (around-compile build)
             nil))))
+
+(defmethod effective-encoding ((lisp lisp-file-grain))
+  (or (specified-encoding lisp)
+      (specified-encoding (build-module-grain-for lisp))
+      :utf-8))
 
 (defmethod fullname ((grain asdf-grain))
   `(:asdf ,(asdf-grain-system-name grain)))

@@ -6,6 +6,19 @@ DONE for XCVB
 
 Items dumped from TODO that were done.
 
+(2012-06-03) Make Quicklisp-friendly tarballs
+---------------------------------------------
+
+Distribution: after discussing with Xach,
+it appears we will best distribute two tarballs:
+one with just naked xcvb, no .git data, but
+a file specifying the version as extracted from git;
+the other, with all dependencies and git history.
+This will allow for both usage patterns:
+people who want a latest release without dependencies (i.e. quicklisp) and
+people who want all the dependencies self-contained (for reproducibility).
+
+
 (2011-11-18) add support for :around-compile to ASDF
 ----------------------------------------------------
 
