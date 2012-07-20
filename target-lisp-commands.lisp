@@ -6,8 +6,7 @@
 (define-simple-dispatcher text-for-xcvb-driver-command #'text-for-xcvb-driver-command-atom)
 
 (defun text-for-xcvb-driver-command-atom (env foo)
-  (declare (ignore env foo))
-  (error "FOO"))
+  (error "Invalid xcvb-driver command atom ~S with environment ~S" foo env))
 
 (defun text-for-xcvb-driver-command (env clause)
   (text-for-xcvb-driver-command-dispatcher env clause))

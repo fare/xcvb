@@ -45,6 +45,9 @@
    ;;; String utilities - copied from fare-utils
    ;;#:string-prefix-p #:string-suffix-p #:string-enclosed-p
 
+   ;; command-line arguments
+   #:raw-command-line-arguments #:command-line-arguments #:*arguments* #:*dumped*
+   
    ;;; I/O utilities
    #:with-output #:with-input-file #:with-safe-io-syntax #:with-temporary-file
    #:slurp-stream-string #:slurp-stream-lines #:slurp-stream-forms

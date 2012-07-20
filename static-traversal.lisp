@@ -389,7 +389,7 @@
                   (image-setup env))
              (:compile-lisp
               (,fullname
-               ,@(when around-compile `(:around-compile ,around-compile)))
-               ,@(when encoding `(:encoding ,encoding))
+               ,@(when around-compile `(:around-compile ,around-compile))
+               ,@(when encoding `(:encoding ,encoding)))
               ,@(traversed-build-commands env)))))
         outputs))))

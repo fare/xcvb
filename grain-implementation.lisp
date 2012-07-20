@@ -102,7 +102,7 @@
               (append common-dependencies
                       (normalize load-depends-on))
               build-dependencies
-	      (append (unless (eq :utf-8 (effective-encoding grain))
+	      (append (unless (member (effective-encoding grain) '(:utf-8 nil))
 			(normalize '((:build "/asdf-encodings"))))
 		      (if (slot-boundp grain 'build-depends-on)
 			  (normalize build-depends-on)
@@ -513,10 +513,11 @@ Modeled after the asdf function coerce-name"
             (around-compile build)
             nil))))
 
-(defmethod effective-encoding ((lisp lisp-file-grain))
+(defmethod effective-encoding ((lisp lisp-module-grain))
   (or (specified-encoding lisp)
       (specified-encoding (build-module-grain-for lisp))
-      :utf-8))
+      #|:utf-8|# ;; default
+      ))
 
 (defmethod fullname ((grain asdf-grain))
   `(:asdf ,(asdf-grain-system-name grain)))
