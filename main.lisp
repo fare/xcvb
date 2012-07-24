@@ -199,7 +199,7 @@ command gives specific help on that command.")
    (or workspace
        (getenv-absolute-directory "XCVB_WORKSPACE")
        (subpathname
-        (ensure-absolute-pathname *default-pathname-defaults*) "workspace/"))))
+        (ensure-pathname-absolute *default-pathname-defaults*) "workspace/"))))
 
 (defun compute-xcvb-workspace! (workspace)
   (orf *workspace* (compute-xcvb-workspace workspace)))

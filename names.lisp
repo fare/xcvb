@@ -10,7 +10,7 @@
   (make-pathname :type "lisp"))
 
 (defun probe-file-grain (path &key build-p)
-  (let* ((path (ensure-absolute-pathname path))
+  (let* ((path (ensure-pathname-absolute path))
          (string (namestring path)))
     (multiple-value-bind (cached found)
         (gethash string *pathname-grain-cache*)
@@ -92,7 +92,7 @@
 
 (defun inherited-fullname (grain &key build-p)
   (check-type grain lisp-module-grain)
-  (let* ((pathname (ensure-absolute-pathname (grain-pathname grain)))
+  (let* ((pathname (ensure-pathname-absolute (grain-pathname grain)))
          (rdirectory (reverse (pathname-directory pathname))))
     (log-format 20 "   ~:[~;build ~]grain at ~A is missing a fullname; computing it"
                 build-p pathname)
