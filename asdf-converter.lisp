@@ -400,5 +400,5 @@ a chance to load and/or configure ASDF itself and any extension thereof.")
    :name name
    :systems (mapcar #'coerce-asdf-system-name system)
    :systems-to-preload (mapcar #'coerce-asdf-system-name preload)
-   :base-pathname (when base (ensure-pathname-is-directory base))
+   :base-pathname (when base (ensure-directory-pathname base))
    :verbose (and verbosity (> verbosity 5))))

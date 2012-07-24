@@ -88,7 +88,7 @@ Declare asd system as ASDF-NAME."
          (output-path
           (if output-path
             (merge-pathnames*
-             (ensure-absolute-pathname output-path)
+             (ensure-pathname-absolute output-path)
              default-output-path)
             default-output-path))
          (*target-builds* (make-hashset :test 'equal :list (mapcar #'fullname builds))))

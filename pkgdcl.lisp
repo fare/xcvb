@@ -15,28 +15,33 @@
   (:use :closer-common-lisp
         :xcvb-driver :command-line-arguments :asdf :lisp-invocation
         :fare-matcher :fare-utils :interface :pure :fare-mop
-        :fare-memoization :inferior-shell
+        :fare-memoization :inferior-shell :alexandria
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
-
-  (:shadowing-import-from :asdf
-   #:getenv
-   #:orf)
 
   (:import-from :asdf
    #:*default-source-registry-exclusions*
    #:*default-source-registries*
    #:pathname-parent-directory-pathname
    #:inherit-source-registry
-   #:os-unix-p #:os-windows-p #:featurep #:subpathname*
-   #:user-homedir)
+   #:os-unix-p #:os-windows-p #:subpathname*
+   #:user-homedir #:orf)
+
+  (:import-from :xcvb-driver
+   #:get-xcvb-version #:get-xcvb-directory
+   #:build-xcvb)
+
+  (:shadowing-import-from :asdf
+   #:appendf #:ends-with #:featurep) ;; also in alexandria
+
+  (:shadowing-import-from :fare-matcher
+   #:of-type) ;; also in alexandria
 
   (:shadowing-import-from :xcvb-driver
-   #:get-xcvb-version #:get-xcvb-directory
-   #:build-xcvb
+   ;; conflict with alexandria
+   #:emptyp
+   ;; conflict with asdf
+   #:getenv
    #:find-symbol*)
-
-  (:import-from :alexandria
-   #:ensure-list)
 
   ;;; We have stopped trying to try to export a sensible interface
   ;;; through the package system.

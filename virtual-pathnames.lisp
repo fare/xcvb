@@ -5,7 +5,7 @@
 
 ;;;;; Virtual pathname object.
 
-(defclass xcvb-interface (eq:<hashable>) ())
+(define-interface xcvb-interface (eq:<hashable>) ())
 
 (defclass virtual-pathname ()
   ((hash :initarg :hash :reader vp-hash)
