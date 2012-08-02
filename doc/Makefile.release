@@ -38,6 +38,7 @@ OPTIONS := PREFIX=${PREFIX} LISP=${LISP} \
 DEPENDENCIES_SUPPORTING_XCVB := \
 	GIT git://common-lisp.net/projects/asdf/asdf.git ; \
 	GIT git://common-lisp.net/projects/asdf/asdf-encodings.git ; \
+	GIT git://common-lisp.net/projects/asdf/asdf-utils.git ; \
 	GIT git://common-lisp.net/projects/xcvb/asdf-dependency-grovel.git ; \
 	GIT git://common-lisp.net/projects/xcvb/cl-launch.git ; \
 	GIT git://common-lisp.net/projects/qitab/command-line-arguments.git ; \

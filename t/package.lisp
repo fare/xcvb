@@ -4,18 +4,10 @@
 (in-package #:cl)
 
 (defpackage #:xcvb-test
-  (:use :hu.dwim.stefil :xcvb :xcvb-driver :closer-common-lisp
-        :fare-utils :xcvb-driver-test :inferior-shell :lisp-invocation)
-  (:shadowing-import-from :asdf
-   #:subpathname)
-  (:import-from :asdf
-   #:coerce-pathname #:probe-file*
-   #:ensure-directory-pathname #:directory-pathname-p)
-  (:import-from :alexandria
-   #:ensure-list)
-  (:shadowing-import-from :xcvb-driver
-   #:with-output #:lisp-present-p)
+  (:use :hu.dwim.stefil :xcvb :closer-common-lisp :xcvb-utils
+        :xcvb-driver-test :inferior-shell :lisp-invocation)
   (:import-from :xcvb-driver
+   #:lisp-present-p
    #:+xcvb-lisps+)
   (:import-from :xcvb
    #:module-form-p #:read-module-declaration #:cmdize*
