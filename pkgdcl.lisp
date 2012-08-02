@@ -1,7 +1,7 @@
 #+xcvb
 (module
  (:description "package for XCVB"
-  :depends-on ("lisp-invocation" "version")))
+  :depends-on ("lisp-invocation" "version" "xcvb-utils")))
 
 (in-package :xcvb-driver)
 
@@ -13,35 +13,19 @@
 
 (defpackage :xcvb
   (:use :closer-common-lisp
-        :xcvb-driver :command-line-arguments :asdf :lisp-invocation
-        :fare-matcher :fare-utils :interface :pure :fare-mop
-        :fare-memoization :inferior-shell :alexandria
+        :xcvb-utils :command-line-arguments :lisp-invocation
+        :fare-matcher :interface :pure :fare-mop
+        :fare-memoization :inferior-shell
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
   (:import-from :asdf
    #:*default-source-registry-exclusions*
    #:*default-source-registries*
-   #:pathname-parent-directory-pathname
-   #:inherit-source-registry
-   #:os-unix-p #:os-windows-p #:subpathname*
-   #:user-homedir #:orf)
+   #:inherit-source-registry)
 
   (:import-from :xcvb-driver
    #:get-xcvb-version #:get-xcvb-directory
    #:build-xcvb)
-
-  (:shadowing-import-from :asdf
-   #:appendf #:ends-with #:featurep) ;; also in alexandria
-
-  (:shadowing-import-from :fare-matcher
-   #:of-type) ;; also in alexandria
-
-  (:shadowing-import-from :xcvb-driver
-   ;; conflict with alexandria
-   #:emptyp
-   ;; conflict with asdf
-   #:getenv
-   #:find-symbol*)
 
   ;;; We have stopped trying to try to export a sensible interface
   ;;; through the package system.

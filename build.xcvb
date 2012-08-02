@@ -81,6 +81,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
   :supersedes-asdf
   ("xcvb"
    ("xcvb-driver" "driver")
+   ("xcvb-utils" "xcvb-utils")
    ("lisp-invocation" "lisp-invocation")
    ("asdf-condition-control" "asdf-condition-control")
    ("xcvb-bootstrap" "bootstrap")

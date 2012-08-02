@@ -140,8 +140,8 @@
         (t (error "Congratulations for trying XCVB on an operating system~%~
 that is neither Unix, nor Windows.~%Now you port it.")))))
   (detect-os)
-  #+(or abcl (and allegro ics) (and clisp unicode) clozure (and cmu unicode)
-        (and ecl unicode) lispworks (and sbcl sb-unicode) scl)
+  #+(or abcl (and allegro ics) (and (or clisp cmu ecl mkcl) unicode) clozure
+        lispworks (and sbcl sb-unicode) scl)
   (pushnew :xcvb-unicode *features*)
   #+gcl ;;; If using GCL, do some safety checks
   (flet ((bork (&rest args)
@@ -298,8 +298,9 @@ or when loading the package is optional."
           (let ((value (_getenv name)))
             (unless (ccl:%null-ptr-p value)
               (ccl:%get-cstring value))))
+  #+mkcl (#.(or (find-symbol* 'getenv :si) (find-symbol* 'getenv :mk-ext)) x)
   #+sbcl (sb-ext:posix-getenv x)
-  #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl genera lispworks mcl sbcl scl xcl)
+  #-(or abcl allegro clisp clozure cmu cormanlisp ecl gcl genera lispworks mcl mkcl sbcl scl xcl)
   (error "~S is not supported on your implementation" 'getenv))
 
 (defun emptyp (x)
@@ -333,9 +334,9 @@ then returning the non-empty string value of the variable"
   #+ecl :ecl #+gcl :gcl #+genera :genera
   #+lispworks-personal-edition :lispworks-personal
   #+(and lispworks (not lispworks-personal-edition)) :lispworks
-  #+mcl :mcl #+sbcl :sbcl #+scl :scl #+xcl :xcl
+  #+mcl :mcl #+mkcl :mkcl #+sbcl :sbcl #+scl :scl #+xcl :xcl
   #-(or abcl allegro clisp clozure cmu cormanlisp
-        ecl gcl genera lispworks mcl sbcl scl xcl)
+        ecl gcl genera lispworks mcl mkcl sbcl scl xcl)
   (error "Your Lisp implementation is not supported by the XCVB driver (yet). Please help.")
   "Type of Lisp implementation for the target system. A keyword.
   Default: same as XCVB itself.")
@@ -566,7 +567,6 @@ as per FORMAT, and evaluate BODY within the scope of this binding."
                             :direction direction
                             :element-type element-type :external-format external-format
                             :if-exists nil :if-does-not-exist :create)
-      #+cormanlisp (format t "~&Using pathname ~S~%" pathname)
       (when stream
         (return
           (if keep
@@ -709,6 +709,7 @@ reading contents line by line."
   "Get the current working directory as per POSIX getcwd(3)"
   (or #+clisp (ext:default-directory)
       #+clozure (ccl:current-directory)
+      #+cormanlisp (pl::get-current-directory)
       #+sbcl (sb-posix:getcwd)
       (error "getcwd not supported on your implementation")))
 
@@ -717,6 +718,8 @@ reading contents line by line."
   (when (pathnamep x) (setf x (native-namestring x)))
   (or #+clisp (ext:cd x)
       #+clozure (setf (ccl:current-directory) x)
+      #+cormanlisp (unless (zerop (win32::_chdir x))
+                     (error "Could not set current directory to ~A" x))
       #+sbcl (sb-posix:chdir x)
       (error "chdir not supported on your implementation")))
 
@@ -858,12 +861,13 @@ This is designed to abstract away the implementation specific quit forms."
   #+genera (error "You probably don't want to Halt the Machine.")
   #+lispworks (lispworks:quit :status code :confirm nil :return nil :ignore-errors-p t)
   #+mcl (ccl:quit) ;; or should we use FFI to call libc's exit(3) ?
+  #+mkcl (mk-ext:quit :exit-code code)
   #+sbcl #.(let ((exit (find-symbol* :exit :sb-ext nil))
                  (quit (find-symbol* :quit :sb-ext nil)))
              (cond
                (exit `(,exit :code code :abort (not finish-output)))
                (quit `(,quit :unix-status code :recklessly-p (not finish-output)))))
-  #-(or abcl allegro clisp clozure cmu ecl gcl genera lispworks mcl sbcl scl xcl)
+  #-(or abcl allegro clisp clozure cmu ecl gcl genera lispworks mcl mkcl sbcl scl xcl)
   (error "xcvb driver: Quitting not implemented"))
 
 (defun shell-boolean (x)

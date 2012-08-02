@@ -196,6 +196,21 @@
   :name () ;; In LispWorks Personal, the slave worker executes you!
   :feature :lispworks-personal-edition)
 
+(define-lisp-implementation :mkcl ()
+  :fullname "ManKai Common-Lisp"
+  :name "mkcl"
+  :feature :mkcl
+  :flags ("-norc")
+  :eval-flag "-eval" ; -e
+  :load-flag "-load"
+  :image-flag nil
+  :image-executable-p t
+  :arguments-end "--"
+  :argument-control t ;; must be fixed now, but double-checking needed.
+  :disable-debugger ()
+  :quit-format "(mk-ext:quit :exit-code ~A)"
+  :dump-format nil) ;; Cannot dump with ECL. Link instead.
+
 (define-lisp-implementation :sbcl ()
   :fullname "Steel Bank Common Lisp"
   :name "sbcl"

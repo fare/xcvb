@@ -15,7 +15,7 @@
 
 (let ((old-ver (asdf-version)))
   (load-system :asdf)
-  (let ((min "2.22.2")
+  (let ((min "2.23")
 	(ver (asdf-version)))
     (unless (or (version-satisfies old-ver "2.014.8") ; first version to do magic upgrade
 		(equal ver old-ver))
@@ -48,8 +48,8 @@ XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
     :defsystem-depends-on (:asdf :xcvb-driver :xcvb-bootstrap
                                  :asdf-condition-control :asdf-encodings)
-    :depends-on (:asdf :xcvb-driver :lambda-reader
-                 :fare-utils :fare-mop :fare-memoization
+    :depends-on (:asdf :xcvb-driver :xcvb-utils :lambda-reader
+                 :fare-mop :fare-memoization
                  :command-line-arguments
                  :asdf-dependency-grovel
                  :fare-matcher :fare-quasiquote-readtable
