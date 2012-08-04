@@ -710,12 +710,13 @@ reading contents line by line."
   (or #+clisp (ext:default-directory)
       #+clozure (ccl:current-directory)
       #+cormanlisp (pl::get-current-directory)
-      #+sbcl (sb-posix:getcwd)
+      #+mkcl (mk-ext:getcwd)
+      #+sbcl (sb-unix:posix-getcwd/)
       (error "getcwd not supported on your implementation")))
 
 (defun chdir (x)
   "Change current directory, as per POSIX chdir(2)"
-  (when (pathnamep x) (setf x (native-namestring x)))
+  #-(or clisp clozure) (when (pathnamep x) (setf x (native-namestring x)))
   (or #+clisp (ext:cd x)
       #+clozure (setf (ccl:current-directory) x)
       #+cormanlisp (unless (zerop (win32::_chdir x))
@@ -1617,7 +1618,7 @@ by /bin/sh in POSIX"
   (apply (first list) (cons input-stream (rest list))))
 
 (defmethod slurp-input-stream ((output-stream stream) input-stream
-                               &key element-type &allow-other-keys)
+                               &key (element-type 'character) &allow-other-keys)
   (copy-stream-to-stream
    input-stream output-stream :element-type element-type))
 
