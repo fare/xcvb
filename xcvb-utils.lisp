@@ -10,4 +10,4 @@
 (in-package :fare-utils)
 
 (define-package-mix :xcvb-utils
-    (:alexandria :xcvb-driver :asdf-utils :fare-utils))
+  (:alexandria :xcvb-driver :asdf-utils :fare-utils))

@@ -9,6 +9,6 @@
   :licence "MIT"
   :description "Utilities from XCVB"
   :long-description "Utilities from XCVB-Driver, repackaged"
-  :depends-on ((:version :asdf "2.23") :xcvb-driver :alexandria :fare-utils :asdf-utils)
+  :depends-on (:xcvb-driver :alexandria :fare-utils :asdf-utils)
   :components
   ((:file "xcvb-utils")))

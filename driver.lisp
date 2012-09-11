@@ -1662,7 +1662,7 @@ by /bin/sh in POSIX"
 either a list of strings specifying a program and list of arguments,
 or a string specifying a shell command (/bin/sh on Unix, CMD.EXE on Windows);
 have its output processed by the OUTPUT processor function
-as per PROCESS-INPUT-STREAM,
+as per SLURP-INPUT-STREAM,
 or merely output to the inherited standard output if it's NIL.
 Always call a shell (rather than directly execute the command)
 if FORCE-SHELL is specified.
