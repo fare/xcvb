@@ -234,6 +234,7 @@ test-and-release-tarballs: release-tarballs test-release-directory
 	VERSION=$$(git describe --tags) && \
 	cd ${TMP} && \
 	rsync -av xcvb-$$VERSION.tar.bz2 xcvb.tar.bz2 \
+		xcvb-$$VERSION-and-dependencies.tar.bz2 xcvb-and-dependencies.tar.bz2 \
 		common-lisp.net:/project/xcvb/public_html/releases/
 
 fake-release-directory: xcvb-test

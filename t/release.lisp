@@ -81,7 +81,19 @@ of easy shell characters (that do not require quoting)."
   (compute-release-dir-variables! keys)
   (apply '%make-release-tarballs keys))
 
-(defun %make-release-tarballs (&key release-dir xcvb-dir &allow-other-keys)
+(defun make-small-release-tarballs (&rest keys)
+  (compute-release-dir-variables! keys)
+  (apply '%make-small-release-tarball keys))
+
+(defun make-big-release-tarballs (&rest keys)
+  (compute-release-dir-variables! keys)
+  (apply '%make-big-release-tarball keys))
+
+(defun %make-release-tarballs (&rest keys)
+  (apply '%make-small-release-tarball keys)
+  (apply '%make-big-release-tarball keys))
+
+(defun %make-big-release-tarball (&key release-dir xcvb-dir &allow-other-keys)
   (nest
     (with-standard-io-syntax)
     (with-current-directory (xcvb-dir))
@@ -93,17 +105,31 @@ of easy shell characters (that do not require quoting)."
 			   (asdf:system-relative-pathname :xcvb "../")))
     (let* ((version (xcvb-driver::get-xcvb-version-from-git))
 	   (version-dir (strcat "xcvb-" version))
-	   (suffix ".tar.bz2")
 	   (bigsuffix "-and-dependencies.tar.bz2")
-	   (tarball (strcat version-dir suffix))
 	   (bigtarball (strcat version-dir bigsuffix))))
     (with-current-directory ("../../")
       (run `(rm -f ,version-dir))
       (run `(ln -sf ,release-dir ,version-dir))
       (run `(tar ,@*release-exclude* -hjcf ,bigtarball ,version-dir))
-      (run `(ln -sf ,bigtarball ("xcvb" ,bigsuffix)))
+      (run `(ln -sf ,bigtarball ("xcvb" ,bigsuffix))))))
+
+(defun %make-small-release-tarball (&key xcvb-dir &allow-other-keys)
+  (nest
+    (with-standard-io-syntax)
+    (with-current-directory (xcvb-dir))
+    (let (asdf::*source-registry* asdf::*source-registry-parameter*)
+      (asdf:initialize-source-registry
+       `(:source-registry (:tree ,xcvb-dir) :ignore-inherited-configuration))
+      (asdf:clear-system :xcvb)
+      (xcvb::log-format-pp 5 "Making small release tarball for XCVB at: ~A"
+			   (asdf:system-source-directory :xcvb)))
+    (let* ((version (xcvb-driver::get-xcvb-version-from-git))
+	   (version-dir (strcat "xcvb-" version))
+	   (suffix ".tar.bz2")
+	   (tarball (strcat version-dir suffix))))
+    (with-current-directory ("../../")
       (run `(rm -f ,version-dir))
-      (run `(ln -sf (,release-dir "xcvb") ,version-dir))
+      (run `(ln -sf ,xcvb-dir ,version-dir))
       (xcvb-driver::make-xcvb-version-file)
       (run `(tar ,@*release-exclude* --exclude ".git" -hjcf ,tarball ,version-dir))
       (run `(rm -f ,version-dir ,(xcvb-driver::xcvb-version-file)))
