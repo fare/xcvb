@@ -19,3 +19,7 @@
   (xcvb-driver:with-controlled-loader-conditions ()
     (xcvb-driver:proclaim-optimization-settings)
     (call-next-method)))
+
+;;; Most users of ASDF will want debugging ON.
+;;; They can disable it if they want.
+(setf xcvb-driver:*debugging* t)
