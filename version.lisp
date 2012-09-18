@@ -11,10 +11,10 @@
   (asdf:system-source-directory :xcvb))
 
 (defun xcvb-git-checkout-p ()
-  (asdf:probe-file* (asdf:subpathname (get-xcvb-directory) ".git/")))
+  (asdf::probe-file* (asdf::subpathname (get-xcvb-directory) ".git/")))
 
 (defun xcvb-version-file ()
-  (asdf:subpathname (get-xcvb-directory) "version.text"))
+  (asdf::subpathname (get-xcvb-directory) "version.text"))
 
 (defun get-xcvb-version-from-git ()
   (and (xcvb-git-checkout-p)
@@ -36,7 +36,7 @@
 
 (defun make-xcvb-version-file (&optional file)
   (let ((version (get-xcvb-version-from-git))
-        (file (asdf:merge-pathnames* file (xcvb-version-file))))
+        (file (asdf::merge-pathnames* file (xcvb-version-file))))
     (unless version
       (error "Could not get XCVB version from git"))
     (with-open-file (s file :direction :output

@@ -5,7 +5,7 @@
 
 ;;;;; Virtual pathname object.
 
-(define-interface xcvb-interface (eq:<hashable>) ())
+(define-interface xcvb-interface (<hashable>) ())
 
 (defclass virtual-pathname ()
   ((hash :initarg :hash :reader vp-hash)
@@ -13,9 +13,9 @@
    (subpath :initarg :subpath :reader vp-subpath)
    (resolved-namestring :accessor vp-resolved-namestring)))
 
-(defmethod eq:hash ((i xcvb-interface) (vp virtual-pathname))
+(defmethod hash ((i xcvb-interface) (vp virtual-pathname))
   (vp-hash vp))
-(defmethod eq:== ((i xcvb-interface) (vp1 virtual-pathname) (vp2 virtual-pathname))
+(defmethod == ((i xcvb-interface) (vp1 virtual-pathname) (vp2 virtual-pathname))
   (and (equal (vp-root vp1) (vp-root vp2))
        (equal (vp-subpath vp1) (vp-subpath vp2))))
 
