@@ -761,11 +761,11 @@ reading contents line by line."
 (defun proclaim-optimization-settings ()
   "Proclaim the optimization settings in *OPTIMIZATION-SETTINGS*"
   (proclaim `(optimize ,@*optimization-settings*))
-  (when *debugging*
-    (let ((settings (get-optimization-settings)))
-      (unless (equal *previous-optimization-settings* settings)
-        (setf *previous-optimization-settings* settings)
-        (format! *error-output* "~&Optimization settings: ~S~%" settings)))))
+  (let ((settings (get-optimization-settings)))
+    (unless (equal *previous-optimization-settings* settings)
+      (setf *previous-optimization-settings* settings)
+      (when *debugging*
+	(format! *error-output* "~&Optimization settings: ~S~%" settings)))))
 
 ;;; Performance tweaks
 
