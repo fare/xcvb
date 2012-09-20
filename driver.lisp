@@ -317,7 +317,7 @@ then returning the non-empty string value of the variable"
 (defun default-temporary-directory ()
   (flet ((f (s v d) (format nil "~A~A" (or (getenv v) d (error "No temporary directory!")) s)))
     (let ((dir (cond
-                 ((os-unix-p) (f #\/ "TMP" "/tmp"))
+                 ((os-unix-p) (f #\/ "TMPDIR" "/tmp"))
                  ((os-windows-p) (f #\\ "TEMP" nil))))
           #+mcl (dir (probe-posix dir)))
       (pathname dir))))
