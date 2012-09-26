@@ -764,7 +764,7 @@ reading contents line by line."
   (let ((settings (get-optimization-settings)))
     (unless (equal *previous-optimization-settings* settings)
       (setf *previous-optimization-settings* settings)
-      (when *debugging*
+      (when (>= *xcvb-verbosity* 8)
 	(format! *error-output* "~&Optimization settings: ~S~%" settings)))))
 
 ;;; Performance tweaks
