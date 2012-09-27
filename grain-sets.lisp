@@ -23,16 +23,20 @@ mapping back to this array...")
 
 (define-interface <grain-map>
     (<encoded-key-map>
-     map-simple-empty map-simple-decons map-simple-update-key
-     map-simple-map/2 map-simple-join/list map-size-from-fold-left
-     map-for-each-from-fold-left map-divide/list-from-divide)
-  ())
+     <map-empty-is-nil>
+     <map-decons-from-first-key-value-drop>
+     <map-divide/list-from-divide>
+     <map-for-each-from-fold-left>
+     <map-join/list-from-join>
+     <map-map/2-from-fold-left-lookup-insert-drop>
+     <map-size-from-fold-left>
+     <map-update-key-from-lookup-insert-drop>)
+  ()
+  (:singleton)
+  (:method base-interface () <fmim>)
+  (:method encode-key (grain)
+    (grain-ordinal grain))
+  (:method decode-key (ordinal)
+    (ordinal-grain ordinal)))
 
-(defmethod base-interface ((i <grain-map>))
-  <fmim>)
-(defmethod encode-key ((i <grain-map>) grain)
-  (grain-ordinal grain))
-(defmethod decode-key ((i <grain-map>) ordinal)
-  (ordinal-grain ordinal))
-
-(defparameter <gm> (make-instance '<grain-map>))
+(defparameter <gm> <grain-map>)
