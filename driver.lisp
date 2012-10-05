@@ -435,7 +435,7 @@ NIL: default to *install-data*/common-lisp/, see docs")
 (defvar *xcvb-program* "xcvb"
   "Path to the XCVB binary (a string), OR t if you want to use an in-image XCVB")
 
-(defvar *required-xcvb-version* "0.579"
+(defvar *required-xcvb-version* "0.591"
   "Minimal version of XCVB required for use with this version of the xcvb-driver")
 
 (defvar *source-registry* nil
@@ -835,14 +835,6 @@ reading contents line by line."
 profile it under some profiling name when *PROFILING* is enabled."
   `(call-with-maybe-profiling #'(lambda () ,@body) ,what *goal*))
 
-;;; Build initialization
-
-(defun setup-environment ()
-  "Setup the XCVB environment with respect to debugging, profiling, performance"
-  (debugging (getenvp "XCVB_DEBUGGING"))
-  (setf *profiling* (getenvp "XCVB_PROFILING"))
-  (tweak-implementation))
-
 ;;; Exiting properly or im-
 (defun quit (&optional (code 0) (finish-output t))
   "Quits from the Lisp world, with the given exit status if provided.
@@ -1054,6 +1046,8 @@ Entry point for XCVB-DRIVER when used by XCVB's farmer"
 
 (defun run-commands (commands)
   (map () #'run-command commands))
+
+(declaim (ftype (function () (values)) setup-environment))
 
 (defun do-run (commands)
   (let ((*stderr* *error-output*))
@@ -2090,5 +2084,16 @@ Use ELEMENT-TYPE and EXTERNAL-FORMAT for the stream passed to the OUTPUT process
   "Short hand for BUILD-AND-LOAD"
   (declare (ignore . #.*bnl-keys*))
   (apply 'build-and-load build keys))
+
+;;; Build initialization
+
+(defun setup-environment ()
+  "Setup the XCVB environment with respect to debugging, profiling, performance"
+  (debugging (getenvp "XCVB_DEBUGGING"))
+  (setf *profiling* (getenvp "XCVB_PROFILING")
+	*temporary-directory* (default-temporary-directory)
+	*stderr* #-clozure *error-output* #+clozure ccl::*stderr*)
+  (tweak-implementation)
+  (values))
 
 ;;;; ----- The End -----
