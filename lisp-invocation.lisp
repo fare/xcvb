@@ -261,7 +261,7 @@
   (when x
     (let ((n (native-namestring x)))
       (cond
-	((asdf:absolute-pathname-p x) n)
+	((asdf::absolute-pathname-p x) n)
 	((asdf::os-unix-p) (format nil "./~A" n))
 	(t n)))))
 

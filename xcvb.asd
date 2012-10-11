@@ -1,21 +1,11 @@
 ;;; -*- mode: lisp -*-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;                                                                  ;;;
-;;; Free Software available under an MIT-style license. See LICENSE  ;;;
-;;;                                                                  ;;;
-;;; Copyright (c) 2008-2011 ITA Software, Inc.  All rights reserved. ;;;
-;;; Copyright (c) 2012-2012 Google, Inc.  All rights reserved.       ;;;
-;;;                                                                  ;;;
-;;; Original authors: Spencer Brody, Francois-Rene Rideau            ;;;
-;;;                                                                  ;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (in-package :asdf)
 #-asdf2 (error "XCVB requires ASDF 2")
 
 (let ((old-ver (asdf-version)))
   (load-system :asdf)
-  (let ((min "2.23")
+  (let ((min "2.21")
 	(ver (asdf-version)))
     (unless (or (version-satisfies old-ver "2.014.8") ; first version to do magic upgrade
 		(equal ver old-ver))

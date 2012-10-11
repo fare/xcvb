@@ -840,9 +840,11 @@ profile it under some profiling name when *PROFILING* is enabled."
   "Quits from the Lisp world, with the given exit status if provided.
 This is designed to abstract away the implementation specific quit forms."
   (when *debugging*
-    (format! *stderr* "~&Quitting with code ~A~%" code))
+    (ignore-errors
+     (format! *stderr* "~&Quitting with code ~A~%" code)))
   (when finish-output ;; essential, for ClozureCL, and for standard compliance.
-    (finish-outputs))
+    (ignore-errors
+     (finish-outputs)))
   #+(or abcl xcl) (ext:quit :status code)
   #+allegro (excl:exit code :quiet t)
   #+clisp (ext:quit code)
@@ -869,19 +871,22 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defun die (format &rest arguments)
   "Die in error with some error message"
-  (format! *stderr* "~&")
-  (apply #'format! *stderr* format arguments)
-  (format! *stderr* "~&")
+  (ignore-errors
+   (format! *stderr* "~&")
+   (apply #'format! *stderr* format arguments)
+   (format! *stderr* "~&"))
   (quit 99))
 
 (defun bork (condition)
   "Depending on whether *DEBUGGING* is set, enter debugger or die"
-  (format! *stderr* "~&BORK:~%~A~%" condition)
+  (ignore-errors
+   (format! *stderr* "~&BORK:~%~A~%" condition))
   (cond
     (*debugging*
      (invoke-debugger condition))
     (t
-     (print-backtrace *stderr*)
+     (ignore-errors
+      (print-backtrace *stderr*))
      (die "~A" condition))))
 
 (defun call-with-coded-exit (thunk)

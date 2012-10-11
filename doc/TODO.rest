@@ -314,6 +314,9 @@ I propose our next steps should be as follows:
      a "load script" backend creating a simple load script.
      XCVB could be able to always fall back to some working mode.
 
+   + For ABCL on Unix, use fork?
+       https://github.com/kohsuke/akuma/blob/master/src/main/java/com/sun/akuma/Daemon.java
+
    + For an optimized XCVB managing its own processes, assume Linux
      with SBCL or CCL, maybe if not too hard CLISP.
 
