@@ -16,7 +16,7 @@
 
 (defun space-separated-components (string)
   (remove-if 'emptyp
-             (asdf:split-string string :separator *spaces*)))
+             (split-string string :separator *spaces*)))
 
 (defun easy-string-p (x)
   (and (loop :for c :across x :always (or (easy-sh-character-p c) (eql c #\~)))
@@ -26,7 +26,7 @@
   "string is a ;-separated list of easy commands.
 commands are lists of space-separated strings
 of easy shell characters (that do not require quoting)."
-  (loop :for command :in (asdf:split-string commands :separator ";")
+  (loop :for command :in (split-string commands :separator ";")
     :for strings = (space-separated-components command)
     :when (every 'easy-string-p strings)
       :collect strings
@@ -41,7 +41,7 @@ of easy shell characters (that do not require quoting)."
 
 (defun basename (x &optional ext)
   (let* ((x1 (string-right-trim "/" x))
-         (x2 (car (last (asdf:split-string x1 :max 2 :separator "/")))))
+         (x2 (car (last (split-string x1 :max 2 :separator "/")))))
     (if (and ext (string-suffix-p x2 ext))
         (subseq x2 0 (- (length x2) (length ext)))
         x2)))
