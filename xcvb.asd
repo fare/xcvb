@@ -48,7 +48,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :lisp-interface-library
 		 #+clozure :single-threaded-ccl
                  #+xcvb-farmer :quux-iolib
-                 #-clisp :rucksack)
+                 #|#-clisp :rucksack|#)
     :components
     ((:file "version")
      (:file "pkgdcl" :depends-on ("version"))

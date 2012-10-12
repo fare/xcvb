@@ -225,7 +225,7 @@
   :argument-control t
   :disable-debugger ("--disable-debugger")
   :directory-variable "SBCL_HOME"
-  :quit-format "(sb-ext:quit :unix-status ~A)"
+  :quit-format "(let ((exit (find-symbol \"EXIT\" :sb-ext)) (quit (find-symbol \"QUIT\" :sb-ext)) (code ~A)) (cond (exit (funcall exit :code code)) (quit (funcall quit :unix-status code))))"
   :dump-format "(sb-ext:save-lisp-and-die ~S :executable t)")
 
 (define-lisp-implementation :scl ()

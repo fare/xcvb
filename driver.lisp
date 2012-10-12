@@ -839,12 +839,11 @@ profile it under some profiling name when *PROFILING* is enabled."
 (defun quit (&optional (code 0) (finish-output t))
   "Quits from the Lisp world, with the given exit status if provided.
 This is designed to abstract away the implementation specific quit forms."
-  (when *debugging*
-    (ignore-errors
-     (format! *stderr* "~&Quitting with code ~A~%" code)))
-  (when finish-output ;; essential, for ClozureCL, and for standard compliance.
-    (ignore-errors
-     (finish-outputs)))
+  (with-safe-io-syntax ()
+    (when *debugging*
+      (ignore-errors (format! *stderr* "~&Quitting with code ~A~%" code)))
+    (when finish-output ;; essential, for ClozureCL, and for standard compliance.
+      (ignore-errors (finish-outputs))))
   #+(or abcl xcl) (ext:quit :status code)
   #+allegro (excl:exit code :quiet t)
   #+clisp (ext:quit code)
@@ -858,10 +857,10 @@ This is designed to abstract away the implementation specific quit forms."
   #+mcl (ccl:quit) ;; or should we use FFI to call libc's exit(3) ?
   #+mkcl (mk-ext:quit :exit-code code)
   #+sbcl #.(let ((exit (find-symbol* :exit :sb-ext nil))
-                 (quit (find-symbol* :quit :sb-ext nil)))
-             (cond
-               (exit `(,exit :code code :abort (not finish-output)))
-               (quit `(,quit :unix-status code :recklessly-p (not finish-output)))))
+		 (quit (find-symbol* :quit :sb-ext nil)))
+	     (cond
+	       (exit `(,exit :code code :abort (not finish-output)))
+	       (quit `(,quit :unix-status code :recklessly-p (not finish-output)))))
   #-(or abcl allegro clisp clozure cmu ecl gcl genera lispworks mcl mkcl sbcl scl xcl)
   (error "xcvb driver: Quitting not implemented"))
 
@@ -871,22 +870,23 @@ This is designed to abstract away the implementation specific quit forms."
 
 (defun die (format &rest arguments)
   "Die in error with some error message"
-  (ignore-errors
-   (format! *stderr* "~&")
-   (apply #'format! *stderr* format arguments)
-   (format! *stderr* "~&"))
-  (quit 99))
+  (with-safe-io-syntax ()
+    (ignore-errors
+     (format! *stderr* "~&")
+     (apply #'format! *stderr* format arguments)
+     (format! *stderr* "~&"))
+    (quit 99)))
 
 (defun bork (condition)
   "Depending on whether *DEBUGGING* is set, enter debugger or die"
-  (ignore-errors
-   (format! *stderr* "~&BORK:~%~A~%" condition))
+  (with-safe-io-syntax ()
+    (ignore-errors (format! *stderr* "~&BORK:~%~A~%" condition)))
   (cond
     (*debugging*
      (invoke-debugger condition))
     (t
-     (ignore-errors
-      (print-backtrace *stderr*))
+     (with-safe-io-syntax ()
+       (ignore-errors (print-backtrace *stderr*)))
      (die "~A" condition))))
 
 (defun call-with-coded-exit (thunk)
@@ -1306,8 +1306,9 @@ if we are not called from a directly executable image dumped by XCVB."
     (rest arguments)))
 
 (defun do-resume (&key (post-image-restart *post-image-restart*) (entry-point *entry-point*))
-  (with-standard-io-syntax
-    (when post-image-restart (load-string post-image-restart)))
+  (with-safe-io-syntax ()
+    (let ((*read-eval* t))
+      (when post-image-restart (load-string post-image-restart))))
   (with-coded-exit ()
     (when entry-point
       (let ((ret (apply entry-point *arguments*)))
@@ -1326,10 +1327,11 @@ if we are not called from a directly executable image dumped by XCVB."
   (declare (ignorable filename output-name executable pre-image-dump post-image-restart entry-point))
   (setf *dumped* (if executable :executable t))
   (setf *package* (find-package (or package :cl-user)))
-  (with-standard-io-syntax
-    (when pre-image-dump (load-string pre-image-dump))
-    (setf *entry-point* (when entry-point (read-function entry-point)))
-    (when post-image-restart (setf *post-image-restart* post-image-restart)))
+  (with-safe-io-syntax ()
+    (let ((*read-eval* t))
+      (when pre-image-dump (load-string pre-image-dump))
+      (setf *entry-point* (when entry-point (read-function entry-point)))
+      (when post-image-restart (setf *post-image-restart* post-image-restart))))
   #-(or clisp clozure cmu lispworks sbcl)
   (when executable
     (error "Dumping an executable is not supported on this implementation! Aborting."))
@@ -1469,7 +1471,7 @@ if we are not called from a directly executable image dumped by XCVB."
            ;;(output (f output))
            (*default-pathname-defaults* (pathname-directory-pathname so)))
       (progv (list (find-symbol* :*cc-flags* :cffi-grovel)) (list cc-flags)
-        (with-standard-io-syntax
+        (with-safe-io-syntax ()
           (multiple-value-bind (c-file lisp-forms)
               (call :cffi-grovel :generate-c-lib-file input c)
             (declare (ignore c-file))
