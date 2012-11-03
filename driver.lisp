@@ -874,8 +874,8 @@ This is designed to abstract away the implementation specific quit forms."
     (ignore-errors
      (format! *stderr* "~&")
      (apply #'format! *stderr* format arguments)
-     (format! *stderr* "~&"))
-    (quit 99)))
+     (format! *stderr* "~&")))
+  (quit 99))
 
 (defun bork (condition)
   "Depending on whether *DEBUGGING* is set, enter debugger or die"

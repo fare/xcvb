@@ -42,7 +42,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
                  :fare-mop :fare-memoization
                  :command-line-arguments
                  :asdf-dependency-grovel
-                 :fare-matcher :fare-quasiquote-readtable
+                 :fare-quasiquote-extras
                  :ironclad :binascii :babel
 		 :inferior-shell
                  :lisp-interface-library

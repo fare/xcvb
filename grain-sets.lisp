@@ -21,6 +21,7 @@ mapping back to this array...")
   (check-grain-ordinal ordinal)
   (aref *ordered-grains* ordinal))
 
+#|
 (define-interface <grain-map>
     (<encoded-key-map>
      <map-empty-is-nil>
@@ -40,3 +41,4 @@ mapping back to this array...")
     (ordinal-grain ordinal)))
 
 (defparameter <gm> <grain-map>)
+|#

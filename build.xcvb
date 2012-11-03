@@ -20,7 +20,7 @@ deterministic separate compilation and enforced locally-declared dependencies."
    (:asdf "closer-mop")
    (:build "command-line-arguments")
    (:build "fare-utils") ;; utilities and data structures.
-   (:build "fare-matcher") ;; fare-matcher and fare-quasiquote-readtable
+   (:build "fare-quasiquote") ;; fare-quasiquote-readtable and fare-quasiquote-optima
    (:build "fare-mop")
    (:build "inferior-shell")
    (:when (:featurep :xcvb-farmer)

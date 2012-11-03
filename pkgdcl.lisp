@@ -14,7 +14,7 @@
 (defpackage :xcvb
   (:use :closer-common-lisp
         :xcvb-utils :command-line-arguments :lisp-invocation
-        :fare-matcher :interface :pure :fare-mop
+        :optima :interface :pure :fare-mop
         :fare-memoization :inferior-shell
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
