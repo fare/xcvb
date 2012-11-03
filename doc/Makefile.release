@@ -43,7 +43,7 @@ DEPENDENCIES_SUPPORTING_XCVB := \
 	GIT git://common-lisp.net/projects/xcvb/cl-launch.git ; \
 	GIT git://common-lisp.net/projects/qitab/command-line-arguments.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-utils.git ; \
-	GIT git://common-lisp.net/users/frideau/fare-matcher.git ; \
+	GIT git://common-lisp.net/users/frideau/fare-quasiquote.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-mop.git ; \
 	GIT git://common-lisp.net/users/frideau/fare-memoization.git ; \
 	GIT git://common-lisp.net/projects/qitab/inferior-shell.git ; \
@@ -55,6 +55,7 @@ DEPENDENCIES_SUPPORTING_XCVB := \
 	GIT git://common-lisp.net/projects/xcvb/quux-iolib.git
 
 DEPENDENCIES_STILL_USING_ASDF := \
+	GIT git://github.com/m2ym/optima.git ; \
 	: These are used by xcvb-test: ; \
 	DARCS http://dwim.hu/darcs/hu.dwim.asdf/ ; \
 	XDARCS http://dwim.hu/darcs/hu.dwim.stefil/

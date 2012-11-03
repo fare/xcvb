@@ -290,19 +290,19 @@ The dependencies that support XCVB natively include:
         - getting it, if you're frideau::
         	``git clone ssh://frideau@common-lisp.net/home/frideau/git/fare-utils.git``
 
-  * fare-matcher:
-	- homepage: http://cliki.net/fare-matcher
+  * fare-quasiquote:
+	- homepage: http://cliki.net/fare-quasiquote
 	- getting it:
-		``git clone git://common-lisp.net/users/frideau/fare-matcher.git``
-        - getting it, if you're a QITAB project member::
-        	``git clone ssh://frideau@common-lisp.net/home/frideau/git/fare-matcher.git``
+		``git clone git://common-lisp.net/users/frideau/fare-quasiquote.git``
+        - getting it, if you're me::
+        	``git clone ssh://frideau@common-lisp.net/home/frideau/git/fare-quasiquote.git``
 
   * fare-mop:
-	- homepage: http://cliki.net/fare-matcher
+	- homepage: http://cliki.net/fare-mop
 	- getting it:
-		``git clone git://common-lisp.net/users/frideau/fare-matcher.git``
+		``git clone git://common-lisp.net/users/frideau/fare-mop.git``
         - getting it, if you're a QITAB project member::
-        	``git clone ssh://frideau@common-lisp.net/home/frideau/git/fare-matcher.git``
+        	``git clone ssh://frideau@common-lisp.net/home/frideau/git/fare-mop.git``
 
   * quux-iolib:
 	- homepage: http://cliki.net/quux-iolib
@@ -600,7 +600,7 @@ The ``build.xcvb`` file for Exscribe_ is as follows::
            :nicknames ("exscribe")
            :supersedes-asdf ("exscribe")
            :build-depends-on ("/cl-launch" "/fare-utils"
-                              "/fare-matcher" "/scribble"
+                              "/fare-quasiquote" "/scribble"
                               (:asdf "cl-typesetting"))
            :depends-on ("scheme-compat" "exscribe"
                         "exscribe-html" "exscribe-txt" "exscribe-typeset")
