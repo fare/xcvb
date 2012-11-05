@@ -29,7 +29,7 @@
 
 (defun safe-file-write-date (p &optional error)
   (or (and p (asdf::probe-file* p) (ignore-errors (file-write-date p)))
-      (error-behaviour error)))
+      (error-behavior error)))
 
 ;; We rely on the same approximation as make and asdf.
 ;; If the modified file is a generated file a previous version of which
@@ -65,7 +65,7 @@
 (defmethod grain-change-information ((env timestamp-based-change-detection) grain &key error)
   (declare (ignorable env))
   (or (grain-build-timestamp grain)
-      (error-behaviour error)))
+      (error-behavior error)))
 
 (defmethod grain-change-information ((env timestamp-based-change-detection)
                                      (grain require-grain) &key error)
@@ -81,7 +81,7 @@
                                      &key error)
   (or (grain-build-timestamp grain)
       (update-change-information env grain)
-      (error-behaviour error)))
+      (error-behavior error)))
 
 (defmethod update-change-information ((env timestamp-based-change-detection) grain &key)
   (declare (ignorable env))
@@ -120,13 +120,13 @@
 
 (defmethod grain-change-information ((env digest-based-change-detection) grain &key error)
   (or (grain-digest grain)
-      (error-behaviour error)))
+      (error-behavior error)))
 
 (defmethod grain-change-information ((env digest-based-change-detection) (grain file-grain)
                                      &key error)
   (or (grain-digest grain)
       (update-change-information env grain)
-      (error-behaviour error)))
+      (error-behavior error)))
 
 (defmethod update-change-information ((env digest-based-change-detection) grain &key)
   (declare (ignorable env))
