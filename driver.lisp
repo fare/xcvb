@@ -748,13 +748,14 @@ reading contents line by line."
 (defun get-optimization-settings ()
   "Get current compiler optimization settings, ready to PROCLAIM again"
   (let ((settings '(speed space safety debug compilation-speed #+(or cmu scl) c::brevity)))
-    #-(or clisp clozure cmu sbcl scl)
+    #-(or clisp clozure cmu ecl sbcl scl)
     (warn "xcvb-driver::get-optimization-settings does not support your implementation. Please help me fix that.")
     #.`(loop :for x :in settings
          ,@(or #+clozure '(:for v :in '(ccl::*nx-speed* ccl::*nx-space* ccl::*nx-safety* ccl::*nx-debug* ccl::*nx-cspeed*))
+               #+ecl '(:for v :in '(c::*speed* c::*space* c::*safety* c::*debug*))
                #+(or cmu scl) '(:for f :in '(c::cookie-speed c::cookie-space c::cookie-safety c::cookie-debug c::cookie-cspeed c::cookie-brevity)))
          :for y = (or #+clisp (gethash x system::*optimize*)
-                      #+clozure (symbol-value v)
+                      #+(or clozure ecl) (symbol-value v)
                       #+(or cmu scl) (funcall f c::*default-cookie*)
                       #+sbcl (cdr (assoc x sb-c::*policy*)))
          :when y :collect (list x y))))
