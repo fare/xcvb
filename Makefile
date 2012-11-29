@@ -230,6 +230,9 @@ test-release-directory: ${XCVB_TEST}
 	${XCVB_TEST} validate-release-dir-all-lisps --release-dir ${RELEASE_DIR} --verbosity 99
 
 test-and-release-tarballs: release-tarballs test-release-directory
+	${MAKE} rsync-tarballs
+
+rsync-tarballs:
 	cd ${RELEASE_DIR}/xcvb && \
 	VERSION=$$(git describe --tags) && \
 	cd ${TMP} && \
