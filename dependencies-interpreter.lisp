@@ -47,7 +47,7 @@
    env `(:load-file (:lisp-object ,name)) `(:lisp-object ,name)))
 (define-build-command-for :dynamic-library (env name)
   (simple-build-command-for
-   env `(:load-file `(:dynamic-library ,name)) `(:dynamic-library ,name)))
+   env `(:load-file (:dynamic-library ,name)) `(:dynamic-library ,name)))
 (define-build-command-for :static-library (env name)
   (simple-build-command-for
    env `(:load-file (:static-library ,name)) `(:static-library ,name)))
