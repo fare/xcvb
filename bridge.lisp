@@ -16,9 +16,3 @@
 (defmethod perform ((op load-op) (b xcvb-build))
   (declare (ignorable op))
   (xcvb-driver:build-and-load (build-name b)))
-
-(defmethod traverse ((op compile-op) (b xcvb-build))
-  (list (cons op b)))
-
-(defmethod traverse ((op load-op) (b xcvb-build))
-  (list (cons op b)))
