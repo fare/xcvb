@@ -30,6 +30,7 @@
   "Dictionary of known Lisp implementations")
 
 (defstruct (lisp-implementation)
+  identifiers
   fullname
   name
   feature
@@ -48,8 +49,13 @@
   dump-format)
 
 (defmacro define-lisp-implementation (key () &rest keys)
-  `(setf (gethash ,key *lisp-implementations*)
-    (apply #'make-lisp-implementation ',keys)))
+  `(register-lisp-implementation ',key ,@keys))
+
+(defun register-lisp-implementation (key &rest keys)
+  (let* ((identifiers (ensure-list key))
+         (implementation (apply #'make-lisp-implementation :identifiers identifiers keys)))
+    (dolist (id identifiers)
+      (setf (gethash id *lisp-implementations*)))))
 
 (defun get-lisp-implementation (&optional (implementation-type *lisp-implementation-type*))
   (or (gethash implementation-type *lisp-implementations*)
@@ -71,7 +77,7 @@
   :quit-format "(ext:quit :status ~A)"
   :dump-format nil)
 
-(define-lisp-implementation :allegro ()
+(define-lisp-implementation (:allegro :acl) ()
   :fullname "Allegro CL"
   :name "alisp"
   :feature :allegro
@@ -88,7 +94,7 @@
   :quit-format "(excl:exit ~A :quiet t)"
   :dump-format "(progn (sys:resize-areas :global-gc t :pack-heap t :sift-old-areas t :tenure t) (excl:dumplisp :name ~A :suppress-allegro-cl-banner t))")
 
-(define-lisp-implementation :ccl () ;; demand 1.4 or later.
+(define-lisp-implementation (:clozure :ccl) () ;; demand 1.4 or later.
   :fullname "Clozure Common Lisp"
   ;; formerly OpenMCL, forked from MCL, formerly Macintosh Common Lisp, nee Coral Common Lisp
   ;; Random note: (finish-output) is essential for ccl, that won't do it by default,
@@ -124,7 +130,7 @@
   :quit-format "(ext:quit ~A)"
   :dump-format "(ext:saveinitmem ~S :quiet t :executable t)")
 
-(define-lisp-implementation :cmucl ()
+(define-lisp-implementation (:cmucl :cmu) ()
   :fullname "CMU CL"
   :name "cmucl"
   :feature :cmu
@@ -139,7 +145,7 @@
   :quit-format "(unix:unix-exit ~A)"
   :dump-format "(extensions:save-lisp ~S :executable t)")
 
-(define-lisp-implementation :corman () ;; someone please add more complete support
+(define-lisp-implementation (:corman :cormanlisp) () ;; someone please add more complete support
   :fullname "Corman Lisp"
   :name () ;; There's a clconsole.exe, but what are the options?
   :feature :cormanlisp
@@ -174,7 +180,7 @@
   :quit-format "(lisp:quit ~A)"
   :dump-format "(progn (si::set-hole-size 500) (si::gbc nil) (si::sgc-on t) (si::save-system ~A))")
 
-(define-lisp-implementation :lispworks ()
+(define-lisp-implementation (:lispworks :lw) ()
   :fullname "LispWorks"
   :name "lispworks" ;; This assumes you dumped a proper image for batch processing...
   :feature :lispworks

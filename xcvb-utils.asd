@@ -6,9 +6,10 @@
 ;;;
 
 (defsystem :xcvb-utils
+  :defsystem-depends-on (:asdf)
   :licence "MIT"
   :description "Utilities from XCVB"
   :long-description "Utilities from XCVB-Driver, repackaged"
-  :depends-on (:xcvb-driver :alexandria :fare-utils :asdf-utils)
+  :depends-on (:asdf :alexandria :fare-utils)
   :components
   ((:file "xcvb-utils")))
