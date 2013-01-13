@@ -8,5 +8,5 @@
                      "/xcvb/driver")))
 
 (asdf/package:define-package :xcvb-utils
-  (:mix :fare-utils :asdf/driver :alexandria)
-  (:reexport :fare-utils :asdf/driver :alexandria))
+  (:mix :asdf/driver :fare-utils :alexandria)
+  (:reexport :asdf/driver :fare-utils :alexandria))
