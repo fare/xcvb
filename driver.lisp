@@ -11,8 +11,10 @@
 
 ;; #.(setf *load-verbose* () *load-print* () *compile-verbose* () *compile-print* ()) ;; Hush!
 
+;;;; First, try very hard to load a recent enough ASDF.
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *asdf-version-required-for-xcvb* "2.26.75")
+  (defparameter *asdf-version-required-for-xcvb* "2.26.100")
   (defvar *asdf-directory*
     (merge-pathnames #p"cl/asdf/" (user-homedir-pathname))
     "Directory in which your favorite and/or latest version
@@ -33,10 +35,19 @@
   (unless (member :asdf *features*)
     (ignore-errors
      (handler-bind ((warning #'muffle-warning))
-       (let ((asdf-lisp (probe-file
-                         (make-pathname :name "asdf" :type "lisp"
-                                        :defaults *asdf-directory*))))
-         (when asdf-lisp (load asdf-lisp)))))))
+       (let ((asdf-lisp
+               (make-pathname :name "asdf" :type "lisp"
+                              :defaults *asdf-directory*))
+             (build-asdf-lisp
+               (merge-pathnames
+                (make-pathname :directory (#-gcl :relative "build")
+                               :defaults asdf-lisp)
+                asdf-lisp)))
+         (cond
+           ((probe-file build-asdf-lisp)
+            (load build-asdf-lisp))
+           ((probe-file asdf-lisp)
+            (load asdf-lisp))))))))
 
 ;; If still not found, error out.
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -54,21 +65,23 @@ Please install ASDF2 and in your ~~/.swank.lisp specify:
 
 ;;; If ASDF is too old, punt.
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (unless (or #+asdf2 (asdf:version-satisfies (asdf:asdf-version) *asdf-version-required-for-xcvb*))
+  (unless (or #+asdf2.27
+              (asdf:version-satisfies (asdf:asdf-version) *asdf-version-required-for-xcvb*))
     (error "Your ASDF version is too old.
-Please upgrade to ASDF2 and register is in your source-registry.")))
+Please upgrade to the latest stable ASDF and register it in your source-registry.")))
 
-(require :asdf)
+
+;;; We may now assume we have a recent enough ASDF with all the basic driver functions.
 
 (declaim (optimize (speed 2) (space 2) (safety 3) (debug 3) (compilation-speed 0))
          #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note))
 
 (asdf/package:define-package :xcvb-driver
   (:nicknames :xcvbd :xd)
-  (:use :cl :asdf/package :asdf/utility :asdf/pathname :asdf/stream :asdf/os :asdf/run-program
-   :asdf/image :asdf/lisp-build)
+  (:use :cl :asdf/driver)
+  (:reexport :asdf/driver)
+  (:shadow #:create-image)
   (:export
-
    ;;; special variables shared with XCVB itself
    #:*lisp-implementation-type*
    #:*lisp-executable-pathname* #:*lisp-image-pathname*
@@ -87,44 +100,6 @@ Please upgrade to ASDF2 and register is in your source-registry.")))
    #:*xcvb-program* #:*manifest*
    #:*required-xcvb-version*
 
-   ;;; special variables for portability issues
-   #:*default-element-type*
-
-   ;;; String utilities - copied from fare-utils
-   ;;#:string-prefix-p #:string-suffix-p #:string-enclosed-p
-
-   ;; command-line arguments
-   #:raw-command-line-arguments #:command-line-arguments #:*arguments* #:*dumped*
-   
-   ;;; I/O utilities
-   #:with-output #:with-input-file #:with-safe-io-syntax #:with-temporary-file
-   #:slurp-stream-string #:slurp-stream-lines #:slurp-stream-forms
-   #:slurp-file-string #:slurp-file-lines #:slurp-file-forms
-   #:copy-stream-to-stream #:copy-stream-to-stream-line-by-line
-   #:read-first-file-form #:read-function
-   #:slurp-input-stream
-
-   ;;; Escaping the command invocation madness
-   #:easy-sh-character-p #:escape-sh-token #:escape-sh-command
-   #:escape-windows-token #:escape-windows-command
-   #:escape-token #:escape-command
-
-   ;;; run-program/foo
-   #:run-program/
-   #:subprocess-error
-   #:subprocess-error-code #:subprocess-error-command #:subprocess-error-process
-   ;; Obsolete:
-   #:run-program/process-output-stream
-   #:run-program/read-output-lines #:run-program/read-output-string
-   #:run-program/read-output-form #:run-program/read-output-forms
-   #:run-program/for-side-effects #:run-program/echo-output
-
-   ;; pathname utilities
-   #:native-namestring #:parse-native-namestring
-
-   ;; current directory
-   #:getcwd #:chdir #:with-current-directory
-
    ;; Magic strings
    #:+xcvb-slave-greeting+ #:+xcvb-slave-farewell+
 
@@ -132,22 +107,13 @@ Please upgrade to ASDF2 and register is in your source-registry.")))
    #:build-and-load #:bnl #:build-in-slave
 
    ;;; Build-time variables
-   #:*optimization-settings*
-   #:*uninteresting-conditions* #:*uninteresting-load-conditions*
-   #:*fatal-conditions* #:*deferred-warnings*
    #:*goal* #:*stderr* #:*debugging* #:*profiling*
    #:*post-image-restart* #:*entry-point*
 
    ;;; Environment support
-   #:getenv #:emptyp #:getenvp #:setup-environment
    #:debugging #:with-profiling
-   #:format! #:finish-outputs #:quit #:shell-boolean
-   #:print-backtrace #:die #:bork #:with-coded-exit
-   #:uninteresting-condition-p #:fatal-condition-p
-   #:proclaim-optimization-settings
-   #:find-symbol* #:call #:eval-string #:load-string #:load-stream
-   ;; #:run #:do-run #:run-commands #:run-command ; used by XCVB, not end-users.
-   #:resume #-ecl #:dump-image #+ecl #:create-bundle
+   #:run #:do-run #:run-commands #:run-command
+   #-ecl #:dump-image #+ecl #:create-bundle
    #:register-fullname #:register-fullnames #:load-fullname-mappings
    #:registered-fullname-pathname))
 
@@ -184,16 +150,7 @@ Please upgrade to ASDF2 and register is in your source-registry.")))
 ;;; These variables are shared with XCVB itself.
 
 (defvar *lisp-implementation-type*
-  ;; TODO: test on all OS and implementation platform combinations!
-  #+abcl :abcl #+allegro :allegro
-  #+clisp :clisp #+clozure :ccl #+cmu :cmucl #+cormanlisp :corman
-  #+ecl :ecl #+gcl :gcl #+genera :genera
-  #+lispworks-personal-edition :lispworks-personal
-  #+(and lispworks (not lispworks-personal-edition)) :lispworks
-  #+mcl :mcl #+mkcl :mkcl #+sbcl :sbcl #+scl :scl #+xcl :xcl
-  #-(or abcl allegro clisp clozure cmu cormanlisp
-        ecl gcl genera lispworks mcl mkcl sbcl scl xcl)
-  (error "Your Lisp implementation is not supported by the XCVB driver (yet). Please help.")
+  (nth-value 1 (implementation-type))
   "Type of Lisp implementation for the target system. A keyword.
   Default: same as XCVB itself.")
 
@@ -207,9 +164,7 @@ Please upgrade to ASDF2 and register is in your source-registry.")))
   Default: whatever's the default for your implementation.")
 
 (defvar *lisp-implementation-directory*
-  (or #+clozure (namestring (ccl::ccl-directory))
-      #+gcl (namestring system::*system-directory*)
-      #+sbcl (namestring (sb-int:sbcl-homedir-pathname)))
+  (lisp-implementation-directory :truename t)
   "Where is the home directory for the Lisp implementation,
   in case we need it to (require ...) special features?
   Default: whatever's the default for your implementation.")
@@ -377,7 +332,7 @@ profile it under some profiling name when *PROFILING* is enabled."
 
 (defun register-fullname (&key fullname pathname tthsum logical-pathname)
   (setf (gethash fullname *pathname-mappings*)
-        (list :truename (truename (merge-pathnames pathname))
+        (list :truename (truename* pathname)
               :pathname pathname :logical-pathname logical-pathname
               :tthsum tthsum))
   (values))
@@ -393,7 +348,6 @@ profile it under some profiling name when *PROFILING* is enabled."
 (defun load-fullname-mappings (file)
   (let ((tn (truename file)))
     (register-fullnames (read-first-file-form tn) :defaults tn)))
-
 
 
 ;;;; ----- The xcvb-driver-command DSL for building Lisp code -----
@@ -439,16 +393,24 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 ;;; ASDF support
 
-(defun initialize-asdf ()
-  (asdf:clear-configuration))
+(defun initialize-asdf (&key source-registry output-translations)
+  (asdf:clear-configuration)
+  (asdf:initialize-source-registry source-registry)
+  (asdf:initialize-output-translations output-translations))
 
 (defun register-asdf-directory (x)
   (pushnew x asdf:*central-registry*))
 
+(defun asdf-systems-up-to-date-p (systems &optional (operation (asdf:make-operation 'asdf:load-op)))
+  "Are all the ASDF systems up to date (for loading)?"
+  (let ((plan (make-instance 'asdf/plan:sequential-plan)))
+    (dolist (s systems)
+      (asdf/plan:traverse-action plan operation (find-system s) t))
+    (loop :for (o . c) :in plan
+          :always (asdf:needed-in-image-p o c))))
+
 (defun asdf-systems-up-to-date (&rest systems)
-  "Are all the loaded systems up to date?"
-  (with-coded-exit ()
-    (shell-boolean (asdf::systems-up-to-date-p systems))))
+  (shell-boolean-exit (asdf-systems-up-to-date-p systems)))
 
 
 ;;; Actually compiling
@@ -506,32 +468,19 @@ Entry point for XCVB-DRIVER when used by XCVB"
             (with-profiling `(:compiling ,source)
               (with-determinism `(:compiling ,source)
                 (multiple-value-prog1
-                    ((lambda (thunk)
-                       (if around-compile
-                           (funcall (read-function around-compile) thunk)
-                           (funcall thunk)))
+                    (call-around-hook
+                     around-compile
                      (lambda ()
-                       (apply #'compile-file source
-                           :output-file (merge-pathnames (or #+ecl lisp-object fasl))
+                       (apply *compile-file-function* source
+                           :output-file (merge-pathnames* fasl)
 			   :external-format (encoding-external-format encoding)
                            (append
-                            #+sbcl (when cfasl `(:emit-cfasl ,(merge-pathnames cfasl)))
-                            #+ecl (when lisp-object '(:system-p t))))))
-                  #+ecl
-                  (when lisp-object
-                    (or (c::build-fasl
-                         (merge-pathnames fasl)
-                         :lisp-files (list (merge-pathnames lisp-object)))
-                        (die "Failed to build ~S from ~S" fasl lisp-object))))))))
+                            #+sbcl (when cfasl `(:emit-cfasl ,(merge-pathnames* cfasl)))
+                            #+ecl (when lisp-object
+                                    `(:object-file #+ecl (merge-pathnames* lisp-object))))))))))))
       (declare (ignorable warnings-p failure-p))
       (unless output-truename
-        (die "Compilation Failed for ~A, no fasl created" source))
-      #-clisp
-      (when failure-p
-        (die "Compilation Failed for ~A" source))
-      #-(or clisp cmu ecl)
-      (when warnings-p
-        (die "Compilation Warned for ~A" source))))
+        (die "Compilation Failed for ~A, no fasl created" source))))
   (values))
 
 (defun compile-lisp (spec &rest dependencies)
@@ -548,60 +497,46 @@ Entry point for XCVB-DRIVER when used by XCVB"
     (apply #'dump-image image flags)))
 
 #+ecl ;; wholly untested and probably buggy.
-(defun do-create-image (image dependencies &key
-			executable output-name pre-image-dump post-image-restart entry-point)
-  (do-create-bundle image dependencies
-		    :kind (if executable :program :shared-library)
-                    :output-name output-name
-                    :pre-image-dump pre-image-dump
-		    :post-image-restart post-image-restart
-		    :entry-point entry-point))
-
-#+ecl
-(defun do-create-bundle (bundle dependencies
-			 &rest keys
-			 &key kind output-name pre-image-dump post-image-restart entry-point)
-  (let ((*goal* `(create-bundle ,bundle ,dependencies ,@keys))
-	(first-dep (car dependencies)))
+(defun do-create-image (image dependencies &rest keys
+                        &key kind executable output-name prelude entry-point)
+  (let ((*goal* `(create-image ,image ,dependencies ,@keys))
+        (kind (or kind (if executable :program :shared-library)))
+        (first-dep (car dependencies)))
     (multiple-value-bind (object-files manifest)
         (case (first first-dep)
           ((:load-manifest)
            (assert (null (rest dependencies)))
            (let ((manifest (read-first-file-form (second first-dep))))
              (values
-              (loop :for l :in manifest :collect
-                (destructuring-bind (&key command parent pathname
-                                     tthsum source-pathname source-tthsum) l
-                  (declare (ignore tthsum source-pathname source-tthsum))
-                  (assert (eq (car command) :load-file))
-                  pathname))
+              (loop :for l :in manifest
+                    :collect
+                    (destructuring-bind (&key command parent pathname
+                                           tthsum source-pathname source-tthsum) l
+                      (declare (ignore tthsum source-pathname source-tthsum))
+                      (assert (eq (car command) :load-file))
+                      pathname))
               manifest)))
           (:load-file
-           (loop :for l :in dependencies :collect
-           (destructuring-bind (link-file pathname) l
-             (assert (eq link-file :load-file))
-             pathname)))
+           (loop :for l :in dependencies
+                 :collect
+                 (destructuring-bind (link-file pathname) l
+                   (assert (eq link-file :load-file))
+                   pathname)))
           (t
            (assert (null dependencies))))
-      (c::builder
-       kind (parse-namestring bundle)
+      (asdf/image:create-image
+       kind (pathname image)
        :lisp-files object-files
-       :init-name (c::compute-init-name (or output-name bundle) :kind kind)
-       :epilogue-code
+       :init-name (c::compute-init-name (or output-name image) :kind kind)
+       :prelude
        (when (eq kind :program)
          `(progn
-            (setf xcvb-driver:*manifest*
-                  ',(reverse manifest))
-            ,(when pre-image-dump
-                   `(load-string ,pre-image-dump))
-            (setf *entry-point* ,(when entry-point `(read-function ,entry-point)))
-            (setf *post-image-restart* ,post-image-restart)
-            (resume))))))) ;; default behavior would be (si::top-level)
-
-#+ecl
-(defun create-bundle (spec &rest dependencies)
-  (destructuring-bind (bundle &rest keys) spec
-    (apply 'do-create-bundle bundle dependencies keys)))
+            (setf xcvb-driver:*manifest* ',(reverse manifest))
+            ,@(etypecase prelude
+                (null)
+                (cons (list prelude))
+                (string `((standard-eval-text ',prelude))))))
+       :entry-point entry-point))))
 
 (defun create-image (spec &rest dependencies)
   (destructuring-bind (image &rest keys) spec
@@ -692,7 +627,6 @@ Entry point for XCVB-DRIVER when used by XCVB"
 (defvar *xcvb-present* nil)
 
 (defun default-xcvb-program ()
-  (require-asdf)
   (native-namestring
    (asdf/pathname:subpathname
     (asdf/os:user-homedir)
@@ -727,12 +661,10 @@ Entry point for XCVB-DRIVER when used by XCVB"
     (setf program (default-xcvb-program))
     (when (equal *xcvb-program* "xcvb")
       (setf *xcvb-program* program)))
-  (require-asdf)
-  (load-asdf :xcvb-bootstrap)
+  (asdf:load-system :xcvb-bootstrap)
   (funcall 'build-xcvb program))
 
 (defun require-xcvb ()
-  (require-asdf)
   (asdf:load-system :xcvb)
   t)
 
@@ -876,10 +808,8 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 (defun setup-environment ()
   "Setup the XCVB environment with respect to debugging, profiling, performance"
-  (debugging (getenvp "XCVB_DEBUGGING"))
-  (setf *profiling* (getenvp "XCVB_PROFILING")
-	*temporary-directory* (default-temporary-directory)
-	*stderr* #-clozure *error-output* #+clozure ccl::*stderr*)
+  (setf *debugging* (getenvp "XCVB_DEBUGGING"))
+  (setf *profiling* (getenvp "XCVB_PROFILING"))
   (tweak-implementation)
   (values))
 

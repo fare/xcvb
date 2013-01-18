@@ -128,7 +128,7 @@ Declare asd system as ASDF-NAME."
          (encoding (effective-encoding grain)))
     `(:file ,noext
             ,@(when (or (absolute-pathname-p (pathname enough))
-                        (not (equal (coerce-pathname
+                        (not (equal (parse-unix-namestring
                                      noext :type "lisp" :defaults *default-pathname-defaults*)
                                     pathname)))
                 `(:pathname ,pathname))

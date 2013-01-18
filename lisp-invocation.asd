@@ -19,6 +19,6 @@
   :long-description "lisp-invocation allows you to portably execute Lisp code
 as subprocesses of a current Lisp process.
 All known command-line accessible Common Lisp implementations are supported."
-    :depends-on (:asdf :xcvb-driver)
+    :depends-on (:asdf-driver)
     :components
     ((:file "lisp-invocation")))

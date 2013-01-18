@@ -2,7 +2,7 @@
 #+xcvb (module (:build-depends-on ("/asdf" "/xcvb/driver")))
 
 (defpackage :lisp-invocation
-  (:use :cl :xcvb-driver)
+  (:use :cl :asdf/driver)
   (:export
    #:get-lisp-implementation
    #:ensure-path-executable
@@ -49,15 +49,15 @@
   dump-format)
 
 (defmacro define-lisp-implementation (key () &rest keys)
-  `(register-lisp-implementation ',key ,@keys))
+  `(apply 'register-lisp-implementation ',key ',keys))
 
 (defun register-lisp-implementation (key &rest keys)
-  (let* ((identifiers (ensure-list key))
+  (let* ((identifiers (if (consp key) key (list key)))
          (implementation (apply #'make-lisp-implementation :identifiers identifiers keys)))
     (dolist (id identifiers)
-      (setf (gethash id *lisp-implementations*)))))
+      (setf (gethash id *lisp-implementations*) implementation))))
 
-(defun get-lisp-implementation (&optional (implementation-type *lisp-implementation-type*))
+(defun get-lisp-implementation (&optional (implementation-type (implementation-type)))
   (or (gethash implementation-type *lisp-implementations*)
       (error "Unknown Lisp implementation type ~S" implementation-type)))
 
@@ -271,20 +271,20 @@
 	((asdf::os-unix-p) (format nil "./~A" n))
 	(t n)))))
 
-(defun lisp-environment-variable-name (&key (type *lisp-implementation-type*) prefix)
+(defun lisp-environment-variable-name (&key (type (implementation-type)) prefix)
   (if (eq prefix t) (setf prefix "X"))
   (format nil "~@[~A~]~:@(~A~)" prefix type))
 
 (defun lisp-invocation-arglist
-    (&key (implementation-type *lisp-implementation-type*)
-	  (lisp-path *lisp-executable-pathname*)
-	  (lisp-flags :default)
-	  (image-path *lisp-image-pathname*)
-          load
-	  eval
-	  arguments
-	  (debugger *lisp-allow-debugger*)
-          (cross-compile t))
+    (&key (implementation-type (implementation-type))
+       lisp-path
+       (lisp-flags :default)
+       image-path
+       load
+       eval
+       arguments
+       debugger
+       (cross-compile t))
   (with-slots (name flags disable-debugger load-flag eval-flag
 	       image-flag image-executable-p standalone-executable
 	       arguments-end argument-control)
@@ -310,8 +310,8 @@
      (unless debugger
        disable-debugger)
      (mapcan (if load-flag
-                 (lambda (x) (list load-flag x))
-                 (lambda (x) (list eval-flag (format nil "(load ~S)" x))))
+                 (lambda (x) (list load-flag (native-namestring x)))
+                 (lambda (x) (list eval-flag (format nil "(load ~S)" (native-namestring x)))))
              (if (listp load) load (list load)))
      (when eval
        (list eval-flag eval))
@@ -322,13 +322,13 @@
 
 ;;; Avoiding use of a compiled-in driver in the build process
 
-(defun quit-form (&key code (implementation-type *lisp-implementation-type*))
+(defun quit-form (&key code (implementation-type (implementation-type)))
   "Returns the correct form to quit lisp, based on the value of lisp-implementation.
 Can optionally be given a unix status CODE to exit with"
   (format nil (slot-value (get-lisp-implementation implementation-type) 'quit-format)
 	  (or code 0)))
 
-(defun save-image-form (filepath &optional (implementation-type *lisp-implementation-type*))
+(defun save-image-form (filepath &optional (implementation-type (implementation-type)))
   "Returns the lisp form to save the lisp image to the given filepath"
   (format nil (slot-value (get-lisp-implementation implementation-type) 'dump-format)
 	  filepath))
