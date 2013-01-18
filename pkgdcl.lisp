@@ -3,19 +3,19 @@
  (:description "package for XCVB"
   :depends-on ("lisp-invocation" "version" "xcvb-utils")))
 
-(in-package :xcvb-driver)
+(in-package :asdf-driver)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (setf *optimization-settings*
-        `((speed 2) (safety 3) (compilation-speed 0) (debug 3)
-          ,@*implementation-settings*))
+        `((speed 2) (safety 3) (compilation-speed 0) (debug 3)))
   (proclaim-optimization-settings))
 
-(defpackage :xcvb
+(define-package :xcvb
+    (:mix :fare-utils :asdf/driver :alexandria :inferior-shell :xcvb-driver)
   (:use :closer-common-lisp
-        :xcvb-utils :command-line-arguments :lisp-invocation
+   :command-line-arguments :lisp-invocation
         :optima :interface :pure :fare-mop
-        :fare-memoization :inferior-shell
+        :fare-memoization
         #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
   (:import-from :asdf
@@ -39,4 +39,4 @@
    #:cmd)) ;; Easy REPL access to the command-line interface
 
 (defpackage :xcvb-user
-  (:use :common-lisp :xcvb-driver :xcvb))
+  (:use :closer-common-lisp :xcvb-driver :xcvb))

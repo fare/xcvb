@@ -426,7 +426,6 @@ command gives specific help on that command.")
           (quit 111))))))
 
 (defun initialize-environment ()
-  (xcvb-driver:setup-environment)
   ;;; This setting helps extract-target-properties.lisp. See there.
   #+sbcl (sb-posix:unsetenv "SBCL_HOME")
 

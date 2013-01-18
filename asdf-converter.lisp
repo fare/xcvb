@@ -313,8 +313,7 @@ so that the system can now be compiled with XCVB."
   (unless base-pathname
     (setf base-pathname (guess-base-pathname-for-systems systems)))
   (log-format 6 "Preloading systems")
-  (xcvb-driver:with-controlled-compiler-conditions ()
-    (map () 'asdf:load-system systems-to-preload))
+  (apply 'asdf:load-systems systems-to-preload)
   (setf systems (mapcar 'asdf::coerce-name systems)
         system (if system (asdf::coerce-name system) (car systems)))
   (log-format 6 "Remove any system possibly used by XCVB itself ~%~

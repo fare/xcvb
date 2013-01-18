@@ -5,6 +5,7 @@
   :maintainer "Francois-Rene Rideau"
   :licence "MIT"
   :description "Tests for XCVB"
+  :defsystem-depends-on (:asdf)
   :depends-on (:xcvb :hu.dwim.stefil :cl-ppcre :xcvb-driver-test :inferior-shell)
   :components
   ((:file "package")

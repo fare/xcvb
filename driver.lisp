@@ -9,7 +9,7 @@
   :licence "MIT" ;; MIT-style license. See LICENSE
   :build-depends-on nil))
 
-;; #.(setf *load-verbose* () *load-print* () *compile-verbose* () *compile-print* ()) ;; Hush!
+#.(setf *load-verbose* () *load-print* () *compile-verbose* () *compile-print* ()) ;; Hush!
 
 ;;;; First, try very hard to load a recent enough ASDF.
 
@@ -25,24 +25,25 @@
 
 ;;; Doing our best to load ASDF
 ;; First, try loading asdf from your implementation.
-;; Use eval to not fail on old CLISP.
+;; Use funcall to not fail on old CLISP.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (member :asdf *features*)
-    (ignore-errors (eval '(require "asdf")))))
+    (ignore-errors (funcall 'require "asdf"))))
 
 ;; If not found, load asdf from wherever the user specified it
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (member :asdf *features*)
     (ignore-errors
      (handler-bind ((warning #'muffle-warning))
-       (let ((asdf-lisp
-               (make-pathname :name "asdf" :type "lisp"
-                              :defaults *asdf-directory*))
-             (build-asdf-lisp
-               (merge-pathnames
-                (make-pathname :directory (#-gcl :relative "build")
-                               :defaults asdf-lisp)
-                asdf-lisp)))
+       (let* ((build-asdf-lisp
+                (merge-pathnames
+                 (make-pathname :directory '(#-gcl :relative "build")
+                                :name "asdf" :type "lisp"
+                                :defaults *asdf-directory*)
+                 *asdf-directory*))
+              (asdf-lisp
+                (make-pathname :directory (pathname-directory *asdf-directory*)
+                               :defaults build-asdf-lisp)))
          (cond
            ((probe-file build-asdf-lisp)
             (load build-asdf-lisp))
@@ -61,7 +62,7 @@ Please install ASDF2 and in your ~~/.swank.lisp specify:
   (when *upgrade-asdf-p*
     (handler-bind ((warning #'muffle-warning))
       (pushnew *asdf-directory* asdf:*central-registry*)
-      (ignore-errors (asdf:operate 'asdf:load-op :asdf)))))
+      (ignore-errors (asdf:operate 'asdf:load-op :asdf :verbose nil)))))
 
 ;;; If ASDF is too old, punt.
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -78,7 +79,7 @@ Please upgrade to the latest stable ASDF and register it in your source-registry
 
 (asdf/package:define-package :xcvb-driver
   (:nicknames :xcvbd :xd)
-  (:use :cl :asdf/driver)
+  (:use :cl :asdf/driver :asdf)
   (:reexport :asdf/driver)
   (:shadow #:create-image)
   (:export
@@ -107,7 +108,7 @@ Please upgrade to the latest stable ASDF and register it in your source-registry
    #:build-and-load #:bnl #:build-in-slave
 
    ;;; Build-time variables
-   #:*goal* #:*stderr* #:*debugging* #:*profiling*
+   #:*goal* #:*stderr* #:*profiling*
    #:*post-image-restart* #:*entry-point*
 
    ;;; Environment support
@@ -188,9 +189,6 @@ A list of strings, or the keyword :DEFAULT.")
   0 - silent except for emergency
   5 - usual warnings
   9 - plenty of debug info")
-
-(defvar *lisp-allow-debugger* nil
-  "Should we allow interactive debugging of failed build attempts?")
 
 (defvar *cache* nil
   "where to store object files, etc.
@@ -287,7 +285,7 @@ with associated pathnames and tthsums.")
 
 (defun debugging (&optional (debug t))
   "Enable (or with NIL argument, disable) verbose debugging output from ASDF"
-  (setf *debugging* debug
+  (setf *lisp-interaction* debug
         *load-verbose* debug
         *load-print* debug
         #+clisp custom:*compile-warnings* #+clisp debug
@@ -307,7 +305,7 @@ with associated pathnames and tthsums.")
 
 ;;; Profiling
 (defun call-with-maybe-profiling (thunk what goal)
-  (when *debugging*
+  (when *lisp-interaction*
     (format! *trace-output* "~&Now ~S~&" what))
   (if *profiling*
     (let* ((start-time (get-internal-real-time))
@@ -347,7 +345,7 @@ profile it under some profiling name when *PROFILING* is enabled."
     (or (getf plist :logical-pathname) (getf plist :truename))))
 (defun load-fullname-mappings (file)
   (let ((tn (truename file)))
-    (register-fullnames (read-first-file-form tn) :defaults tn)))
+    (register-fullnames (read-file-form tn) :defaults tn)))
 
 
 ;;;; ----- The xcvb-driver-command DSL for building Lisp code -----
@@ -457,31 +455,31 @@ Entry point for XCVB-DRIVER when used by XCVB"
     (funcall thunk)))
 
 (defun do-compile-lisp (dependencies source fasl
-                        &key #+sbcl cfasl #+ecl lisp-object around-compile encoding)
+                        &key #+sbcl cfasl #+ecl lisp-object around-compile encoding warnings-file)
   (let ((*goal* `(:compile-lisp ,source))
         (*default-pathname-defaults* (truename *default-pathname-defaults*)))
     (multiple-value-bind (output-truename warnings-p failure-p)
         (with-profiling `(:preparing-and-compiling ,source)
-          (with-asdf-compilation-unit ()
-            (with-profiling `(:preparing-compilation-of ,source)
-              (run-commands dependencies))
-            (with-profiling `(:compiling ,source)
-              (with-determinism `(:compiling ,source)
-                (multiple-value-prog1
-                    (call-around-hook
-                     around-compile
-                     (lambda ()
-                       (apply *compile-file-function* source
-                           :output-file (merge-pathnames* fasl)
-			   :external-format (encoding-external-format encoding)
-                           (append
-                            #+sbcl (when cfasl `(:emit-cfasl ,(merge-pathnames* cfasl)))
-                            #+ecl (when lisp-object
-                                    `(:object-file #+ecl (merge-pathnames* lisp-object))))))))))))
+          (with-profiling `(:preparing-compilation-of ,source)
+            (run-commands dependencies))
+          (with-profiling `(:compiling ,source)
+            (with-determinism `(:compiling ,source)
+              (multiple-value-prog1
+                  (call-around-hook
+                   around-compile
+                   (lambda ()
+                     (apply 'compile-file* source
+                            :output-file (merge-pathnames* fasl)
+                            :external-format (encoding-external-format encoding)
+                            :warnings-file warnings-file
+                            (append
+                             #+sbcl (when cfasl `(:emit-cfasl ,(merge-pathnames* cfasl)))
+                             #+ecl (when lisp-object
+                                     `(:object-file #+ecl (merge-pathnames* lisp-object)))))))))))
       (declare (ignorable warnings-p failure-p))
       (unless output-truename
-        (die "Compilation Failed for ~A, no fasl created" source))))
-  (values))
+        (die "Compilation Failed for ~A, no fasl created" source))
+      (values))))
 
 (defun compile-lisp (spec &rest dependencies)
   (apply 'do-compile-lisp dependencies spec))
@@ -490,9 +488,9 @@ Entry point for XCVB-DRIVER when used by XCVB"
 #-ecl
 (defun do-create-image (image dependencies &rest flags)
   (let ((*goal* `(create-image ,image))
-        #+sbcl (*uninteresting-conditions*
-                (cons "undefined ~(~A~): ~S" *uninteresting-conditions*)))
-    (with-controlled-compiler-conditions ()
+        #+sbcl (*uninteresting-compiler-conditions*
+                (cons "undefined ~(~A~): ~S" *uninteresting-compiler-conditions*)))
+    (with-muffled-compiler-conditions ()
       (run-commands dependencies))
     (apply #'dump-image image flags)))
 
@@ -506,7 +504,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
         (case (first first-dep)
           ((:load-manifest)
            (assert (null (rest dependencies)))
-           (let ((manifest (read-first-file-form (second first-dep))))
+           (let ((manifest (read-file-form (second first-dep))))
              (values
               (loop :for l :in manifest
                     :collect
@@ -619,9 +617,9 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 (defun initialize-manifest (pathname)
   (assert (not *manifest*))
-  (setf *manifest* (reverse (read-first-file-form pathname))))
+  (setf *manifest* (reverse (read-file-form pathname))))
 (defun load-manifest (pathname)
-  (process-manifest (read-first-file-form pathname)))
+  (process-manifest (read-file-form pathname)))
 
 ;;;; ----- XCVB automagic bootstrap: creating XCVB if not there yet -----
 (defvar *xcvb-present* nil)
@@ -708,7 +706,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
       (install-image *install-image*)
       (install-lisp *install-lisp*)
       (verbosity *xcvb-verbosity*)
-      (debugging *lisp-allow-debugger*)
+      (debugging *lisp-interaction*)
       (profiling nil)))
   (defparameter *bnl-keys* (mapcar #'car *bnl-keys-with-defaults*)))
 
@@ -808,7 +806,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 (defun setup-environment ()
   "Setup the XCVB environment with respect to debugging, profiling, performance"
-  (setf *debugging* (getenvp "XCVB_DEBUGGING"))
+  (setf *lisp-interaction* (getenvp "XCVB_DEBUGGING"))
   (setf *profiling* (getenvp "XCVB_PROFILING"))
   (tweak-implementation)
   (values))

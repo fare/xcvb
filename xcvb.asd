@@ -5,9 +5,9 @@
 
 (let ((old-ver (asdf-version)))
   (load-system :asdf)
-  (let ((min "2.21")
+  (let ((min "2.23")
 	(ver (asdf-version)))
-    (unless (or (version-satisfies old-ver "2.014.8") ; first version to do magic upgrade
+    (unless (or (version-satisfies old-ver "2.14.8") ; first version to do magic upgrade
 		(equal ver old-ver))
       (error "You must upgrade ASDF to your latest *before* you load XCVB~%~
 		If you're trying to load XCVB at a REPL, try again, it should work."))
@@ -36,9 +36,9 @@
     :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-    :defsystem-depends-on (:asdf :xcvb-driver :xcvb-bootstrap
-                                 :asdf-condition-control :asdf-encodings)
-    :depends-on (:asdf :xcvb-driver :xcvb-utils :lambda-reader
+    :defsystem-depends-on (:asdf :asdf-driver :xcvb-driver :xcvb-bootstrap :asdf-encodings)
+    :depends-on (:asdf :asdf-driver :xcvb-driver :xcvb-bootstrap :asdf-encodings
+                 :lambda-reader
                  :fare-mop :fare-memoization
                  :command-line-arguments
                  :asdf-dependency-grovel
@@ -106,5 +106,5 @@ deterministic separate compilation and enforced locally-declared dependencies."
 
 (defmethod perform ((op test-op) (c (eql (find-system :xcvb))))
   (asdf:load-system :xcvb-test)
-  (xcvb-driver:call :xcvb-test :unit-tests)
-  (xcvb-driver:call :xcvb-test :validate-xcvb-dir-all-lisps))
+  (symbol-call :xcvb-test :unit-tests)
+  (symbol-call :xcvb-test :validate-xcvb-dir-all-lisps))

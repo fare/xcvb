@@ -39,8 +39,9 @@
   (let ((program (parse-native-namestring program))
 	(xcvb-dir (asdf:system-source-directory :xcvb)))
     (setf (symbol-value (find-symbol* :*xcvb-lisp-directory* :xcvb)) xcvb-dir)
-    (call :xcvb :prepare-image
-	  :version (call :xcvb-driver :get-xcvb-version)
-	  :directory xcvb-dir)
+    (symbol-call
+     :xcvb :prepare-image
+     :version (symbol-call :xcvb-driver :get-xcvb-version)
+     :directory xcvb-dir)
     (ensure-directories-exist program)
     (dump-image program :executable t :entry-point "xcvb::main" :package :xcvb)))

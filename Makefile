@@ -104,7 +104,6 @@ XCVB_INIT :=	--final "(xcvb::prepare-image \
 xcvb-using-asdf:
 	mkdir -p ${INSTALL_BIN} ${INSTALL_IMAGE}
 	${CL_LAUNCH} ${CL_LAUNCH_FLAGS} \
-	--file require-asdf.lisp \
 	--system xcvb ${XCVB_INIT} \
 	$(call CL_LAUNCH_MODE_${CL_LAUNCH_MODE},xcvb)
 
