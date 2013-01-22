@@ -97,7 +97,7 @@ ${INSTALL_BIN}/xcvb: ${XCVB_OBJECT_CACHE}/xcvb/xcvb
 XCVB_INIT :=	--final "(xcvb::prepare-image \
 				:version \#.(xcvbd::get-xcvb-version) \
 				:directory \"${INSTALL_XCVB}/\")" \
-		--init '(apply (function xcvb::main) cl-launch::*arguments*)'
+		--restart 'xcvb::entry-point'
 
 ## If you don't have XCVB, but have a cl-launch with properly ASDF setup in configure.mk,
 ## then you can bootstrap XCVB with the following target:
@@ -276,5 +276,14 @@ fix-remote-git-tags:
 	xcvb-asdf-install \
 	test fulltest show-config mk \
 	fix-local-git-tags fix-remote-git-tags
+
+quicktarball:
+	ver=`git describe --tags --match '[0-9].[0-9][0-9][0-9]'` ; \
+	echo $$ver > version.text ; \
+	arc="xcvb-$$ver" ; \
+	mkdir $$arc ; \
+	cp -lax --parents `git ls-files` version.text $$arc/ ; \
+	tar zcf $$arc.tar.gz $$arc/ ; \
+	rm -rf "xcvb-$$ver"
 
 # To check out a particular revision: git fetch; git merge $commit

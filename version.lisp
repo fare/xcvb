@@ -19,7 +19,7 @@
 (defun get-xcvb-version-from-git ()
   (and (xcvb-git-checkout-p)
        (first
-        (run-program/
+        (run-program
          (format nil "cd ~A ; git describe --tags --dirty=+" (get-xcvb-directory))
          :output :lines))))
 

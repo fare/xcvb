@@ -15,7 +15,7 @@
     (assert (directory-pathname-p p))
     (unless (search "xcvb" n)
       (break "Do you really want to rm -rfv ~A ???" n))
-    (run-program/
+    (run-program
      `("/bin/rm" "-rfv" ,n)
      :ignore-error-status t)))
 

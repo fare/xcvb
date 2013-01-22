@@ -348,7 +348,7 @@ so that the system can now be compiled with XCVB."
             (mapcar 'asdf::coerce-name
                     (get-dependencies-from-components (mapcar 'asdf:find-system systems))))
            (system-components
-            (read-first-file-form
+            (read-file-form
              components-path))
            (asdf-system
             (progn

@@ -419,6 +419,10 @@ command gives specific help on that command.")
                   (format stream "Abort current computation and quit the process with process exit code 111"))
         (quit 111)))))
 
+(defun entry-point ()
+  (apply 'main asdf/image:*command-line-arguments*))
+
+
 (defun initialize-environment ()
   ;;; This setting helps extract-target-properties.lisp. See there.
   #+sbcl (sb-posix:unsetenv "SBCL_HOME")

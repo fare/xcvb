@@ -33,5 +33,5 @@
             (unless (build-xcvb *xcvb-program*)
               (abend "failed to build XCVB ~A" source-version))
             (exit
-             (run-program/ (cons *xcvb-program* *arguments*)
-                           :output nil :ignore-error-status t))))))))
+             (run-program (cons *xcvb-program* *arguments*)
+                          :output nil :ignore-error-status t))))))))

@@ -13,15 +13,23 @@
 
 ;;;; First, try very hard to load a recent enough ASDF.
 
+(in-package :cl-user)
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *asdf-version-required-for-xcvb* "2.26.100")
   (defvar *asdf-directory*
     (merge-pathnames #p"cl/asdf/" (user-homedir-pathname))
     "Directory in which your favorite and/or latest version
      of the ASDF source code is located")
-  (defvar *upgrade-asdf-p* t
-    "Should we upgrade ASDF immediately upon startup?
-     This is recommended if you upgrade ASDF at all."))
+  (defun get-asdf-version ()
+    (when (find-package :asdf)
+      (let ((ver (symbol-value
+                  (or (find-symbol (string :*asdf-version*) :asdf)
+                      (find-symbol (string :*asdf-revision*) :asdf)))))
+        (etypecase ver
+          (string ver)
+          (cons (format nil "~{~D~^.~}" ver))
+          (null "1.0"))))))
 
 ;;; Doing our best to load ASDF
 ;; First, try loading asdf from your implementation.
@@ -59,19 +67,19 @@ Please install ASDF2 and in your ~~/.swank.lisp specify:
 
 ;;; If ASDF is found, try to upgrade it to the latest installed version.
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (when *upgrade-asdf-p*
-    (handler-bind ((warning #'muffle-warning))
-      (pushnew *asdf-directory* asdf:*central-registry*)
-      (ignore-errors (asdf:operate 'asdf:load-op :asdf :verbose nil)))))
+  (handler-bind ((warning #'muffle-warning))
+    (when *asdf-directory*
+      (pushnew *asdf-directory* asdf:*central-registry*))
+    (ignore-errors (asdf:operate 'asdf:load-op :asdf :verbose nil))))
 
 ;;; If ASDF is too old, punt.
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (let ((ver (or #+asdf2 (asdf:asdf-version))))
+  (let ((ver (get-asdf-version)))
     (unless (or #+asdf3 t #+asdf2.27
                 (asdf:version-satisfies ver *asdf-version-required-for-xcvb*))
       (error "Your ASDF version ~A is too old for XCVB, which requires ~A.
 Please upgrade to the latest stable ASDF and register it in your source-registry."
-           (or ver "(some antique ASDF 1.x)" *asdf-version-required-for-xcvb*)))))
+           ver *asdf-version-required-for-xcvb*))))
 
 
 ;;; We may now assume we have a recent enough ASDF with all the basic driver functions.

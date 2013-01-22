@@ -68,7 +68,7 @@ of easy shell characters (that do not require quoting)."
           :for dir = (let ((*read-eval* t)) ;; allow #. in iolib.asd
 		       (cond
 			 ((equal dep "libfixposix")
-			  (asdf:system-relative-pathname "iolib" "../../libfixposix/"))
+			  (asdf:system-relative-pathname "iolib" "../libfixposix/"))
 			 ((equal dep "iolib")
 			  (asdf:system-relative-pathname "iolib" "../"))
 			 (t

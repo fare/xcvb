@@ -39,7 +39,7 @@
 
 (defun read-module-declaration (path)
   (let ((*features* (list :xcvb)))
-    (read-first-file-form path :package :xcvb-user)))
+    (read-file-form path :package :xcvb-user)))
 
 (defun grain-from-file-declaration (path &key build-p)
   (log-format 10 "    Creating grain from declarations in file at ~S~%" path)

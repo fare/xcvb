@@ -3,7 +3,7 @@
 
 (asdf/package:define-package #:xcvb-test
   (:mix :hu.dwim.stefil :xcvb :fare-utils :asdf/driver
-        :xcvb-driver-test :inferior-shell :lisp-invocation :alexandria :xcvb-driver)
+        :inferior-shell :lisp-invocation :alexandria :xcvb-driver)
   (:use :closer-common-lisp)
   (:import-from :xcvb-driver
    #:lisp-present-p
@@ -15,8 +15,8 @@
    #:define-command #:define-option-spec #:*program*)
   (:export
    #:test-xcvb
-   #:run-program/*
-   #:run-program-backend/*))
+   #:run-program*
+   #:run-program-backend*))
 
 (in-package #:xcvb-test)
 
