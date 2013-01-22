@@ -307,7 +307,7 @@
             ,@(when makefile `("-f" ,(namestring makefile)))
             ,@(when target (ensure-list target)))))
       (log-format 6 "Building with ~S" make-command)
-      (run-program/
+      (run-program
        make-command ; (strcat (escape-shell-command make-command) " >&2")
        :output nil ;; for side-effects only
        :ignore-error-status ignore-error-status)))

@@ -8,7 +8,7 @@
    "JUST ANOTHER LISP HACKER"
    (first
     (ignore-errors
-     (run-program/
+     (run-program
       (lisp-invocation:lisp-invocation-arglist
        :implementation-type lisp
        :eval (format nil "(progn (format t\"~~:@(~~{~~31R~~^ ~~}~~)\"'(595756 9556552524 643802 496307950)) ~A)"
@@ -28,7 +28,7 @@
     (unless lisp
       (error "Cannot find a supported implementation to run XCVB itself~%amongst ~{~A~^ ~}."
 	     +xcvb-lisps+))
-    (run-program/
+    (run-program
      (lisp-invocation:lisp-invocation-arglist
       :implementation-type lisp
       :eval (format nil "(#.(require \"asdf\")#.(asdf:load-system :asdf)#.(asdf:load-system :xcvb-driver)#.(xcvb-driver:with-coded-exit () (asdf:load-system :xcvb) (funcall 'xcvb-driver::dump-xcvb ~S))" program))

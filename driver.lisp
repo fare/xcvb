@@ -66,10 +66,12 @@ Please install ASDF2 and in your ~~/.swank.lisp specify:
 
 ;;; If ASDF is too old, punt.
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (unless (or #+asdf2.27
-              (asdf:version-satisfies (asdf:asdf-version) *asdf-version-required-for-xcvb*))
-    (error "Your ASDF version is too old.
-Please upgrade to the latest stable ASDF and register it in your source-registry.")))
+  (let ((ver (or #+asdf2 (asdf:asdf-version))))
+    (unless (or #+asdf3 t #+asdf2.27
+                (asdf:version-satisfies ver *asdf-version-required-for-xcvb*))
+      (error "Your ASDF version ~A is too old for XCVB, which requires ~A.
+Please upgrade to the latest stable ASDF and register it in your source-registry."
+           (or ver "(some antique ASDF 1.x)" *asdf-version-required-for-xcvb*)))))
 
 
 ;;; We may now assume we have a recent enough ASDF with all the basic driver functions.
@@ -639,7 +641,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
 	(string
          (and
           (string-prefix-p "XCVB version "
-                           (run-program/
+                           (run-program
                             (list program "version")
                             :ignore-error-status t :output :string))
           (setf *xcvb-present* program)))
@@ -753,7 +755,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
     (string
      ;; Ugly: rely on the above having side-effected *xcvb-program*
      (with-safe-io-syntax ()
-       (run-program/
+       (run-program
         (cons program command) :output :string :ignore-error-status t)))
     (pathname
      (run-xcvb-command (namestring program) command))

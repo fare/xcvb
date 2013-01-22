@@ -262,9 +262,9 @@ xcvb-ensure-object-directories:
   (ignore-errors
     (cond
       ((featurep :linux)
-       (run-program/ '("grep" "-c" "^processor " "/proc/cpuinfo") :output :integer))
+       (run-program '("grep" "-c" "^processor " "/proc/cpuinfo") :output :integer))
       ((featurep :darwin)
-       (run-program/ '("sysctl" "-n" "hw.ncpu") :output :integer))
+       (run-program '("sysctl" "-n" "hw.ncpu") :output :integer))
       ((os-windows-p)
        (read-integer (getenv "NUMBER_OF_PROCESSORS"))))))
 
@@ -283,7 +283,7 @@ xcvb-ensure-object-directories:
             ,@(when makefile `("-f" ,(namestring makefile)))
             ,@(when target (ensure-list target)))))
       (log-format 6 "Building with ~S" make-command)
-      (run-program/ ;; for side-effects
+      (run-program ;; for side-effects
        make-command ; (strcat (escape-shell-command make-command) " >&2")
        :ignore-error-status ignore-error-status)))
 

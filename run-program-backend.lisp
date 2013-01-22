@@ -50,7 +50,7 @@
       (log-format
        5 "Running Computation's Shell Command:~% ~{~< \\~%   ~1,72:; ~A~>~}~%~%"
        (mapcar #'escape-sh-token external-command))
-      (run-program/echo-output external-command :prefix "command output: "))
+      (run-program external-command :output stream :prefix "command output: "))
     (mapcar/ 'update-change-information env outputs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

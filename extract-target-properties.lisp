@@ -85,7 +85,7 @@
     (let ((command (query-target-lisp-command (target-properties-form))))
       (log-format-pp 8 "Extract information from target Lisp:~% ~S" command)
       (handler-case
-          (run-program/ command :output :string)
+          (run-program command :output :string)
         (t (c) (user-error "Failed to extract properties from target Lisp:~%~
 		       Command:~S~%Error:~%~A~%" command c))))))
 
@@ -102,7 +102,7 @@
                    (when s (slurp-stream-string s)))))
           (handler-case
               (progn
-                (setf stdout (run-program/ command :output :string))
+                (setf stdout (run-program command :output :string))
                 (slurp :if-does-not-exist :error))
             (t (c) (user-error "Failed to extract properties from target Lisp:~%~
 			   Condition: ~A~%Command:~S~%~@[stdout:~%~A~%~]~@[Output:~%~A~%~]"
