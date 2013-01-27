@@ -277,13 +277,15 @@ fix-remote-git-tags:
 	test fulltest show-config mk \
 	fix-local-git-tags fix-remote-git-tags
 
-quicktarball:
+quickrelease:
 	ver=`git describe --tags --match '[0-9].[0-9][0-9][0-9]'` ; \
 	echo $$ver > version.text ; \
 	arc="xcvb-$$ver" ; \
 	mkdir $$arc ; \
 	cp -lax --parents `git ls-files` version.text $$arc/ ; \
-	tar zcf $$arc.tar.gz $$arc/ ; \
-	rm -rf "xcvb-$$ver"
+	tar jcf $$arc.tar.bz2 $$arc/ ; \
+	rm -rf "xcvb-$$ver" ; \
+	rsync -av $$arc.tar.bz2 common-lisp.net:/project/xcvb/releases/ ; \
+	ssh common-lisp.net ln -sf $$arc.tar.bz2 /project/xcvb/releases/xcvb.tar.bz2
 
 # To check out a particular revision: git fetch; git merge $commit

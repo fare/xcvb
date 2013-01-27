@@ -1,18 +1,8 @@
 ;;; -*- mode: lisp -*-
 
 (in-package :asdf)
-#-asdf2 (error "XCVB requires ASDF 2")
-
-(let ((old-ver (asdf-version)))
-  (load-system :asdf)
-  (let ((min "2.23")
-	(ver (asdf-version)))
-    (unless (or (version-satisfies old-ver "2.14.8") ; first version to do magic upgrade
-		(equal ver old-ver))
-      (error "You must upgrade ASDF to your latest *before* you load XCVB~%~
-		If you're trying to load XCVB at a REPL, try again, it should work."))
-    (unless (and ver (version-satisfies ver min))
-      (error "XCVB requires ASDF ~D or later, you only have ~D" min ver))))
+#-asdf3 (load-system :asdf)
+#-asdf3 (error "XCVB requires ASDF 3")
 
 (when (plusp (length (getenv "XCVB_FARMER")))
   (pushnew :xcvb-farmer *features*))
@@ -36,7 +26,7 @@
     :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-    :defsystem-depends-on (:asdf :asdf-driver :xcvb-driver :xcvb-bootstrap)
+    :defsystem-depends-on (:asdf-driver :xcvb-driver :xcvb-bootstrap)
     :depends-on (:asdf :asdf-driver :xcvb-driver :xcvb-bootstrap :asdf-encodings
                  :lambda-reader
                  :fare-mop :fare-memoization
@@ -102,9 +92,5 @@ deterministic separate compilation and enforced locally-declared dependencies."
      (:file "cffi-grovel-support" :depends-on
             ("makefile-backend" "static-traversal" "computations" "target-lisp-commands"
                                 "grain-implementation" "asdf-backend" "dependencies-interpreter"))
-     (:file "main" :depends-on ("commands"))))
-
-(defmethod perform ((op test-op) (c (eql (find-system :xcvb))))
-  (asdf:load-system :xcvb-test)
-  (symbol-call :xcvb-test :unit-tests)
-  (symbol-call :xcvb-test :validate-xcvb-dir-all-lisps))
+     (:file "main" :depends-on ("commands")))
+  :in-order-to ((test-op (test-op :xcvb-test))))

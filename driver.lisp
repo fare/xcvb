@@ -16,7 +16,7 @@
 (in-package :cl-user)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *asdf-version-required-for-xcvb* "2.26.100")
+  (defparameter *asdf-version-required-by-xcvb* "2.26.149")
   (defvar *asdf-directory*
     (merge-pathnames #p"cl/asdf/" (user-homedir-pathname))
     "Directory in which your favorite and/or latest version
@@ -75,11 +75,12 @@ Please install ASDF2 and in your ~~/.swank.lisp specify:
 ;;; If ASDF is too old, punt.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (let ((ver (get-asdf-version)))
-    (unless (or #+asdf3 t #+asdf2.27
-                (asdf:version-satisfies ver *asdf-version-required-for-xcvb*))
+    (unless (or #+asdf3
+                (or (<= 3 (first (asdf/utility:parse-version ver)))
+                    (asdf:version-satisfies ver *asdf-version-required-by-xcvb*)))
       (error "Your ASDF version ~A is too old for XCVB, which requires ~A.
 Please upgrade to the latest stable ASDF and register it in your source-registry."
-           ver *asdf-version-required-for-xcvb*))))
+           ver *asdf-version-required-by-xcvb*))))
 
 
 ;;; We may now assume we have a recent enough ASDF with all the basic driver functions.
@@ -254,7 +255,7 @@ NIL: default to *install-data*/common-lisp/, see docs")
 (defvar *xcvb-program* "xcvb"
   "Path to the XCVB binary (a string), OR t if you want to use an in-image XCVB")
 
-(defvar *required-xcvb-version* "0.597"
+(defvar *required-xcvb-version* "0.600"
   "Minimal version of XCVB required for use with this version of the xcvb-driver")
 
 (defvar *source-registry* nil
