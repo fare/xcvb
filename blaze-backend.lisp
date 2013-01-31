@@ -175,7 +175,7 @@
             (if output-path
                 (merge-pathnames* output-path default-output-path)
                 default-output-path))
-           (blaze-BUILD-path (ensure-pathname-absolute actual-output-path))
+           (blaze-BUILD-path (ensure-absolute-pathname actual-output-path))
            (blaze-BUILD-dir (pathname-directory-pathname blaze-BUILD-path))
            (*default-pathname-defaults* blaze-BUILD-dir)
            (*print-pretty* nil); otherwise SBCL will slow us down a lot.

@@ -159,7 +159,7 @@
     :documentation "string to read and evaluate after image is started, before the main function")
    (entry-point
     :initarg :entry-point
-    :reader entry-point
+    :reader grain-entry-point
     :documentation "string specifying the nullary main function for the application")
    (depends-on :initarg :depends-on :reader generator-depends-on)))
 

@@ -76,7 +76,7 @@ Please install ASDF2 and in your ~~/.swank.lisp specify:
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (let ((ver (get-asdf-version)))
     (unless (or #+asdf3
-                (or (<= 3 (first (asdf/utility:parse-version ver)))
+                (or (<= 3 (first (asdf/driver:parse-version ver)))
                     (asdf:version-satisfies ver *asdf-version-required-by-xcvb*)))
       (error "Your ASDF version ~A is too old for XCVB, which requires ~A.
 Please upgrade to the latest stable ASDF and register it in your source-registry."
@@ -90,7 +90,7 @@ Please upgrade to the latest stable ASDF and register it in your source-registry
 
 (asdf/package:define-package :xcvb-driver
   (:nicknames :xcvbd :xd)
-  (:use :cl :asdf/driver :asdf)
+  (:use :asdf/common-lisp :asdf/driver :asdf)
   (:reexport :asdf/driver)
   (:shadow #:create-image)
   (:export
@@ -124,7 +124,8 @@ Please upgrade to the latest stable ASDF and register it in your source-registry
 
    ;;; Environment support
    #:debugging #:with-profiling
-   #:run #:do-run #:run-commands #:run-command
+   ;; #:run #:do-run ;; -- clashes with inferior-shell
+   ;; #:run-commands #:run-command
    #-ecl #:dump-image #+ecl #:create-bundle
    #:register-fullname #:register-fullnames #:load-fullname-mappings
    #:registered-fullname-pathname))
@@ -410,11 +411,13 @@ Entry point for XCVB-DRIVER when used by XCVB"
 (defun register-asdf-directory (x)
   (pushnew x asdf:*central-registry*))
 
-(defun asdf-systems-up-to-date-p (systems &optional (operation (asdf:make-operation 'asdf:load-op)))
+(defun asdf-systems-up-to-date-p (systems &optional (operation 'asdf:load-op))
   "Are all the ASDF systems up to date (for loading)?"
-  (let ((plan (make-instance 'asdf/plan:sequential-plan)))
-    (dolist (s systems)
-      (asdf/plan:traverse-action plan operation (find-system s) t))
+  (let* ((op (asdf/operation:find-operation () operation))
+         (plan (asdf/plan:traverse-actions
+                (loop :for s :in systems
+                      :collect (cons op (find-component () s)))
+                :plan-class 'asdf/plan:sequential-plan)))
     (loop :for (o . c) :in plan
           :always (asdf:needed-in-image-p o c))))
 
@@ -533,7 +536,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
                    pathname)))
           (t
            (assert (null dependencies))))
-      (asdf/image:create-image
+      (create-image
        kind (pathname image)
        :lisp-files object-files
        :init-name (c::compute-init-name (or output-name image) :kind kind)
@@ -637,10 +640,10 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 (defun default-xcvb-program ()
   (native-namestring
-   (asdf/pathname:subpathname
-    (asdf/os:user-homedir)
+   (subpathname
+    (user-homedir-pathname)
     (format nil ".cache/common-lisp/bin/~(~A~@[-~A~]~)/xcvb"
-            (asdf/os:operating-system) (asdf/os:architecture)))))
+            (operating-system) (architecture)))))
 
 (defun xcvb-present-p (&optional (program *xcvb-program*))
   ;; returns the resolved path to xcvb if present

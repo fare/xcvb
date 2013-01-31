@@ -136,7 +136,7 @@ a reference to the system was superseded by a build.xcvb file.")
 (define-normalize-dependency :file (grain name)
   "File named relatively to the filesystem"
   `(:file ,(namestring
-            (ensure-pathname-absolute
+            (ensure-absolute-pathname
              (merge-pathnames*
               name
               (pathname-directory-pathname

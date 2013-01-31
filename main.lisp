@@ -190,7 +190,7 @@ command gives specific help on that command.")
    (or cache
        (getenv-absolute-directory "XCVB_CACHE")
        (subpathname* (getenv-absolute-directory "XDG_CACHE_HOME") "xcvb/")
-       (subpathname (user-homedir) ".cache/xcvb/"))))
+       (subpathname (user-homedir-pathname) ".cache/xcvb/"))))
 
 (defun compute-xcvb-cache! (cache)
   (orf *cache* (compute-xcvb-cache cache)))
@@ -200,7 +200,7 @@ command gives specific help on that command.")
    (or workspace
        (getenv-absolute-directory "XCVB_WORKSPACE")
        (subpathname
-        (ensure-pathname-absolute *default-pathname-defaults*) "workspace/"))))
+        (ensure-absolute-pathname *default-pathname-defaults*) "workspace/"))))
 
 (defun compute-xcvb-workspace! (workspace)
   (orf *workspace* (compute-xcvb-workspace workspace)))
@@ -225,7 +225,7 @@ command gives specific help on that command.")
   ;; http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
   ;; http://technet.microsoft.com/en-us/library/cc749104(WS.10).aspx
   (when (or (eq install-prefix t) (equal install-prefix "~"))
-    (setf install-prefix (user-homedir)))
+    (setf install-prefix (user-homedir-pathname)))
   (macrolet ((x (&rest vars)
                `(progn ,@(loop :for var :in vars :append
                            `((check-type ,var (or null string pathname))
@@ -247,7 +247,7 @@ command gives specific help on that command.")
          (orf install-library (subpathname install-prefix "lib/"))
          (orf install-image (subpathname install-prefix "images/"))
          (orf install-lisp install-prefix)))))
-  (when (equal install-prefix (user-homedir)) ;; Magic: home directory!
+  (when (equal install-prefix (user-homedir-pathname)) ;; Magic: home directory!
     (cond
       ((os-unix-p)
        (orf install-program

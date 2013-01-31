@@ -41,7 +41,7 @@
             (if output-path
                 (merge-pathnames* output-path default-output-path)
                 default-output-path))
-           (makefile-path (ensure-pathname-absolute actual-output-path))
+           (makefile-path (ensure-absolute-pathname actual-output-path))
            (makefile-dir (pathname-directory-pathname makefile-path))
            (*default-pathname-defaults* makefile-dir)
            (*print-pretty* nil); otherwise SBCL will slow us down a lot.

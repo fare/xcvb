@@ -74,7 +74,7 @@ in a fast way that doesn't enforce dependencies."
                                     asdf-name)))
          (default-output-path (subpathname (grain-pathname last-build) "xcvb-ne.mk"))
          (output-path (merge-pathnames* output-path default-output-path))
-         (makefile-path (ensure-pathname-absolute output-path))
+         (makefile-path (ensure-absolute-pathname output-path))
          (makefile-dir (pathname-directory-pathname makefile-path))
          (*default-pathname-defaults* makefile-dir)
          (*makefile-target-directories* (make-hash-table :test 'equal))

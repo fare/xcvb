@@ -223,7 +223,7 @@ Only currently support :generate and :executable extension form."
      :executable t
      :pre-image-dump (pre-image-dump generator)
      :post-image-restart (post-image-restart generator)
-     :entry-point (entry-point generator))))
+     :entry-point (grain-entry-point generator))))
 
 ;;(define-handle-extension-form :in-package (grain files &key package) ...)
 
