@@ -326,7 +326,7 @@ so that the system can now be compiled with XCVB."
     (log-format 6 "Clear the system cache *again* because we'll re-define thing transformed.")
     (dolist (sys systems) (remhash sys asdf::*defined-systems*))
     (asdf:initialize-output-translations "/:")
-    (asdf::do-defsystem simplified-system
+    (asdf::register-system-definition simplified-system
       :pathname base-pathname
       :source-file base-pathname
       :components `((asdf-dependency-grovel:component-file
@@ -354,7 +354,7 @@ so that the system can now be compiled with XCVB."
             (progn
               (log-format 6 "Creating a system with simplified dependencies")
               (asdf:clear-system :a2x-simplified-system)
-              (asdf::do-defsystem :a2x-simplified-system
+              (asdf::register-system-definition :a2x-simplified-system
                 :pathname base-pathname
                 :source-file base-pathname
                 :components

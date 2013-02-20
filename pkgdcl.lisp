@@ -20,8 +20,7 @@
 
   (:import-from :asdf
    #:*default-source-registry-exclusions*
-   #:*default-source-registries*
-   #:inherit-source-registry)
+   #:*default-source-registries*)
 
   (:import-from :xcvb-driver
    #:get-xcvb-version #:get-xcvb-directory
