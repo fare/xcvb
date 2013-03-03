@@ -15,6 +15,7 @@ workspace
 *.fas
 *.[oa]
 *.so
+*.bz2
 configure.mk
 xcvb.mk
 xcvb-ne.mk

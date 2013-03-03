@@ -9,4 +9,4 @@
   :licence "MIT"
   :description "Condition control for ASDF"
   :long-description "Using XCVB's condition control for ASDF"
-  :depends-on (:asdf :asdf-driver))
+  :depends-on (:asdf #-asdf3 :asdf-driver))
