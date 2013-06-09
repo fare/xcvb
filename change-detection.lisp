@@ -27,10 +27,6 @@
 (defun newest-time (&rest times)
   (newest-time* times))
 
-(defun safe-file-write-date (p &optional error)
-  (or (and p (asdf::probe-file* p) (ignore-errors (file-write-date p)))
-      (error-behavior error)))
-
 ;; We rely on the same approximation as make and asdf.
 ;; If the modified file is a generated file a previous version of which
 ;; was last generated and compiled in the same second, you lose. Unlikely, though.

@@ -84,11 +84,15 @@ Immediate TODO [V1]
 
 These are the very next steps to be taken:
 
+  * get XCVB up to date wrt changes in ASDF since 2.21 or so,
+    and support migration to/from ASDF 3, and compilation
+    with encodings, around-compile hook, compile-check, etc.
+
+  * Have an POIU/XCVB farmer-style backend for ASDF 3.
+
   * find memory leak in hu.dwim.stefil or the way we use it.
 
   * add quicklisp support and convince Xach to use it.
-
-  * implement around-compile and compile-check for xcvb.
 
   * Fix dependency management so it all happens in one place, preferrably under Lisp control
 
