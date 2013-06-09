@@ -1,9 +1,10 @@
 #+xcvb
 (module
  (:description "package for XCVB"
-  :depends-on ("lisp-invocation" "version" "xcvb-utils")))
+  :depends-on ("/asdf" "/fare-utils" "/inferior-shell" (:asdf "alexandria")
+               "lisp-invocation" "version")))
 
-(in-package :asdf-driver)
+(in-package :uiop)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (setf *optimization-settings*
@@ -11,12 +12,12 @@
   (proclaim-optimization-settings))
 
 (define-package :xcvb
-    (:mix :fare-utils :asdf/driver :alexandria :inferior-shell :xcvb-driver)
+  (:mix :fare-utils :uiop :alexandria :inferior-shell :xcvb-driver)
   (:use :closer-common-lisp
    :command-line-arguments :lisp-invocation
-        :optima :interface :pure :fare-mop
-        :fare-memoization
-        #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
+   :optima :interface :pure :fare-mop
+   :fare-memoization
+   #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
   (:import-from :asdf
    #:*default-source-registry-exclusions*
@@ -37,5 +38,6 @@
    #:module ;; Defining and using modules and extensions
    #:cmd)) ;; Easy REPL access to the command-line interface
 
-(defpackage :xcvb-user
-  (:use :closer-common-lisp :xcvb-driver :xcvb))
+(define-package :xcvb-user
+  (:use :closer-common-lisp)
+  (:mix :uiop :xcvb-driver :xcvb))

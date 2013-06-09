@@ -16,7 +16,7 @@
 (in-package :cl-user)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *asdf-version-required-by-xcvb* "3.0.1.6")
+  (defparameter *asdf-version-required-by-xcvb* "3.0.1.7")
   (defvar *asdf-directory*
     (merge-pathnames #p"cl/asdf/" (user-homedir-pathname))
     "Directory in which your favorite and/or latest version
@@ -88,8 +88,8 @@ Please upgrade to the latest stable ASDF and register it in your source-registry
 
 (asdf/package:define-package :xcvb-driver
   (:nicknames :xcvbd :xd)
-  (:use :asdf/common-lisp :asdf/driver :asdf)
-  (:reexport :asdf/driver)
+  (:use :uiop/common-lisp :uiop :asdf)
+  (:reexport :uiop)
   (:shadow #:create-image)
   (:export
    ;;; special variables shared with XCVB itself
@@ -386,13 +386,26 @@ Entry point for XCVB-DRIVER when used by XCVB's farmer"
 (defmacro run (&rest commands)
   "Run a series of XCVB-DRIVER commands, then exit.
 Entry point for XCVB-DRIVER when used by XCVB"
-  `(with-coded-exit ()
-    (do-run ',commands)))
+  `(with-fatal-condition-handler ()
+     (do-run ',commands)))
 
 
 ;;;; ----- Simple build commands -----
 
 ;;; Loading and evaluating code
+
+(defun do-load (x &key encoding)
+  (with-muffled-loader-conditions ()
+    (load* x
+           :external-format (encoding-external-format (or encoding *default-encoding*))
+           :verbose (>= *xcvb-verbosity* 8)
+           :print (>= *xcvb-verbosity* 9))))
+
+(defun load-file (x &key encoding)
+  (with-profiling `(:load-file ,x :encoding ,encoding)
+    (unless (do-load x :encoding encoding)
+      (error "Failed to load ~A" (list x)))))
+
 
 (defun cl-require (x)
   (with-profiling `(:require ,x)
@@ -400,6 +413,12 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 
 ;;; ASDF support
+
+(defun load-asdf (x &key parallel (verbose *compile-verbose*)) ;; parallel loading requires POIU
+  (when parallel (asdf:load-system :poiu))
+  (with-profiling `(:asdf ,x)
+    (with-muffled-loader-conditions ()
+      (load-system x :verbose verbose))))
 
 (defun initialize-asdf (&key source-registry output-translations)
   (asdf:clear-configuration)
@@ -482,7 +501,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
                    (lambda ()
                      (apply 'compile-file* source
                             :output-file (merge-pathnames* fasl)
-                            :external-format (encoding-external-format encoding)
+                            :external-format (encoding-external-format (or encoding *default-encoding*))
                             :warnings-file warnings-file
                             (append
                              #+sbcl (when cfasl `(:emit-cfasl ,(merge-pathnames* cfasl)))

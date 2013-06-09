@@ -1,5 +1,5 @@
 ;;; -*- mode: lisp -*-
-;;; superseded by asdf-driver
+;;; Superseded by UIOP
 (in-package :asdf)
 
 (defsystem :asdf-condition-control
@@ -9,4 +9,4 @@
   :licence "MIT"
   :description "Condition control for ASDF"
   :long-description "Using XCVB's condition control for ASDF"
-  :depends-on (:asdf #-asdf3 :asdf-driver))
+  :depends-on (:asdf #-asdf3 :uiop))

@@ -25,7 +25,7 @@
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
   :defsystem-depends-on (:asdf :xcvb-driver :xcvb-bootstrap)
-  :depends-on ((:version :asdf "3.0.1.6")
+  :depends-on ((:version :asdf "3.0.1.7")
                :xcvb-driver :xcvb-bootstrap :asdf-encodings
                :lambda-reader
                :fare-mop :fare-memoization

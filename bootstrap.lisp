@@ -31,7 +31,7 @@
     (run-program
      (lisp-invocation:lisp-invocation-arglist
       :implementation-type lisp
-      :eval (format nil "(#.(require \"asdf\")#.(asdf:load-system :asdf)#.(asdf:load-system :xcvb-driver)#.(xcvb-driver:with-coded-exit () (asdf:load-system :xcvb) (funcall 'xcvb-driver::dump-xcvb ~S))" program))
+      :eval (format nil "(#.(require \"asdf\")#.(asdf:load-system :asdf)#.(asdf:load-system :xcvb-driver)#.(uiop:with-fatal-condition-handler () (asdf:load-system :xcvb) (funcall 'xcvb-driver::dump-xcvb ~S))" program))
      :output nil) ;; for side-effects
     (native-namestring program)))
 
