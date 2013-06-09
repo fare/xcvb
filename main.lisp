@@ -388,36 +388,37 @@ command gives specific help on that command.")
   (values))
 
 (defun main (&rest arguments)
-  (flet ((quit (&optional (code 0))
+  (with-safe-io-syntax (:package :xcvb)
+    (flet ((quit (&optional (code 0))
            (log-format 9 "quitting with code ~A" code)
            (quit code)))
-    (restart-case
-        (handler-case
-            ;; revert-to-repl is in a nested restart-case so that the other two
-            ;; restarts are available from the repl.
-            (restart-case
-                (progn
-                  (interpret-command arguments)
+      (restart-case
+          (handler-case
+              ;; revert-to-repl is in a nested restart-case so that the other two
+              ;; restarts are available from the repl.
+              (restart-case
+                  (progn
+                    (interpret-command arguments)
 		    (quit 0))
-              (revert-to-repl ()
-                :report (lambda (stream)
-                          (format stream "Abort current computation and bring up a toplevel REPL"))
-                (repl)))
-          (user-error (c)
-            ;; XXX Hrm, why doesn't this seem to work when I set
+                (revert-to-repl ()
+                  :report (lambda (stream)
+                            (format stream "Abort current computation and bring up a toplevel REPL"))
+                  (repl)))
+            (user-error (c)
+              ;; XXX Hrm, why doesn't this seem to work when I set
 	      ;; XCVB_DEBUGGING=t in the environment?
-            (if *lisp-interaction*
-                (handle-fatal-condition c)
-                (die "~A" c))))
-      (exit (&optional (exit-code 0))
-        :report (lambda (stream)
-                  ;; when invoked interactively exit-code is always 0
-                  (format stream "Abort current computation and quit the process with process exit code "))
-        (quit exit-code))
-      (abort ()
-        :report (lambda (stream)
-                  (format stream "Abort current computation and quit the process with process exit code 111"))
-        (quit 111)))))
+              (if *lisp-interaction*
+                  (handle-fatal-condition c)
+                  (die "~A" c))))
+        (exit (&optional (exit-code 0))
+          :report (lambda (stream)
+                    ;; when invoked interactively exit-code is always 0
+                    (format stream "Abort current computation and quit the process with process exit code "))
+          (quit exit-code))
+        (abort ()
+          :report (lambda (stream)
+                    (format stream "Abort current computation and quit the process with process exit code 111"))
+          (quit 111))))))
 
 (defun entry-point ()
   (apply 'main asdf/image:*command-line-arguments*))
