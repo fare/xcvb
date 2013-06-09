@@ -16,7 +16,7 @@
 (in-package :cl-user)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *asdf-version-required-by-xcvb* "2.26.149")
+  (defparameter *asdf-version-required-by-xcvb* "3.0.1.6")
   (defvar *asdf-directory*
     (merge-pathnames #p"cl/asdf/" (user-homedir-pathname))
     "Directory in which your favorite and/or latest version
@@ -69,15 +69,13 @@ Please install ASDF2 and in your ~~/.swank.lisp specify:
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (handler-bind ((warning #'muffle-warning))
     (when *asdf-directory*
-      (pushnew *asdf-directory* asdf:*central-registry*))
+      (pushnew *asdf-directory* asdf:*central-registry* :test 'equal))
     (ignore-errors (asdf:operate 'asdf:load-op :asdf :verbose nil))))
 
 ;;; If ASDF is too old, punt.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (let ((ver (get-asdf-version)))
-    (unless (or #+asdf3
-                (or (<= 3 (first (asdf/driver:parse-version ver)))
-                    (asdf:version-satisfies ver *asdf-version-required-by-xcvb*)))
+    (unless (asdf:version-satisfies ver *asdf-version-required-by-xcvb*)
       (error "Your ASDF version ~A is too old for XCVB, which requires ~A.
 Please upgrade to the latest stable ASDF and register it in your source-registry."
            ver *asdf-version-required-by-xcvb*))))
@@ -418,7 +416,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
                 (loop :for s :in systems
                       :collect (cons op (find-component () s)))
                 :plan-class 'asdf/plan:sequential-plan)))
-    (loop :for (o . c) :in plan
+    (loop :for (o . c) :in (asdf/plan:plan-actions plan)
           :always (asdf:needed-in-image-p o c))))
 
 (defun asdf-systems-up-to-date (&rest systems)

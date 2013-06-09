@@ -1,8 +1,6 @@
 ;;; -*- mode: lisp -*-
 
 (in-package :asdf)
-#-asdf3 (load-system :asdf)
-#-asdf3 (error "XCVB requires ASDF 3")
 
 (when (plusp (length (getenv "XCVB_FARMER")))
   (pushnew :xcvb-farmer *features*))
@@ -19,26 +17,27 @@
 (proclaim '(optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
 
 (defsystem :xcvb
-    :author ("Francois-Rene Rideau" "Spencer Brody" "Joyce Chen")
-    :maintainer "Francois-Rene Rideau"
-    :licence "MIT"
-    :description "XCVB"
-    :long-description "an eXtensible Component Verifier and Builder for Lisp.
+  :author ("Francois-Rene Rideau" "Spencer Brody" "Joyce Chen")
+  :maintainer "Francois-Rene Rideau"
+  :licence "MIT"
+  :description "XCVB"
+  :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-    :defsystem-depends-on (:asdf #-asdf3 :asdf-driver :xcvb-driver :xcvb-bootstrap)
-    :depends-on (:asdf #-asdf3 :asdf-driver :xcvb-driver :xcvb-bootstrap :asdf-encodings
-                 :lambda-reader
-                 :fare-mop :fare-memoization
-                 :command-line-arguments
-                 :asdf-dependency-grovel
-                 :fare-quasiquote-extras
-                 :ironclad :binascii :babel
-		 :inferior-shell
-                 :lisp-interface-library
-		 #+clozure :single-threaded-ccl
-                 #+xcvb-farmer :quux-iolib
-                 #|#-clisp :rucksack|#)
+  :defsystem-depends-on (:asdf :xcvb-driver :xcvb-bootstrap)
+  :depends-on ((:version :asdf "3.0.1.6")
+               :xcvb-driver :xcvb-bootstrap :asdf-encodings
+               :lambda-reader
+               :fare-mop :fare-memoization
+               :command-line-arguments
+               :asdf-dependency-grovel
+               :fare-quasiquote-extras
+               :ironclad :binascii :babel
+               :inferior-shell
+               :lisp-interface-library
+               #+clozure :single-threaded-ccl
+               #+xcvb-farmer :quux-iolib
+               #|#-clisp :rucksack|#)
     :components
     ((:file "version")
      (:file "pkgdcl" :depends-on ("version"))
