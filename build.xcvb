@@ -80,4 +80,4 @@ deterministic separate compilation and enforced locally-declared dependencies."
  (:executable "xcvb"
   :depends-on :build
   :pre-image-dump "(xcvb::prepare-image :version #.(xd::get-xcvb-version) :directory #.(xd:getenv \"INSTALL_XCVB\"))"
-  :entry-point "xcvb::main"))
+  :entry-point "xcvb::entry-point"))
