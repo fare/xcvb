@@ -70,7 +70,7 @@
     (let ((namestring (effective-namestring env image)))
       (text-for-xcvb-driver-helper
        env dependencies
-       ":create-image (~S :output-name ~S ~:[~; :executable t~]~@[ :pre-image-dump ~S~]~@[ :post-image-restart ~S~]~@[ :entry-point ~S~])"
+       ":make-image (~S :output-name ~S ~:[~; :executable t~]~@[ :pre-image-dump ~S~]~@[ :post-image-restart ~S~]~@[ :entry-point ~S~])"
        (tempname-target namestring)
        (pathname-name namestring)
        executable pre-image-dump post-image-restart entry-point))))

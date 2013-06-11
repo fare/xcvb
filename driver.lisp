@@ -11,6 +11,8 @@
 
 #.(setf *load-verbose* () *load-print* () *compile-verbose* () *compile-print* ()) ;; Hush!
 
+#+sbcl (declaim (sb-ext:muffle-conditions sb-ext:compiler-note))
+
 ;;;; First, try very hard to load a recent enough ASDF.
 
 (in-package :cl-user)
@@ -69,8 +71,10 @@ Please install ASDF2 and in your ~~/.swank.lisp specify:
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (handler-bind ((warning #'muffle-warning))
     (when *asdf-directory*
-      (pushnew *asdf-directory* asdf:*central-registry* :test 'equal))
-    (ignore-errors (asdf:operate 'asdf:load-op :asdf :verbose nil))))
+      (pushnew *asdf-directory* (symbol-value (find-symbol (string :*central-registry*) :asdf))
+               :test 'equal))
+    (ignore-errors (funcall (find-symbol (string :operate) :asdf)
+                            (find-symbol (string :load-op) :asdf) :asdf :verbose nil))))
 
 ;;; If ASDF is too old, punt.
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -83,14 +87,12 @@ Please upgrade to the latest stable ASDF and register it in your source-registry
 
 ;;; We may now assume we have a recent enough ASDF with all the basic driver functions.
 
-(declaim (optimize (speed 2) (space 2) (safety 3) (debug 3) (compilation-speed 0))
-         #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note))
+(declaim (optimize (speed 2) (space 2) (safety 3) (debug 3) (compilation-speed 0)))
 
 (asdf/package:define-package :xcvb-driver
   (:nicknames :xcvbd :xd)
   (:use :uiop/common-lisp :uiop :asdf)
   (:reexport :uiop)
-  (:shadow #:create-image)
   (:export
    ;;; special variables shared with XCVB itself
    #:*lisp-implementation-type*
@@ -387,7 +389,8 @@ Entry point for XCVB-DRIVER when used by XCVB's farmer"
   "Run a series of XCVB-DRIVER commands, then exit.
 Entry point for XCVB-DRIVER when used by XCVB"
   `(with-fatal-condition-handler ()
-     (do-run ',commands)))
+     (do-run ',commands)
+     (quit 0)))
 
 
 ;;;; ----- Simple build commands -----
@@ -509,7 +512,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
                                      `(:object-file #+ecl (merge-pathnames* lisp-object)))))))))))
       (declare (ignorable warnings-p failure-p))
       (unless output-truename
-        (die "Compilation Failed for ~A, no fasl created" source))
+        (die 99 "Compilation Failed for ~A, no fasl created" source))
       (values))))
 
 (defun compile-lisp (spec &rest dependencies)
@@ -517,18 +520,24 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 ;;; DSL entry point to create images
 #-ecl
-(defun do-create-image (image dependencies &rest flags)
-  (let ((*goal* `(create-image ,image))
+(defun do-make-image (image dependencies &rest keys
+                      &key output-name executable pre-image-dump post-image-restart entry-point)
+  (declare (ignore output-name))
+  (let ((*goal* `(make-image ,image ,dependencies ,@keys))
         #+sbcl (*uninteresting-compiler-conditions*
                 (cons "undefined ~(~A~): ~S" *uninteresting-compiler-conditions*)))
     (with-muffled-compiler-conditions ()
       (run-commands dependencies))
-    (apply #'dump-image image flags)))
+    (setf *image-prelude* post-image-restart)
+    (setf *image-postlude* pre-image-dump)
+    (setf *image-entry-point* entry-point)
+    (dump-image image :executable executable)))
 
 #+ecl ;; wholly untested and probably buggy.
-(defun do-create-image (image dependencies &rest keys
-                        &key kind executable output-name prelude entry-point)
-  (let ((*goal* `(create-image ,image ,dependencies ,@keys))
+(defun do-make-image (image dependencies &rest keys
+                        &key kind executable output-name pre-image-dump post-image-restart entry-point)
+  (declare (ignore pre-image-dump))
+  (let ((*goal* `(make-image ,image ,dependencies ,@keys))
         (kind (or kind (if executable :program :shared-library)))
         (first-dep (car dependencies)))
     (multiple-value-bind (object-files manifest)
@@ -561,15 +570,15 @@ Entry point for XCVB-DRIVER when used by XCVB"
        (when (eq kind :program)
          `(progn
             (setf xcvb-driver:*manifest* ',(reverse manifest))
-            ,@(etypecase prelude
+            ,@(etypecase post-image-restart
                 (null)
                 (cons (list prelude))
-                (string `((standard-eval-text ',prelude))))))
+                (string `((standard-eval-text ',post-image-restart))))))
        :entry-point entry-point))))
 
-(defun create-image (spec &rest dependencies)
+(defun make-image (spec &rest dependencies)
   (destructuring-bind (image &rest keys) spec
-    (apply 'do-create-image image dependencies keys)))
+    (apply 'do-make-image image dependencies keys)))
 
 
 ;;;; ----- CFFI-grovel support -----

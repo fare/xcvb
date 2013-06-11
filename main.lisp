@@ -124,7 +124,7 @@ For XCVB developers only (notably for use with SLIME).")
         :for var = (find-symbol (format nil "*~:@(~A~)*" attr) :xcvb) :do
         (if (find var *showable-settings*)
             (format t "~A~%" (symbol-value var))
-            (die "Not a showable setting: ~A" attr)))))
+            (die 99 "Not a showable setting: ~A" attr)))))
 
 (define-command show-version
     (("version" "-V" "--version")
@@ -409,7 +409,7 @@ command gives specific help on that command.")
 	      ;; XCVB_DEBUGGING=t in the environment?
               (if *lisp-interaction*
                   (handle-fatal-condition c)
-                  (die "~A" c))))
+                  (die 99 "~A" c))))
         (exit (&optional (exit-code 0))
           :report (lambda (stream)
                     ;; when invoked interactively exit-code is always 0
