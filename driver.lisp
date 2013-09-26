@@ -18,7 +18,7 @@
 (in-package :cl-user)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *asdf-version-required-by-xcvb* "3.0.1.7")
+  (defparameter *asdf-version-required-by-xcvb* "3.0.2")
   (defvar *asdf-directory*
     (merge-pathnames #p"cl/asdf/" (user-homedir-pathname))
     "Directory in which your favorite and/or latest version
@@ -73,7 +73,7 @@ Please install ASDF2 and in your ~~/.swank.lisp specify:
     (when *asdf-directory*
       (pushnew *asdf-directory* (symbol-value (find-symbol (string :*central-registry*) :asdf))
                :test 'equal))
-    (ignore-errors (funcall (find-symbol (string :operate) :asdf)
+    (ignore-errors (funcall (fdefinition (find-symbol (string :operate) :asdf))
                             (find-symbol (string :load-op) :asdf) :asdf :verbose nil))))
 
 ;;; If ASDF is too old, punt.
