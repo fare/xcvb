@@ -15,7 +15,7 @@
   (:mix :fare-utils :uiop :alexandria :inferior-shell :xcvb-driver)
   (:use :closer-common-lisp
    :command-line-arguments :lisp-invocation
-   :optima :interface :pure :fare-mop
+   :optima :fare-mop :lil/interface/definition :lil/interface/eq
    :fare-memoization
    #+xcvb-farmer :quux-iolib #+xcvb-farmer :iolib.os)
 
