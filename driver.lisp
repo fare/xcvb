@@ -18,7 +18,7 @@
 (in-package :cl-user)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *asdf-version-required-by-xcvb* "3.0.2.13") ;; for the new run-program
+  (defparameter *asdf-version-required-by-xcvb* "3.0.2.13") ;; for its new run-program
   (defvar *asdf-directory*
     (merge-pathnames #p"cl/asdf/" (user-homedir-pathname))
     "Directory in which your favorite and/or latest version
@@ -409,7 +409,6 @@ Entry point for XCVB-DRIVER when used by XCVB"
     (unless (do-load x :encoding encoding)
       (error "Failed to load ~A" (list x)))))
 
-
 (defun cl-require (x)
   (with-profiling `(:require ,x)
     (require x)))
@@ -430,6 +429,11 @@ Entry point for XCVB-DRIVER when used by XCVB"
 
 (defun register-asdf-directory (x)
   (pushnew x asdf:*central-registry*))
+
+(defun register-asdf-preloaded-systems (&rest systems)
+  (dolist (s systems)
+    (multiple-value-bind (system keys) (if (consp s) (values (car s) (cdr s)) s)
+      (apply 'asdf/find-system:register-preloaded-system system keys))))
 
 (defun asdf-systems-up-to-date-p (systems &optional (operation 'asdf:load-op))
   "Are all the ASDF systems up to date (for loading)?"
@@ -479,9 +483,10 @@ Entry point for XCVB-DRIVER when used by XCVB"
   ;;;
   ;;; In SBCL, we'll also need to somehow disable the start-time slot of the
   ;;; (def!struct (source-info ...)) from main/compiler.lisp (package SB-C),
-  ;;; and override the source location to point to some logical pathname.
+  ;;; and override the source location to point to some logical pathname
+  ;;; or somehow a relative pathname.
   (let* ((hash (sxhash seed))
-         (*gensym-counter* (* hash 10000))
+         (*gensym-counter* 0)
          #+sbcl (sb-impl::*gentemp-counter* (* hash 10000))
          ;;; SBCL will hopefully export a better mechanism soon. See:
          ;;; https://bugs.launchpad.net/sbcl/+bug/310116

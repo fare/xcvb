@@ -262,7 +262,7 @@ xcvb-ensure-object-directories:
   (ignore-errors
     (cond
       ((featurep :linux)
-       (run-program '("grep" "-c" "^processor " "/proc/cpuinfo") :output :integer))
+       (run-program '("grep" "-c" "^processor.:" "/proc/cpuinfo") :output :integer))
       ((featurep :darwin)
        (run-program '("sysctl" "-n" "hw.ncpu") :output :integer))
       ((os-windows-p)
@@ -273,19 +273,20 @@ xcvb-ensure-object-directories:
     (format nil "-l~A" (1+ ncpus))
     "-j"))
 
-(defun invoke-make (&key target directory makefile parallel ignore-error-status env)
+(defun invoke-make (&key target directory makefile parallel (on-error 'error) env)
   (let* ((make (or (getenv "MAKE") "make"))
          (make-command
           `(,@(when env `("env" ,@env))
             ,make
             ,@(when parallel (list (make-parallel-flag)))
-            ,@(when directory `("-C" ,(namestring directory)))
-            ,@(when makefile `("-f" ,(namestring makefile)))
+            ,@(when directory `("-C" ,directory))
+            ,@(when makefile `("-f" ,makefile))
             ,@(when target (ensure-list target)))))
       (log-format 6 "Building with ~S" make-command)
-      (run-program ;; for side-effects
+      (run ;; for side-effects
+       :output :interactive
        make-command ; (strcat (escape-shell-command make-command) " >&2")
-       :ignore-error-status ignore-error-status)))
+       :on-error on-error)))
 
 (define-command make-build
     (("make-build" "mkb" "mb")
@@ -303,12 +304,12 @@ xcvb-ensure-object-directories:
           (values makefile-path makefile-dir)
           (let ((code (nth-value 2 (invoke-make
                                     :directory makefile-dir :makefile makefile-path
-                                    :parallel parallel :ignore-error-status t))))
+                                    :parallel parallel))))
             (unless (zerop code)
               (when retry
                 (invoke-make
                  :directory makefile-dir :makefile makefile-path :parallel parallel
-                 :ignore-error-status t :env '("XCVB_DEBUGGING=t"))))
+                 :on-error nil :env '("XCVB_DEBUGGING=t"))))
             (if exit
                 (exit code)
                 (values code makefile-dir makefile-path)))))))

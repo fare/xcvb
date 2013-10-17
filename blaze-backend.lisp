@@ -298,19 +298,17 @@
      "Create blaze BUILD rules to build a project." ignore)
   (apply 'blaze-build :blaze-BUILD-only t keys))
 
-(defun invoke-blaze (&key target directory makefile ignore-error-status env)
-  (let* ((make (or (getenv "MAKE") "make"))
-         (make-command
+(defun invoke-blaze (&key target directory (on-error 'error) env)
+  (let* ((blaze-command
           `(,@(when env `("env" ,@env))
-            ,make
-            ,@(when directory `("-C" ,(namestring directory)))
-            ,@(when makefile `("-f" ,(namestring makefile)))
+            blaze build
             ,@(when target (ensure-list target)))))
-      (log-format 6 "Building with ~S" make-command)
-      (run-program
-       make-command ; (strcat (escape-shell-command make-command) " >&2")
-       :output nil ;; for side-effects only
-       :ignore-error-status ignore-error-status)))
+      (log-format 6 "Building with ~S" blaze-command)
+      (run
+       blaze-command
+       :directory directory
+       :output :interactive ;; for side-effects only
+       :on-error on-error)))
 
 (define-command blaze-build
     (("blaze-build" "blaze" "bb")
@@ -325,9 +323,7 @@
         (write-blaze-BUILD build)
       (if blaze-BUILD-only
           (values blaze-BUILD-path blaze-BUILD-dir)
-          (let ((code (invoke-blaze
-                       :directory blaze-BUILD-dir
-                       :ignore-error-status t)))
+          (let ((code (invoke-blaze :directory blaze-BUILD-dir :target "fasl")))
             (if exit
                 (exit code)
                 (values code blaze-BUILD-dir)))))))
