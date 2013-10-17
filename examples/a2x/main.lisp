@@ -5,7 +5,7 @@
 (in-package :a2x-test)
 
 (defun main ()
-  (if cl-launch:*arguments*
-    (format t "arguments: ~S~%" cl-launch:*arguments*)
+  (if *command-line-arguments*
+    (format t "arguments: ~S~%" *command-line-arguments*)
     (display-help))
-  (cl-launch:quit 0))
+  (quit 0))

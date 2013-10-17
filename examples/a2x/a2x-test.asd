@@ -2,7 +2,7 @@
 
 (asdf:defsystem :a2x-test
     :author ("Francois-Rene Rideau")
-    :depends-on (:cl-launch)
+    :depends-on (:uiop)
     :components
     ((:file "pkgdcl")
      (:file "specials" :depends-on ("pkgdcl"))
