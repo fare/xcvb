@@ -1916,20 +1916,36 @@ With this experience, we confidently believe the following:
 Why is XCVB so much bigger and more complex than ASDF?
 ------------------------------------------------------
 
-It isn't really.
-If you care about size of code included in your software's memory,
-you should be comparing ASDF to XCVB-Driver, not to XCVB.
-XCVB-Driver is three times smaller than ASDF,
-and provides more everyday functionality to your software,
-including a portable run-program.
+It arguably isn't.
+
+The last few years, ASDF has grown a lot.
+It now includes a portability library UIOP,
+now also used by XCVB (from which it imported a lot of code,
+including condition muffling and run-program).
+The defsystem itself was also rewritten
+to handle timestamp propagation correctly,
+including having a coherent explicit dependency graph, at long last,
+and importing functionality from asdf/bundle.
+In other words, ASDF has, within its conceptual limits,
+started to include a lot of the good ideas from XCVB.
+
+Now, since both rely on UIOP, we should be comparing
+``xcvb`` and ``asdf/defsystem``.
+
+Now, if we care about size of code included in your software's memory,
+you actually should be comparing ``asdf/defsystem`` to ``xcvb-driver``,
+not ASDF to XCVB.
+``xcvb-driver`` is six times smaller than ``asdf/defsystem``.
 It is all you need to load in your Lisp image, and
 it provides all you need to do incremental development.
 
-The rest of XCVB does much more than ASDF, and should not be compared to ASDF,
+The rest of XCVB does much more than ASDF,
+and should not be compared to ASDF,
 but to a hypothetical set of ASDF extensions that would do as much.
 XCVB includes conditional dependencies, conversion between XCVB and ASDF,
-a Makefile backend, cross-compilation, eager error checking, warning control,
+a Makefile backend, cross-compilation, eager error checking,
 an extensive command-line interface (also at the Lisp REPL),
 plus plenty of new features that are still in the works.
-Yet, XCVB (not counting library dependencies) is only twice the size of ASDF
+Yet, XCVB (not counting library dependencies)
+is only twice the size of ``asdf/defsystem``
 — and importantly, you don't have to load any of it into your current image.

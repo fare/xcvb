@@ -51,7 +51,8 @@
        5 "Running Computation's Shell Command:~% ~{~< \\~%   ~1,72:; ~A~>~}~%~%"
        (mapcar #'escape-sh-token external-command))
       (run-program external-command
-                   :output *standard-output* :prefix "command output: "))
+                   :output '(*standard-output* :prefix "command output: ")
+                   :error-output :output))
     (mapcar/ 'update-change-information env outputs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Make-Makefile ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

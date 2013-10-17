@@ -18,7 +18,7 @@
 (in-package :cl-user)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *asdf-version-required-by-xcvb* "3.0.2")
+  (defparameter *asdf-version-required-by-xcvb* "3.0.2.13") ;; for the new run-program
   (defvar *asdf-directory*
     (merge-pathnames #p"cl/asdf/" (user-homedir-pathname))
     "Directory in which your favorite and/or latest version
@@ -89,7 +89,7 @@ Please upgrade to the latest stable ASDF and register it in your source-registry
 
 (declaim (optimize (speed 2) (space 2) (safety 3) (debug 3) (compilation-speed 0)))
 
-(asdf/package:define-package :xcvb-driver
+(uiop/package:define-package :xcvb-driver
   (:nicknames :xcvbd :xd)
   (:use :uiop/common-lisp :uiop :asdf)
   (:reexport :uiop)

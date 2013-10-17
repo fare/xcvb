@@ -14,7 +14,7 @@
 (defun ensure-required-xcvb-version (required-xcvb-version)
   (when required-xcvb-version
     (let ((reduced-required-version (reduce-xcvb-version required-xcvb-version))
-          (reduced-current-version (reduce-xcvb-version *xcvb-version*)))
+          (reduced-current-version (reduce-xcvb-version (or *xcvb-version* (get-xcvb-version)))))
       (unless (asdf:version-satisfies reduced-current-version reduced-required-version)
         (log-format 1 "This is XCVB ~A but version ~A was required"
                     *xcvb-version* required-xcvb-version)
@@ -33,5 +33,6 @@
             (unless (build-xcvb *xcvb-program*)
               (abend "failed to build XCVB ~A" source-version))
             (exit
-             (run-program (cons *xcvb-program* *arguments*)
-                          :output nil :ignore-error-status t))))))))
+             (nth-value 2
+                        (run-program (cons *xcvb-program* *arguments*)
+                                     :output :interactive :ignore-error-status t)))))))))

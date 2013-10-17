@@ -301,9 +301,9 @@ xcvb-ensure-object-directories:
         (write-makefile build :output-path output-path)
       (if makefile-only
           (values makefile-path makefile-dir)
-          (let ((code (invoke-make
-                       :directory makefile-dir :makefile makefile-path :parallel parallel
-                       :ignore-error-status t)))
+          (let ((code (nth-value 2 (invoke-make
+                                    :directory makefile-dir :makefile makefile-path
+                                    :parallel parallel :ignore-error-status t))))
             (unless (zerop code)
               (when retry
                 (invoke-make
