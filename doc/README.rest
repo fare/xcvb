@@ -283,6 +283,13 @@ The dependencies that support XCVB natively include:
         - getting it, if you're a QITAB project member::
         	``git clone ssh://USER@common-lisp.net/project/qitab/git/command-line-arguments.git``
 
+  * lisp-invocation:
+	- homepage: http://common-lisp.net/project/qitab/
+	- getting it:
+		``git clone git://common-lisp.net/projects/qitab/lisp-invocation.git``
+        - getting it, if you're a QITAB project member::
+		``git clone ssh://USER@common-lisp.net/project/qitab/git/lisp-invocation.git``
+
   * fare-utils:
 	- homepage: http://cliki.net/fare-utils
 	- getting it:
