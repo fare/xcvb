@@ -248,28 +248,8 @@ xcvb-ensure-object-directories:
   (apply 'make-build :makefile-only t keys))
 
 
-(defun read-integer (x)
-  (parse-integer x :junk-allowed t))
-
-(defun slurp-stream-integer (input-stream)
-  (read-integer (slurp-stream-string input-stream)))
-
-(defmethod slurp-input-stream ((x (eql :integer)) input-stream
-                               &key &allow-other-keys)
-  (slurp-stream-integer input-stream))
-
-(defun ncpus ()
-  (ignore-errors
-    (cond
-      ((featurep :linux)
-       (run-program '("grep" "-c" "^processor.:" "/proc/cpuinfo") :output :integer))
-      ((featurep :darwin)
-       (run-program '("sysctl" "-n" "hw.ncpu") :output :integer))
-      ((os-windows-p)
-       (read-integer (getenv "NUMBER_OF_PROCESSORS"))))))
-
 (defun make-parallel-flag ()
-  (if-bind (ncpus) (ncpus)
+  (if-bind (ncpus) (asdf::ncpus)
     (format nil "-l~A" (1+ ncpus))
     "-j"))
 
