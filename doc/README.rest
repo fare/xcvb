@@ -51,13 +51,14 @@ enforced locally-declared dependencies.
       6.2  Debugging the build
       6.3  Profiling the build
     7  XCVB and ASDF
-      7.1  XCVB builds depending on ASDF systems
-      7.2  ASDF systems depending on XCVB builds
-      7.3  Converting XCVB builds into ASDF systems
-      7.4  Converting ASDF systems into XCVB builds
-      7.5  ASDF extensions without XCVB equivalent
-      7.6  Undoing a conversion to XCVB
-      7.7  Fast non-enforcing builds using POIU
+      7.1  Relative Status of XCVB and ASDF
+      7.2  XCVB builds depending on ASDF systems
+      7.3  ASDF systems depending on XCVB builds
+      7.4  Converting XCVB builds into ASDF systems
+      7.5  Converting ASDF systems into XCVB builds
+      7.6  ASDF extensions without XCVB equivalent
+      7.7  Undoing a conversion to XCVB
+      7.8  Fast non-enforcing builds using POIU
     8  Frequently Asked Questions
       8.1  Why can't module declarations be moved to a central file?
       8.2  How do I prevent clash between incompatible FASLs?
@@ -1458,6 +1459,32 @@ that you can thereafter read and analyze.
 
 XCVB and ASDF
 =============
+
+Relative Status of XCVB and ASDF
+--------------------------------
+
+ASDF adopted many ideas from XCVB, sometimes including code:
+the source-registry (adopted by ASDF2),
+the run-program implementation (in ASDF3, code from xcvb-driver),
+condition-muffling support (in ASDF3, code from xcvb-driver, itself from QRes, itself from QPX),
+image creation support including linking on ECL (in ASDF3, code from xcvb-driver, itself from cl-launch),
+the debug mode or not support (in ASDF3, code from xcvb-driver),
+a consistent dependency graph (in ASDF3, ideas from XCVB and POIU),
+interface-passing style when building the graph (in ASDF3, ideas from XCVB),
+feature expression support (in ASDF3, code from XCVB),
+conditionally used component (in ASDF3, ideas from XCVB)
+etc.
+
+ASDF has improved on a lot of that code,
+and XCVB now uses ASDF's UIOP as the basis for its xcvb-driver.
+
+ASDF2 also implemented file encoding, around-compile wrapper and compile-check,
+that are still not available in XCVB.
+
+On the other hand, XCVB fully supports
+cross-compilation, parallel builds, deterministic builds, etc.,
+and ASDF will eventually have to break backward compatibility to support them.
+
 
 XCVB builds depending on ASDF systems
 -------------------------------------
