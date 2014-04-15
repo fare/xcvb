@@ -87,6 +87,7 @@
   (destructuring-bind (&key image load) keys
     (lisp-invocation-arglist
      :image-path (if image (effective-namestring env image) *lisp-image-pathname*)
+     :cross-compile t
      :load (mapcar/ #'effective-namestring env load)
      :eval (tweak-features-around-eval-string eval))))
 

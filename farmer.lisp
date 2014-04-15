@@ -433,7 +433,7 @@ and extra finalization from calling FUN on the world."
 (defun work-on-direct-file-compilation (env computation)
   (destructuring-bind (fullname &key cfasl lisp-object) (cdr (computation-command computation))
     (let* ((*renamed-targets* nil)
-           (command (lisp-invocation-arglist-for
+           (command (lisp-invocation-for
                      env ()
                      (compile-file-directly-shell-token env fullname
                                                         :cfasl cfasl :lisp-object lisp-object))))
@@ -447,7 +447,7 @@ and extra finalization from calling FUN on the world."
   (destructuring-bind (token setup &rest commands) (computation-command computation)
     (assert (eq :xcvb-driver-command token))
     (let* ((*renamed-targets* nil)
-           (command (lisp-invocation-arglist-for
+           (command (lisp-invocation-for
                      env setup
                      (xcvb-driver-commands-to-shell-token env commands))))
       (start-process*
@@ -517,7 +517,7 @@ and extra finalization from calling FUN on the world."
                       (make-and-open-input-fifo outpath)))
            (world (progn (assert (null (cdr outputs)))
                          (first outputs)))
-           (command (lisp-invocation-arglist-for
+           (command (lisp-invocation-for
                      env setup
                      (xcvb-driver-commands-to-shell-token
                       env `((:execute-job ,id ,inpath ,outpath ,logpath

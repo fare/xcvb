@@ -3,13 +3,14 @@
 
 (in-package :xcvb-driver)
 
-(defun lisp-present-p (lisp)
+(defun lisp-present-p (lisp &key cross-compile)
   (equal
    "JUST ANOTHER LISP HACKER"
    (ignore-errors
     (run-program
      (lisp-invocation:lisp-invocation-arglist
       :implementation-type lisp
+      :cross-compile cross-compile
       :eval (format nil "(progn (format t\"~~:@(~~{~~31R~~^ ~~}~~)\"'(595756 9556552524 643802 496307950)) ~A)"
                     (lisp-invocation:quit-form :code 0 :implementation-type lisp)))
      :output '(:string :stripped t)))))
