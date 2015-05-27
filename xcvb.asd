@@ -16,7 +16,8 @@
 
 (proclaim '(optimize (speed 2) (safety 3) (debug 3) (compilation-speed 0)))
 
-(defsystem :xcvb
+(defsystem "xcvb"
+  :version (:read-file-line "version.text")
   :author ("Francois-Rene Rideau" "Spencer Brody" "Joyce Chen")
   :maintainer "Francois-Rene Rideau"
   :licence "MIT"
@@ -24,20 +25,20 @@
   :long-description "an eXtensible Component Verifier and Builder for Lisp.
 XCVB provides a scalable system to build large software in Lisp, featuring
 deterministic separate compilation and enforced locally-declared dependencies."
-  :defsystem-depends-on (:asdf :xcvb-driver :xcvb-bootstrap)
-  :depends-on ((:version :asdf "3.0.1.7")
-               :xcvb-driver :xcvb-bootstrap :asdf-encodings
-               :lambda-reader
-               :fare-mop :fare-memoization
-               :command-line-arguments
-               :asdf-dependency-grovel
-               :fare-quasiquote-extras
-               :ironclad :binascii :babel
-               :inferior-shell
-               :lisp-interface-library
-               #+clozure :single-threaded-ccl
-               #+xcvb-farmer :quux-iolib
-               #|#-clisp :rucksack|#)
+  :defsystem-depends-on ("asdf" "xcvb-driver" "xcvb-bootstrap")
+  :depends-on ((:version "asdf" "3.1.4") "poiu"
+               "xcvb-driver" "xcvb-bootstrap" "asdf-encodings"
+               "lambda-reader"
+               "fare-mop" "fare-memoization"
+               "command-line-arguments"
+               "asdf-dependency-grovel"
+               "fare-quasiquote-extras"
+               "ironclad" "binascii" "babel"
+               "inferior-shell"
+               "lisp-interface-library"
+               #+clozure "single-threaded-ccl"
+               #+xcvb-farmer "quux-iolib"
+               #|#-clisp "rucksack"|#)
     :components
     ((:file "version")
      (:file "pkgdcl" :depends-on ("version"))
@@ -92,4 +93,4 @@ deterministic separate compilation and enforced locally-declared dependencies."
             ("makefile-backend" "static-traversal" "computations" "target-lisp-commands"
                                 "grain-implementation" "asdf-backend" "dependencies-interpreter"))
      (:file "main" :depends-on ("commands")))
-  :in-order-to ((test-op (test-op :xcvb-test))))
+  :in-order-to ((test-op (test-op "xcvb-test"))))

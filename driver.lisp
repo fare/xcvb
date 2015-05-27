@@ -18,7 +18,7 @@
 (in-package :cl-user)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *asdf-version-required-by-xcvb* "3.0.2.13") ;; for its new run-program
+  (defparameter *asdf-version-required-by-xcvb* "3.1.4") ;; for its new run-program
   (defvar *asdf-directory*
     (merge-pathnames #p"cl/asdf/" (user-homedir-pathname))
     "Directory in which your favorite and/or latest version

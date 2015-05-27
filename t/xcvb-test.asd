@@ -1,11 +1,12 @@
 ;;; -*- mode: lisp -*-
 
-(defsystem :xcvb-test
+(defsystem "xcvb-test"
+  :version (:read-file-line "../version.text")
+  :description "Tests for XCVB"
   :author "Peter Keller & Francois-Rene Rideau"
   :maintainer "Francois-Rene Rideau"
   :licence "MIT"
-  :description "Tests for XCVB"
-  :depends-on (:xcvb :hu.dwim.stefil :cl-ppcre :inferior-shell)
+  :depends-on ("xcvb" "hu.dwim.stefil" "cl-ppcre" "inferior-shell")
   :components
   ((:file "package")
    (:file "helpers" :depends-on ("package"))

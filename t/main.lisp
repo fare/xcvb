@@ -26,6 +26,8 @@ using XCVB-test.  Using 'xcvb-test help COMMAND' where COMMAND is
 the name of an XCVB-test command gives specific help on that command.")
   (xcvb::program-help args :name "xcvb-test"))
 
+(defun unit-tests () nil)
+
 (defun main (&rest arguments)
   (with-safe-io-syntax (:package :xcvb-test)
     (let ((*program* "xcvb-test"))
