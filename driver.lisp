@@ -244,9 +244,6 @@ NIL: default to *install-library*/common-lisp/images/, see docs")
   "where to install common-lisp source code and systems, etc.
 NIL: default to *install-data*/common-lisp/, see docs")
 
-(defvar *temporary-directory* (default-temporary-directory)
-  "pathname of directory where to store temporary files")
-
 (defvar *use-base-image* t
   "Should we be using a base image for all builds?")
 
@@ -807,7 +804,7 @@ Entry point for XCVB-DRIVER when used by XCVB"
        (require-xcvb))
      (with-safe-io-syntax ()
        (with-output-to-string (*standard-output*)
-         (apply 'call :xcvb :cmd command))))))
+         (apply 'symbol-call :xcvb :cmd command))))))
 
 (defun build-in-slave (build &rest args &key . #.*bnl-keys-with-defaults*)
   "Entry point to call XCVB to build (but not necessarily load) a system."
