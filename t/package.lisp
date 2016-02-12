@@ -1,8 +1,8 @@
 #+xcvb (module (:description "Unit test package for XCVB"
                 :depends-on ("driver-test")))
 
-(asdf/package:define-package #:xcvb-test
-  (:mix :hu.dwim.stefil :xcvb :fare-utils :asdf/driver
+(uiop/package:define-package #:xcvb-test
+  (:mix :hu.dwim.stefil :xcvb :fare-utils :uiop
         :inferior-shell :lisp-invocation :alexandria :xcvb-driver)
   (:use :closer-common-lisp)
   (:import-from :xcvb-driver

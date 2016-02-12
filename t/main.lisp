@@ -34,4 +34,4 @@ the name of an XCVB-test command gives specific help on that command.")
       (apply 'xcvb::main arguments))))
 
 (defun entry-point ()
-  (apply 'main asdf/image:*command-line-arguments*))
+  (apply 'main uiop/image:*command-line-arguments*))

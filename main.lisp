@@ -421,7 +421,7 @@ command gives specific help on that command.")
           (quit 111))))))
 
 (defun entry-point ()
-  (apply 'main asdf/image:*command-line-arguments*))
+  (apply 'main uiop/image:*command-line-arguments*))
 
 
 (defun initialize-environment ()
